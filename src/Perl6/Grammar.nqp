@@ -209,8 +209,11 @@ role STD {
         }
     }
 
-    token cheat_heredoc {
-        <?{ nqp::elems($*W.herestub_queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
+    token cheat_heredoc($closer?) {
+        <?{ nqp::elems($*W.herestub_queue) }> \h*
+        $<closer>=[ <?{ nqp::isconcrete($closer) }> $closer | <!{ nqp::isconcrete($closer) }> <[ ; } ]> ]
+        [ <?{ $<closer> eq '}' }> \h* ';' ]?
+        \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
     }
 
     method queue_heredoc($delim, $grammar) {
@@ -491,15 +494,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
+    # The slangs every compilation starts with besides MAIN, by name, each
+    # a grammar and its actions. A slang variable built outside a parse
+    # takes its grammar from here.
+    method standard-slangs() {
+        nqp::hash(
+          'Quote',   [Perl6::QGrammar,       Perl6::QActions],
+          'Regex',   [Perl6::RegexGrammar,   Perl6::RegexActions],
+          'P5Regex', [Perl6::P5RegexGrammar, Perl6::P5RegexActions],
+          'Pod',     [Perl6::PodGrammar,     Perl6::PodActions],
+        )
+    }
+
     method TOP() {
         # Language braid.
         my $*LANG := self;
         my $*LEAF := self;  # the leaf cursor, workaround for when we can't pass via $/ into world
-        self.define_slang('MAIN',    self.WHAT,             self.actions);
-        self.define_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
-        self.define_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
-        self.define_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
-        self.define_slang('Pod',     Perl6::PodGrammar,     Perl6::PodActions);
+        self.define_slang('MAIN', self.WHAT, self.actions);
+        for self.standard-slangs {
+            self.define_slang($_.key, $_.value[0], $_.value[1]);
+        }
 
         # Old language braid, going away eventually
         # XXX TODO: if these are going out, be sure to make similar change
@@ -752,7 +766,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?before v\d+\w*
             [ '.' \d
               || <!{ $*W.is_lexical(~$/) }> ]>
-        'v' $<vstr>=[<vnum>+ % '.' '+'?]
+        'v' $<vstr>=[<vnum>+ % '.' ['+' | '-' <!before \w>]? ]
         <!before '-'|\'> # cheat because of LTM fail
     }
 
@@ -1096,7 +1110,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <!!{ $*VARIABLE := '' if $*VARIABLE; 1 }>
             <statementlist(1)>
             { $*CURPAD := $*W.pop_lexpad() }
-            [<.cheat_heredoc> || '}']
+            [<.cheat_heredoc('}')> || '}']
             <?ENDSTMT>
         || <.missing_block($borg, $has_mystery)>
         ]
@@ -1318,7 +1332,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             { $/.typed_panic: 'X::Language::TooLate', version => ~$<version> }
         | <module_name>
             [
-            || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
+            || <.spacey> <arglist> <.cheat_heredoc(';')>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
                     my $oldmain := %*LANG<MAIN>;
                     $*W.do_pragma_or_load_module($/,1);
@@ -1475,7 +1489,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token blorst {
-        [ <?[{]> <block> | <![;]> <statement> <.cheat_heredoc>? || <.missing: 'block or statement'> ]
+        [ <?[{]> <block> | <![;]> <statement> <.cheat_heredoc(';')>? || <.missing: 'block or statement'> ]
     }
 
     ## Statement modifiers
@@ -2701,7 +2715,9 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
         <.ws>
         [
-        | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
+        | <?before '-->' | ')' | ']' | '{' | ';;' >
+        | <?before ':'\s>
+          { $/.typed_sorry('X::Syntax::Signature::InvocantMarker') }
         | <parameter>
         ]+ % <param_sep>
         <.ws>
@@ -3050,13 +3066,13 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
         || <.missing: "initializer on constant declaration">
         ]
 
-        <.cheat_heredoc>?
+        <.cheat_heredoc(';')>?
     }
 
     proto token initializer { <...> }
     token initializer:sym<=> {
-            [<!{$*IN_SIG_DECL // 0 }> || <.typed_panic: "X::Syntax::Variable::SignatureAssignment"> ]
         <sym>
+        [<!{$*IN_SIG_DECL // 0 }> || <.typed_panic: "X::Syntax::Variable::SignatureAssignment"> ]
         [
             <.ws>
             [
@@ -3426,10 +3442,10 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     token sign { '+' | '-' | '−' | '' }
 
     token rat_number { '<' <bare_rat_number> '>' }
-    token bare_rat_number { <?before <.[-−+0..9<>:boxd]>+? '/'> <nu=.signed-integer> '/' <de=integer> }
+    token bare_rat_number { <?before <.[-−+0..9<>:boxd]>+ '/'> <nu=.signed-integer> '/' <de=integer> }
 
     token complex_number { '<' <bare_complex_number> '>' }
-    token bare_complex_number { <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+? 'i'> <re=.signed-number> <?[-−+]> <im=.signed-number> \\? 'i' }
+    token bare_complex_number { <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+ 'i'> <re=.signed-number> <?[-−+]> <im=.signed-number> \\? 'i' }
 
     token typename(:$needs-whitespace) {
         :my %colonpairs;
@@ -5625,47 +5641,59 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 
     token do_nibbling {
-        :my $from := self.pos;
-        :my $to   := $from;
+        :my @nibbles := @*nibbles;
+        :my @from := nqp::list_i(self.pos);   # a list so the subrules can advance it
         [
             <!stopper>
             [
-            || <starter> <nibbler> <stopper>
-                {
-                    my $c := $/;
-                    $to   := $<starter>[-1].from;
-                    if $from != $to {
-                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
-                    }
-
-                    nqp::push(@*nibbles, $<starter>[-1].Str);
-                    nqp::push(@*nibbles, $<nibbler>[-1]);
-                    nqp::push(@*nibbles, $<stopper>[-1].Str);
-
-                    $from := $to := $c.pos;
-                }
-            || <escape>
-                {
-                    my $c := $/;
-                    $to   := $<escape>[-1].from;
-                    if $from != $to {
-                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
-                    }
-
-                    nqp::push(@*nibbles, $<escape>[-1]);
-
-                    $from := $to := $c.pos;
-                }
+            || <.nibble_nesting(@from, @nibbles)>
+            || <.nibble_escape(@from, @nibbles)>
             || .
             ]
         ]*
         {
             my $c := $/;
-            $to   := $c.pos;
+            my int $from := nqp::atpos_i(@from, 0);
+            my int $to   := $c.pos;
             $*LASTQUOTE := [self.pos, $to];
-            if $from != $to || !@*nibbles {
-                nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+            if $from != $to || !@nibbles {
+                nqp::push(@nibbles, nqp::substr($c.orig, $from, $to - $from));
             }
+        }
+    }
+
+    # separate tokens so each block sees a short capture stack, not the whole string's
+    token nibble_nesting(@from, @nibbles) {
+        <starter> <nibbler> <stopper>
+        {
+            my $c := $/;
+            my int $from := nqp::atpos_i(@from, 0);
+            my int $to   := $<starter>.from;
+            if $from != $to {
+                nqp::push(@nibbles, nqp::substr($c.orig, $from, $to - $from));
+            }
+
+            nqp::push(@nibbles, $<starter>.Str);
+            nqp::push(@nibbles, $<nibbler>);
+            nqp::push(@nibbles, $<stopper>.Str);
+
+            nqp::bindpos_i(@from, 0, $c.pos);
+        }
+    }
+
+    token nibble_escape(@from, @nibbles) {
+        <escape>
+        {
+            my $c := $/;
+            my int $from := nqp::atpos_i(@from, 0);
+            my int $to   := $<escape>.from;
+            if $from != $to {
+                nqp::push(@nibbles, nqp::substr($c.orig, $from, $to - $from));
+            }
+
+            nqp::push(@nibbles, $<escape>);
+
+            nqp::bindpos_i(@from, 0, $c.pos);
         }
     }
 

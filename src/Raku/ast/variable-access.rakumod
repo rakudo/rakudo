@@ -23,15 +23,14 @@ class RakuAST::Var
 # A typical lexical variable lookup (e.g. $foo).
 class RakuAST::Var::Lexical
   is RakuAST::Var
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::Sinkable
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has str $.sigil;
     has str $.twigil;
     has RakuAST::Name $.desigilname;
 
-    method new(str $name?, Str :$sigil, Str :$twigil, RakuAST::Name :$desigilname) {
+    method new(Str $name?, Str :$sigil, Str :$twigil, RakuAST::Name :$desigilname) {
         my $obj := nqp::create(self);
         if $name {
             nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!sigil', nqp::substr($name, 0, 1));
@@ -190,13 +189,12 @@ class RakuAST::Var::Lexical::Setting
 # A dynamic variable lookup (e.g. $*foo).
 class RakuAST::Var::Dynamic
   is RakuAST::Var
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has str $.name;
 
-    method new(str $name) {
+    method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Dynamic, '$!name', $name);
         $obj
@@ -280,14 +278,13 @@ class RakuAST::Var::Dynamic
 # A (private) attribute access (e.g. $!foo).
 class RakuAST::Var::Attribute
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has str $.name;
     has RakuAST::Package $!package;
 
-    method new(str $name) {
+    method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Attribute, '$!name', $name);
         $obj
@@ -377,7 +374,7 @@ class RakuAST::Var::Attribute
         ]
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::Impl::QASTContext $context) {
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context) {
         my $class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         if $class.is-resolved
           && nqp::istype($class.resolution, RakuAST::CompileTimeValue) {
@@ -558,6 +555,7 @@ class RakuAST::Var::Attribute
 # Wrapper for $.foo "attribute" accesses
 class RakuAST::Var::Attribute::Public
   is RakuAST::Term
+  does RakuAST::ParseTime
 {
     has str                   $.name;
     has RakuAST::ApplyPostfix $!expression;
@@ -596,7 +594,14 @@ class RakuAST::Var::Attribute::Public
         $visitor($!expression);
     }
 
-    method replace-args(RakuAST::Args $args) {
+    # The parser drives parse time on this node and not on the self term it
+    # builds. A method compiled at BEGIN time would otherwise hold an
+    # unresolved self, which lexical lowering does not count as a use.
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!expression.operand.operand.to-begin-time($resolver, $context);
+    }
+
+    method replace-args(RakuAST::ArgList $args) {
         nqp::bindattr(self, RakuAST::Var::Attribute::Public, '$!has-args', True);
         $!expression.operand.postfix.replace-args($args);
     }
@@ -636,13 +641,13 @@ class RakuAST::Var::Attribute::Public
     }
 }
 
-# The base for special compiler variables ($?FOO).
-class RakuAST::Var::Compiler
-  is RakuAST::Var { }
+# Done by special compiler variables ($?FOO).
+role RakuAST::Var::Compiler { }
 
 # The $?LANG variable which refers to the cursor at that point of the parse.
 class RakuAST::Var::Compiler::Lang
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has Mu $.cursor;
 
@@ -667,7 +672,8 @@ class RakuAST::Var::Compiler::Lang
 
 # The $?FILE variable, which is created pre-resolved to a string value.
 class RakuAST::Var::Compiler::File
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has Str $.file;
 
@@ -692,7 +698,8 @@ class RakuAST::Var::Compiler::File
 
 # The $?LINE variable, which is created pre-resolved to an integer value.
 class RakuAST::Var::Compiler::Line
-  is RakuAST::Var::Compiler
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has Int $.line;
 
@@ -716,8 +723,8 @@ class RakuAST::Var::Compiler::Line
 }
 
 class RakuAST::Var::Compiler::Block
-  is RakuAST::Var::Compiler
-  is RakuAST::CheckTime
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
 {
     has int $!lexical;
 
@@ -744,9 +751,8 @@ class RakuAST::Var::Compiler::Block
 }
 
 class RakuAST::Var::Compiler::Routine
-  is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::ParseTime
+  does RakuAST::Var::Compiler
 {
     method new() {
         my $obj := nqp::create(self);
@@ -774,9 +780,9 @@ class RakuAST::Var::Compiler::Routine
 }
 
 class RakuAST::Var::Compiler::Resources
-  is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::ImplicitLookups
+  does RakuAST::Var::Compiler
+  does RakuAST::ImplicitLookups
 {
     method new() {
         my $obj := nqp::create(self);
@@ -809,9 +815,9 @@ class RakuAST::Var::Compiler::Resources
 }
 
 class RakuAST::Var::Compiler::Distribution
-  is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::ImplicitLookups
+  does RakuAST::Var::Compiler
+  does RakuAST::ImplicitLookups
 {
     method new() {
         my $obj := nqp::create(self);
@@ -845,14 +851,14 @@ class RakuAST::Var::Compiler::Distribution
 
 # A special compiler variable that resolves to a lookup, such as $?PACKAGE.
 class RakuAST::Var::Compiler::Lookup
-  is RakuAST::Var::Compiler
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  is RakuAST::Var
+  does RakuAST::Var::Compiler
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has str $.name;
 
-    method new(str $name) {
+    method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Compiler::Lookup, '$!name', $name);
         $obj
@@ -909,7 +915,7 @@ class RakuAST::Var::Doc
 # A regex positional capture variable (e.g. $0).
 class RakuAST::Var::PositionalCapture
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has Int $.index;
     has str $.sigil;
@@ -966,18 +972,32 @@ class RakuAST::Var::PositionalCapture
 # A regex named capture variable (e.g. $<foo>).
 class RakuAST::Var::NamedCapture
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::QuotedString $.index;
     has str $.sigil;
     has Mu $!colonpairs;
 
-    method new(RakuAST::QuotedString $index, str :$sigil) {
+    method new(RakuAST::QuotedString $index, str :$sigil, List :$colonpairs) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!index', $index);
         nqp::bindattr_s($obj, RakuAST::Var::NamedCapture, '$!sigil', $sigil);
-        nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!colonpairs', []);
+        $obj.set-colonpairs($colonpairs);
         $obj
+    }
+
+    method set-colonpairs(List $pairs) {
+        my @pairs;
+        if $pairs {
+            for self.IMPL-UNWRAP-LIST($pairs) {
+                nqp::push(@pairs, $_);
+            }
+        }
+        nqp::bindattr(self, RakuAST::Var::NamedCapture, '$!colonpairs', @pairs);
+    }
+
+    method colonpairs() {
+        self.IMPL-WRAP-LIST($!colonpairs)
     }
 
     method add-colonpair(RakuAST::ColonPair $pair) {
@@ -1022,9 +1042,8 @@ class RakuAST::Var::NamedCapture
 # A package variable, i.e. $Foo::bar
 class RakuAST::Var::Package
   is RakuAST::Var
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has str $.sigil;
     has str $.twigil;
@@ -1053,7 +1072,7 @@ class RakuAST::Var::Package
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-name(RakuAST::Name.new($!name.root-part))
-            unless $!name.is-empty || nqp::istype($!name.root-part, RakuAST::Name::Part::Empty);
+            unless $!name.is-empty || nqp::istype($!name.root-part, RakuAST::Name::Part::EmptyEdge);
         if $resolved {
             self.set-resolution($resolved);
         }
@@ -1061,7 +1080,8 @@ class RakuAST::Var::Package
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if !self.is-resolved && !$!name.is-installable {
+        # An indirect name is looked up at runtime, even when it is empty.
+        if !self.is-resolved && !$!name.is-installable && !$!name.is-indirect-lookup {
             my $name := $!name.canonicalize;
             self.add-sorry:
                 $resolver.build-exception: 'X::Undeclared', :symbol($!sigil ~ $!twigil ~ $name),
@@ -1140,15 +1160,21 @@ class RakuAST::Var::Package
 
 class RakuAST::Var::Slang
   is RakuAST::Var
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
-    has Mu $!grammar;
-    has Mu $!actions;
+    has str $.name;
+    has Mu  $!grammar;
+    has Mu  $!actions;
 
-    method new(Mu :$grammar!, Mu :$actions!) {
+    method new(str :$name!, Mu :$grammar, Mu :$actions) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Var::Slang, '$!grammar', $grammar);
-        nqp::bindattr($obj, RakuAST::Var::Slang, '$!actions', $actions);
+        nqp::bindattr_s($obj, RakuAST::Var::Slang, '$!name', $name);
+        # a grammar is a type object, so only an absent one is NQPMu
+        nqp::bindattr($obj, RakuAST::Var::Slang, '$!grammar',
+          $grammar =:= NQPMu ?? nqp::null !! $grammar);
+        nqp::bindattr($obj, RakuAST::Var::Slang, '$!actions',
+          $actions =:= NQPMu ?? nqp::null !! $actions);
         $obj
     }
 
@@ -1158,16 +1184,63 @@ class RakuAST::Var::Slang
         ]
     }
 
-    method sigil() { '$' }
+    method sigil()  { '$' }
+    method twigil() { '~' }
+
+    # A slang variable built without a grammar takes it from the parse in
+    # progress, or from the compiler's grammar, which is MAIN and names
+    # its standard slangs.
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::isnull($!grammar) {
+            my $lang := nqp::getlexdyn('$*LANG');
+            if !nqp::isnull($lang) && nqp::can($lang, 'slang_grammar') {
+                my $grammar := $lang.slang_grammar($!name);
+                unless nqp::isnull($grammar) {
+                    nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
+                      $grammar);
+                    nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
+                      $lang.slang_actions($!name));
+                }
+            }
+            if nqp::isnull($!grammar) {
+                my $comp    := nqp::getcomp('Raku');
+                my $grammar := $comp.parsegrammar;
+                if $!name eq 'MAIN' {
+                    nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
+                      $grammar);
+                    nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
+                      $comp.parseactions);
+                }
+                elsif nqp::can($grammar, 'standard-slangs') {
+                    my %slangs := $grammar.standard-slangs;
+                    if nqp::existskey(%slangs, $!name) {
+                        my @slang := nqp::atkey(%slangs, $!name);
+                        nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
+                          @slang[0]);
+                        nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
+                          @slang[1]);
+                    }
+                }
+            }
+            self.add-sorry(
+              $resolver.build-exception: 'X::AdHoc',
+                payload => "No grammar is known for slang '" ~ $!name ~ "'"
+            ) if nqp::isnull($!grammar);
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
+    }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
             :op<callmethod>, :name<new>, :returns(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value),
             QAST::Var.new( :name<Slang>, :scope<lexical> ));
         my $g := $!grammar;
-        $context.ensure-sc($g);
         my $a := $!actions;
         if !nqp::isnull($g) {
+            $context.ensure-sc($g);
             my $wval := QAST::WVal.new( :value($g) );
             $wval.named('grammar');
             $qast.push($wval);

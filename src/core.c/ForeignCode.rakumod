@@ -140,6 +140,8 @@ $lang = 'Raku' if $lang eq 'perl6';
         }
 
         my $*LANGUAGE-REVISION := $comp-unit.language-revision.Int;
+        # Set for compilation only, as the EVALed code runs after this block.
+        my $*INSIDE-EVAL := 1;
 
         # Perform symbol resolution, then compile to QAST and in turn bytecode.
         # The compilation in progress, if any, lends its setting and its

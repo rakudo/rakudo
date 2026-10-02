@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 30;
+plan 41;
 
 my $ast;
 my $deparsed;
@@ -187,6 +187,22 @@ subtest 'Application of a list infix operator on three operands' => {
 
     is-deeply $deparsed, '10, 11, 12', 'deparse';
     is-deeply $_, (10, 11, 12), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Application of a word list infix operator on three operands' => {
+    # 10 min 11 min 12
+    ast RakuAST::ApplyListInfix.new(
+      infix => RakuAST::Infix.new('min'),
+      operands => (
+        RakuAST::IntLiteral.new(10),
+        RakuAST::IntLiteral.new(11),
+        RakuAST::IntLiteral.new(12),
+      )
+    );
+
+    is-deeply $deparsed, '10 min 11 min 12', 'deparse';
+    is-deeply $_, 10, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
@@ -432,5 +448,165 @@ for
         }
     }
 }
+
+subtest 'Declaration as a list infix operand in a statement list' => {
+    # my $x = 1, 2; $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyListInfix.new(
+          infix => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::VarDeclaration::Simple.new(
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('x'),
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::IntLiteral.new(1)
+              )
+            ),
+            RakuAST::IntLiteral.new(2)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+
+    is-deeply $deparsed, "my \$x = 1, 2;\n\$x\n", 'deparse';
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Declaration as an infix operand in a statement list' => {
+    # my $x = 1 and 2; $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left => RakuAST::VarDeclaration::Simple.new(
+            sigil       => '$',
+            desigilname => RakuAST::Name.from-identifier('x'),
+            initializer => RakuAST::Initializer::Assign.new(
+              RakuAST::IntLiteral.new(1)
+            )
+          ),
+          infix => RakuAST::Infix.new('and'),
+          right => RakuAST::IntLiteral.new(2)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+
+    is-deeply $deparsed, "my \$x = 1 and 2;\n\$x\n", 'deparse';
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Folded junction literal keeps its .raku after BEGIN time' => {
+    # my $j = 1 | "a";
+    # $j
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('j'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyInfix.new(
+              left  => RakuAST::IntLiteral.new(1),
+              infix => RakuAST::Infix.new('|'),
+              right => RakuAST::StrLiteral.new('a')
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$j')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my $j = 1 | "a";
+$j
+CODE
+    is $_.raku, 'any(1, "a")', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).raku,
+      'any(1, "a")', 'EVAL of the .raku after BEGIN time';
+}
+
+
+subtest 'A bracketed infix deparses with its brackets' => {
+    # 1 [+] 2
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(1),
+      infix => RakuAST::BracketedInfix.new(RakuAST::Infix.new('+')),
+      right => RakuAST::IntLiteral.new(2)
+    );
+    is-deeply $deparsed, '1 [+] 2', 'deparse';
+
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A postcircumfix under a dotty infix keeps its bracket' => {
+    # my @a = 1 .. 3; @a .= [1, 2]; @a
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('a'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyInfix.new(
+              left  => RakuAST::IntLiteral.new(1),
+              infix => RakuAST::Infix.new('..'),
+              right => RakuAST::IntLiteral.new(3)
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyDottyInfix.new(
+          left  => RakuAST::Var::Lexical.new('@a'),
+          infix => RakuAST::DottyInfix::CallAssign.new,
+          right => RakuAST::Postcircumfix::ArrayIndex.new(
+            index => RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyListInfix.new(
+                  infix    => RakuAST::Infix.new(','),
+                  operands => (RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(2))
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('@a')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @a = 1 .. 3;
+@a .= [1, 2];
+@a
+CODE
+
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+throws-like { 'sub infix:<> () { }'.AST }, X::Comp::Group,
+  'an operator declared with a null name is refused',
+  panic => X::Syntax::Extension::Null;
+throws-like { 'infix:(&)'.AST }, X::Syntax::Adverb,
+  'a signature adverb on an operator category is refused', what => ':(&)';
+throws-like { 'sub foo:(Int) { 1 }'.AST }, X::NYI,
+  'a signature in a declared name is refused where it is written',
+  feature => /signature/;
+throws-like { 'sub foo:{ a => 1 } () { }'.AST },
+  X::Syntax::Extension::TooComplex,
+  'a hash in a declared name is refused where it is written',
+  name => /'a => 1'/;
+is-deeply 'sub infix:["foo"] ($a, $b) { }'.AST.statements.head.expression.name.canonicalize,
+  'infix:<foo>', 'a bracketed list is part of a declared name';
 
 # vim: expandtab shiftwidth=4

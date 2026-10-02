@@ -1436,7 +1436,7 @@ our class Formatter {
                 my @parameters = (^@directives).map: {
 
                     # set up any coercion logic
-                    my $type;
+                    my $type := RakuAST::Type;
                     if @*COERCIONS[$_] -> $coercion {
                         $type := RakuAST::Type::Coercion.new(
                           base-type => RakuAST::Type::Simple.new(

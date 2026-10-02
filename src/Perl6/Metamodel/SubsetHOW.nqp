@@ -67,7 +67,7 @@ class Perl6::Metamodel::SubsetHOW
         my $archetypes := $refinee.HOW.archetypes($refinee);
         $archetypes.generic
           ?? nqp::die("Use of a generic as 'of' type of a subset is not implemented yet")
-          !! nqp::not_i($archetypes.nominalish)
+          !! nqp::not_i($archetypes.nominal || $archetypes.nominalizable)
             ?? nqp::die("The 'of' type of a subset must either be a valid nominal type or a type that can provide one")
             !! nqp::objprimspec($refinee)
               ?? Perl6::Metamodel::Configuration.throw_or_die(

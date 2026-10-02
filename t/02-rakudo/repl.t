@@ -1,8 +1,11 @@
 use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
+use nqp;
 
-plan 49;
+plan 50;
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
@@ -103,6 +106,15 @@ is-run-repl "''\n", "\n", 'an empty string gives back one blank line';
 
 is-run-repl "}\n", /'===SORRY!===' .* 'Unexpected closing bracket'/,
     'syntax error gives a compile-time error';
+
+if $rakuast {
+    is-run-repl «'my &f = sub (--> q:to/END/) { }; say 1'  'say "next"'»,
+      /'Premature heredoc consumption' .* 'next'/,
+      'a heredoc needed while compiling is reported without waiting for more input';
+}
+else {
+    skip 'the legacy frontend does not report this while compiling';
+}
 
 is-run-repl "}\nsay 42", {
     .match: /'===SORRY!===' .* 'Unexpected closing bracket' .* '42'/
@@ -225,7 +237,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
                                               'num32 $i,  num64 $j,',
                     ') = 1, 2, 3, 4, 5, 6, 7, 8, 9e0, 10e0;';
 
-    todo 'https://github.com/rakudo/rakudo/issues/4161' unless $*VM.name eq 'jvm' || %*ENV<RAKUDO_RAKUAST>;
+    todo 'https://github.com/rakudo/rakudo/issues/4161' unless $*VM.name eq 'jvm' || $rakuast;
     is-run-repl "$code\nsay 'test is good';\n",
         :err(''),
         :out(/'(1 2 3 4 5 6 7 8 9 10)' .* 'test is good'/),

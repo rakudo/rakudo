@@ -629,4 +629,51 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     parse_win $result;
 }
 
+my sub GUARDED-NUMERIC(Mu \value) is implementation-detail {
+    nqp::handle(value.Numeric, 'CATCH', Nil)
+}
+
+# What the ACCEPTS of a number literal compares an Any topic that is not
+# a Str by. Only core types whose Numeric cannot throw skip the guard, as a
+# handler keeps a routine from inlining. An Int literal compares an Int itself.
+my sub LITERAL-NUMERIC(Mu \value, \literal) is implementation-detail {
+    my \type = nqp::what(value);
+    nqp::istype(value, Int) && nqp::istype(literal, Int)
+      || nqp::eqaddr(type, Int) || nqp::eqaddr(type, Num) || nqp::eqaddr(type, Rat)
+      ?? value
+      !! nqp::eqaddr(type, IntStr) || nqp::eqaddr(type, NumStr)
+           || nqp::eqaddr(type, RatStr)
+        ?? value.Numeric
+        !! GUARDED-NUMERIC(value)
+}
+
+my sub LITERAL-EQUALS(Mu \numeric, \literal) is implementation-detail {
+    nqp::isconcrete(numeric) && nqp::not_i(nqp::istype(numeric, Nil))
+      ?? (numeric == literal).Bool
+      !! numeric.defined && (numeric == literal).Bool
+}
+
+# Smartmatch of a concrete topic against an Int or non-NaN Num literal, as
+# the literal's ACCEPTS decides it. A Str topic asks for Nil in place of a
+# Failure, which spares building a backtrace for each mismatch.
+sub NUMERIC-LITERAL-ACCEPTS(Mu \topic, \literal) is implementation-detail {
+    my \value = nqp::decont(topic);
+    nqp::eqaddr(nqp::what(value), Str)
+      ?? LITERAL-EQUALS(value.Numeric(:fail-or-nil), literal)
+      !! nqp::istype(value, Any)
+        ?? LITERAL-EQUALS(LITERAL-NUMERIC(value, literal), literal)
+        !! literal.ACCEPTS(value).Bool
+}
+
+# Smartmatch of a concrete topic against a Str literal, as the literal's
+# ACCEPTS decides it, comparing a Str topic's own value rather than its Str.
+sub STR-LITERAL-ACCEPTS(Mu \topic, \literal) is implementation-detail {
+    my \value = nqp::decont(topic);
+    nqp::istype(value, Str)
+      ?? nqp::hllbool(nqp::iseq_s(value, literal))
+      !! nqp::istype(value, Any)
+        ?? nqp::hllbool(nqp::iseq_s(value.Str, literal))
+        !! literal.ACCEPTS(value).Bool
+}
+
 # vim: expandtab shiftwidth=4

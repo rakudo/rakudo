@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 91;
+plan 130;
 
 # A native variable passed to a routine none of whose reachable
 # candidates take that position rw is passed as a value, so a raw
@@ -165,6 +165,63 @@ sub g(int $x) { }
     is $b !%% ($b = 3), $a !%% ($a = 3), 'a native operand of a negated operator is read at bind time, as a container is';
 }
 {
+    sub f($x, $y) { "$x,$y" }
+    my Int $a = 1; my int $b = 1;
+    is f($b || 5, $b = 7), f($a || 5, $a = 7), 'a native condition yielded by || is read at bind time, as a container is';
+    my Int $c = 0; my int $d = 0;
+    is f($d && 5, $d = 7), f($c && 5, $c = 7), 'a native condition yielded by && is read at bind time, as a container is';
+}
+{
+    sub f($x, $y) { $x }
+    my Int $a = 0; my int $b = 0;
+    sub wa() { $a = 1; 9 }
+    sub wb() { $b = 1; 9 }
+    is f($b || 5, wb()), f($a || 5, wa()), 'a conditional argument takes its branch where it stands, as a container does';
+    my Int $c = 1; my int $d = 1;
+    sub wc() { $c = 0; 9 }
+    sub wd() { $d = 0; 9 }
+    is f($d && 5, wd()), f($c && 5, wc()), 'a conditional argument of && takes its branch where it stands, as a container does';
+}
+{
+    multi sub g(int $x) { 'native' }
+    multi sub g(Int $x) { 'boxed' }
+    my int $i = 1;
+    is g($i || 5), g($i), 'a native condition reaches the candidate the variable itself reaches';
+    my int $j = 0;
+    is g($j && 5), g($j), 'a native condition of && reaches the candidate the variable itself reaches';
+    multi sub h($a, int $x) { 'native' }
+    multi sub h($a, Int $x) { 'boxed' }
+    my $o = 3; my int $k = 1;
+    is h($o, $k || 5), h($o, $k), 'an object argument ahead of a native condition leaves the candidate it reaches';
+}
+{
+    sub f($a, int $x is rw, :$z) { $x = $x + 10 }
+    my int $i = 1; f(:z, Any, $i || 5);
+    is $i, 11, 'a named argument ahead of the positionals leaves the position a native condition binds';
+    sub h($a, $b, int $x is rw) { $x = $x + 10 }
+    my @two = 1, 2; my int $j = 1; h(|@two, $j || 5);
+    is $j, 11, 'a flattened argument ahead of a native condition keeps its reference';
+}
+{
+    sub f(**@a) { @a }
+    my int $i = 1;
+    my $r = f($i || 5); $i = 7;
+    is $r[0], 7, 'a double-star slurpy holds a live view of a native condition';
+    sub g(*@a) { @a }
+    my int $j = 1;
+    my $s = g($j || 5); $j = 7;
+    is $s[0], 1, 'a slurpy parameter holds a snapshot of a native condition';
+}
+{
+    sub f(int $x is rw) { $x = $x + 10 }
+    my int $i = 1; my int $j = 2;
+    f($i || $j);
+    is $i, 11, 'a native condition with a variable branch passes its reference';
+    my int $k = 0; my int $l = 3;
+    f($k || $l);
+    is $l, 13, 'the branch of a native conditional passes its reference when it is taken';
+}
+{
     my Int $a = 1; my int $b = 1;
     is (0 < $b < ($b = 7)), (0 < $a < ($a = 7)), 'the middle operand of a chain is read at the bind of each link, as a container is';
     is (0 !> $b < ($b = 7)), (0 !> $a < ($a = 7)), 'the middle operand after a negated link is read at the bind of each link, as a container is';
@@ -217,6 +274,95 @@ sub g(int $x) { }
 {
     my Int $a = 2; my int $b = 2;
     is (0 < 1 < $b < ($b = 7)), (0 < 1 < $a < ($a = 7)), 'the middle operand of a chain of three links is read at the bind of its link, as a container is';
+}
+
+# A native assignment to a lexical yields the reference, so an
+# assignment to an rw native parameter passes that parameter's reference
+# on, also when a native read comes ahead of it.
+{
+    sub f(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { f($t, $p = $p + 1) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { f($t, ($p = $p + 1)) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'a parenthesized assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(int $n, int $x is rw) { $x = $x + $n }
+    sub g(int $n, int $p is rw) { f($n, $p += 1) }
+    my int $i = 1; g(100, $i);
+    is $i, 102, 'a compound assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { my int $q; f($t, $p = $q = 5) }
+    my int $i = 1; g('x', $i);
+    is $i, 15, 'a chained assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { f($t, $p max= 3) }
+    my int $i = 1; g('x', $i);
+    is $i, 13, 'a metaop assignment to an rw native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, \x) { x = x + 10 }
+    sub g(str $t, int $p is rw) { f($t, $p = $p + 1) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw native parameter after a native read passes the reference to a raw parameter';
+}
+{
+    sub f(str $t, int :$x! is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { f($t, :x($p = $p + 1)) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw native parameter after a native read passes the reference to a named rw parameter';
+}
+{
+    multi sub infix:<rw-add>(str $t, int $x is rw) { $x = $x + 10 }
+    sub g(str $t, int $p is rw) { $t rw-add ($p = $p + 1) }
+    my int $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw native parameter after a native read passes the reference to an rw operand';
+}
+{
+    sub f(int $a, int $x is rw) { "$a,$x" }
+    sub g(int $p is rw) { f($p, $p = 7) }
+    my int $i = 1;
+    is g($i), '7,7', 'an rw native parameter read ahead of an assignment to it is read at bind time';
+}
+{
+    sub f(int $a, int $x is rw, :$z) { $x = $x + 10; $a }
+    sub h() { 3 }
+    sub g(int $p is rw) { f(:z(h()), $p, $p = 7) }
+    my int $i = 1;
+    is g($i) ~ ",$i", '7,17', 'an assignment to an rw native parameter after a native read and an impure named argument passes the reference';
+}
+{
+    multi sub infix:<rw-adv>(str $t, int $x is rw, :$z) { $x = $x + 10 + $z }
+    sub g(str $t, int $p is rw) { $t rw-adv ($p = $p + 1) :z(100) }
+    my int $i = 1; g('x', $i);
+    is $i, 112, 'an assignment to an rw native parameter after a native read passes the reference to an adverbed rw operand';
+}
+{
+    sub f(str $t, uint $x is rw) { $x = $x + 10 }
+    sub g(str $t, uint $p is rw) { f($t, $p = $p + 1) }
+    my uint $i = 1; g('x', $i);
+    is $i, 12, 'an assignment to an rw unsigned native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(str $t, num $x is rw) { $x = $x + 10e0 }
+    sub g(str $t, num $p is rw) { f($t, $p = $p + 1e0) }
+    my num $i = 1e0; g('x', $i);
+    is $i, 12e0, 'an assignment to an rw num native parameter after a native read passes the reference to an rw parameter';
+}
+{
+    sub f(int $n, str $x is rw) { $x = $x ~ '!' }
+    sub g(int $n, str $p is rw) { f($n, $p = $p ~ '?') }
+    my str $i = 'a'; g(1, $i);
+    is $i, 'a?!', 'an assignment to an rw str native parameter after a native read passes the reference to an rw parameter';
 }
 
 {
@@ -303,6 +449,26 @@ sub qast-count-calls(Mu $qast, str $op, str $callee --> Int) {
         $count += qast-count-calls($_, $op, $callee) for $qast.list;
     }
     $count
+}
+# The scope of the condition of a two operand conditional a named call
+# passes, or ''.
+sub qast-condition-scope(Mu $qast, str $callee --> Str) {
+    if nqp::istype($qast, QAST::Op) && $qast.name eq $callee {
+        for $qast.list -> Mu $arg is raw {
+            my Mu $node := $arg;
+            $node := $node.list[0]
+                while nqp::istype($node, QAST::Stmts) && nqp::elems($node.list) == 1;
+            return $node.list[0].scope
+                if nqp::istype($node, QAST::Op) && $node.op eq 'if' | 'unless';
+        }
+    }
+    if qast-descendable $qast {
+        for $qast.list {
+            my $found = qast-condition-scope($_, $callee);
+            return $found if $found;
+        }
+    }
+    ''
 }
 # Whether any temporary a native read or an inlined body binds appears.
 sub qast-has-temporary(Mu $qast --> Bool) {
@@ -497,8 +663,44 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         my int $b = 1;
         is f($b, ($b = 7), $b), '7,7,7', 'both reads around a writing argument read after it';
     }
-    qast-is 'sub f($x, $y) { }; my int $i = 1; f($i, ($i = 7));', :full, -> \v { qast-has-temporary(v) },
+    qast-is 'sub f($x, $y) { }; my int $i = 1; sub w() { $i = 7 }; f($i, w());', :full, -> \v { qast-has-temporary(v) },
         'a writing argument after a native read binds a temporary in sink context';
+    qast-is 'sub f(int $x, int $y is rw) { }; sub g(int $p is rw) { f($p, $p = 7) }', :full, -> \v {
+        qast-first-arg-scope(v, '&f') eq 'lexicalref' and not qast-has-temporary(v)
+    }, 'an assignment to a native reference after a native read keeps the references of the call';
+    qast-is 'sub f(int $x, int $y) { }; class NativeAttributeTarget { has int $!a; method m(int $n) { f($n, $!a = 7) } }', :full,
+        -> \v { qast-has-temporary(v) },
+        'an assignment to a native attribute after a native read binds a temporary';
+    qast-is 'sub f($x) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument to a value parameter passes as a value';
+    qast-is 'sub f(\\x) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexicalref' },
+        'a native condition of a short circuit argument to a raw parameter stays a reference';
+    qast-is 'multi sub f(int $x) { }; multi sub f(Int $x) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexicalref' },
+        'a native condition of a short circuit argument to a dispatch with a native candidate there stays a reference';
+    qast-is 'multi sub f(int $a, int $x) { }; multi sub f(Int $a, Int $x) { }; my $o; my int $i; f($o, $i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument passes as a value when the native candidates are out of reach';
+    qast-is 'sub f(int $x) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument to a native parameter passes as a value';
+    qast-is 'sub f($x is copy) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument to a copy parameter passes as a value';
+    qast-is 'sub f(*@a) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexical' },
+        'a native condition of a short circuit argument to a slurpy parameter passes as a value';
+    qast-is 'sub f(**@a) { }; my int $i; f($i || 5)', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexicalref' },
+        'a native condition of a short circuit argument to a double-star slurpy stays a reference';
+    qast-is 'class NativeConditionAttribute { has int $!a; method m($x) { f($!a || 5) } }; sub f($x) { }', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'attribute' },
+        'a native attribute condition of a short circuit argument passes as a value';
+    qast-is 'sub f($x, $y) { }; my int $i; sub w() { $i = 7 }; f($i || 5, w())', :full,
+        -> \v { qast-condition-scope(v, '&f') eq 'lexicalref' },
+        'a call that moves an argument past a native condition keeps the reference';
     qast-is 'my int $i = 1; sub f() { 2 }; my $r = $i + f()', :full, -> \v {
         qast-reads-last(v, '&infix:<+>', '$i')
     }, 'an impure operand after a native read is evaluated into a temporary ahead of the read';
@@ -517,7 +719,7 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         'the middle operand of a chain whose last operand is impure stays a reference';
 }
 else {
-    skip 'argument passing shapes are specific to the RakuAST frontend', 42;
+    skip 'argument passing shapes are specific to the RakuAST frontend', 54;
 }
 
 # vim: expandtab shiftwidth=4

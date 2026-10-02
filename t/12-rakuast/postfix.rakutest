@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 20;
+plan 43;
 
 my $ast;
 my $deparsed;
@@ -38,7 +38,7 @@ subtest 'Application of a negative power postfix operator' => {
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
-# XXX enable test when RAKUDO_RAKUAST=1 is default
+# XXX enable test when RAKUDO_RAKUAST=1 and 6.e are default
 #subtest 'Application of a vulgar postfix operator' => {
 #    # 3²/₃
 #    ast RakuAST::ApplyPostfix.new(
@@ -427,6 +427,765 @@ subtest 'Multi-dimensional hash indexing with colonpairs' => {
 
     is-deeply $deparsed, '%h{"y"; "a"}:v', 'deparse';
     is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Postfix on a parenthesized prefix application' => {
+    # (-1).abs
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::ApplyPrefix.new(
+        prefix  => RakuAST::Prefix.new('-'),
+        operand => RakuAST::IntLiteral.new(1)
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('abs')
+      )
+    );
+    is-deeply $deparsed, '(-1).abs', 'deparse';
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Postfix on a parenthesized ternary' => {
+    # (True ?? 2 !! 3).succ
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Ternary.new(
+        condition => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True')),
+        then      => RakuAST::IntLiteral.new(2),
+        else      => RakuAST::IntLiteral.new(3)
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('succ')
+      )
+    );
+    is-deeply $deparsed, '(True ?? 2 !! 3).succ', 'deparse';
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Postfix on a parenthesized declaration in a statement list' => {
+    # (my $x = 41).succ; $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::VarDeclaration::Simple.new(
+            sigil       => '$',
+            desigilname => RakuAST::Name.from-identifier('x'),
+            initializer => RakuAST::Initializer::Assign.new(
+              RakuAST::IntLiteral.new(41)
+            )
+          ),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('succ')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+(my $x = 41).succ;
+$x
+CODE
+    is-deeply $_, 41, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Postfix on a parenthesized call without parentheses' => {
+    # (min 1, 5).succ
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Call::Name::WithoutParentheses.new(
+        name => RakuAST::Name.from-identifier('min'),
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(1),
+          RakuAST::IntLiteral.new(5)
+        )
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('succ')
+      )
+    );
+    is-deeply $deparsed, '(min 1, 5).succ', 'deparse';
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Postfix on a parenthesized reduction' => {
+    # ([*] 2, 3).succ
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Term::Reduce.new(
+        infix => RakuAST::Infix.new('*'),
+        args  => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(2),
+          RakuAST::IntLiteral.new(3)
+        )
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('succ')
+      )
+    );
+    is-deeply $deparsed, '([*] 2, 3).succ', 'deparse';
+    is-deeply $_, 7, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Postfix on a parenthesized statement prefix' => {
+    # (do 40, 1).elems
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::StatementPrefix::Do.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyListInfix.new(
+            infix    => RakuAST::Infix.new(','),
+            operands => (
+              RakuAST::IntLiteral.new(40),
+              RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('elems')
+      )
+    );
+    is-deeply $deparsed, '(do 40, 1).elems', 'deparse';
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Postfix on a parenthesized fat arrow pair' => {
+    # (a => 1).key
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::FatArrow.new(
+        key   => 'a',
+        value => RakuAST::IntLiteral.new(1)
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('key')
+      )
+    );
+    is-deeply $deparsed, '(a => 1).key', 'deparse';
+    is-deeply $_, 'a', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Postfix on a parenthesized sigilless declaration in a statement list' => {
+    # (my \x = 41).succ; x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::VarDeclaration::Term.new(
+            name        => RakuAST::Name.from-identifier('x'),
+            initializer => RakuAST::Initializer::Assign.new(
+              RakuAST::IntLiteral.new(41)
+            )
+          ),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('succ')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('x'))
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+(my \x = 41).succ;
+x
+CODE
+    is-deeply $_, 41, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Postfix on a parenthesized block' => {
+    # ({ $_ + 1 })(41)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyInfix.new(
+                left  => RakuAST::Var::Lexical.new('$_'),
+                infix => RakuAST::Infix.new('+'),
+                right => RakuAST::IntLiteral.new(1)
+              )
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Term.new(
+        args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(41))
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+({
+    $_ + 1
+})(41)
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Declaration inside a subscript in a statement list' => {
+    # my %h = a => 1; my $v = %h{my $k = "a"}; $v
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '%',
+          desigilname => RakuAST::Name.from-identifier('h'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::FatArrow.new(
+              key   => 'a',
+              value => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('v'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('%h'),
+              postfix => RakuAST::Postcircumfix::HashIndex.new(
+                index => RakuAST::SemiList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::VarDeclaration::Simple.new(
+                      sigil       => '$',
+                      desigilname => RakuAST::Name.from-identifier('k'),
+                      initializer => RakuAST::Initializer::Assign.new(
+                        RakuAST::StrLiteral.new('a')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$v')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my %h = a => 1;
+my $v = %h{my $k = "a"};
+$v
+CODE
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Array index with an assignee' => {
+    my @a;
+
+    # @a[0] = 42
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('@a'),
+      postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+        index => RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(0)
+          )
+        ),
+        assignee => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, '@a[0] = 42', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        @a = ();
+
+        is-deeply EVAL($it), 42, "$type: did we get the assigned value";
+        is-deeply @a[0], 42, "$type: was the element assigned";
+    }
+}
+
+subtest 'Literal hash index with an assignee' => {
+    my %h;
+
+    # %h<a> = 42
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('%h'),
+      postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+        index => RakuAST::QuotedString.new(
+          segments => [RakuAST::StrLiteral.new('a')],
+          processors => ['words','val']
+        ),
+        assignee => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, '%h<a> = 42', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        %h = ();
+
+        is-deeply EVAL($it), 42, "$type: did we get the assigned value";
+        is-deeply %h<a>, 42, "$type: was the element assigned";
+    }
+}
+
+subtest 'Argument list applied to a term' => {
+    # my \t = {
+    #     41 + $_
+    # };
+    # my $f = t;
+    # t.(1) + $f(1)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Term.new(
+          name        => RakuAST::Name.from-identifier('t'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::ApplyInfix.new(
+                      left  => RakuAST::IntLiteral.new(41),
+                      infix => RakuAST::Infix.new('+'),
+                      right => RakuAST::Var::Lexical.new('$_')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('f'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('t'))
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Term::Name.new(
+              RakuAST::Name.from-identifier('t')
+            ),
+            postfix => RakuAST::Call::Term.new(
+              args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(1))
+            )
+          ),
+          infix => RakuAST::Infix.new('+'),
+          right => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('$f'),
+            postfix => RakuAST::Call::Term.new(
+              args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(1))
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my \t = {
+    41 + $_
+};
+my $f = t;
+t.(1) + $f(1)
+CODE
+    is-deeply $_, 84, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'WhateverCode keeps its .raku after BEGIN time' => {
+    # (* > 1)(2)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Term::Whatever.new,
+              infix => RakuAST::Infix.new('>'),
+              right => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Term.new(
+        args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(2))
+      )
+    );
+    is-deeply $deparsed, '(* > 1)(2)', 'deparse';
+    is-deeply $_, True, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku), True,
+      'EVAL of the .raku after BEGIN time';
+}
+
+subtest 'HyperWhateverCode keeps its .raku after BEGIN time' => {
+    # (** + 1)(1, 2)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Term::HyperWhatever.new,
+              infix => RakuAST::Infix.new('+'),
+              right => RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Term.new(
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(1),
+          RakuAST::IntLiteral.new(2)
+        )
+      )
+    );
+    is-deeply $deparsed, '(** + 1)(1, 2)', 'deparse';
+    is-deeply $_.List, (2, 3), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply $ast.DEPARSE, $deparsed, 'deparse after BEGIN time';
+    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).List,
+      (2, 3), 'EVAL of the .raku after BEGIN time';
+}
+
+
+subtest 'An anonymous declaration under a method call keeps its parentheses' => {
+    # ($).WHAT
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::VarDeclaration::Anonymous.new(
+        scope => 'state',
+        sigil => '$'
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('WHAT')
+      )
+    );
+    is-deeply $deparsed, '($).WHAT', 'deparse';
+
+    is-deeply $_, Any, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A number with a qualified method call keeps its parentheses' => {
+    # (42).::Str::abs
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.new(
+          RakuAST::Name::Part::EmptyEdge.new,
+          RakuAST::Name::Part::Simple.new('Str'),
+          RakuAST::Name::Part::Simple.new('abs')
+        )
+      )
+    );
+    is-deeply $deparsed, '(42).::Str::abs', 'deparse';
+
+    throws-like { EVAL($_) }, X::Method::InvalidQualifier, @type[$++]
+      for $ast, $deparsed, EVAL($raku);
+}
+
+
+subtest 'An imaginary postfix after a word is separated from it' => {
+    # π\i + Inf\i
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::ApplyPostfix.new(
+        operand => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('π')),
+        postfix => RakuAST::Postfix.new(operator => 'i')
+      ),
+      infix => RakuAST::Infix.new('+'),
+      right => RakuAST::ApplyPostfix.new(
+        operand => RakuAST::NumLiteral.new(Inf),
+        postfix => RakuAST::Postfix.new(operator => 'i')
+      )
+    );
+    is-deeply $deparsed, 'π\i + Inf\i', 'deparse';
+
+    is-deeply $_, π\i + Inf\i, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A colonpair under a subscript keeps its parentheses' => {
+    # (:42a)<foo>
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::ColonPair::Number.new(
+        key   => 'a',
+        value => RakuAST::IntLiteral.new(42)
+      ),
+      postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+        index => RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('foo')],
+          :processors<words val>
+        )
+      )
+    );
+    is-deeply $deparsed, '(:42a)<foo>', 'deparse';
+
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Multi-dimensional index through a multislice prefix' => {
+    my @a = [1, 2], [3, 4];
+
+    # @a[||(1; 0)]
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('@a'),
+      postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+        index => RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyPrefix.new(
+              prefix  => RakuAST::Prefix::Multislice.new,
+              operand => RakuAST::Circumfix::Parentheses.new(
+                RakuAST::SemiList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::IntLiteral.new(1)
+                  ),
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::IntLiteral.new(0)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '@a[||(1; 0)]', 'deparse';
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A call on the result of a method call keeps its dot' => {
+    # my $o = class { method c { -> { 42 } } }.new;
+    # $o.c.()
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('o'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Class.new(
+                body => RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::Method.new(
+                          name => RakuAST::Name.from-identifier('c'),
+                          body => RakuAST::Blockoid.new(
+                            RakuAST::StatementList.new(
+                              RakuAST::Statement::Expression.new(
+                                expression => RakuAST::PointyBlock.new(
+                                  body => RakuAST::Blockoid.new(
+                                    RakuAST::StatementList.new(
+                                      RakuAST::Statement::Expression.new(
+                                        expression => RakuAST::IntLiteral.new(42)
+                                      )
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('new')
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('$o'),
+            postfix => RakuAST::Call::Method.new(
+              name => RakuAST::Name.from-identifier('c')
+            )
+          ),
+          postfix => RakuAST::Call::Term.new
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my $o = class {
+    method c {
+        -> {
+            42
+        }
+    }
+}.new;
+$o.c.()
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my $o = class { method c(|) { -> { 42 } } }.new;
+    # my @r = $o.c(1).(), $o."c"().();
+    # given $o { @r.push(.c.()) };
+    # @r
+    ast Q:to/SOURCE/.AST;
+    my $o = class { method c(|) { -> { 42 } } }.new;
+    my @r = $o.c(1).(), $o."c"().();
+    given $o { @r.push(.c.()) };
+    @r
+    SOURCE
+    ok $deparsed.contains('my @r = $o.c(1)(), $o."c"()();'),
+      'a call on a call with parentheses of its own needs no dot';
+    ok $deparsed.contains('@r.push(.c.())'),
+      'a call on a topic call keeps its dot';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of those calls parses back to itself';
+
+    is-deeply $_, [42, 42, 42], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A term that ends in an adverb is parenthesized under a postfix' => {
+    # "abc" ~~ /$<p>=a/;
+    # (($<p>:exists)[0], (%<p>:exists)<a>, ($<p>:exists).List)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::StrLiteral.new('abc'),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::QuotedRegex.new(
+            body => RakuAST::Regex::NamedCapture.new(
+              name  => 'p',
+              regex => RakuAST::Regex::Literal.new('a')
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(','),
+                operands => (
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('p'),)
+                      ),
+                      sigil      => '$',
+                      colonpairs => (RakuAST::ColonPair::True.new('exists'),)
+                    ),
+                    postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+                      index => RakuAST::SemiList.new(
+                        RakuAST::Statement::Expression.new(
+                          expression => RakuAST::IntLiteral.new(0)
+                        )
+                      )
+                    )
+                  ),
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('p'),)
+                      ),
+                      sigil      => '%',
+                      colonpairs => (RakuAST::ColonPair::True.new('exists'),)
+                    ),
+                    postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+                      index => RakuAST::QuotedString.new(
+                        segments   => (RakuAST::StrLiteral.new('a'),),
+                        processors => <words val>
+                      )
+                    )
+                  ),
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('p'),)
+                      ),
+                      sigil      => '$',
+                      colonpairs => (RakuAST::ColonPair::True.new('exists'),)
+                    ),
+                    postfix => RakuAST::Call::Method.new(
+                      name => RakuAST::Name.from-identifier('List')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+"abc" ~~ /$<p>=a/;
+(($<p>:exists)[0], (%<p>:exists)<a>, ($<p>:exists).List)
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, (True, Nil, (True,)), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my %h = a => 1;
+    # my @a = 1;
+    # ((%h<a>:exists).List, (@a[0]:exists)[0], (%h<a>:p)<a>)
+    ast Q:to/SOURCE/.AST;
+    my %h = a => 1;
+    my @a = 1;
+    ((%h<a>:exists).List, (@a[0]:exists)[0], (%h<a>:p)<a>)
+    SOURCE
+    is-deeply $deparsed.lines.tail,
+      '((%h<a>:exists).List, (@a[0]:exists)[0], (%h<a>:p)<a>)',
+      'deparse of subscripts with an adverb under a postfix';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of those subscripts parses back to itself';
+
+    is-deeply $_, ((True,), True, 1), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A call on the value of a public attribute keeps its dot' => {
+    # my class C {
+    #     has $.c = -> {
+    #         42
+    #     };
+    #     method m {
+    #         $.c.()
+    #     }
+    # }
+    # C.new.m
+    ast Q:to/SOURCE/.AST;
+    my class C { has $.c = -> { 42 }; method m { $.c.() } }
+    C.new.m
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my class C {
+    has $.c = -> {
+        42
+    };
+    method m {
+        $.c.()
+    }
+}
+C.new.m
+CODE
+
+    is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

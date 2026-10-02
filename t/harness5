@@ -44,7 +44,7 @@ my @files = grep m/^[^-]/, @ARGV;
 
 $ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
 $ENV{'RAKULIB'} = "./lib";
-my $rakuast = $ENV{'RAKUDO_RAKUAST'};
+my $rakuast = ((!exists $ENV{'RAKUDO_RAKUAST'}) || $ENV{'RAKUDO_RAKUAST'});
 
 my @slow;
 if ($list_file) {

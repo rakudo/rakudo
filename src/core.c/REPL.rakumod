@@ -394,7 +394,9 @@ do {
 
                 when X::AdHoc {
                     my str $message = .message;
-                    if $message eq 'Premature heredoc consumption'
+                    # Code that needs a heredoc while compiling dies the
+                    # same however much input follows.
+                    if $message eq 'Premature heredoc consumption' && $_ !~~ X::Comp
                       || $message.starts-with('Ending delimiter ')
                       || $message.starts-with("Couldn't find terminator")
                       || $message.contains("is immediately followed by a combining codepoint") {

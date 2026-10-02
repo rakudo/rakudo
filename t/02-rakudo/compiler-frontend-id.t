@@ -13,7 +13,7 @@ my $code = 'print $*RAKU.compiler.id';
 my %with-rakuast = %*ENV;
 %with-rakuast<RAKUDO_RAKUAST> = 1;
 my %without-rakuast = %*ENV;
-%without-rakuast<RAKUDO_RAKUAST>:delete;
+%without-rakuast<RAKUDO_RAKUAST> = 0;
 
 my $rakuast-id = run($*EXECUTABLE.absolute, '-e', $code, :env(%with-rakuast), :out)
     .out.slurp(:close);

@@ -1,4 +1,4 @@
-class OperatorProperties {
+augment class OperatorProperties {
 # defined in src/Raku/ast/operator-properties
 #    has str $.precedence;
 #    has str $.sub-precedence;

@@ -68,6 +68,7 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
         :compiler-args[|@fixture, '-M', 'MFlag::Fixture)'],
         :err(/'Malformed -M argument' \s+ 'at -M:1' .* 'use MFlag::Fixture'/), :exitcode(1);
 
+    todo 'argvQuote in src/runner/runner.c writes an empty arg as nothing rather than "", so on windows the empty string is dropped and -M takes the script path instead' if $*DISTRO.is-win;
     is-run 'say 1',
         'an empty -M is reported as malformed',
         :compiler-args['-M', ''],

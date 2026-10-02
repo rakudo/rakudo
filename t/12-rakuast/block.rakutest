@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 5;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -220,6 +220,192 @@ CODE
         lives-ok { $block() },
           "$type: That $type parameter is optional";
     }
+}
+
+subtest 'A pointy block with an empty signature' => {
+    # -> { 101 }
+    my $signature := RakuAST::Signature.new;
+    $signature.set-parameters-initialized;
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::PointyBlock.new(
+        :$signature,
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(101)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    101
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        is $block.signature.params.elems, 0,
+          "$type: The block has no parameters";
+        is $block(), 101,
+          "$type: Invoking the block returns the expected value";
+    }
+}
+
+
+subtest 'An empty parameter list counts as initialized' => {
+    # -> { 101 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(parameters => ()),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(101)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    101
+}
+CODE
+    ok $ast.signature.parameters-initialized, 'the signature is initialized';
+    is-deeply $ast.signature.raku, "RakuAST::Signature.new(\n  parameters => ()\n)",
+      'the empty list is written as ()';
+    is-deeply EVAL($raku).raku, $ast.raku, 'the .raku builds the same tree';
+    is-deeply RakuAST::Signature.new.raku, 'RakuAST::Signature.new',
+      'a signature that was never given parameters writes none';
+    my $parsed := Q{-> { 101 }}.AST;
+    is-deeply EVAL('use experimental :rakuast; ' ~ $parsed.raku).raku, $parsed.raku,
+      'parsed: the .raku of a block with an empty signature builds the same tree';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        is $block.signature.params.elems, 0,
+          "$type: The block has no parameters";
+        is $block(), 101,
+          "$type: Invoking the block returns the expected value";
+    }
+}
+
+subtest 'A pointy block whose parameters are all rw is written with <->' => {
+    # <-> $a { $a = 42 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$a>),
+            :default-rw
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$a'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::IntLiteral.new(42)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+<-> $a {
+    $a = 42
+}
+CODE
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $v = 1;
+        $block($v);
+        is $v, 42, "$type: the block writes to its argument";
+    }
+
+    # -> $a is rw, $b { $a = $b }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$a>),
+            :default-rw
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$a'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Var::Lexical.new('$b')
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse with only one parameter flagged rw';
+-> $a is rw, $b {
+    $a = $b
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $v = 1;
+        $block($v, 42);
+        is $v, 42, "$type: the flagged parameter writes to its argument";
+    }
+
+    # (<-> $a, $b { }, -> $a is rw, $b { })
+    ast Q:to/SOURCE/.AST;
+    (<-> $a, $b { }, -> $a is rw, $b { })
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse of parsed blocks';
+(<-> $a, $b { }, -> $a is rw, $b { })
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of the parsed blocks parses back to itself';
+}
+
+subtest 'A list declaration in the body of a pointy block' => {
+    # -> $x {
+    #     my ($a, %b) = $x, (c => 1);
+    #     $a + %b<c>
+    # }
+    ast Q:to/SOURCE/.AST.statements[0].expression;
+    -> $x { my ($a, %b) = $x, (c => 1); $a + %b<c> }
+    SOURCE
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> $x {
+    my ($a, %b) = $x, (c => 1);
+    $a + %b<c>
+}
+CODE
+
+    is-deeply $_.(41), 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

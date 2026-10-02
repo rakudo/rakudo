@@ -4,7 +4,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 12;
+plan 25;
 
 my $ast;
 my $deparsed;
@@ -118,7 +118,7 @@ subtest 'Heredoc involving an interpolated block' => {
     );
 
     is-deeply $deparsed,
-      qq:!s:!c|qq:to//\nAn {\n    $bv\n} block\n\n|,
+      qq:!s:!c|qq:to//\nAn { $bv } block\n\n|,
       'deparse';
 
     is-deeply $_, "An interpolated block\n", @type[$++]
@@ -255,6 +255,470 @@ subtest 'Using the exec processor alone gives expected result' => {
       'deparse';
 
     is-deeply $_, "123\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A heredoc outside an argument list puts its body after the statement' => {
+    # my $x = qq:to/END/;
+    # hi
+    # END
+    # $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Heredoc.new(
+              :segments[RakuAST::StrLiteral.new("hi\n")],
+              :stop("END\n")
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = qq:to/END/;
+hi
+END
+$x
+CODE
+
+    is-deeply $_, "hi\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A heredoc in a ternary puts its body after the statement' => {
+    # my $y = 1 ?? qq:to/A/ !! qq:to/B/;
+    # a
+    # A
+    # b
+    # B
+    # $y
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('y'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Ternary.new(
+              condition => RakuAST::IntLiteral.new(1),
+              then      => RakuAST::Heredoc.new(
+                :segments[RakuAST::StrLiteral.new("a\n")],
+                :stop("A\n")
+              ),
+              else      => RakuAST::Heredoc.new(
+                :segments[RakuAST::StrLiteral.new("b\n")],
+                :stop("B\n")
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$y')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $y = 1 ?? qq:to/A/ !! qq:to/B/;
+a
+A
+b
+B
+$y
+CODE
+
+    is-deeply $_, "a\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A heredoc in an inline block puts its body after the enclosing statement' => {
+    # map({ qq:to/END/ }, 1)
+    # hi
+    # END
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('map'),
+          args => RakuAST::ArgList.new(
+            RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Heredoc.new(
+                      :segments[RakuAST::StrLiteral.new("hi\n")],
+                      :stop("END\n")
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::IntLiteral.new(1)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+map({ qq:to/END/ }, 1)
+hi
+END
+CODE
+
+    is-deeply $_.List, ("hi\n",), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A heredoc in the condition of a block statement puts its body after the opener line' => {
+    # my $r = do given qq:to/END/ {
+    # hi
+    # END
+    #     .uc.chomp
+    # };
+    # $r
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('r'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StatementPrefix::Do.new(
+              RakuAST::Statement::Given.new(
+                source => RakuAST::Heredoc.new(
+                  :segments[RakuAST::StrLiteral.new("hi\n")],
+                  :stop("END\n")
+                ),
+                body => RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::ApplyPostfix.new(
+                          operand => RakuAST::Term::TopicCall.new(
+                            RakuAST::Call::Method.new(
+                              name => RakuAST::Name.from-identifier('uc')
+                            )
+                          ),
+                          postfix => RakuAST::Call::Method.new(
+                            name => RakuAST::Name.from-identifier('chomp')
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$r')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $r = do given qq:to/END/ {
+hi
+END
+    .uc.chomp
+};
+$r
+CODE
+
+    is-deeply $_, "HI", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The code in a heredoc keeps its escapes and the text keeps its backslashes' => {
+    # my @p = 1, 2;
+    # my $s = qq:to/END/;
+    #   a { join "\n", @p }
+    #   b\\nc
+    #   END
+    # $s
+    ast Q:to/SOURCE/.AST;
+    my @p = 1, 2;
+    my $s = qq:to/END/;
+      a { join "\n", @p }
+      b\\nc
+      END
+    $s
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @p = 1, 2;
+my $s = qq:to/END/;
+  a { join "\n", @p }
+  b\\nc
+  END
+$s
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "a 1\n2\nb\\nc\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my $x = 1;
+    # my $s = qq:to/END/;
+    #   $x \q[b $x]
+    #   END
+    # $s
+    #
+    # the nested quote is written as the escaped text it holds
+    ast Q:to/SOURCE/.AST;
+    my $x = 1;
+    my $s = qq:to/END/;
+      $x \q[b $x]
+      END
+    $s
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse of a heredoc that starts with code';
+my $x = 1;
+my $s = qq:to/END/;
+  $x b \$x
+  END
+$s
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse of the heredoc that starts with code parses back to itself';
+
+    is-deeply $_, "1 b \$x\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A heredoc in a nested statement with the opener of a later one' => {
+    # sub f (&b, $s) {
+    #     b() ~ "|" ~ $s
+    # }
+    # f({
+    #     my $x = qq:to/A/.trim;
+    #   xx
+    #   A
+    #     $x
+    # }, qq:to/A/)
+    #   yy
+    #   A
+    ast Q:to/SOURCE/.AST;
+    sub f(&b, $s) { b() ~ "|" ~ $s }
+    f({ my $x = q:to/A/.trim; $x }, q:to/A/);
+      xx
+      A
+      yy
+      A
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub f (&b, $s) {
+    b() ~ "|" ~ $s
+}
+f({
+    my $x = qq:to/A/.trim;
+  xx
+  A
+    $x
+}, qq:to/A/)
+  yy
+  A
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "xx|yy\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Two heredoc openers on one line of a longer statement' => {
+    # my @r = do for qq:to/A/, qq:to/B/ -> $a, $b {
+    # x
+    # A
+    # y
+    # B
+    #     $a ~ $b
+    # };
+    # @r
+    ast Q:to/SOURCE/.AST;
+    my @r = do for q:to/A/, q:to/B/ -> $a, $b {
+    x
+    A
+    y
+    B
+        $a ~ $b
+    }
+    @r
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @r = do for qq:to/A/, qq:to/B/ -> $a, $b {
+x
+A
+y
+B
+    $a ~ $b
+};
+@r
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, ["x\ny\n"], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A heredoc in the code of the text of a heredoc' => {
+    # sub f ($s) {
+    #     $s
+    # }
+    # f(qq:to/A/)
+    # a { qq:to/B/ }
+    # b
+    # B
+    # A
+    ast Q:to/SOURCE/.AST;
+    sub f($s) { $s }
+    f(qq:to/A/)
+    a { q:to/B/ }
+    b
+    B
+    A
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub f ($s) {
+    $s
+}
+f(qq:to/A/)
+a { qq:to/B/ }
+b
+B
+A
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "a b\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'An interpolating heredoc in a block that is an argument' => {
+    # sub f (&b, $s) {
+    #     b($s) ~ "|" ~ $s
+    # }
+    # f(-> $s {
+    #     qq:to/A/
+    #       $s
+    #       A
+    # }, "yy")
+    #
+    # the block is not written on the line of the call, the body of the
+    # heredoc is read after that line, outside the block
+    ast Q:to/SOURCE/.AST;
+    sub f(&b, $s) { b($s) ~ "|" ~ $s }
+    f(-> $s {
+        qq:to/A/
+          $s
+          A
+    }, "yy");
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub f (&b, $s) {
+    b($s) ~ "|" ~ $s
+}
+f(-> $s {
+    qq:to/A/
+      $s
+      A
+}, "yy")
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "yy\n|yy", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Heredoc whose stop marker is indented with a tab' => {
+    # qq:to/TAB/
+    # \tfoo
+    # \t  bar
+    # \tTAB
+    ast qq:to/SOURCE/.AST;
+    q:to/TAB/
+    \tfoo
+    \t  bar
+    \tTAB
+    SOURCE
+    is-deeply $deparsed, "qq:to/TAB/\n\tfoo\n\t  bar\n\tTAB\n", 'deparse';
+
+    is-deeply $_, "foo\n  bar\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Heredoc with an empty stop marker on an indented line' => {
+    # my $s = qq:to//;
+    #   abc
+    #   
+    # $s
+    ast Q:to/SOURCE/.AST;
+    my $s = qq:to//;
+      abc
+      
+    $s
+    SOURCE
+    is-deeply $deparsed, "my \$s = qq:to//;\n  abc\n  \n\$s\n", 'deparse';
+
+    is-deeply $_, "abc\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A closure in a heredoc that opens a heredoc of its own' => {
+    # my $s = qq:to/E/;
+    # a {
+    #     qq:to/F/.chomp
+    # foo
+    # F
+    # } b
+    # E
+    # $s
+    ast Q:to/SOURCE/.AST;
+    my $s = qq:to/E/;
+    a { qq:to/F/.chomp
+    foo
+    F
+    } b
+    E
+    $s
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $s = qq:to/E/;
+a {
+    qq:to/F/.chomp
+foo
+F
+} b
+E
+$s
+CODE
+    is-deeply $_, "a foo b\n", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Heredoc whose stop marker holds a slash' => {
+    # qq:to<a/b>
+    # x
+    # a/b
+    ast Q:to/SOURCE/.AST;
+    q:to<a/b>
+    x
+    a/b
+    SOURCE
+    is-deeply $deparsed, "qq:to<a/b>\nx\na/b\n", 'deparse';
+
+    is-deeply $_, "x\n", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

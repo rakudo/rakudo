@@ -6,6 +6,10 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     # megamorphic callsite involves the class, so calculated and cached on
     # demand.
     has $!cached_all_method_table;
+    # The process that built the table.  A table that came back from
+    # deserialization predates the methods added since it was built, and
+    # adding a method only invalidates the table of the class it names.
+    has $!cached_all_method_table_epoch;
 
     # Resolve a method. On MoarVM, with the generalized dispatch mechanism,
     # this is called to bootstrap callsites. On backends without that, it
@@ -114,7 +118,9 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
 
     method all_method_table($target) {
         my $table := $!cached_all_method_table;
-        unless nqp::isconcrete($table) {
+        my $epoch := Perl6::Metamodel::Configuration.method_table_epoch;
+        unless nqp::isconcrete($table)
+          && nqp::eqaddr($!cached_all_method_table_epoch, $epoch) {
             $table  := nqp::hash;
             my $mro := self.mro($target);
 
@@ -132,6 +138,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             }
             nqp::scwbdisable;
             $!cached_all_method_table := $table;
+            $!cached_all_method_table_epoch := $epoch;
             nqp::scwbenable;
         }
 

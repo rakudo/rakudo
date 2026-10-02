@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use Test;
 use nqp;
 
-plan 5;
+plan 6;
 
 throws-like { EVAL(RakuAST::Term::Self.new) },
     X::Syntax::Self::WithoutObject;
@@ -155,4 +155,88 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
 }
 else {
     skip 'the plain rendering belongs to the RakuAST frontend';
+}
+
+subtest 'a class that fails to compose reports only its own error' => {
+    plan 6;
+
+    my role NeedsMethod { method m { ... } }
+    my $class := RakuAST::Class.new(
+      name   => RakuAST::Name.from-identifier('HandBuiltClass'),
+      traits => [
+        RakuAST::Trait::Does.new(
+          RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('NeedsMethod')
+          )
+        )
+      ]
+    );
+    throws-like { EVAL $class }, X::Comp::AdHoc,
+      message => *.contains('must be implemented by HandBuiltClass'),
+      'the composition error is thrown';
+    is $class.meta-object.^name, 'HandBuiltClass',
+      'the meta-object is the type that failed to compose';
+
+    my role DocMethodRoleA { method m { 1 } }
+    my role DocMethodRoleB { method m { 2 } }
+    throws-like {
+        EVAL RakuAST::Class.new(
+          name   => RakuAST::Name.from-identifier('HandBuiltDocClass'),
+          traits => [
+            RakuAST::Trait::Does.new(
+              RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('DocMethodRoleA')
+              )
+            ),
+            RakuAST::Trait::Does.new(
+              RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('DocMethodRoleB')
+              )
+            )
+          ]
+        ).declarator-docs(leading => ("leading doc\n",))
+    }, X::Role::Unresolved::Method,
+      'a documented class built by hand getting a method from two roles';
+
+    try EVAL RakuAST::Class.new(
+      name   => RakuAST::Name.from-identifier('HandBuiltBodyErrorClass'),
+      traits => [
+        RakuAST::Trait::Does.new(
+          RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('NeedsMethod')
+          )
+        )
+      ],
+      body   => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope       => 'has',
+                sigil       => '$',
+                twigil      => '.',
+                desigilname => RakuAST::Name.from-identifier('a'),
+                traits      => [
+                  RakuAST::Trait::Is.new(
+                    name => RakuAST::Name.from-identifier('nosuchtrait')
+                  )
+                ]
+              )
+            )
+          )
+        )
+      )
+    );
+    isa-ok $!, X::Comp::Trait::Unknown,
+      'a class built by hand with an error in its body reports only that error';
+
+    try Q:to/SOURCE/.AST;
+    role UndocumentedRole { }
+    role UndocumentedRole { }
+    class UndocumentedClass does UndocumentedRole { has $.a is nosuchtrait }
+    SOURCE
+    isa-ok $!, X::Comp::Trait::Unknown,
+      'a parsed class with an error in its body reports only that error';
+    is $!.?line, 3,
+      'the error in the body of a parsed class is reported at its line';
 }

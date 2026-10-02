@@ -1,7 +1,7 @@
 use lib <t/02-rakudo/test-packages>;
 use Test;
 
-plan 11;
+plan 14;
 
 # `require` merges the required unit's symbols into the caller's
 # %?REQUIRE-SYMBOLS, which the runtime symbolic lookup consults before
@@ -44,6 +44,15 @@ is "{ ::("BundleShadow").which }", 'required',
 
 is 5.&::("bundle-shadow"), 'required-5',
     'a .&::("...") call runs the symbolic lookup that sees require-injected subs';
+
+is &::("bundle-shadow")(5), 'required-5',
+    'a &::("...") variable runs the symbolic lookup that sees require-injected subs';
+
+is 5.&::("bundle-shadow")(), 'required-5',
+    'a .&::("...")() call runs the symbolic lookup that sees require-injected subs';
+
+is 5.&::("bundle-shadow").uc, 'REQUIRED-5',
+    'a method call on a .&::("...") result runs the symbolic lookup';
 
 my $hyper-name = "bundle-shadow";
 is-deeply (1, 2)>>.&::($hyper-name), ("required-1", "required-2"),

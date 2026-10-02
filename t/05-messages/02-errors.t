@@ -1,6 +1,7 @@
 use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
+use nqp;
 
 plan 47;
 
@@ -23,7 +24,7 @@ throws-like {
 }, X::TypeCheck::Binding::Parameter, message => /'type check failed'/;
 
 # https://github.com/Raku/old-issue-tracker/issues/6602
-todo('Auto-generated POPULATE NYI') if %*ENV<RAKUDO_RAKUAST>;
+todo('Auto-generated POPULATE NYI') if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 is-deeply class { has $.bar }.^methods».name.sort, <POPULATE bar>,
     'auto-generated methods present in .^methods';
 

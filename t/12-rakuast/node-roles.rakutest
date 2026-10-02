@@ -1,0 +1,135 @@
+use v6.e.PREVIEW;
+use MONKEY-SEE-NO-EVAL;
+use Test;
+
+plan 10;
+
+# The node types are declared as classes and roles, and the roles are
+# composed by the Raku metamodel, so a node type introspects the way a
+# type written in Raku does.
+
+subtest 'A node role is a role to the metamodel' => {
+    plan 7;
+    ok RakuAST::MayCreateBlock.HOW ~~ Metamodel::ParametricRoleHOW,
+      'the role has a parametric role metaclass';
+    ok RakuAST::Expression.HOW ~~ Metamodel::ClassHOW,
+      'a class doing it has a class metaclass';
+    is RakuAST::Expression.^roles(:local).grep(* === RakuAST::MayCreateBlock).elems, 1,
+      'the class lists the role it does';
+    is RakuAST::IntLiteral.^roles(:local).grep(* === RakuAST::MayCreateBlock).elems, 0,
+      'a subclass does not list the role its parent does as its own';
+    is RakuAST::IntLiteral.^roles.grep(* === RakuAST::MayCreateBlock).elems, 1,
+      'a subclass lists the role of its parent once';
+    is RakuAST::MayCreateBlock.^language-version, '6.c',
+      'the role has the language version of the bootstrap';
+    is RakuAST::Expression.^language-version, '6.c',
+      'the class has the language version of the bootstrap';
+}
+
+subtest 'A node does the role its class or an ancestor does' => {
+    plan 4;
+    ok RakuAST::IntLiteral.new(42) ~~ RakuAST::MayCreateBlock,
+      'a literal is a block creator through its ancestor';
+    ok RakuAST::Block.new ~~ RakuAST::MayCreateBlock,
+      'a block is a block creator';
+    ok RakuAST::IntLiteral.new(42).does(RakuAST::MayCreateBlock),
+      'does reports the role';
+    nok RakuAST::Name.from-identifier('x') ~~ RakuAST::MayCreateBlock,
+      'a name is not a block creator';
+}
+
+subtest 'A class implements the method its role requires' => {
+    plan 3;
+    ok RakuAST::Block.new.creates-block,
+      'a block reports that it creates a block';
+    nok RakuAST::IntLiteral.new(42).creates-block,
+      'a literal without thunks reports that it does not';
+    ok RakuAST::Expression.^find_method('creates-block').package === RakuAST::Expression,
+      'the method found on the class is the class its own';
+}
+
+subtest 'A role method belongs to the role' => {
+    plan 4;
+    my $method := RakuAST::MayCreateBlock.^methods.first(*.name eq 'creates-block');
+    ok $method.defined, 'the role lists its method';
+    ok $method.signature.params[0].type === RakuAST::MayCreateBlock,
+      'the invocant type is the role';
+    ok $method.package === RakuAST::MayCreateBlock,
+      'the method belongs to the role';
+    ok RakuAST::IntLiteral.^find_method('add-worry').package === RakuAST::CheckTime,
+      'the method a class gets from a role still belongs to the role';
+}
+
+subtest 'An attribute a role composes stays keyed on the role' => {
+    plan 4;
+    my $node := RakuAST::IntLiteral.new(42);
+    $node.add-worry(X::AdHoc.new(payload => 'careful'));
+    my $attribute := $node.^attributes.first(*.name eq '$!worries');
+    ok $attribute.defined, 'the class lists the attribute of the role it does';
+    ok $attribute.package === RakuAST::CheckTime,
+      'the attribute belongs to the role';
+    is $attribute.get_value($node).elems, 1,
+      'the attribute reads the state the role method wrote';
+    is RakuAST::Type::Subset.^attributes.grep(*.name eq '$!cached-meta-object').elems, 1,
+      'a node doing a role and a role that does it holds one copy of the state';
+}
+
+subtest 'A role requires a method of the class doing it' => {
+    plan 4;
+    my $method := RakuAST::MayCreateBlock.^methods.first(*.name eq 'creates-block');
+    ok $method.yada, 'the required method is a stub';
+    ok $method.signature.returns === Bool, 'the stub declares its return type';
+    nok RakuAST::Expression.^find_method('creates-block').yada,
+      'the class provides a real method';
+    throws-like
+      'use experimental :rakuast; class Careless does RakuAST::MayCreateBlock { }',
+      X::Comp, message => /'creates-block' .* 'Careless' .* 'RakuAST::MayCreateBlock'/,
+      'a class that does not implement the method is refused, naming all three';
+}
+
+subtest 'A role gives no answer that a class inherits a better one for' => {
+    plan 3;
+    ok RakuAST::ExpressionThunk.^find_method('needs-sink-call').package === RakuAST::ExpressionThunk,
+      'an expression thunk answers needs-sink-call itself';
+    ok RakuAST::StatementPrefix::Start.^find_method('needs-sink-call').package === RakuAST::Expression,
+      'a start block inherits the answer of an expression';
+    nok RakuAST::Code.^methods.first(*.name eq 'needs-sink-call').defined,
+      'the code role does not answer it';
+}
+
+subtest 'A class written in Raku can do a node role with state' => {
+    plan 4;
+    my class Answer is RakuAST::Node does RakuAST::Meta {
+        method PRODUCE-META-OBJECT() { 42 }
+    }
+    my $node := Answer.new;
+    nok $node.has-meta-object, 'the state of the role starts out empty';
+    is $node.meta-object, 42, 'the role method calls the method of the class';
+    ok $node.has-meta-object, 'the role method kept its state in the object';
+
+    my class Blockish is RakuAST::Block does RakuAST::Code { }
+    nok Blockish.new.IMPL-HAS-QAST-BLOCK,
+      'doing a role an ancestor already does shares the state of the ancestor';
+}
+
+subtest 'Augmenting a node class keeps its role attributes readable' => {
+    plan 2;
+    EVAL 'use experimental :rakuast; use MONKEY-TYPING;
+          augment class RakuAST::Type::Subset { method node-roles-test() { 1 } }';
+    my $attribute := RakuAST::Type::Subset.^attributes.first(*.name eq '$!traits');
+    ok $attribute.package === RakuAST::TraitTarget,
+      'the attribute still belongs to the role';
+    my $node := RakuAST::Type::Subset.new(name => RakuAST::Name.from-identifier('Foo'));
+    lives-ok { $attribute.get_value($node) },
+      'the attribute still reads its value';
+}
+
+subtest 'Every concrete type node produces a meta-object' => {
+    my @types = RakuAST::Type::.values.grep: {
+        .HOW ~~ Metamodel::ClassHOW && $_ !=== RakuAST::Type::Derived
+    }
+    plan +@types;
+    ok $_ ~~ RakuAST::Meta, "{.^name} does RakuAST::Meta" for @types;
+}
+
+# vim: expandtab shiftwidth=4

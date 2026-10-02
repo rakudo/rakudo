@@ -131,7 +131,8 @@ multi sub trait_mod:<is>(Attribute:D $attr, Mu :$default!) {
     my Mu $of := $descriptor.of;
     # When either $of or $default are generics we can't actually typecheck the default at compile time. Therefore we'd
     # have to accept it as is for now.
-    if $of.^archetypes.generic || nqp::istype($default, $of)
+    if $of.^archetypes.generic || $default.^archetypes.generic
+        || nqp::istype($default, $of)
         || nqp::eqaddr($default,Nil) || nqp::eqaddr($of, Mu)
     {
         $descriptor.set_default(nqp::decont($default));
@@ -144,7 +145,14 @@ multi sub trait_mod:<is>(Attribute:D $attr, Mu :$default!) {
             :got(nqp::eqaddr($default,Nil) ?? 'Nil' !! $default)
         ).throw
     }
-    $attr.container = nqp::decont($default) if nqp::isrwcont($attr.container);
+    if nqp::isrwcont($attr.container) {
+        # a generic default only gets its type when the role is composed
+        $default.^archetypes.generic
+          ?? nqp::bindattr(
+               nqp::getattr($attr,Attribute,'$!auto_viv_container'),
+               Scalar,'$!value',nqp::decont($default))
+          !! ($attr.container = nqp::decont($default));
+    }
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :box_target($)!) {
     $attr.set_box_target();

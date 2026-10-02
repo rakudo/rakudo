@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 10;
+plan 17;
 
 my $ast;
 my $deparsed;
@@ -159,6 +159,220 @@ subtest 'Multi-part type from the setting' => {
         is-deeply EVAL($it), SETTING-Parts,
           "$type: did we get the setting version";
     }
+}
+
+subtest 'Definedness of a parameterized type' => {
+    # sub f (Positional:D[Int] $x) { $x.elems }; f(Array[Int].new(1, 2))
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('f'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                type => RakuAST::Type::Definedness.new(
+                  base-type => RakuAST::Type::Parameterized.new(
+                    base-type => RakuAST::Type::Simple.new(
+                      RakuAST::Name.from-identifier('Positional')
+                    ),
+                    args => RakuAST::ArgList.new(
+                      RakuAST::Type::Simple.new(
+                        RakuAST::Name.from-identifier('Int')
+                      )
+                    )
+                  ),
+                  definite => True
+                ),
+                target => RakuAST::ParameterTarget::Var.new(:name<$x>)
+              ),
+            )
+          ),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPostfix.new(
+                  operand => RakuAST::Var::Lexical.new('$x'),
+                  postfix => RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier('elems')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f'),
+          args => RakuAST::ArgList.new(
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Type::Parameterized.new(
+                base-type => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('Array')
+                ),
+                args => RakuAST::ArgList.new(
+                  RakuAST::Type::Simple.new(
+                    RakuAST::Name.from-identifier('Int')
+                  )
+                )
+              ),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('new'),
+                args => RakuAST::ArgList.new(
+                  RakuAST::IntLiteral.new(1),
+                  RakuAST::IntLiteral.new(2)
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub f (Positional:D[Int] $x) {
+    $x.elems
+}
+f(Array[Int].new(1, 2))
+CODE
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Declaration with the definedness of a parameterized type' => {
+    # my Hash:D[Str] %h;
+    # %h.elems
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          type        => RakuAST::Type::Definedness.new(
+            base-type => RakuAST::Type::Parameterized.new(
+              base-type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Hash')),
+              args      => RakuAST::ArgList.new(
+                RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+              )
+            ),
+            definite  => True
+          ),
+          sigil       => '%',
+          desigilname => RakuAST::Name.from-identifier('h')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Call::Method.new(name => RakuAST::Name.from-identifier('elems'))
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my Hash:D[Str] %h;
+%h.elems
+CODE
+    is-deeply $_, 0, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'type with a written Any coercion' => {
+    # Int(Any)
+    ast RakuAST::Type::Coercion.new(
+      base-type  => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Int")
+      ),
+      constraint => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Any")
+      )
+    );
+    is-deeply $deparsed, 'Int(Any)', 'deparse';
+
+    is-deeply $_, Int(Any), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL($raku).DEPARSE, 'Int(Any)', 'deparse of the .raku';
+}
+
+
+subtest 'The :_ smiley stays on a type' => {
+    # my Int:_ $a; $a
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          type        => RakuAST::Type::AnyDefinedness.new(
+            base-type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+          ),
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('a')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$a')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my Int:_ $a;
+$a
+CODE
+
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The :_ smiley keeps a declaration out of a definedness pragma' => {
+    # use variables :D;
+    # my Int:_ $a;
+    # $a
+    ast Q:to/SOURCE/.AST;
+    use variables :D; my Int:_ $a; $a
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use variables :D;
+my Int:_ $a;
+$a
+CODE
+
+    is-deeply EVAL($ast), Int, 'AST: the variable is not definite';
+    is-deeply EVAL($deparsed), Int, 'Str: the variable is not definite';
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'The :_ smiley of a parameterized type goes before the arguments' => {
+    # my Positional:_[Int] $p;
+    # $p
+    ast Q:to/SOURCE/.AST;
+    my Positional:_[Int] $p; $p
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my Positional:_[Int] $p;
+$p
+CODE
+
+    is EVAL($ast).^name, 'Positional[Int]', 'AST: the type keeps its arguments';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed, 'Str: parses back to the same';
+    is EVAL(EVAL $raku).^name, 'Positional[Int]', 'Raku: the type keeps its arguments';
+}
+
+
+subtest 'A generic type with the :_ smiley is specialized' => {
+    # my role Generic[::T] {
+    #     method t {
+    #         T:_
+    #     }
+    # }
+    # Generic[Int].new.t
+    ast Q:to/SOURCE/.AST;
+    my role Generic[::T] { method t { T:_ } }; Generic[Int].new.t
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my role Generic[::T] {
+    method t {
+        T:_
+    }
+}
+Generic[Int].new.t
+CODE
+
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

@@ -1,13 +1,14 @@
 # A compilation unit is the main lexical scope of a program.
 class RakuAST::CompUnit
-  is RakuAST::LexicalScope
-  is RakuAST::SinkBoundary
-  is RakuAST::ImplicitLookups
-  is RakuAST::ImplicitDeclarations
-  is RakuAST::AttachTarget
-  is RakuAST::ScopePhaser
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  is RakuAST::Node
+  does RakuAST::LexicalScope
+  does RakuAST::ScopePhaser
+  does RakuAST::SinkBoundary
+  does RakuAST::ImplicitLookups
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
+  does RakuAST::AttachTarget
 {
     has RakuAST::StatementList $.statement-list;
     has RakuAST::Block $.mainline;
@@ -65,7 +66,7 @@ class RakuAST::CompUnit
             $statement-list // RakuAST::StatementList.new);
 
         my $mainline := RakuAST::Block.new();
-        $mainline.set-implicit-topic(0);
+        $mainline.set-implicit-topic(False);
         $mainline.set-no-implicit-match();
         nqp::bindattr($obj, RakuAST::CompUnit, '$!mainline', $mainline);
 
@@ -103,8 +104,7 @@ class RakuAST::CompUnit
         }
 
         # If CompUnit's language revision is not set explicitly then guess it
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision',
-          $language-revision := $language-revision
+        my $revision := $language-revision
             ?? Perl6::Metamodel::Configuration.language_revision_object($language-revision)
             !! nqp::isconcrete(
                  my $setting-rev := nqp::getlexrelcaller(
@@ -112,8 +112,8 @@ class RakuAST::CompUnit
                  )
                ) ?? $setting-rev
                  !! Perl6::Metamodel::Configuration.language_revision_object(
-                      nqp::getcomp("Raku").language_revision)
-                    );
+                      nqp::getcomp("Raku").language_revision);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision', $revision);
 
         my $sc;
         if $outer-cu {
@@ -143,7 +143,7 @@ class RakuAST::CompUnit
                 nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
                 my $context := RakuAST::IMPL::QASTContext.new(
                   :$sc, :$precompilation-mode,
-                  :$setting, :$language-revision);
+                  :$setting, :language-revision($revision));
                 nqp::bindattr_i($context, RakuAST::IMPL::QASTContext,
                   '$!is-nested', 1);
                 $context.set-world-bridge($nested-world);
@@ -154,7 +154,7 @@ class RakuAST::CompUnit
                 nqp::pushcompsc($sc);
                 nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
                 nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
-                  RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :$language-revision));
+                  RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :language-revision($revision)));
                 # Set the SC description to $?FILES only on the
                 # fresh-SC path. The bridged path shares the outer
                 # World's SC, whose description was already set by
@@ -205,6 +205,7 @@ class RakuAST::CompUnit
 
         $!mainline.IMPL-CHECK($resolver, $!context);
         self.IMPL-CHECK($resolver, $!context);
+        $resolver.IMPL-CHECK-HEREDOC-WATCHES;
 
         # Not all RakuAST::Doc objects actually have their PERFORM-CHECK
         # method called on them, causing holes to occur in $=pod (albeit
@@ -317,13 +318,13 @@ class RakuAST::CompUnit
         Nil
     }
 
-    method is-boundary-sunk() { $!is-sunk ?? True !! False }
+    method is-boundary-sunk(--> Bool) { $!is-sunk }
 
     method get-boundary-sink-propagator() { $!statement-list }
 
     # Checks if the compilation unit was created in EVAL mode, meaning that it
     # does not declare its own GLOBAL and so forth.
-    method is-eval() { $!is-eval ?? True !! False }
+    method is-eval(--> Bool) { $!is-eval }
 
     # Put this unit's SC back on the compiling-SC stack before compiling it
     # again. Creating the unit pushed the SC, but the backend pops it after
@@ -390,6 +391,11 @@ class RakuAST::CompUnit
         self.add-cu-phaser($!check-phasers, $phaser);
     }
 
+    # A code object a will trait registers to run with the check phasers.
+    method add-check-code(Code $code) {
+        self.add-cu-phaser($!check-phasers, $code);
+    }
+
     method add-end-phaser(Code $phaser) {
         self.add-cu-phaser($!end-phasers, $phaser);
     }
@@ -451,7 +457,7 @@ class RakuAST::CompUnit
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
 
         # Every statement has been checked, so which variables a bind has taken
         # over is settled and the stores held back can be judged.
@@ -518,6 +524,10 @@ class RakuAST::CompUnit
         # it as the current package.
         if $!is-eval {
             add(RakuAST::VarDeclaration::Implicit::BlockTopic.new(:!parameter));
+            # The frame carries the caller's $/ so a closure built here
+            # still reaches one by name after precompilation has left this
+            # frame at the end of its outer chain.
+            add(RakuAST::VarDeclaration::Implicit::Outer.new(:name('$/')));
             # A setting context declares no $?PACKAGE, and the unit then
             # declares its own for the package the resolver stands in.
             if nqp::isconcrete($!resolver)
@@ -890,8 +900,8 @@ class RakuAST::CompUnit
 }
 
 class RakuAST::CtxSave
-  is RakuAST::ParseTime
   is RakuAST::Term
+  does RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
@@ -965,38 +975,106 @@ class RakuAST::LiteralBuilder {
     # Build a decimal Int constant and intern it
     method intern-Int(str $source) {
         my $lookup := $!interned-int;
-
-        # Logic to reliably convert a string in a base to n Int
-        my sub build-Int() {
-            my $res := nqp::radix_I(10,$source,0,2,Int);
-            nqp::atpos($res,2) == nqp::chars($source)
-              ?? nqp::atpos($res, 0)
-              !! nqp::die("'$source' is not a valid number")
-        }
-
         nqp::ifnull(
           nqp::atkey($lookup,$source),
-          nqp::bindkey($lookup,$source,build-Int())
+          nqp::bindkey($lookup,$source,
+            nqp::ifnull(
+              self.IMPL-DECIMAL-INT($source),
+              nqp::die("'$source' is not a valid number")
+            )
+          )
         )
+    }
+
+    # Convert an optionally signed decimal literal, single underscores
+    # between digits allowed, to an Int. Returns null on anything else.
+    method IMPL-DECIMAL-INT(str $source) {
+        my int $from := 0;
+        my int $negate;
+        if nqp::eqat($source, '-', 0) || nqp::eqat($source, '−', 0) {
+            $negate := 1;
+            $from   := 1;
+        }
+        elsif nqp::eqat($source, '+', 0) {
+            $from := 1;
+        }
+        my $parsed := self.IMPL-PARSE-DIGITS($source, $from, nqp::chars($source));
+        nqp::isnull($parsed)
+          ?? $parsed
+          !! $negate
+            ?? nqp::neg_I(nqp::atpos($parsed, 0), Int)
+            !! nqp::atpos($parsed, 0)
+    }
+
+    # Returns the Int value of the digits in the given range and the number
+    # of digits in it, underscores not counted, or null when the range is
+    # not digits with single underscores between them. nqp::radix_I is
+    # quadratic in the digit count, so the range is halved recursively
+    # down to at most 18 characters, the longest run of decimal digits
+    # that cannot overflow a native int, and the halves are recombined
+    # with bigint multiplication.
+    method IMPL-PARSE-DIGITS(str $source, int $from, int $to) {
+        my int $n := $to - $from;
+        if $n <= 18 {
+            my $res := nqp::radix(10, nqp::substr($source, $from, $n), 0, 0);
+            return nqp::null unless nqp::atpos($res, 2) == $n;
+            my int $value := nqp::atpos($res, 0);
+            return [nqp::box_i($value, Int), nqp::atpos($res, 1)];
+        }
+
+        # An underscore is only valid between two digits, so one at the
+        # split is dropped rather than left at the edge of either half.
+        my int $mid     := $from + nqp::div_i($n, 2);
+        my int $lo-from := $mid;
+        if nqp::eqat($source, '_', $mid) {
+            $lo-from := $mid + 1;
+        }
+        elsif nqp::eqat($source, '_', $mid - 1) {
+            $mid := $mid - 1;
+        }
+
+        my $hi := self.IMPL-PARSE-DIGITS($source, $from, $mid);
+        return $hi if nqp::isnull($hi);
+        my $lo := self.IMPL-PARSE-DIGITS($source, $lo-from, $to);
+        return $lo if nqp::isnull($lo);
+
+        my int $hi-digits := nqp::atpos($hi, 1);
+        my int $lo-digits := nqp::atpos($lo, 1);
+        my $scale := nqp::pow_I(
+          nqp::box_i(10, Int), nqp::box_i($lo-digits, Int), Num, Int
+        );
+        [
+          nqp::add_I(nqp::mul_I(nqp::atpos($hi, 0), $scale, Int), nqp::atpos($lo, 0), Int),
+          $hi-digits + $lo-digits
+        ]
     }
 
     # Build an Int constant by any base and intern it
     method intern-Int-by-base(str $source, int $base, Mu $error-reporter?) {
-        my $res := nqp::radix_I($base,$source,0,2,Int);
-
-        # Successfully converted to Int
-        if nqp::atpos($res,2) == nqp::chars($source) {
-            my $key := $base == 10 ?? $source !! "$base:$source";
-            nqp::ifnull(
-              nqp::atkey($!interned-int,$key),
-              nqp::bindkey($!interned-int,$key,nqp::atpos($res,0))
-            )
-        }
-        elsif $error-reporter {
-            $error-reporter();
+        my $value;
+        my str $key;
+        if $base == 10 {
+            $value := self.IMPL-DECIMAL-INT($source);
+            $key   := $source;
         }
         else {
-            nqp::die("'$source' is not a valid number")
+            my $res := nqp::radix_I($base,$source,0,2,Int);
+            $value := nqp::atpos($res,2) == nqp::chars($source)
+              ?? nqp::atpos($res,0)
+              !! nqp::null;
+            $key   := "$base:$source";
+        }
+
+        if nqp::isnull($value) {
+            $error-reporter
+              ?? $error-reporter()
+              !! nqp::die("'$source' is not a valid number")
+        }
+        else {
+            nqp::ifnull(
+              nqp::atkey($!interned-int,$key),
+              nqp::bindkey($!interned-int,$key,$value)
+            )
         }
     }
 

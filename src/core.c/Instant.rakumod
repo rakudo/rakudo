@@ -135,10 +135,4 @@ sub term:<now>(--> Instant:D) {
     Instant.from-posix-nanos( nqp::add_i(nqp::time, Rakudo::Internals.current-offset-nanos))
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {
-    PROCESS::<$INIT-INSTANT> :=
-        nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
-          (Rakudo::Internals.tai-from-posix(Rakudo::Internals.INITTIME,0) * 1000000000).Int)
-}
-
 # vim: expandtab shiftwidth=4

@@ -1,7 +1,8 @@
 use v6.e.PREVIEW;
+use lib <t/packages/12-rakuast/lib>;
 use Test;
 
-plan 8;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -229,8 +230,8 @@ subtest 'Anonymous subset (subset ::)' => {
     my $two-ast := RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.new(
-        RakuAST::Name::Part::Empty.new,
-        RakuAST::Name::Part::Empty.new,
+        RakuAST::Name::Part::EmptyEdge.new,
+        RakuAST::Name::Part::EmptyEdge.new,
       ),
       of    => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Str")
@@ -249,7 +250,7 @@ subtest 'Anonymous subset (subset ::)' => {
     # RakuAST API. The grammar always emits two empty parts for `::`.
     my $single := EVAL RakuAST::Type::Subset.new(
       scope => 'my',
-      name  => RakuAST::Name.new(RakuAST::Name::Part::Empty.new),
+      name  => RakuAST::Name.new(RakuAST::Name::Part::EmptyEdge.new),
       of    => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Int")
         ),
@@ -311,6 +312,160 @@ subtest 'Subset with a where regex' => {
         ok 42     ~~ $subset, "$type: subset accepts 42";
         nok 41    ~~ $subset, "$type: subset does not accept 41";
         nok "foo" ~~ $subset, "$type: subset does not accept foo";
+    }
+}
+
+subtest 'An of trait stays where it was written' => {
+    # my subset OfAfterExport is export of Int
+    ast RakuAST::Type::Subset.new(
+      scope  => 'my',
+      name   => RakuAST::Name.from-identifier('OfAfterExport'),
+      traits => (
+        RakuAST::Trait::Is.new(
+          name => RakuAST::Name.from-identifier('export')
+        ),
+        RakuAST::Trait::Of.new(
+          RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+        ),
+      )
+    );
+    is-deeply $deparsed, 'my subset OfAfterExport is export of Int', 'deparse';
+    is-deeply EVAL($raku).DEPARSE, $deparsed,
+      'Raku: the trait keeps its place through the .raku';
+    # a hand built export trait needs a compilation around it, so only
+    # the deparsed text is compiled
+    is EVAL($deparsed).^refinee.^name, 'Int', 'Str: the subset refines Int';
+
+    # my subset OfAfterDeprecated is DEPRECATED of Int
+    ast RakuAST::Type::Subset.new(
+      scope  => 'my',
+      name   => RakuAST::Name.from-identifier('OfAfterDeprecated'),
+      traits => (
+        RakuAST::Trait::Is.new(
+          name => RakuAST::Name.from-identifier('DEPRECATED')
+        ),
+        RakuAST::Trait::Of.new(
+          RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+        ),
+      )
+    );
+    is-deeply $deparsed, 'my subset OfAfterDeprecated is DEPRECATED of Int',
+      'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is $subset.^refinee.^name, 'Int', "$type: the subset refines Int";
+    }
+
+    dies-ok {
+        RakuAST::Type::Subset.new(
+          name   => RakuAST::Name.from-identifier('OfTwice'),
+          traits => (
+            RakuAST::Trait::Of.new(
+              RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+            ),
+            RakuAST::Trait::Of.new(
+              RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+            ),
+          )
+        )
+    }, 'a second of trait is refused';
+    dies-ok {
+        RakuAST::Type::Subset.new(
+          name   => RakuAST::Name.from-identifier('OfBoth'),
+          of     => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
+          traits => (
+            RakuAST::Trait::Of.new(
+              RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+            ),
+          )
+        )
+    }, 'an of trait next to an of attribute is refused';
+
+    my $parsed := 'subset OfParsed is export of Int'.AST;
+    is-deeply $parsed.DEPARSE, "subset OfParsed is export of Int\n",
+      'parsed: the trait is written where it was';
+    is-deeply EVAL('use experimental :rakuast; ' ~ $parsed.raku).DEPARSE,
+      $parsed.DEPARSE,
+      'parsed: the trait keeps its place through the .raku';
+}
+
+subtest 'A subset declarator a module superseded resolves in a tree' => {
+    # use SupersedeSubset;
+    # my subset Superseded of Int;
+    # Superseded
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('SupersedeSubset')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Subset.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('Superseded'),
+          of    => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('Int')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Superseded')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use SupersedeSubset;
+my subset Superseded of Int;
+Superseded
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
+        is $subset.HOW.^name, 'SupersededSubsetHOW',
+          "$type: the subset is made with the superseding HOW";
+        ok 42 ~~ $subset, "$type: the subset accepts 42";
+        nok "foo" ~~ $subset, "$type: the subset does not accept foo";
+    }
+
+    for Q:to/CODE/, Q:to/CODE/ -> $source {
+use SupersedeSubset;
+my Int $x where * > 1 = 2;
+$x.VAR.of
+CODE
+use SupersedeSubset;
+my class WithWhere {
+    has Int $.x is required where * > 1
+}
+WithWhere.^attributes.head.type
+CODE
+        my $parsed := $source.AST;
+        my $what := $source.lines[1].starts-with('my class')
+          ?? 'an attribute' !! 'a variable';
+        is-deeply $parsed.DEPARSE, $source, "parsed: the where of $what deparses";
+        for
+          'AST', $parsed,
+          'Str', $parsed.DEPARSE,
+          'Raku', EVAL('use experimental :rakuast; ' ~ $parsed.raku)
+        -> $type, $it {
+            is EVAL($it).HOW.^name, 'SupersededSubsetHOW',
+              "$type: the where of $what makes its subset with the superseding HOW";
+        }
+    }
+
+    {
+        my class LexicalSubsetHOW is Metamodel::SubsetHOW { }
+        my package EXPORTHOW {
+            constant subset = LexicalSubsetHOW;
+        }
+        is EVAL('my subset LexicalSubset of Int; LexicalSubset').HOW.^name,
+          'LexicalSubsetHOW',
+          'Str: a subset in an EVAL takes the HOW of the lexical EXPORTHOW';
     }
 }
 

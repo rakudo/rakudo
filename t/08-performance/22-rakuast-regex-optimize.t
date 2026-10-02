@@ -3,7 +3,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
-plan 26;
+plan 33;
 
 # A `before` assertion whose argument is a single simple check compiles
 # to the corresponding zerowidth atom instead of invoking the argument's
@@ -54,6 +54,12 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         and not find-regex-node(v, :rxtype<subrule>, :name<before>)
     }, 'a negated before assertion of a character class pairs its class with an anchor';
 
+    qast-is 'my $r = rx/ <!before .> b /', :full, -> \v {
+        find-regex-node(v, :rxtype<anchor>, :subtype<eos>)
+        and not find-regex-node(v, :rxtype<altseq>)
+        and not find-regex-node(v, :rxtype<subrule>, :name<before>)
+    }, 'a negated before assertion of any character compiles to an end anchor';
+
     qast-is 'my $r = rx/ <?before a+b> b /', :full, -> \v {
         find-regex-node(v, :rxtype<subrule>, :name<before>)
     }, 'a before assertion of a quantified argument keeps its thunk';
@@ -67,7 +73,7 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     }, 'an after assertion keeps its thunk';
 }
 else {
-    skip 'the assertion shapes are specific to the RakuAST frontend', 7;
+    skip 'the assertion shapes are specific to the RakuAST frontend', 8;
 }
 
 qast-is 'my $r = rx/^ foo /', :full, -> \v {
@@ -144,6 +150,30 @@ nok ("a" ~~ / a <?before \D> /).defined,
 
 is ("x" ~~ / x <!before yz> /), 'x',
     'a negated before assertion of a literal holds at the end of the string';
+
+is ("x" ~~ / x <!before .> /), 'x',
+    'a negated before assertion of any character holds at the end of the string';
+
+nok ("xy" ~~ / x <!before .> /).defined,
+    'a negated before assertion of any character fails before a character';
+
+is ("abc" ~~ / <!before .> /).from, 3,
+    'an unanchored negated before assertion of any character matches at the end of the string';
+
+is ("abc" ~~ / :r ^ [ <!before .> || \w+ ] $ /), 'abc',
+    'a ratcheted sequential alternation moves past a failing negated before assertion of any character';
+
+{
+    my grammar G {
+        token TOP   { ^ [ <empty> <!before . > || <block> ] $ }
+        token empty { '' }
+        token block { \w+ }
+    }
+    is G.parse("abc").Str, 'abc',
+        'a token moves past a failing negated before assertion of any character';
+    ok G.parse("").defined,
+        'a token takes the branch of a holding negated before assertion of any character';
+}
 
 is ("xay" ~~ / x <?after x> a /), 'xa',
     'an after assertion matches through its thunk';

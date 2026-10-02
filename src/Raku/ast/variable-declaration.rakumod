@@ -10,7 +10,7 @@ class RakuAST::Initializer
     method IMPL-COMPILE-TIME-VALUE(RakuAST::Resolver $resolver,
         RakuAST::IMPL::QASTContext $context, Mu :$invocant-compiler)
     {
-        RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self.expression, $resolver, $context);
+        RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(self.expression, $resolver, $context);
     }
 
     method IMPL-THUNK-EXPRESSION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -116,9 +116,49 @@ class RakuAST::Initializer::CallAssign
     }
 }
 
+# A state initializer runs on its first reach in each clone of the frame
+# declaring the variable, as once does. A sentinel state variable guards
+# it, produced as an implicit declaration for the declaring scope to hold.
+role RakuAST::StateInitGuard {
+    has RakuAST::VarDeclaration::Implicit::State $!state-init-guard;
+
+    # Whether the declaration has a state initializer to guard. A binding
+    # one keeps nqp::p6stateinit, as the binder writes into its own frame.
+    method IMPL-GUARDS-STATE-INIT() {
+        self.scope eq 'state' && nqp::isconcrete(self.initializer)
+          && !self.initializer.is-binding
+    }
+
+    method IMPL-STATE-INIT-GUARD() {
+        $!state-init-guard // nqp::bindattr(self, RakuAST::StateInitGuard,
+            '$!state-init-guard', RakuAST::VarDeclaration::Implicit::State.new(
+                QAST::Node.unique('!state_init_guard'), :sentinel))
+    }
+
+    # Whether the initializer is to run, marking the guard on the first reach.
+    # A sub in a role body forms its code before its scope gathers the
+    # implicit declarations, so the guard is produced here as well.
+    method IMPL-STATE-INIT-CONDITION-QAST(RakuAST::IMPL::QASTContext $context) {
+        return QAST::Op.new( :op('p6stateinit') ) unless self.IMPL-GUARDS-STATE-INIT;
+        self.get-implicit-declarations;
+        my $guard := self.IMPL-STATE-INIT-GUARD;
+        QAST::Op.new(:op<if>,
+          $guard.IMPL-SENTINEL-TEST-QAST($context),
+          QAST::Stmts.new(
+            QAST::Op.new(:op<p6store>,
+              QAST::Var.new( :name($guard.name), :scope<lexical> ),
+              QAST::WVal.new( :value(True) )
+            ),
+            QAST::IVal.new( :value(1) )
+          ),
+          QAST::IVal.new( :value(0) )
+        )
+    }
+}
+
 # Consuming class has to implement IMPL-SIGIL-TYPE which returns the resolution
 # for the lookup created by IMPL-SIGIL-LOOKUP.
-class RakuAST::ContainerCreator {
+role RakuAST::ContainerCreator {
     # The RakuAST::Type node for an explicit container base type (e.g. `is T`
     # or `is Array[Str]`). Stored as AST, not just its meta-object, so
     # callers that need the resolved lookup node (not just the type object)
@@ -126,6 +166,10 @@ class RakuAST::ContainerCreator {
     has RakuAST::Type $!explicit-container-base-type-ast;
     has RakuAST::Type $!conflicting-base-type-ast;
     has Bool $.forced-dynamic;
+
+    method IMPL-SET-FORCED-DYNAMIC(Bool $forced-dynamic) {
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!forced-dynamic', $forced-dynamic);
+    }
     has Bool $!initialized;
     has Mu $.container-base-type;
     has Mu $.container-type;
@@ -185,11 +229,21 @@ class RakuAST::ContainerCreator {
           !! nqp::null
     }
 
-    method IMPL-CALCULATE-TYPES(Mu $of, Mu :$key-type) {
+    # The key type of the hash a container creator makes, or NQPMu for a
+    # hash keyed by Str.
+    method IMPL-CONTAINER-KEY-TYPE() { NQPMu }
+
+    # The value type of a hash declared with a key type but no value type.
+    method IMPL-UNTYPED-HASH-VALUE-TYPE() {
+        self.IMPL-LANGUAGE-REVISION >= 3 ?? Mu !! Any
+    }
+
+    method IMPL-CALCULATE-TYPES(Mu $of) {
         return Nil if $!initialized;
 
         # Form the container type.
         my str $sigil := self.sigil;
+        my $key-type := self.IMPL-CONTAINER-KEY-TYPE;
         my $container-base-type;
         my $container-type;
         my $default := Any;
@@ -236,7 +290,7 @@ class RakuAST::ContainerCreator {
                             $bind-constraint, $of, $key-type);
                     }
                     else {
-                        my $value-default := self.IMPL-LANGUAGE-REVISION >= 3 ?? Mu !! Any;
+                        my $value-default := self.IMPL-UNTYPED-HASH-VALUE-TYPE;
                         $container-type := Hash.HOW.parameterize(
                             Hash, $value-default, $key-type);
                         $bind-constraint := $bind-constraint.HOW.parameterize(
@@ -269,7 +323,7 @@ class RakuAST::ContainerCreator {
             else {
                 my $value-type := self.type
                     ?? $of
-                    !! (self.IMPL-LANGUAGE-REVISION >= 3 ?? Mu !! Any);
+                    !! self.IMPL-UNTYPED-HASH-VALUE-TYPE;
                 $container-type := $explicit-base.HOW.parameterize(
                     $explicit-base, $value-type, $key-type);
             }
@@ -376,10 +430,13 @@ class RakuAST::ContainerCreator {
     # QAST that produces a fresh instance of an explicit container base type.
     # Set/Bag/Mix keep pristine empty sentinels, so bare-create them rather
     # than run their .new (see issue #6246).
-    method IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST(RakuAST::IMPL::QASTContext $context, Mu $of) {
-        my $class := self.IMPL-CONTAINER-TYPE($of);
-        $context.ensure-sc($class);
-        my $wval := QAST::WVal.new(:value($class));
+    method IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST(RakuAST::IMPL::QASTContext $context, Mu $of, Mu :$class-qast) {
+        my $wval := $class-qast;
+        unless nqp::isconcrete($wval) {
+            my $class := self.IMPL-CONTAINER-TYPE($of);
+            $context.ensure-sc($class);
+            $wval := QAST::WVal.new(:value($class));
+        }
         $!explicit-base-bare-create
             ?? QAST::Op.new(:op<create>, $wval)
             !! QAST::Op.new(:op<callmethod>, :name<new>, $wval)
@@ -387,10 +444,11 @@ class RakuAST::ContainerCreator {
 }
 
 class RakuAST::TraitTarget::Variable
-  is RakuAST::TraitTarget
-  is RakuAST::Meta
-  is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
+  is RakuAST::Node
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has str $!name;
     has str $!scope;
@@ -432,18 +490,19 @@ class RakuAST::TraitTarget::Variable
     }
 }
 
-# Base class for variable declarations
-class RakuAST::VarDeclaration
-  is RakuAST::Declaration { }
+# Done by variable declarations
+role RakuAST::VarDeclaration
+  does RakuAST::Declaration { }
 
 # A basic constant declaration of the form `my Type constant $foo = 42`
 class RakuAST::VarDeclaration::Constant
-  is RakuAST::VarDeclaration
-  is RakuAST::TraitTarget
-  is RakuAST::BeginTime
-  is RakuAST::CompileTimeValue
-  is RakuAST::ImplicitLookups
   is RakuAST::Term
+  does RakuAST::VarDeclaration
+  does RakuAST::TraitTarget
+  does RakuAST::CompileTimeValue
+  does RakuAST::ImplicitLookups
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
 {
     has str                      $.name;
     has RakuAST::Initializer     $.initializer;
@@ -459,7 +518,7 @@ class RakuAST::VarDeclaration::Constant
       List          :$traits
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Constant,'$!name',$name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Constant, '$!initializer',
             $initializer // RakuAST::Initializer);
@@ -490,10 +549,15 @@ class RakuAST::VarDeclaration::Constant
         ]
     }
 
+    # a constant is its value, which has no meta-object of its own to
+    # carry documentation at runtime
+    method podifiable() { False }
+
     method visit-children(Code $visitor) {
         $visitor($!type) if $!type;
         $visitor($!initializer) if $!initializer;
         self.visit-traits($visitor);
+        $visitor(self.WHY) if self.WHY;
     }
 
     method sigil {
@@ -683,15 +747,17 @@ class RakuAST::Expression::QAST
 # A basic variable declaration of the form `my SomeType $foo = 42` or
 # `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple
-  is RakuAST::VarDeclaration
-  is RakuAST::ImplicitLookups
-  is RakuAST::TraitTarget
-  is RakuAST::ContainerCreator
-  is RakuAST::Meta
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
   is RakuAST::Term
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::VarDeclaration
+  does RakuAST::ContainerCreator
+  does RakuAST::ImplicitLookups
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::StateInitGuard
 {
     has RakuAST::Type        $.type;
     has RakuAST::Name        $.desigilname;
@@ -699,6 +765,7 @@ class RakuAST::VarDeclaration::Simple
     has str                  $.twigil;
     has RakuAST::Initializer $.initializer;
     has RakuAST::Method      $.initializer-method;
+    has int                  $!initializer-in-method;
     has RakuAST::SemiList    $.shape;
     has RakuAST::Package     $.attribute-package;
     has RakuAST::Role        $!generics-package;
@@ -707,10 +774,14 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Expression  $.where;
     has RakuAST::Type        $.original-type;
     has Bool                 $!is-parameter;
+    # Set on a variable of a declaration list, which no signature binding
+    # stores into on entry to the frame, so it needs its container.
+    has int                  $!list-declared;
     has Bool                 $!is-rw;
     has Bool                 $.is-ro;
     has Bool                 $!is-bindable;
     has Bool                 $!already-declared;
+    has Bool                 $!shares-implicit;
     has RakuAST::Code        $!block;
     has RakuAST::Package     $!unit-package;
 
@@ -725,6 +796,10 @@ class RakuAST::VarDeclaration::Simple
     # Set by the optimize pass on a plain array declaration initialized from
     # a comma list, for lowering to a direct build of the list internals.
     has int $!lowered-array-init;
+
+    # The name of the hidden state variable that holds the instantiated
+    # container of a generic state array or hash.
+    has str $!generic-state-holder-name;
 
     # Set by the lexical-to-local lowering analysis when every access to
     # this declaration is confined to the declaring frame, so it can be
@@ -752,6 +827,11 @@ class RakuAST::VarDeclaration::Simple
 
     method IMPL-UNUSED-SLURPY() { $!unused-slurpy }
 
+    method IMPL-SET-LIST-DECLARED() {
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!list-declared', 1);
+        Nil
+    }
+
     method IMPL-SET-LOWERED-TO-LOCAL(Mu $sentinel) {
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!lowered-to-local', 1);
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!lowered-away-sentinel', $sentinel);
@@ -771,6 +851,7 @@ class RakuAST::VarDeclaration::Simple
         return '' unless $!lowered-to-local;
         return '' if nqp::isnull($!lowered-away-sentinel);
         return '' if $!already-declared
+            || $!shares-implicit
             || self.scope ne 'my'
             || $!desigilname.is-multi-part
             || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE;
@@ -813,7 +894,7 @@ class RakuAST::VarDeclaration::Simple
         else {
             my $container := self.meta-object;
             $context.ensure-sc($container);
-            QAST::Stmts.new(
+            my $qast := QAST::Stmts.new(
                 $decl,
                 QAST::Op.new(
                     :op('bind'),
@@ -823,7 +904,10 @@ class RakuAST::VarDeclaration::Simple
                     # the container.
                     QAST::Op.new( :op('clone_nd'), QAST::WVal.new( :value($container) ) )
                 )
-            )
+            );
+            $qast.push(self.IMPL-GENERIC-REBIND-QAST($context))
+                if self.IMPL-REBINDS-GENERIC-CONTAINER;
+            $qast
         }
     }
 
@@ -845,7 +929,7 @@ class RakuAST::VarDeclaration::Simple
             nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous variable; use RakuAST::VarDeclaration::Anonymous');
         }
 
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname', $desigilname);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil || '');
@@ -859,8 +943,7 @@ class RakuAST::VarDeclaration::Simple
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor',
           RakuAST::Method);
-        nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
-          $forced-dynamic ?? True !! False);
+        $obj.IMPL-SET-FORCED-DYNAMIC($forced-dynamic ?? True !! False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-parameter',
           $is-parameter ?? True !! False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!where',
@@ -883,6 +966,11 @@ class RakuAST::VarDeclaration::Simple
     method set-initializer(RakuAST::Initializer $initializer) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
+        self.IMPL-CLEAR-IMPLICIT-DECLARATIONS;
+    }
+
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-GUARDS-STATE-INIT ?? [self.IMPL-STATE-INIT-GUARD] !! []
     }
 
     method name() {
@@ -922,6 +1010,30 @@ class RakuAST::VarDeclaration::Simple
 
     method set-already-declared() {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!already-declared', True);
+    }
+    method already-declared() { $!already-declared ?? True !! False }
+
+    # Name the lexical the scope already makes, such as a block's topic. The
+    # declaration then declares nothing of its own, and an `our` binds that
+    # lexical to the package container it installs.
+    method claim-implicit() {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!shares-implicit', True)
+          if self.IMPL-CAN-SHARE-IMPLICIT;
+        Nil
+    }
+
+    method shares-implicit() { $!shares-implicit ?? True !! False }
+
+    # Whether the declaration can name a lexical the scope already made. One
+    # that asks for a container of its own cannot: that lexical is the
+    # scope's, shaped before the declaration runs.
+    method IMPL-CAN-SHARE-IMPLICIT() {
+        my str $scope := self.scope;
+        return False unless $scope eq 'my' || $scope eq 'our';
+        return False if $!is-parameter || $!type || $!shape || $!where;
+        return False if self.forced-dynamic;
+        return False if nqp::elems(self.IMPL-UNWRAP-LIST(self.traits));
+        True
     }
 
     method set-where(RakuAST::Expression $where) {
@@ -963,7 +1075,7 @@ class RakuAST::VarDeclaration::Simple
 
     method visit-children(Code $visitor) {
         $visitor($!type)        if nqp::isconcrete($!type);
-        if nqp::isconcrete($!initializer) {
+        if !$!initializer-in-method && nqp::isconcrete($!initializer) {
             $visitor($!initializer);
             $visitor($!initializer-method) if nqp::isconcrete($!initializer-method);
         }
@@ -983,15 +1095,15 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has', 'HAS'])
     }
 
-    method is-lexical() {
+    method is-lexical(--> Bool) {
         # Overridden here because our-scoped variables are really lexical aliases.
-        my str $scope := self.scope;
-        $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
+        my constant SCOPES := nqp::hash('my', 1, 'state', 1, 'our', 1);
+        nqp::existskey(SCOPES,self.scope)
     }
 
-    method is-attribute() {
-        my str $scope := self.scope;
-        $scope eq 'has' || $scope eq 'HAS'
+    method is-attribute(--> Bool) {
+        my constant SCOPES := nqp::hash('has', 1, 'HAS', 1);
+        nqp::existskey(SCOPES,self.scope)
     }
 
     # Only an attribute has a meta-object that can carry documentation
@@ -1026,11 +1138,54 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-BIND-CONSTRAINT(self.IMPL-OF-TYPE)
     }
 
-    method IMPL-CALCULATE-TYPES(Mu $of) {
-        my &calculate-types := nqp::findmethod(RakuAST::ContainerCreator, 'IMPL-CALCULATE-TYPES');
-        $!shape && self.sigil eq '%'
-            ?? &calculate-types(self, $of, :key-type($!shape.code-statements[0].expression.compile-time-value))
-            !! &calculate-types(self, $of);
+    # Yields NQPMu for check time to report unless the shape is one
+    # expression statement without modifiers whose value is a type object
+    # known at compile time.
+    method IMPL-CONTAINER-KEY-TYPE() {
+        return NQPMu unless $!shape && self.sigil eq '%';
+        my @statements := $!shape.code-statements;
+        return NQPMu unless nqp::elems(@statements) == 1;
+        my $statement := @statements[0];
+        return NQPMu unless nqp::istype($statement, RakuAST::Statement::Expression)
+          && !$statement.condition-modifier && !$statement.loop-modifier
+          && !nqp::elems(self.IMPL-UNWRAP-LIST($statement.labels));
+        # A hash shape is never compiled, so it may not declare a package or
+        # variable outside a block, constant or subset of its own. An enum
+        # declaration evaluates to a Map rather than its type.
+        return NQPMu if nqp::elems(self.IMPL-UNWRAP-LIST($statement.find-nodes(
+          RakuAST::Declaration,
+          :condition(-> $node {
+              nqp::istype($node, RakuAST::Package)
+                || nqp::istype($node, RakuAST::Type::Enum)
+                || nqp::istype($node, RakuAST::VarDeclaration::Simple)
+          }),
+          :stopper(-> $node {
+              nqp::istype($node, RakuAST::Code)
+                || nqp::istype($node, RakuAST::VarDeclaration::Constant)
+                || nqp::istype($node, RakuAST::Type::Subset)
+          })
+        )));
+
+        my $expression := $statement.expression;
+        # Inside an EVAL, C:D naming a type from outside is a plain name, and
+        # its lookup drops the :D.
+        return NQPMu if nqp::istype($expression, RakuAST::Term::Name)
+          && $expression.name.has-colonpairs;
+        my $key-type := NQPMu;
+        if $expression.has-compile-time-value {
+            $key-type := $expression.maybe-compile-time-value;
+        }
+        # A ::? name, or a name from outside an EVAL, has no compile time
+        # value of its own. What it resolves to is checked like any other.
+        elsif nqp::istype($expression, RakuAST::Lookup) && $expression.is-resolved
+          && (nqp::istype($expression, RakuAST::Var::Lexical::Constant)
+               || nqp::istype($expression, RakuAST::Term::Name)
+                    && !$expression.name.is-package-lookup
+                    && nqp::istype($expression.resolution, RakuAST::Declaration::External)) {
+            $key-type := $expression.resolution.maybe-compile-time-value;
+        }
+        # A container holding a type object is not a type object.
+        nqp::isnull($key-type) || nqp::isconcrete_nd($key-type) ?? NQPMu !! $key-type
     }
 
     # Runs before we parse the initializer, so we can setup a proper environment for resolving
@@ -1139,7 +1294,7 @@ class RakuAST::VarDeclaration::Simple
             nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
                 $package);
             if $!desigilname.is-multi-part
-                && !nqp::istype($!desigilname.root-part, RakuAST::Name::Part::Empty) {
+                && !nqp::istype($!desigilname.root-part, RakuAST::Name::Part::EmptyEdge) {
                 # A qualified name anchors at its leading package: the
                 # lexically visible one when there is one, GLOBAL
                 # otherwise, never the package of the enclosing scope.
@@ -1154,8 +1309,8 @@ class RakuAST::VarDeclaration::Simple
             $resolver.find-attach-target('generics-pad'));
 
         # Process traits for `is Type` and `of Type`, which get special
-        # handling by the compiler.
-        my @late-traits;
+        # handling by the compiler. The ones handled here stay in the list,
+        # marked applied, so the declaration still shows how it was written.
         my @traits := self.IMPL-UNWRAP-LIST(self.traits);
 
         my $of-type;
@@ -1163,7 +1318,7 @@ class RakuAST::VarDeclaration::Simple
             if nqp::istype($_, RakuAST::Trait::Of) {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $!type) if $!type;
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $of-type := $_.type);
-                next;
+                $_.mark-applied;
             }
             elsif nqp::istype($_, RakuAST::Trait::Is) {
                 my $type := $_.type;
@@ -1173,10 +1328,9 @@ class RakuAST::VarDeclaration::Simple
                     && (!nqp::istype($type, RakuAST::Lookup) || $type.is-resolved)
                 {
                     self.IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE($type);
-                    next;
+                    $_.mark-applied;
                 }
             }
-            nqp::push(@late-traits, $_);
         }
 
         my $subset;
@@ -1184,13 +1338,10 @@ class RakuAST::VarDeclaration::Simple
             my $type := $of-type // self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
             # An unnamed subset reports as <anon> in a failed type check,
             # matching the legacy frontend.
-            $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($type || Mu), :$where;
+            $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($type || RakuAST::Type), :$where;
             $subset.to-begin-time($resolver, $context);
             self.set-type($subset, :replace);
         }
-
-        # Apply any traits.
-        self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
 
         self.IMPL-RESOLVE-CONTAINER-VIVIFY-MODE($resolver)
             if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE;
@@ -1199,7 +1350,7 @@ class RakuAST::VarDeclaration::Simple
             if ($!sigil eq '@' && $!shape) || self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE || $subset {
                 my $args := $!shape
                     ?? RakuAST::ArgList.new(
-                        RakuAST::ColonPair::Value.new(:key<shape>, :value($!shape))
+                        RakuAST::ColonPair::Value.new(:key<shape>, :value(RakuAST::Circumfix::Parentheses.new($!shape)))
                     )
                     !! RakuAST::ArgList.new;
                 my $of := $subset ?? $subset.meta-object !! self.IMPL-OF-TYPE;
@@ -1218,11 +1369,13 @@ class RakuAST::VarDeclaration::Simple
                     $operand := $base-ast;
                 }
                 else {
-                    $operand := RakuAST::Declaration::ResolvedConstant.new(
-                        :compile-time-value(
-                            $!sigil eq '$'
-                                ?? self.meta-object
-                                !! self.IMPL-CONTAINER-TYPE($of)
+                    $operand := RakuAST::Term::Declaration.new(
+                        RakuAST::Declaration::ResolvedConstant.new(
+                            :compile-time-value(
+                                $!sigil eq '$'
+                                    ?? self.meta-object
+                                    !! self.IMPL-CONTAINER-TYPE($of)
+                            )
                         )
                     );
                 }
@@ -1256,12 +1409,7 @@ class RakuAST::VarDeclaration::Simple
                   # and the attribute's value to compute the default, so a
                   # default whose value is a code object takes the method
                   # path below to be stored as a value.
-                  && !nqp::isinvokable($expression.maybe-compile-time-value)
-                  # A heredoc's body is spliced in at the end of the line, after
-                  # this attribute has begun. Reading its value now would capture
-                  # the placeholder, so leave it to the method path, which compiles
-                  # the expression once the body is present.
-                  && !nqp::istype($expression, RakuAST::Heredoc) {
+                  && !nqp::isinvokable($expression.maybe-compile-time-value) {
                     # Only a concrete default known at compile time becomes the
                     # build value directly. A default that is a type object would
                     # leave the build not concrete. Then the attribute is not
@@ -1294,14 +1442,16 @@ class RakuAST::VarDeclaration::Simple
                     self.add-trait(
                         RakuAST::Trait::WillBuild.new($method).to-begin-time($resolver, $context)
                     );
-                    # No need anymore, since the initializer is already referenced by the method.
-                    # Avoids double CHECK on the initializer code.
-                    nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer', RakuAST::Initializer);
+                    # The initializer stays as written for deparsing. The
+                    # method carries it from here on, so it is not visited again.
+                    nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!initializer-in-method', 1);
                 }
             }
             else {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer-method', RakuAST::Method);
             }
+
+            self.IMPL-DOCUMENT-AT-BEGIN;
 
             # For attributes our meta-object is an appropriate Attribute instance
             self.apply-traits($resolver, $context, self);
@@ -1367,6 +1517,10 @@ class RakuAST::VarDeclaration::Simple
 
         self.check-scope($resolver, 'variable');
 
+        # A variable a signature declares is checked by its parameter.
+        self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!where, $resolver, $context, :tested)
+          if $!where && !$!is-parameter;
+
         self.add-sorry(
           $resolver.build-exception: 'X::Adhoc',
             :message('Cannot declare an anonymous variable with a twigil')
@@ -1410,6 +1564,15 @@ class RakuAST::VarDeclaration::Simple
           $resolver.build-exception: 'X::Bind'
         ) if $!shape && self.sigil eq '@'
           && $!initializer && $!initializer.is-binding;
+
+        if $!shape && self.sigil eq '%'
+          && nqp::eqaddr(self.IMPL-CONTAINER-KEY-TYPE, NQPMu) {
+            self.add-sorry: nqp::elems($!shape.code-statements) > 1
+              ?? $resolver.build-exception('X::Comp::NYI',
+                   :feature('multidimensional shaped hashes'))
+              !! $resolver.build-exception('X::Comp::AdHoc',
+                   :payload('Invalid hash shape; type expected'));
+        }
 
         if (self.initializer) {
             my @found := self.IMPL-UNWRAP-LIST(self.find-nodes(
@@ -1456,7 +1619,7 @@ class RakuAST::VarDeclaration::Simple
             }
         }
 
-        if $type && self.is-attribute {
+        if $type && self.is-attribute && self.sigil eq '$' {
             my $of := self.IMPL-OF-TYPE;
             # Subset type checking can have side effects, so don't do that at compile time.
             unless nqp::istype($type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
@@ -1467,10 +1630,22 @@ class RakuAST::VarDeclaration::Simple
                     my $expression := $initializer.expression;
                     my $expression-type := $expression.return-type;
                     unless $expression-type =:= Mu || $expression-type =:= Nil
-                        || nqp::objprimspec($of) || $of.HOW.archetypes.generic {
+                        || nqp::objprimspec($of) || $of.HOW.archetypes.generic
+                        || nqp::objprimspec($expression-type)
+                        || $expression-type.HOW.archetypes.generic {
+                        # a return type says nothing about definedness, and
+                        # a coercion type decides at runtime what it takes
+                        my $base := $of.HOW.archetypes.definite
+                          && nqp::eqaddr($of.HOW.wrappee($of, :definite), $of)
+                          ?? $of.HOW.base_type($of)
+                          !! $of;
+                        # a return type only bounds the value, so the value
+                        # may still be of a narrower type
                         unless $expression.has-compile-time-value
                             ?? nqp::istype($expression.maybe-compile-time-value, $of) # can check actual value
-                            !! nqp::istype($expression-type, $of.IMPL-BASE-TYPE) # bare type can't match definedness
+                            !! $of.HOW.archetypes.coercive
+                                 || nqp::istype($expression-type, $base)
+                                 || nqp::istype($base, $expression-type)
                         {
                             self.add-sorry:
                                 $resolver.build-exception: 'X::TypeCheck::Attribute::Default',
@@ -1516,7 +1691,8 @@ class RakuAST::VarDeclaration::Simple
 
         if $type && !$!is-parameter { # Parameter checks this already
             my $archetypes := $type.compile-time-value.HOW.archetypes;
-            unless $archetypes.nominalish
+            unless $archetypes.nominal
+                || $archetypes.nominalizable
                 || $archetypes.generic
                 || $archetypes.definite
                 || $archetypes.coercive
@@ -1784,11 +1960,303 @@ class RakuAST::VarDeclaration::Simple
           || nqp::isconcrete($!unit-package) && nqp::eqaddr($!block, $!unit-package.body)
     }
 
+    # Whether an array or hash declaration has a generic container type,
+    # default or trait mixin, which the frame reaching the declaration must
+    # instantiate.
+    method IMPL-HAS-GENERIC-CONTAINER() {
+        my str $sigil := self.sigil;
+        return 0 unless $sigil eq '@' || $sigil eq '%';
+        my $of := self.IMPL-OF-TYPE;
+        my $bind-constraint := self.IMPL-BIND-CONSTRAINT($of);
+        return 1 if $bind-constraint.HOW.archetypes($bind-constraint).generic
+          || self.IMPL-CONTAINER-DESCRIPTOR($of).is_default_generic;
+        for self.IMPL-TRAIT-MIXINS($of) -> $mixin {
+            return 1 if self.IMPL-MIXIN-IS-GENERIC($mixin);
+        }
+        0
+    }
+
+    # Whether the declaration binds its variable to an instantiated container
+    # where the frame is entered. A shaped array is made where the
+    # declaration is reached instead, since its shape may use earlier code.
+    method IMPL-REBINDS-GENERIC-CONTAINER() {
+        my str $scope := self.scope;
+        ($scope eq 'my' || $scope eq 'state')
+          && !$!is-parameter && !$!already-declared && !$!shares-implicit
+          && !($!shape && self.sigil eq '@')
+          && !($!initializer && $!initializer.is-binding)
+          && self.IMPL-HAS-GENERIC-CONTAINER ?? 1 !! 0
+    }
+
+    method IMPL-GENERIC-STATE-HOLDER-NAME() {
+        $!generic-state-holder-name
+            || nqp::bindattr_s(self, RakuAST::VarDeclaration::Simple,
+                 '$!generic-state-holder-name', QAST::Node.unique('!generic_state_holder'))
+    }
+
+    # QAST that binds the variable to its instantiated container. A bind to a
+    # state variable only lasts for the current invocation, so a state one
+    # keeps the container in a hidden state variable.
+    method IMPL-GENERIC-REBIND-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $of := self.IMPL-OF-TYPE;
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        my $var := $local-name
+            ?? QAST::Var.new( :name($local-name), :scope('local') )
+            !! QAST::Var.new( :name(self.name), :scope('lexical') );
+        return QAST::Op.new( :op('bind'), $var,
+            self.IMPL-INSTANTIATED-CONTAINER-QAST($context, $of, $var) )
+          unless self.scope eq 'state';
+
+        my $holder := nqp::create(Scalar);
+        nqp::bindattr($holder, Scalar, '$!value', Mu);
+        $context.ensure-sc($holder);
+        my str $name := self.IMPL-GENERIC-STATE-HOLDER-NAME;
+        my $held := QAST::Op.new( :op('getattr'),
+            QAST::Var.new( :$name, :scope('lexical') ),
+            QAST::WVal.new( :value(Scalar) ), QAST::SVal.new( :value('$!value') ) );
+        QAST::Stmts.new(
+            QAST::Var.new( :$name, :scope('lexical'), :decl('statevar'), :value($holder) ),
+            QAST::Op.new( :op('bind'), $var,
+                QAST::Op.new( :op('if'),
+                    QAST::Op.new( :op('isconcrete'), $held ),
+                    $held.shallow_clone,
+                    QAST::Op.new( :op('bindattr'),
+                        QAST::Var.new( :$name, :scope('lexical') ),
+                        QAST::WVal.new( :value(Scalar) ), QAST::SVal.new( :value('$!value') ),
+                        self.IMPL-INSTANTIATED-CONTAINER-QAST($context, $of, $var.shallow_clone) ) ) ) )
+    }
+
+    # The mixin types that traits put on the declared container, in the
+    # order they were mixed in, or none when its type is not the container
+    # type with mixins.
+    method IMPL-TRAIT-MIXINS(Mu $of) {
+        my $container := self.meta-object;
+        return [] unless nqp::isconcrete($container);
+        my $type := self.IMPL-CONTAINER-TYPE($of);
+        my @mixins;
+        my $mixin := nqp::what($container);
+        while !nqp::eqaddr($mixin, $type) && nqp::can($mixin.HOW, 'is_mixin')
+          && $mixin.HOW.is_mixin($mixin) {
+            nqp::unshift(@mixins, $mixin);
+            $mixin := $mixin.HOW.mro($mixin)[1];
+        }
+        nqp::eqaddr($mixin, $type) ?? @mixins !! []
+    }
+
+    method IMPL-MIXIN-IS-GENERIC(Mu $mixin) {
+        for $mixin.HOW.roles($mixin, :local) -> $role {
+            return 1 if $role.HOW.archetypes($role).generic;
+        }
+        0
+    }
+
+    # QAST that produces a type, instantiating a generic one for the type
+    # environment of the frame that reaches the declaration.
+    method IMPL-INSTANTIATE-TYPE-QAST(RakuAST::IMPL::QASTContext $context, Mu $type) {
+        $context.ensure-sc($type);
+        $type.HOW.archetypes($type).generic
+            ?? QAST::Op.new( :op('callmethod'), :name('instantiate_generic'),
+                 QAST::Op.new( :op('how'), QAST::WVal.new( :value($type) ) ),
+                 QAST::WVal.new( :value($type) ),
+                 QAST::Op.new( :op('ctx') ))
+            !! QAST::WVal.new( :value($type) )
+    }
+
+    # QAST that produces the base type of an array or hash container. A
+    # generic explicit base type written as a parameterization is evaluated
+    # again, so its type arguments are the instantiated ones.
+    method IMPL-CONTAINER-BASE-TYPE-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $base := self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE
+            ?? self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE
+            !! self.container-base-type;
+        $context.ensure-sc($base);
+        return QAST::WVal.new( :value($base) )
+            unless $base.HOW.archetypes($base).generic;
+        my $ast := self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE-AST;
+        $ast := $ast.base-type if nqp::istype($ast, RakuAST::Type::Definedness);
+        nqp::istype($ast, RakuAST::Type::Parameterized)
+            ?? $ast.IMPL-EXPR-QAST($context)
+            !! self.IMPL-INSTANTIATE-TYPE-QAST($context, $base)
+    }
+
+    # QAST that produces the container type of an array or hash. A generic
+    # one is parameterized again with the instantiated types, which is much
+    # cheaper than instantiating it through its HOW.
+    method IMPL-CONTAINER-TYPE-QAST(RakuAST::IMPL::QASTContext $context, Mu $of) {
+        my $type := self.IMPL-CONTAINER-TYPE($of);
+        $context.ensure-sc($type);
+        return QAST::WVal.new( :value($type) )
+            unless $type.HOW.archetypes($type).generic;
+        my $key-type := self.IMPL-CONTAINER-KEY-TYPE;
+        return self.IMPL-CONTAINER-BASE-TYPE-QAST($context)
+            unless self.type || !($key-type =:= NQPMu);
+        my $qast := QAST::Op.new( :op('callmethod'), :name('parameterize'),
+            QAST::Op.new( :op('how'), self.IMPL-CONTAINER-BASE-TYPE-QAST($context) ),
+            self.IMPL-CONTAINER-BASE-TYPE-QAST($context),
+            self.IMPL-INSTANTIATE-TYPE-QAST($context,
+                self.type ?? $of !! self.IMPL-UNTYPED-HASH-VALUE-TYPE) );
+        $qast.push(self.IMPL-INSTANTIATE-TYPE-QAST($context, $key-type))
+            unless $key-type =:= NQPMu;
+        $qast
+    }
+
+    # QAST that produces a fresh shaped array or a fresh container of an
+    # explicit container type, instantiating a generic container type.
+    method IMPL-FRESH-CONTAINER-QAST(RakuAST::IMPL::QASTContext $context, Mu $of) {
+        my $type-qast := self.IMPL-CONTAINER-TYPE-QAST($context, $of);
+        if $!shape && self.sigil eq '@' {
+            my $shape := $!shape.IMPL-TO-QAST($context);
+            $shape.named('shape');
+            QAST::Op.new( :op('callmethod'), :name('new'), $type-qast, $shape )
+        }
+        else {
+            self.IMPL-EXPLICIT-CONTAINER-VIVIFY-QAST($context, $of, :class-qast($type-qast))
+        }
+    }
+
+    # QAST that produces the instantiated container of a generic array or
+    # hash. It takes the mixins of the declared one, and its contents and
+    # descriptor too unless it is of an explicit container type.
+    method IMPL-INSTANTIATED-CONTAINER-QAST(RakuAST::IMPL::QASTContext $context, Mu $of, Mu $access-qast) {
+        my str $source := QAST::Node.unique('generic_source');
+        my str $target := QAST::Node.unique('generic_container');
+        my $qast := QAST::Stmts.new( QAST::Op.new( :op('bind'),
+            QAST::Var.new( :name($source), :scope('local'), :decl('var') ),
+            $access-qast.shallow_clone ) );
+        if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+            $qast.push(QAST::Op.new( :op('bind'),
+                QAST::Var.new( :name($target), :scope('local'), :decl('var') ),
+                self.IMPL-FRESH-CONTAINER-QAST($context, $of) ));
+        }
+        else {
+            # Built the way IMPL-CONTAINER builds a container, then given
+            # the attributes of the declared one as they are, so it shares
+            # their contents the way each frame's copy of a container does.
+            my $base := self.container-base-type;
+            $qast.push(QAST::Op.new( :op('bind'),
+                QAST::Var.new( :name($target), :scope('local'), :decl('var') ),
+                QAST::Op.new( :op('create'), self.IMPL-CONTAINER-TYPE-QAST($context, $of) ) ));
+            for $base.HOW.mro($base) -> $class {
+                for $class.HOW.attributes($class, :local) -> $attribute {
+                    my str $name := $attribute.name;
+                    $qast.push(QAST::Op.new( :op('bindattr'),
+                        QAST::Var.new( :name($target), :scope('local') ),
+                        QAST::WVal.new( :value($class) ), QAST::SVal.new( :value($name) ),
+                        $name eq '$!descriptor'
+                            ?? self.IMPL-INSTANTIATE-DESCRIPTOR-QAST($class,
+                                 QAST::Var.new( :name($source), :scope('local') ))
+                            !! QAST::Op.new( :op('getattr'),
+                                 QAST::Var.new( :name($source), :scope('local') ),
+                                 QAST::WVal.new( :value($class) ), QAST::SVal.new( :value($name) ) ) ));
+                }
+            }
+        }
+
+        # Each mixin is done again on the new container, which then takes the
+        # attribute values of the declared one.
+        for self.IMPL-TRAIT-MIXINS($of) -> $mixin {
+            my $mix := QAST::Op.new( :op('callmethod'), :name('mixin'),
+                QAST::Op.new( :op('how'), QAST::Var.new( :name($target), :scope('local') ) ),
+                QAST::Var.new( :name($target), :scope('local') ) );
+            for $mixin.HOW.roles($mixin, :local) -> $role {
+                $mix.push(self.IMPL-INSTANTIATE-TYPE-QAST($context, $role));
+            }
+            $qast.push($mix);
+            $context.ensure-sc($mixin);
+            my int $generic := self.IMPL-MIXIN-IS-GENERIC($mixin);
+            for $mixin.HOW.attributes($mixin, :local) -> $attribute {
+                my $type := $attribute.type;
+                my $value := QAST::Var.new( :scope('attribute'), :name($attribute.name),
+                    :returns($type),
+                    QAST::Var.new( :name($source), :scope('local') ),
+                    QAST::WVal.new( :value($mixin) ) );
+                $value := self.IMPL-INSTANTIATE-SCALAR-QAST($value)
+                    if $generic && !nqp::objprimspec($type);
+                $qast.push(QAST::Op.new( :op('bind'),
+                    QAST::Var.new( :scope('attribute'), :name($attribute.name), :returns($type),
+                        QAST::Var.new( :name($target), :scope('local') ),
+                        QAST::Op.new( :op('what'), QAST::Var.new( :name($target), :scope('local') ) ) ),
+                    $value ));
+            }
+        }
+        $qast.push(QAST::Var.new( :name($target), :scope('local') ));
+        $qast
+    }
+
+    # QAST that produces the descriptor of a container, instantiated when the
+    # descriptor is generic.
+    method IMPL-INSTANTIATE-DESCRIPTOR-QAST(Mu $class, Mu $container-qast) {
+        my str $name := QAST::Node.unique('generic_descriptor');
+        QAST::Stmts.new(
+            QAST::Op.new( :op('bind'),
+                QAST::Var.new( :$name, :scope('local'), :decl('var') ),
+                QAST::Op.new( :op('getattr'), $container-qast,
+                    QAST::WVal.new( :value($class) ), QAST::SVal.new( :value('$!descriptor') ) ) ),
+            QAST::Op.new( :op('if'),
+                QAST::Op.new( :op('callmethod'), :name('is_generic'),
+                    QAST::Var.new( :$name, :scope('local') ) ),
+                QAST::Op.new( :op('callmethod'), :name('instantiate_generic'),
+                    QAST::Var.new( :$name, :scope('local') ), QAST::Op.new( :op('ctx') ) ),
+                QAST::Var.new( :$name, :scope('local') ) ) )
+    }
+
+    # QAST that produces an attribute value of a generic role, as a new
+    # Scalar of the instantiated type when it is a Scalar of a generic one.
+    # One still holding the generic default gets the instantiated default.
+    method IMPL-INSTANTIATE-SCALAR-QAST(Mu $value-qast) {
+        my str $name := QAST::Node.unique('generic_attribute');
+        my str $old := QAST::Node.unique('generic_attribute_descriptor');
+        my str $new := QAST::Node.unique('generic_attribute_descriptor');
+        my $value := QAST::Var.new( :$name, :scope('local') );
+        QAST::Stmts.new(
+            QAST::Op.new( :op('bind'),
+                QAST::Var.new( :$name, :scope('local'), :decl('var') ), $value-qast ),
+            QAST::Op.new( :op('if'),
+                QAST::Op.new( :op('iscont'), $value.shallow_clone ),
+                QAST::Op.new( :op('if'),
+                    QAST::Op.new( :op('istype_nd'), $value.shallow_clone, QAST::WVal.new( :value(Scalar) ) ),
+                    QAST::Stmts.new(
+                        QAST::Op.new( :op('bind'),
+                            QAST::Var.new( :name($old), :scope('local'), :decl('var') ),
+                            QAST::Op.new( :op('getattr'), $value.shallow_clone,
+                                QAST::WVal.new( :value(Scalar) ), QAST::SVal.new( :value('$!descriptor') ) ) ),
+                        QAST::Op.new( :op('if'),
+                            QAST::Op.new( :op('callmethod'), :name('is_generic'),
+                                QAST::Var.new( :name($old), :scope('local') ) ),
+                            QAST::Stmts.new(
+                                QAST::Op.new( :op('bind'),
+                                    QAST::Var.new( :name($new), :scope('local'), :decl('var') ),
+                                    QAST::Op.new( :op('callmethod'), :name('instantiate_generic'),
+                                        QAST::Var.new( :name($old), :scope('local') ),
+                                        QAST::Op.new( :op('ctx') ) ) ),
+                                QAST::Op.new( :op('if'),
+                                    QAST::Op.new( :op('eqaddr'),
+                                        QAST::Op.new( :op('decont'), $value.shallow_clone ),
+                                        QAST::Op.new( :op('callmethod'), :name('default'),
+                                            QAST::Var.new( :name($old), :scope('local') ) ) ),
+                                    QAST::Op.new( :op('p6scalarfromdesc'),
+                                        QAST::Var.new( :name($new), :scope('local') ) ),
+                                    QAST::Op.new( :op('p6scalarwithvalue'),
+                                        QAST::Var.new( :name($new), :scope('local') ),
+                                        QAST::Op.new( :op('decont'), $value.shallow_clone ) ) ) ),
+                            $value.shallow_clone ) ),
+                    $value.shallow_clone ),
+                $value.shallow_clone ) )
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $qast := self.IMPL-QAST-DECL-CONTAINER($context);
+        self.IMPL-REBINDS-GENERIC-CONTAINER
+            ?? QAST::Stmts.new( $qast, self.IMPL-GENERIC-REBIND-QAST($context) )
+            !! $qast
+    }
+
+    method IMPL-QAST-DECL-CONTAINER(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
         my $of := $!where ?? $!type.meta-object !! self.IMPL-OF-TYPE;
 
-        return QAST::Op.new(:op<null>) if $!already-declared;
+        return QAST::Op.new(:op<null>)
+            if $!already-declared || ($!shares-implicit && $scope ne 'our');
 
         # An unused implicit slurpy hash builds and binds no hash, but its
         # lexical slot must still exist: the full binder, as run by
@@ -1806,7 +2274,9 @@ class RakuAST::VarDeclaration::Simple
                     :scope($!is-rw ?? 'lexicalref' !! 'lexical'), :decl('var'), :name(self.name),
                     :returns($of)
                 );
-                if $!is-parameter || $!initializer {
+                # A hoisted declaration's initializer runs in another frame,
+                # so the slot takes its default here.
+                if $!is-parameter || $!initializer && !self.is-hoisted-to-outer {
                     $qast
                 }
                 else {
@@ -1841,6 +2311,17 @@ class RakuAST::VarDeclaration::Simple
                 else {
                     QAST::Var.new( :scope('lexical'), :decl('var'), :name(self.name) )
                 }
+            }
+            elsif $!is-parameter && !$!list-declared
+              && (my str $param-local := self.IMPL-LOWERED-LOCAL-NAME) {
+                # Signature binding stores into the local before anything
+                # reads it, so it needs no container.
+                $context.ensure-sc($!lowered-away-sentinel);
+                QAST::Stmts.new(
+                    QAST::Var.new( :scope('lexical'), :decl('static'), :name(self.name),
+                        :value($!lowered-away-sentinel) ),
+                    QAST::Var.new( :scope('local'), :decl('var'), :name($param-local) )
+                )
             }
             else {
                 # Need to vivify the object.
@@ -1906,11 +2387,18 @@ class RakuAST::VarDeclaration::Simple
                 !! $!desigilname.IMPL-QAST-PACKAGE-LOOKUP($context, $!package,
                     :sigil($!sigil), :twigil(self.twigil), :global-fallback);
             $lookup.name('VIVIFY-KEY');
-            QAST::Op.new(
-              :op('bind'),
-              QAST::Var.new( :scope('lexical'), :decl('contvar'), :name(self.name), :returns($of), :value($container) ),
-              $lookup
-            )
+            my $target;
+            if $!shares-implicit {
+                # The lexical is the scope's already, so the `our` binds it
+                # rather than declaring a container of its own.
+                $target := QAST::Var.new( :scope('lexical'), :name(self.name),
+                  :returns($of) );
+            }
+            else {
+                $target := QAST::Var.new( :scope('lexical'), :decl('contvar'),
+                  :name(self.name), :returns($of), :value($container) );
+            }
+            QAST::Op.new( :op('bind'), $target, $lookup )
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
             # No declaration to install
@@ -1954,49 +2442,66 @@ class RakuAST::VarDeclaration::Simple
                 !! QAST::Var.new( :$name, :scope<lexical> );
             my $of := self.IMPL-OF-TYPE;
 
-            if $sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) {
-                # Natively typed value. Need to initialize it to a default
-                # in the absence of an initializer.
-                my $init;
-                my $assign-op := 'bind';
+            if $sigil eq '$' && (my int $primspec := nqp::objprimspec($of)) {
+                # Natively typed value. May need to initialize it to a
+                # default in the absence of an initializer.
+
+                # Set up lookup tables
+                my constant ASSIGN-OP := nqp::list_s(
+                  '?',
+                  'assign_i',
+                  'assign_n',
+                  'assign_s',
+                  'assign_i', 'assign_i', 'assign_i',
+                  'assign_u', 'assign_u', 'assign_u', 'assign_u'
+                );
+                my constant RETURNS := nqp::list(
+                  Mu,
+                  int,
+                  num,
+                  str,
+                  int, int, int,
+                  uint, uint, uint, uint
+                );
+
+                # Initial setup
                 $var-access.scope('lexicalref');
-                if $prim-spec == 1 || (4 <= $prim-spec && $prim-spec <= 6) {
-                    $assign-op := 'assign_i';
-                    $var-access.returns(int);
-                    $init := QAST::IVal.new( :value(0) );
-                }
-                elsif $prim-spec == 1 || (7 <= $prim-spec && $prim-spec <= 10) {
-                    $assign-op := 'assign_u';
-                    $var-access.returns(uint);
-                    $init := QAST::IVal.new( :value(0) );
-                }
-                elsif $prim-spec == 2 {
-                    $assign-op := 'assign_n';
-                    $var-access.returns(num);
-                    $init := QAST::NVal.new( :value(0e0) );
-                }
-                else {
-                    $assign-op := 'assign_s';
-                    $var-access.returns(str);
-                    $init := QAST::SVal.new( :value('') );
-                }
+                $var-access.returns(nqp::atpos(RETURNS,$primspec));
+                my $init;
+                $init := QAST::NVal.new(:value(nqp::nan))
+                  if $primspec == 2 && self.IMPL-LANGUAGE-REVISION == 1;
+
+                # There is some kind of value to initialize with
                 if $!initializer {
                     if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
                         $init := $!initializer.expression.IMPL-TO-QAST($context);
                     }
-                    else {
-                        nqp::die('Can only compile an assign initializer on a native');
+                    elsif nqp::istype($!initializer, RakuAST::Initializer::CallAssign) {
+                        nqp::die('Cannot instantiate a native type'); # XXX should check whether the method is actually "new"
                     }
-                    $qast := QAST::Op.new( :op($assign-op), $var-access, $init )
+                    else {
+                        nqp::die('Can only compile an assign initializer on a native, got a ' ~ $!initializer.HOW.name($!initializer));
+                    }
                 }
-                else {
-                    $qast := $var-access
-                }
+
+                # Set up QAST with initializer if needed
+                $qast := $init
+                  ?? QAST::Op.new(
+                       :op(nqp::atpos_s(ASSIGN-OP,$primspec)),
+                       $var-access,
+                       $init
+                     )
+                  !! $var-access;
             }
 
             else {
                 my $bind-constraint := self.IMPL-BIND-CONSTRAINT($of);
-                if $bind-constraint.HOW.archetypes($bind-constraint).generic {
+                # Only a generic Scalar is instantiated here. An array or hash
+                # is instantiated where the frame is entered, a shaped array
+                # just below.
+                if ($bind-constraint.HOW.archetypes($bind-constraint).generic
+                    || self.IMPL-CONTAINER-DESCRIPTOR($of).is_default_generic)
+                  && !(($scope eq 'my' || $scope eq 'state') && self.IMPL-HAS-GENERIC-CONTAINER) {
                     $var-access := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
                         QAST::Op.new( :op('p6var'), $var-access ),
@@ -2004,15 +2509,8 @@ class RakuAST::VarDeclaration::Simple
                 }
 
                 if $sigil eq '@' && $!shape {
-                    my $value := self.IMPL-CONTAINER-TYPE($of);
-                    $context.ensure-sc($value);
-                    $var-access := QAST::Op.new( :op('bind'), $var-access, QAST::Op.new(
-                        :op('callmethod'), :name('new'),
-                        QAST::WVal.new( :$value )
-                    ) );
-                    my $shape_ast := $!shape.IMPL-TO-QAST($context);
-                    $shape_ast.named('shape');
-                    $var-access[1].push($shape_ast);
+                    $var-access := QAST::Op.new( :op('bind'), $var-access,
+                        self.IMPL-FRESH-CONTAINER-QAST($context, $of) );
                 }
 
                 # Reference type value with an initializer
@@ -2077,7 +2575,7 @@ class RakuAST::VarDeclaration::Simple
                     if $scope eq 'state' {
                         $qast := QAST::Op.new(
                           :op('if'),
-                          QAST::Op.new( :op('p6stateinit') ),
+                          self.IMPL-STATE-INIT-CONDITION-QAST($context),
                           $perform-init-qast,
                           $var-access
                         )
@@ -2091,6 +2589,7 @@ class RakuAST::VarDeclaration::Simple
                 else {
                     $qast := $var-access
                 }
+
             }
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
@@ -2221,12 +2720,13 @@ class RakuAST::VarDeclaration::Auto
   is RakuAST::VarDeclaration::Simple { }
 
 class RakuAST::VarDeclaration::Signature
-  is RakuAST::Declaration
-  is RakuAST::ImplicitLookups
-  is RakuAST::ImplicitDeclarations
-  is RakuAST::TraitTarget
-  is RakuAST::BeginTime
   is RakuAST::Term
+  does RakuAST::Declaration
+  does RakuAST::ImplicitLookups
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::TraitTarget
+  does RakuAST::BeginTime
+  does RakuAST::StateInitGuard
 {
     has RakuAST::Signature $.signature;
     has RakuAST::Type $.type;
@@ -2241,12 +2741,38 @@ class RakuAST::VarDeclaration::Signature
                str :$scope, Bool :$sig-literal) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!signature', $signature);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!initializer',
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!sig-literal',
             $sig-literal ?? True !! False);
+        # The variable a parameter declares takes the declared type and
+        # makes a subset of it from the where constraint, and a walk
+        # begins it before this declaration
+        my @parameters;
+        $signature.IMPL-COLLECT-PARAMETERS(@parameters);
+        for @parameters {
+            if $_.target {
+                if $type {
+                    $_.target.set-type($type, :outer);
+                    # a slurpy with a type is a compile error and a
+                    # capture takes any type, so only their variables
+                    # carry it
+                    $_.IMPL-SET-OUTER-TYPE($type)
+                        if nqp::eqaddr($_.slurpy, RakuAST::Parameter::Slurpy);
+                }
+                $_.target.set-where($_.where) if $_.where;
+                $_.target.set-var-declaration;
+            }
+        }
+        # A parameter that is assigned to, not bound, holds a container
+        # of its own, decided before its meta-object exists
+        unless nqp::isconcrete($initializer) && $initializer.is-binding {
+            for @parameters {
+                $_.set-default-rw;
+            }
+        }
         $obj
     }
 
@@ -2272,10 +2798,10 @@ class RakuAST::VarDeclaration::Signature
         False
     }
 
-    method is-lexical() {
+    method is-lexical(--> Bool) {
         # Overridden here because our-scoped variables are really lexical aliases.
-        my str $scope := self.scope;
-        $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
+        my constant SCOPES := nqp::hash('my', 1, 'state', 1, 'our', 1);
+        nqp::existskey(SCOPES,self.scope)
     }
 
     # A list declaration such as `my (::T, $x) := ...` binds its type captures
@@ -2284,6 +2810,7 @@ class RakuAST::VarDeclaration::Signature
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my @declarations;
         self.signature.IMPL-COLLECT-TYPE-CAPTURES(@declarations);
+        nqp::push(@declarations, self.IMPL-STATE-INIT-GUARD) if self.IMPL-GUARDS-STATE-INIT;
         @declarations
     }
 
@@ -2305,15 +2832,29 @@ class RakuAST::VarDeclaration::Signature
         @lookups
     }
 
+    # A declaration taking over the default of its parameter covers the
+    # text of the parameter, default included, and so does its target.
+    method IMPL-WIDEN-TO-PARAMETER(RakuAST::Node $declaration, RakuAST::Node $param) {
+        my $param-origin := $param.origin;
+        if nqp::isconcrete($param-origin) {
+            for [$param.target, $declaration] {
+                my $origin := $_.origin;
+                if nqp::isconcrete($origin) {
+                    nqp::bindattr_i($origin, RakuAST::Origin, '$!from', $param-origin.from)
+                      if $param-origin.from < $origin.from;
+                    nqp::bindattr_i($origin, RakuAST::Origin, '$!to', $param-origin.to)
+                      if $param-origin.to > $origin.to;
+                }
+            }
+        }
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $traits := self.IMPL-UNWRAP-LIST(self.traits);
         my str $scope := self.scope;
-        my $type := $!type;
-        for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
-            # tell the parameter targets to create containers
-            if $type {
-                $param.target.set-type($type, :outer);
-            }
+        my @parameters;
+        self.signature.IMPL-COLLECT-PARAMETERS(@parameters);
+        for @parameters -> $param {
             if $param.target {
                 $param.target.replace-scope($scope);
                 for $traits {
@@ -2364,6 +2905,7 @@ class RakuAST::VarDeclaration::Signature
                     if $param.default {
                         $declaration.set-initializer(
                             RakuAST::Initializer::Assign.new($param.default));
+                        self.IMPL-WIDEN-TO-PARAMETER($declaration, $param);
                         $param.set-default(RakuAST::Expression);
                     }
                     $param.IMPL-SET-ATTRIBUTE-DECLARATION;
@@ -2416,15 +2958,30 @@ class RakuAST::VarDeclaration::Signature
                     if $param.default {
                         $declaration.set-initializer(
                             RakuAST::Initializer::Assign.new($param.default));
+                        self.IMPL-WIDEN-TO-PARAMETER($declaration, $param);
                         $param.set-default(RakuAST::Expression);
                     }
                 }
             }
         }
 
+        # a constraint a parameter received after this declaration was
+        # built is too late for its variable, whose container has been
+        # made by now
+        for @parameters -> $param {
+            if $param.where
+              && nqp::istype($param.target, RakuAST::ParameterTarget::Var)
+              && (my $declaration := $param.target.declaration)
+              && !nqp::eqaddr($declaration.where, $param.where) {
+                self.add-sorry: $resolver.build-exception: 'X::AdHoc',
+                  payload => "Cannot constrain variable '" ~ $declaration.name
+                    ~ "' with a where clause after its declaration was built."
+                    ~ " Pass the constraint to RakuAST::Parameter.new";
+            }
+        }
+
         my $binding := self.initializer && self.initializer.is-binding;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
-            $param.target.set-where($param.where) if $param.where;
             if nqp::defined($param.value) && !$param.target {
                 # We don't have a target that can carry the where clause. Have to synthesize one here
                 my $value := $param.value;
@@ -2443,10 +3000,6 @@ class RakuAST::VarDeclaration::Signature
             $param.set-bindable(False) if $binding;
             $param.set-default-rw unless $binding;
             $param.target.set-var-declaration if $param.target;
-            for $traits {
-                $param.target.replace-scope($scope);
-                $param.target.add-trait(nqp::clone($_)) if $param.target;
-            }
         }
         self.signature.to-begin-time($resolver, $context);
     }
@@ -2485,32 +3038,72 @@ class RakuAST::VarDeclaration::Signature
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value-list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
-        my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
-        my @terms;
-        my str $scope := self.scope;
-        my $attribute := $scope eq 'has' || $scope eq 'HAS';
-        my int $has-var-inits := 0;
-
+    # The list of what the parameters store into: the variable a
+    # parameter declares, a typed placeholder for an anonymous parameter,
+    # and for a sub-signature its own list, or when assigning a
+    # placeholder that the sub-signature's list is assigned from after
+    # the whole list, queued in @groups with its source. Terms go to
+    # @terms to be rebound afterwards, declarations with an initializer
+    # to @var-inits.
+    method IMPL-STORE-LIST-QAST(
+      RakuAST::IMPL::QASTContext $context,
+      @params,
+      @terms,
+      @groups,
+      @var-inits,
+      int $attribute,
+      int $assign
+    ) {
+        my $value-list := QAST::Op.new( :op('call'), :name('&infix:<,>') );
         for @params {
-            nqp::push(@terms, $_.target) if nqp::istype($_.target, RakuAST::ParameterTarget::Term);
-            if $_.target {
+            my $target := $_.target;
+            nqp::push(@terms, $target) if nqp::istype($target, RakuAST::ParameterTarget::Term);
+            my $nested := $_.sub-signature
+                ?? self.IMPL-UNWRAP-LIST($_.sub-signature.parameters)
+                !! Mu;
+            if $target {
                 # A default from the parameter list is the variable's
                 # initializer, so emit the declaration expression, which
                 # runs it, rather than a plain lookup. An attribute
                 # declaration's initializer runs at construction, not here.
-                my $declaration := nqp::istype($_.target, RakuAST::ParameterTarget::Var)
-                    ?? $_.target.declaration
+                my $declaration := nqp::istype($target, RakuAST::ParameterTarget::Var)
+                    ?? $target.declaration
                     !! RakuAST::VarDeclaration::Simple;
                 if !$attribute
                     && nqp::isconcrete($declaration)
                     && nqp::isconcrete($declaration.initializer) {
-                    $has-var-inits := 1;
+                    nqp::push(@var-inits, $declaration);
                     $value-list.push: $declaration.IMPL-TO-QAST($context);
                 }
                 else {
-                    $value-list.push: $_.target.IMPL-LOOKUP-QAST($context);
+                    $value-list.push: $target.IMPL-LOOKUP-QAST($context);
+                }
+                if $nested {
+                    $assign
+                        ?? nqp::push(@groups, [$target.IMPL-LOOKUP-QAST($context), $nested])
+                        !! self.IMPL-STORE-LIST-QAST($context, $nested, @terms, @groups, @var-inits, $attribute, $assign);
+                }
+            }
+            elsif $nested {
+                if $assign {
+                    # the placeholder holds Nil until assigned, so a
+                    # short list leaves the sub-signature's variables at
+                    # their defaults
+                    my str $name := QAST::Node.unique('list_declaration_group');
+                    my $desc := RakuAST::IMPL::Containers.create-descriptor(
+                        :of(Mu), :default(Nil), :dynamic(0), :name('anon'));
+                    $context.ensure-sc($desc);
+                    $value-list.push: QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($name), :scope('local'), :decl('var') ),
+                        QAST::Op.new(
+                            :op('p6scalarfromdesc'), QAST::WVal.new(:value($desc))
+                        )
+                    );
+                    nqp::push(@groups, [QAST::Var.new( :name($name), :scope('local') ), $nested]);
+                }
+                else {
+                    $value-list.push: self.IMPL-STORE-LIST-QAST($context, $nested, @terms, @groups, @var-inits, $attribute, $assign);
                 }
             }
             elsif $_.type {
@@ -2527,6 +3120,20 @@ class RakuAST::VarDeclaration::Signature
                 );
             }
         }
+        $value-list
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
+        my @terms;
+        my @groups;
+        my @var-inits;
+        my str $scope := self.scope;
+        my int $attribute := $scope eq 'has' || $scope eq 'HAS';
+        my int $assign := nqp::istype($!initializer, RakuAST::Initializer::Assign);
+        my $value-list := self.IMPL-STORE-LIST-QAST($context,
+            @params, @terms, @groups, @var-inits, $attribute, $assign);
+        my int $has-var-inits := nqp::elems(@var-inits) ?? 1 !! 0;
 
         # With no initializer a lexical declaration's value is the list of its
         # own containers, so it can be used as an rvalue, e.g. bound on the
@@ -2545,8 +3152,20 @@ class RakuAST::VarDeclaration::Signature
         if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
             my $init-qast := $!initializer.IMPL-TO-QAST($context);
             my $list := QAST::Op.new( :op('p6store'), $value-list, $init-qast);
-            if 0 < nqp::elems(@terms) {
+            if nqp::elems(@groups) || nqp::elems(@terms) {
                 my $stmts := QAST::Stmts.new(:resultchild(0), $list);
+                # a sub-signature inside a group queues its own group
+                my int $i := 0;
+                while $i < nqp::elems(@groups) {
+                    my $group := @groups[$i];
+                    $stmts.push(QAST::Op.new(
+                        :op('p6store'),
+                        self.IMPL-STORE-LIST-QAST($context,
+                            $group[1], @terms, @groups, @var-inits, $attribute, $assign),
+                        QAST::Op.new( :op('decont'), $group[0] )
+                    ));
+                    $i++;
+                }
                 for @terms {
                     $stmts.push(
                         $_.IMPL-BIND-QAST(
@@ -2562,6 +3181,7 @@ class RakuAST::VarDeclaration::Signature
             }
         }
         elsif nqp::istype($!initializer, RakuAST::Initializer::Bind) {
+            $!signature.IMPL-BIND-LITERAL-DEFAULTS;
             my $signature := $!signature.meta-object;
             $context.ensure-sc($signature);
             my $init-qast := $!initializer.IMPL-TO-QAST($context);
@@ -2578,11 +3198,18 @@ class RakuAST::VarDeclaration::Signature
             nqp::die('Not yet supported signature initializer: ' ~ $!initializer.HOW.name($!initializer));
         }
         if self.scope eq 'state' {
+            # the value is the containers, built again since the
+            # assignment's targets declare their placeholder locals and
+            # would yield those instead
+            my @later-terms;
+            my @later-groups;
+            my @later-var-inits;
             $perform-init-qast := QAST::Op.new(
               :op('if'),
-              QAST::Op.new( :op('p6stateinit') ),
+              self.IMPL-STATE-INIT-CONDITION-QAST($context),
               $perform-init-qast,
-              $value-list
+              self.IMPL-STORE-LIST-QAST($context, @params,
+                  @later-terms, @later-groups, @later-var-inits, $attribute, 0)
             )
         }
         $perform-init-qast
@@ -2607,7 +3234,7 @@ class RakuAST::VarDeclaration::Anonymous
             self.IMPL-GENERATE-NAME());
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape',
           $shape // RakuAST::SemiList);
@@ -2657,7 +3284,8 @@ class RakuAST::VarDeclaration::Anonymous
 }
 
 class RakuAST::VarDeclaration::AttributeAlias
-  is RakuAST::VarDeclaration
+  is RakuAST::Node
+  does RakuAST::VarDeclaration
 {
     has RakuAST::Name $.desigilname;
     has str $.sigil;
@@ -2668,7 +3296,7 @@ class RakuAST::VarDeclaration::AttributeAlias
         nqp::bindattr($obj, RakuAST::VarDeclaration::AttributeAlias, '$!desigilname', $desigilname);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::AttributeAlias, '$!sigil', $sigil);
         nqp::bindattr($obj, RakuAST::VarDeclaration::AttributeAlias, '$!attribute', $attribute);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -2754,17 +3382,21 @@ class RakuAST::VarDeclaration::AttributeAlias
 
 # The declaration of a term (sigilless) variable.
 class RakuAST::VarDeclaration::Term
-  is RakuAST::VarDeclaration
   is RakuAST::Term
+  does RakuAST::VarDeclaration
+  does RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Type $.type;
     has RakuAST::Name $.name;
     has RakuAST::Initializer $.initializer;
+    has int $!lowered-to-local;
+    has Mu $!lowered-away-sentinel;
+    has str $!lowered-local-name;
 
     method new(str :$scope, RakuAST::Type :$type, RakuAST::Name :$name!,
             RakuAST::Initializer :$initializer) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!name', $name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!initializer',
@@ -2797,8 +3429,59 @@ class RakuAST::VarDeclaration::Term
         # Avoid worries about sink context
     }
 
+    method IMPL-SET-LOWERED-TO-LOCAL(Mu $sentinel) {
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Term, '$!lowered-to-local', 1);
+        nqp::bindattr(self, RakuAST::VarDeclaration::Term, '$!lowered-away-sentinel', $sentinel);
+    }
+
+    # The frame-local name for a lowered term, or the empty string when
+    # the term stays a by-name lexical.
+    method IMPL-LOWERED-LOCAL-NAME() {
+        return $!lowered-local-name if $!lowered-local-name;
+        return '' unless $!lowered-to-local;
+        return '' if nqp::isnull($!lowered-away-sentinel);
+        nqp::bindattr_s(self, RakuAST::VarDeclaration::Term,
+            '$!lowered-local-name',
+            QAST::Node.unique('__lowered_' ~ $!name.canonicalize));
+        if nqp::atkey(nqp::getenvhash(), 'RAKUDO_LOWERING_DEBUG') {
+            RakuAST::IMPL::VarLowering.IMPL-NOTE(
+                'lex2local: minted ' ~ $!lowered-local-name ~ ' for '
+                    ~ $!name.canonicalize);
+        }
+        $!lowered-local-name
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+        if self.IMPL-LOWERED-LOCAL-NAME {
+            # The by-name lexical stays declared for introspection.
+            $context.ensure-sc($!lowered-away-sentinel);
+            QAST::Stmts.new(
+                QAST::Var.new(
+                    :decl('static'), :scope('lexical'), :name($!name.canonicalize),
+                    :value($!lowered-away-sentinel)
+                ),
+                QAST::Var.new(
+                    :decl('var'), :scope('local'), :name($!lowered-local-name)
+                )
+            )
+        }
+        else {
+            QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+        }
+    }
+
+    # The declaration form for a scope flattened into its user's frame.
+    # The local is cleared on every entry so a bind that a condition
+    # skips does not leave the previous iteration's value readable.
+    method IMPL-QAST-DECL-FLATTENED(RakuAST::IMPL::QASTContext $context) {
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        nqp::die('Cannot emit a flattened declaration that is not lowered')
+            unless $local-name;
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :scope('local'), :decl('var'), :name($local-name) ),
+            QAST::Op.new( :op('null') )
+        )
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -2824,7 +3507,10 @@ class RakuAST::VarDeclaration::Term
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        $local-name
+            ?? QAST::Var.new( :name($local-name), :scope('local') )
+            !! QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -2837,16 +3523,22 @@ class RakuAST::VarDeclaration::Term
 
     method needs-sink-call() { False }
 
+    # a term declaration has no meta-object to carry documentation at
+    # runtime
+    method podifiable() { False }
+
     method visit-children(Code $visitor) {
         $visitor($!type) if $!type;
         $visitor($!name);
         $visitor($!initializer) if $!initializer;
+        $visitor(self.WHY) if self.WHY;
     }
 }
 
 # The commonalities for implicitly declared variables.
 class RakuAST::VarDeclaration::Implicit
-  is RakuAST::VarDeclaration
+  is RakuAST::Node
+  does RakuAST::VarDeclaration
 {
     has str $.name;
 
@@ -2876,7 +3568,7 @@ class RakuAST::VarDeclaration::Implicit
     method new(str :$name!, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         $obj
     }
 
@@ -2907,7 +3599,7 @@ class RakuAST::VarDeclaration::Implicit
 # routines.
 class RakuAST::VarDeclaration::Implicit::Special
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::Meta
+  does RakuAST::Meta
 {
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         # Reuse the container descriptor for the common cases that we expect
@@ -2962,6 +3654,37 @@ class RakuAST::VarDeclaration::Implicit::Special
           :op('bind'),
           QAST::Var.new( :name(self.name), :scope('lexical') ),
           $source-qast
+        )
+    }
+}
+
+# A special variable bound at scope entry to the enclosing frame's one of
+# the same name, or left as its own container when no frame has one. An
+# EVAL unit declares $/ this way so a closure it builds still finds one.
+class RakuAST::VarDeclaration::Implicit::Outer
+  is RakuAST::VarDeclaration::Implicit::Special
+{
+    # The scope gives this up to a my declaration of the name.
+    method report-redeclaration() {
+        False
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        return self.IMPL-UNUSED-DECL-QAST() if self.IMPL-UNUSED;
+        my $container := self.meta-object;
+        $context.ensure-sc($container);
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :scope('lexical'), :decl('var'), :name(self.name) ),
+            QAST::Op.new(
+                :op('ifnull'),
+                QAST::Op.new(
+                    :op('getlexrel'),
+                    QAST::Op.new( :op('ctxouter'), QAST::Op.new( :op('ctx') ) ),
+                    QAST::SVal.new( :value(self.name) )
+                ),
+                QAST::Op.new( :op('clone'), QAST::WVal.new( :value($container) ) )
+            )
         )
     }
 }
@@ -3031,7 +3754,7 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
     method new(Bool :$parameter, Bool :$required, Bool :$exception, Bool :$loop) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$_');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!parameter',
             $parameter // True);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!required',
@@ -3043,8 +3766,14 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
         $obj
     }
 
+    # A topic bound from the enclosing scope is given up to a declaration
+    # of the name. Only a topic the block takes as a parameter is kept.
     method IMPL-NOT-IF-DUPLICATE() {
-        $!loop
+        !$!parameter
+    }
+
+    method report-redeclaration() {
+        $!parameter ?? True !! False
     }
 
     method set-parameter(Bool $parameter) {
@@ -3093,12 +3822,11 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic
 # fixed at compile time. Used for $?PACKAGE and similar.
 class RakuAST::VarDeclaration::Implicit::Constant
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::TraitTarget
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::Meta
-  is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
+  does RakuAST::Declaration::Mergeable
 {
     has Mu $.value;
 
@@ -3106,7 +3834,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Constant, '$!value', $value);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         $obj
     }
 
@@ -3134,6 +3862,23 @@ class RakuAST::VarDeclaration::Implicit::Constant
     }
 }
 
+# The %?REQUIRE-SYMBOLS stash of a scope containing a require. Each entry
+# into the scope gets a copy of it as BEGIN time left it, so packages merged
+# by an earlier call do not shadow what a later indirect lookup finds.
+class RakuAST::VarDeclaration::Implicit::RequireSymbols
+  is RakuAST::VarDeclaration::Implicit::Constant
+{
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $value := self.value;
+        $context.ensure-sc($value);
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :decl('static'), :scope('lexical'), :name(self.name), :$value ),
+            QAST::Op.new( :op('callmethod'), :name('clone'), QAST::WVal.new( :$value ) )
+        )
+    }
+}
+
 # An enum value, e.g. "a" and "b" from enum Foo <a b>
 # Is just a constant but we're using the subclass to identify them and
 # apply special handling on conflicts.
@@ -3144,15 +3889,16 @@ class RakuAST::VarDeclaration::Implicit::EnumValue
 
 # An implicitly declared block (like an auto-generated proto)
 class RakuAST::VarDeclaration::Implicit::Block
-  is RakuAST::VarDeclaration
-  is RakuAST::CheckTime
+  is RakuAST::Node
+  does RakuAST::VarDeclaration
+  does RakuAST::CheckTime
 {
     has Mu $.block;
 
     method new(Mu :$block!, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Block, '$!block', $block);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         $obj
     }
 
@@ -3180,7 +3926,7 @@ class RakuAST::VarDeclaration::Implicit::Self
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', 'self');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -3251,12 +3997,12 @@ class RakuAST::VarDeclaration::Implicit::Self
 # The implicit `$¢` declaration for the cursor.
 class RakuAST::VarDeclaration::Implicit::Cursor
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::Meta
+  does RakuAST::Meta
 {
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$¢');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -3339,7 +4085,7 @@ class RakuAST::VarDeclaration::Implicit::Routine
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '&?ROUTINE');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 
@@ -3363,7 +4109,7 @@ class RakuAST::VarDeclaration::Implicit::CurrentBlock
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '&?BLOCK');
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
 }
@@ -3371,17 +4117,17 @@ class RakuAST::VarDeclaration::Implicit::CurrentBlock
 # Used for constructs that generate state variables
 class RakuAST::VarDeclaration::Implicit::State
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::ImplicitLookups
-  is RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::Meta
 {
     has int $!init-to-zero;
     has Mu $!sentinel-value;
 
-    method new(str $name, int :$init-to-zero, int :$sentinel) {
+    method new(str $name, Bool :$init-to-zero, Bool :$sentinel) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'state');
-        nqp::bindattr_i($obj, RakuAST::VarDeclaration::Implicit::State, '$!init-to-zero', $init-to-zero // 0);
+        $obj.replace-scope('state');
+        nqp::bindattr_i($obj, RakuAST::VarDeclaration::Implicit::State, '$!init-to-zero', ?$init-to-zero);
         # A private initial value no user code can produce, so a first read of
         # the variable is recognizable by value.
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::State, '$!sentinel-value',
@@ -3389,7 +4135,17 @@ class RakuAST::VarDeclaration::Implicit::State
         $obj
     }
 
-    method sentinel-value() { $!sentinel-value }
+    # Whether the variable still holds its sentinel.
+    method IMPL-SENTINEL-TEST-QAST(RakuAST::IMPL::QASTContext $context) {
+        nqp::die('A state variable made without :sentinel has none to test')
+          unless nqp::isconcrete($!sentinel-value);
+        $context.ensure-sc($!sentinel-value);
+        QAST::Op.new(:op<eqaddr>,
+          QAST::Op.new(:op<decont>,
+            QAST::Var.new( :name(self.name), :scope<lexical> )),
+          QAST::WVal.new( :value($!sentinel-value) )
+        )
+    }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         $!init-to-zero ?? [
@@ -3427,7 +4183,7 @@ class RakuAST::VarDeclaration::Implicit::State
 # commonalities for doc variables
 class RakuAST::VarDeclaration::Implicit::Doc
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has Mu $.value;
 
@@ -3435,9 +4191,11 @@ class RakuAST::VarDeclaration::Implicit::Doc
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name',
           self.name);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj.replace-scope('my');
         $obj
     }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) { ... }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
@@ -3563,12 +4321,14 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
 
 # The commonalities for placeholder parameters.
 class RakuAST::VarDeclaration::Placeholder
-  is RakuAST::VarDeclaration
   is RakuAST::Term
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::VarDeclaration
+  does RakuAST::BeginTime
 {
     has Bool $!already-declared;
+    has RakuAST::Node $!owner;
+    has RakuAST::VarDeclaration::Simple $!lowering-declaration;
+    has int $!refused;
 
     method lexical-name() { nqp::die('Missing lexical-name implementation') }
 
@@ -3595,7 +4355,18 @@ class RakuAST::VarDeclaration::Placeholder
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $owner := $resolver.find-attach-target('block');
         my $method := $resolver.find-attach-target('method');
+        # A heredoc body written after the closing brace of a block cannot add
+        # a parameter to it. A %_ in a method is the method's own slurpy, so it
+        # adds nothing.
+        if $resolver.IMPL-HEREDOC-SCOPE-CLOSED($owner)
+          && !(self.lexical-name eq '%_' && ($method || $owner.IMPL-IS-IN-METHOD)) {
+            nqp::bindattr_i(self, RakuAST::VarDeclaration::Placeholder, '$!refused', 1);
+            self.add-sorry: $resolver.build-exception: 'X::Placeholder::Mainline',
+              placeholder => self.declared-name;
+            return Nil;
+        }
         if $owner {
+            nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder, '$!owner', $owner);
             $owner.add-placeholder-parameter(self);
             $owner.add-generated-lexical-declaration(self)
                 unless $!already-declared || self.lexical-name eq '%_' && $method;
@@ -3606,6 +4377,7 @@ class RakuAST::VarDeclaration::Placeholder
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        return True if $!refused;
         my $block := $resolver.find-attach-target('block');
         my $name := self.declared-name;
         my $lexical-name := self.lexical-name;
@@ -3659,6 +4431,28 @@ class RakuAST::VarDeclaration::Placeholder
         nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder, '$!already-declared', $declared ?? True !! False);
     }
 
+    # The declaration of the parameter the owner generated for this name.
+    # Analysis and emission follow it in the placeholder's stead.
+    method IMPL-LOWERING-DECLARATION() {
+        return $!lowering-declaration if nqp::isconcrete($!lowering-declaration);
+        return nqp::null() unless nqp::isconcrete($!owner);
+        my $signature := nqp::getattr($!owner, RakuAST::PlaceholderParameterOwner,
+            '$!placeholder-signature');
+        return nqp::null() unless nqp::isconcrete($signature);
+        my str $name := self.lexical-name;
+        for self.IMPL-UNWRAP-LIST($signature.parameters) {
+            my $target := $_.target;
+            if nqp::istype($target, RakuAST::ParameterTarget::Var)
+                && $target.name eq $name
+                && nqp::isconcrete($target.declaration) {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder,
+                    '$!lowering-declaration', $target.declaration);
+                return $target.declaration;
+            }
+        }
+        nqp::null()
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-LOOKUP-QAST($context)
     }
@@ -3668,11 +4462,20 @@ class RakuAST::VarDeclaration::Placeholder
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
-        QAST::Var.new( :name(self.lexical-name), :scope('lexical') )
+        my $declaration := self.IMPL-LOWERING-DECLARATION;
+        my str $local-name := nqp::isconcrete($declaration)
+            ?? $declaration.IMPL-LOWERED-LOCAL-NAME
+            !! '';
+        $local-name
+            ?? QAST::Var.new( :name($local-name), :scope('local') )
+            !! QAST::Var.new( :name(self.lexical-name), :scope('lexical') )
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.lexical-name) )
+        my $declaration := self.IMPL-LOWERING-DECLARATION;
+        nqp::isconcrete($declaration) && $declaration.IMPL-LOWERED-LOCAL-NAME
+            ?? $declaration.IMPL-QAST-DECL($context)
+            !! QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.lexical-name) )
     }
 }
 
@@ -3738,7 +4541,7 @@ class RakuAST::VarDeclaration::Placeholder::Named
         RakuAST::Parameter.new:
           target   => RakuAST::ParameterTarget::Var.new(:$name),
           names    => [nqp::substr($name,1)],
-          optional => 0
+          optional => False
     }
 }
 

@@ -15,20 +15,22 @@ nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-confi
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
 $comp.language('Raku');
-if +nqp::getenvhash()<RAKUDO_RAKUAST> {
+# We want legacy
+if nqp::existskey(nqp::getenvhash,"RAKUDO_RAKUAST")
+  && nqp::iseq_i(nqp::atkey(nqp::getenvhash,"RAKUDO_RAKUAST"),0) {
+    nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'legacy');
+    $comp.parsegrammar(Perl6::Grammar);
+    $comp.parseactions(Perl6::Actions);
+    $comp.addstage('syntaxcheck', :before<ast>);
+    $comp.addstage('optimize', :after<ast>);
+}
+else {
     nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'rakuast');
     $comp.parsegrammar(Raku::Grammar);
     $comp.parseactions(Raku::Actions);
     $comp.addstage('syntaxcheck', :before<ast>);
     $comp.addstage('qast', :after<ast>);
     $comp.addstage('optimize', :before<qast>);
-}
-else {
-    nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'legacy');
-    $comp.parsegrammar(Perl6::Grammar);
-    $comp.parseactions(Perl6::Actions);
-    $comp.addstage('syntaxcheck', :before<ast>);
-    $comp.addstage('optimize', :after<ast>);
 }
 
 my $*OMIT-SOURCE := nqp::getenvhash()<RAKUDO_OMIT_SOURCE>;
@@ -109,11 +111,26 @@ sub MAIN(*@ARGS) {
             }
         }
 
+        # An option the command line gives itself wins over the same one
+        # from RAKUDO_OPT. The option parser tells options from program
+        # arguments. Only -I and -M accumulate.
+        my %given;
+        my @given := nqp::clone(@ARGS);
+        nqp::shift(@given);
+        my $parser := HLL::CommandLine::Parser.new(@clo);
+        $parser.add-stopper('-e');
+        $parser.stop-after-first-arg;
+        try %given := $parser.parse(@given).options;
+
         # Check all of the specified options
         my @ok;
         while @opts {
             my $flag := nqp::shift(@opts);
             my int $ok;
+            my int $eq   := nqp::index($flag,'=');
+            my str $name := $eq < 0 ?? $flag !! nqp::substr($flag,0,$eq);
+            my int $given := nqp::eqat($name,'--',0)
+              && nqp::existskey(%given,nqp::substr($name,2));
 
             # Test the allowed ones that may take an argument
             for <
@@ -121,8 +138,11 @@ sub MAIN(*@ARGS) {
               --profile --profile-compile --profile-kind --profile-stage
             > {
                 if nqp::eqat($flag,$_,0) {
-                    nqp::push(@ok,$flag);
-                    nqp::push(@ok,nqp::shift(@opts)) if $flag eq $_ && @opts;
+                    nqp::push(@ok,$flag) unless $given;
+                    if $flag eq $_ && @opts {
+                        my $value := nqp::shift(@opts);
+                        nqp::push(@ok,$value) unless $given;
+                    }
                     $ok := 1;
                     last;
                 }
@@ -131,7 +151,7 @@ sub MAIN(*@ARGS) {
             # Test the allowed ones that do not take an argument
             for <--stagestats --ll-exception --full-cleanup --debug-suspend> {
                 if $_ eq $flag {
-                    nqp::push(@ok,$flag);
+                    nqp::push(@ok,$flag) unless $given;
                     $ok := 1;
                     last;
                 }

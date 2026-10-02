@@ -1,7 +1,6 @@
 # Some kind of type (done by all kinds of things that result in a type).
 class RakuAST::Type
   is RakuAST::Term
-  is RakuAST::Meta
 {
     # Checks if the type is statically known to be some particular type
     # (provided as the type object, not as another RakuAST node).
@@ -10,20 +9,20 @@ class RakuAST::Type
         if nqp::istype(self, RakuAST::Lookup) && self.is-resolved {
             my $resolution := self.resolution;
             if nqp::istype($resolution, RakuAST::CompileTimeValue) {
-                return nqp::istype($resolution.compile-time-value, $type);
+                return nqp::istype($resolution.compile-time-value, $type) ?? True !! False;
             }
         }
-        0
+        False
     }
     method is-known-to-be-exactly(Mu $type) {
         nqp::die('Expected a type object') if nqp::isconcrete($type);
         if nqp::istype(self, RakuAST::Lookup) && self.is-resolved {
             my $resolution := self.resolution;
             if nqp::istype($resolution, RakuAST::CompileTimeValue) {
-                return $resolution.compile-time-value =:= $type;
+                return $resolution.compile-time-value =:= $type ?? True !! False;
             }
         }
-        0
+        False
     }
 
     method dba() { 'type' }
@@ -83,9 +82,9 @@ class RakuAST::Type
 # A simple type name, e.g. Int, Foo::Bar, etc.
 class RakuAST::Type::Simple
   is RakuAST::Type
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
-  is RakuAST::Lookup
+  does RakuAST::Lookup
+  does RakuAST::Meta
+  does RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -123,7 +122,7 @@ class RakuAST::Type::Simple
             # (role instantiation will replace them) and for package stubs
             # (could be replaced later).
             if $!name.is-multi-part
-              && (RakuAST::IMPL::Archetypes.is-generic($value)
+              && (RakuAST::IMPL::Archetypes.generic($value)
                   || nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW)) {
                 my $first-part := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
                 if $first-part {
@@ -189,7 +188,7 @@ class RakuAST::Type::Simple
         }
         else {
             my $value := self.resolution.compile-time-value;
-            if RakuAST::IMPL::Archetypes.is-generic($value) {
+            if RakuAST::IMPL::Archetypes.generic($value) {
                 # If the resolved type is a nested package inside a parametric
                 # role, prefer the `!INS_OF_<fullname>` instantiation lexical
                 # that its IMPL-COMPOSE registered with the role. The role's
@@ -251,14 +250,14 @@ class RakuAST::Type::Simple
     }
 
     # This probably needs a better heuristic or be implemented as an attribute
-    method is-native() {
+    method is-native(--> Bool) {
         my str $name := $!name.canonicalize;
         nqp::lc($name) eq $name
     }
 
-    method is-coercive() {
+    method is-coercive(--> Bool) {
         my $type := self.resolution.compile-time-value;
-        $type.HOW.archetypes($type).coercive
+        ?$type.HOW.archetypes($type).coercive
     }
 
     method visit-children(Code $visitor) {
@@ -295,7 +294,8 @@ class RakuAST::Type::Derived
 
 class RakuAST::Type::Coercion
   is RakuAST::Type::Derived
-  is RakuAST::BeginTime
+  does RakuAST::Meta
+  does RakuAST::BeginTime
 {
     has RakuAST::Type $.constraint;
 
@@ -329,8 +329,8 @@ class RakuAST::Type::Coercion
         # un-substituted generic. Emit a runtime CoercionHOW.new_type call so
         # role specialization sees the concrete type(s).
         my $base-type := self.base-type;
-        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value)
-         || RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
+        if RakuAST::IMPL::Archetypes.generic($base-type.compile-time-value)
+         || RakuAST::IMPL::Archetypes.generic($!constraint.compile-time-value)
         {
             $context.ensure-sc(Perl6::Metamodel::CoercionHOW);
             QAST::Op.new(
@@ -352,8 +352,8 @@ class RakuAST::Type::Coercion
         # branch; interpreting would bake the un-substituted meta-object.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
         && nqp::istype($!constraint, RakuAST::CompileTimeValue)
-        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
-        && !RakuAST::IMPL::Archetypes.is-generic($!constraint.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.generic(self.base-type.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.generic($!constraint.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -381,6 +381,7 @@ class RakuAST::Type::Coercion
 
 class RakuAST::Type::Definedness
   is RakuAST::Type::Derived
+  does RakuAST::Meta
 {
     has Bool $.definite;
     has Bool $.through-pragma;
@@ -424,7 +425,7 @@ class RakuAST::Type::Definedness
         # a runtime DefiniteHOW.new_type call that consumes the base-type's
         # lexical lookup so role specialization sees the concrete base.
         my $base-type := self.base-type;
-        if RakuAST::IMPL::Archetypes.is-generic($base-type.compile-time-value) {
+        if RakuAST::IMPL::Archetypes.generic($base-type.compile-time-value) {
             $context.ensure-sc(Perl6::Metamodel::DefiniteHOW);
             my $base-qast := $base-type.IMPL-EXPR-QAST($context);
             $base-qast.named('base_type');
@@ -453,7 +454,7 @@ class RakuAST::Type::Definedness
         # thing; no such caller is hit on the role specialization paths
         # currently, but the asymmetry is intentional and bounded here.
         nqp::istype(self.base-type, RakuAST::CompileTimeValue)
-        && !RakuAST::IMPL::Archetypes.is-generic(self.base-type.compile-time-value)
+        && !RakuAST::IMPL::Archetypes.generic(self.base-type.compile-time-value)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -473,16 +474,77 @@ class RakuAST::Type::Definedness
     }
 }
 
+# The :_ smiley.  The meta-object is the base type itself, the node
+# exists so the smiley is written back.
+class RakuAST::Type::AnyDefinedness
+  is RakuAST::Type::Derived
+  does RakuAST::Meta
+{
+    method new(RakuAST::Type :$base-type!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
+        $obj
+    }
+
+    method name() {
+        RakuAST::Name.from-identifier:
+          self.base-type.name.canonicalize ~ ':_'
+    }
+
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
+        self.base-type.compile-time-value
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.base-type.IMPL-EXPR-QAST($context)
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        self.base-type.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.base-type.IMPL-INTERPRET($ctx)
+    }
+
+    method IMPL-VALUE-TYPE() {
+        self.base-type
+    }
+
+    method is-native() {
+        self.base-type.is-native
+    }
+
+    method is-simple-lexical-declaration() {
+        False
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor(self.base-type.IMPL-VALUE-TYPE);
+    }
+}
+
 class RakuAST::Type::Capture
   is RakuAST::Type
-  is RakuAST::Declaration
+  does RakuAST::Declaration
+  does RakuAST::Meta
 {
     has RakuAST::Name $.name;
+    has str           $.smiley;
 
-    method new(RakuAST::Name $name) {
+    method new(RakuAST::Name $name, str :$smiley) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Capture, '$!name', $name);
+        my str $written := $smiley // '';
+        nqp::die("A type capture smiley is D, U or _, not '$written'")
+          unless $written eq '' || $written eq 'D' || $written eq 'U' || $written eq '_';
+        nqp::bindattr_s($obj, RakuAST::Type::Capture, '$!smiley', $written);
         $obj
+    }
+
+    # The definedness the smiley asks for, Bool when neither :D nor :U
+    method definite() {
+        $!smiley eq 'D' ?? True !! $!smiley eq 'U' ?? False !! Bool
     }
 
     method lexical-name() {
@@ -540,8 +602,8 @@ class RakuAST::Type::Capture
 
 class RakuAST::Type::Parameterized
   is RakuAST::Type::Derived
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::Meta
+  does RakuAST::BeginTime
 {
     has RakuAST::ArgList $.args;
 
@@ -587,6 +649,9 @@ class RakuAST::Type::Parameterized
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
+        # An argument that needs a heredoc awaiting its body has no value yet.
+        my $heredoc := RakuAST::Heredoc.IMPL-AWAITING-IN($!args);
+        $heredoc.IMPL-PREMATURE if nqp::isconcrete($heredoc);
         if !$!args.args {
             self.base-type.compile-time-value
         }
@@ -606,8 +671,7 @@ class RakuAST::Type::Parameterized
             my @pos;
             my %named;
             my int $usable := 1;
-            my $sorries := nqp::getattr(self, RakuAST::CheckTime, '$!sorries');
-            my int $sorries-before := nqp::isconcrete($sorries) ?? nqp::elems($sorries) !! 0;
+            my int $sorries-before := nqp::elems(self.IMPL-UNWRAP-LIST(self.sorries));
             for $!args.IMPL-UNWRAP-LIST($!args.args) -> $arg {
                 my $expr := nqp::istype($arg, RakuAST::NamedArg) ?? $arg.named-arg-value !! $arg;
                 my $value;
@@ -619,7 +683,7 @@ class RakuAST::Type::Parameterized
                     # block so it is one code object with an outer frame the
                     # compunit can serialize, rather than one built by running a
                     # throwaway BEGIN-time thunk. Mirrors the subset `where` path.
-                    $expr.IMPL-PRIMED.IMPL-QAST-BLOCK(
+                    $expr.IMPL-PRIMED.IMPL-QAST-BLOCK-AHEAD-OF-UNIT($resolver,
                       $context, :blocktype<declaration_static>, :expression($expr));
                     $value := $expr.IMPL-PRIMED.meta-object;
                 }
@@ -647,8 +711,7 @@ class RakuAST::Type::Parameterized
 
             # IMPL-BEGIN-TIME-EVALUATE on a CheckTime traps errors as
             # add-sorry on self. A sorry delta means the loop failed.
-            $sorries := nqp::getattr(self, RakuAST::CheckTime, '$!sorries');
-            my int $sorries-after := nqp::isconcrete($sorries) ?? nqp::elems($sorries) !! 0;
+            my int $sorries-after := nqp::elems(self.IMPL-UNWRAP-LIST(self.sorries));
             if $usable && $sorries-after == $sorries-before {
                 my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
                 $ptype.HOW.parameterize($ptype, |@pos, |%named)
@@ -694,7 +757,10 @@ class RakuAST::Type::Parameterized
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )
         }
-        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
+        # A generic parameterization is not folded, so where it is reached it
+        # gets the instantiated type arguments.
+        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES
+          && !RakuAST::IMPL::Archetypes.generic(self.meta-object) {
             my $value := self.meta-object;
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )
@@ -749,13 +815,13 @@ class RakuAST::Type::Parameterized
 
 class RakuAST::Type::Enum
   is RakuAST::Type
-  is RakuAST::Declaration
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::TraitTarget
-  is RakuAST::PackageInstaller
-  is RakuAST::ImplicitLookups
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Declaration
+  does RakuAST::PackageInstaller
+  does RakuAST::Meta
+  does RakuAST::TraitTarget
+  does RakuAST::ImplicitLookups
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
 {
     has RakuAST::Name       $.name;
     has RakuAST::Expression $.term;
@@ -767,6 +833,10 @@ class RakuAST::Type::Enum
     # Value names that clashed with an existing lexical, collected at BEGIN
     # time so a redeclaration worry can be reported at CHECK time.
     has Mu                  $!redeclared-values;
+    # The HOW the enum is made with. It is EnumHOW unless a use statement
+    # in scope supersedes `enum`. BEGIN time resolves it, before anything
+    # asks for the meta-object, which is made once.
+    has Mu                  $!how;
 
     method new(          str :$scope,
                RakuAST::Name :$name,
@@ -776,12 +846,13 @@ class RakuAST::Type::Enum
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!name',
           $name // RakuAST::Name.from-identifier(''));
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!term', $term);
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!how', Perl6::Metamodel::EnumHOW);
         $obj.set-WHY($WHY);
         $obj
     }
@@ -836,7 +907,7 @@ class RakuAST::Type::Enum
         ]
     }
 
-    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+    method IMPL-GENERATE-LEXICAL-DECLARATION(str $name, Mu $type-object) {
         RakuAST::VarDeclaration::Implicit::Constant.new:
             :name($name),
             :value(nqp::eqaddr($type-object, Mu) ?? self.stubbed-meta-object !! $type-object),
@@ -844,6 +915,8 @@ class RakuAST::Type::Enum
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $how := $resolver.resolve-exporthow('enum');
+        nqp::bindattr(self, RakuAST::Type::Enum, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
 
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
@@ -869,7 +942,7 @@ class RakuAST::Type::Enum
             for $operands {
                 if nqp::istype($_, RakuAST::ColonPair::Value) {
                     nqp::die('Can only declare simple enums in setting ' ~ $_.dump) unless $_.IMPL-CAN-INTERPRET;
-                    my $value := $_.value.IMPL-INTERPRET($context);
+                    my $value := $_.value.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context));
                     if $has-base-type {
                         unless nqp::objprimspec($base-type) || nqp::istype($value, $base-type) {
                             nqp::die("Type error in enum. Got '" ~ $value.HOW.name($value) ~ "'"
@@ -968,6 +1041,7 @@ class RakuAST::Type::Enum
                 ).to-begin-time($resolver, $context)
             ).to-begin-time($resolver, $context));
         }
+        self.IMPL-DOCUMENT-AT-BEGIN;
         self.apply-traits($resolver, $context, self);
         $meta.HOW.compose($meta);
 
@@ -988,7 +1062,7 @@ class RakuAST::Type::Enum
             my $value := $pair[1];
 
             # An enum value's name is a string, so coerce a non-Str key.
-            unless nqp::istype($key, Str) {
+            unless nqp::isstr($key) || nqp::istype($key, Str) {
                 $key := $key.Str;
             }
 
@@ -1084,7 +1158,7 @@ class RakuAST::Type::Enum
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
-        Perl6::Metamodel::EnumHOW.new_type(
+        $!how.new_type(
             :name($!name.canonicalize(:colonpairs(0))),
             :base_type($!base-type)
         )
@@ -1093,14 +1167,13 @@ class RakuAST::Type::Enum
 
 class RakuAST::Type::Subset
   is RakuAST::Type
-  is RakuAST::Lookup
-  is RakuAST::Declaration
-  is RakuAST::TraitTarget
-  is RakuAST::StubbyMeta
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::PackageInstaller
-  is RakuAST::Doc::DeclaratorTarget
+  does RakuAST::Declaration
+  does RakuAST::Lookup
+  does RakuAST::PackageInstaller
+  does RakuAST::TraitTarget
+  does RakuAST::StubbyMeta
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::BeginTime
 {
     has RakuAST::Name       $.name;
     has RakuAST::Type       $.of;
@@ -1108,6 +1181,10 @@ class RakuAST::Type::Subset
 
     has Mu $!current-package;
     has Mu $!block;
+    # The HOW the subset is made with. It is SubsetHOW unless a use
+    # statement in scope supersedes `subset`. BEGIN time resolves it, before
+    # anything asks for the meta-object, which is made once.
+    has Mu $!how;
 
     method new(          str :$scope,
                RakuAST::Name :$name!,
@@ -1117,7 +1194,7 @@ class RakuAST::Type::Subset
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj.replace-scope($scope);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!of', $of) if $of;
         if $where {
@@ -1126,19 +1203,25 @@ class RakuAST::Type::Subset
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!block', $where);
         }
+        nqp::bindattr($obj, RakuAST::Type::Subset, '$!how', Perl6::Metamodel::SubsetHOW);
         $obj.set-traits($traits) if $traits;
         $obj.set-WHY($WHY);
         $obj.set-resolution($obj);
         $obj
     }
 
+    # An of trait is applied from the trait list like any other trait.
+    # The of attribute is for a type written before the declarator, as
+    # in `my Int subset P`, and giving both is refused.
     method set-traits($traits) {
+        my int $has-of := $!of ?? 1 !! 0;
         for self.IMPL-UNWRAP-LIST($traits) {
-            nqp::istype($_, RakuAST::Trait::Of)
-              ?? $!of
-                ?? nqp::die("Cannot declare more than one 'of' trait per subset")
-                !! nqp::bindattr(self, RakuAST::Type::Subset, '$!of', $_.type)
-              !! self.add-trait($_);
+            if nqp::istype($_, RakuAST::Trait::Of) {
+                nqp::die("Cannot declare more than one 'of' trait per subset")
+                  if $has-of;
+                $has-of := 1;
+            }
+            self.add-trait($_);
         }
     }
 
@@ -1184,7 +1267,7 @@ class RakuAST::Type::Subset
         QAST::WVal.new( :$value )
     }
 
-    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+    method IMPL-GENERATE-LEXICAL-DECLARATION(str $name, Mu $type-object) {
         RakuAST::VarDeclaration::Implicit::Constant.new:
             :name($name),
             :value(nqp::eqaddr($type-object, Mu) ?? self.stubbed-meta-object !! $type-object),
@@ -1192,8 +1275,11 @@ class RakuAST::Type::Subset
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $how := $resolver.resolve-exporthow('subset');
+        nqp::bindattr(self, RakuAST::Type::Subset, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
 
+        self.IMPL-DOCUMENT-AT-BEGIN;
         self.apply-traits($resolver, $context, self);
 
         my $block := $!block;
@@ -1258,7 +1344,8 @@ class RakuAST::Type::Subset
             $block.IMPL-CHECK($resolver, $context);
             $resolver.panic(Any) if $resolver.all-sorries.elems;
             # Cache QAST with expression as the BEGIN time stub wont know how to get that
-            $block.IMPL-PRIMED.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>, :expression($block));
+            $block.IMPL-PRIMED.IMPL-QAST-BLOCK-AHEAD-OF-UNIT($resolver, $context,
+                :blocktype<declaration_static>, :expression($block));
         }
     }
 
@@ -1267,6 +1354,11 @@ class RakuAST::Type::Subset
         self.add-install-worries;
 
         self.check-scope($resolver, 'subset');
+
+        # A declared subset's where is only tested. A variable or parameter
+        # checks its own where, as its unnamed subset has no place to report.
+        self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!where, $resolver, $context, :tested)
+          if $!where && !$!name.is-empty;
     }
 
     method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
@@ -1275,7 +1367,7 @@ class RakuAST::Type::Subset
         %options<refinement> := nqp::null;
         %options<name> := $!name.canonicalize(:colonpairs(0))
           if $!name.is-installable;
-        Perl6::Metamodel::SubsetHOW.new_type(|%options)
+        $!how.new_type(|%options)
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

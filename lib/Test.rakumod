@@ -4,10 +4,11 @@ unit module Test;
 # Copyright (C) 2007 - 2026 Yet Another Society
 
 # settable from outside
+my %ENV := %*ENV;
 my int $raku_test_times =
-  ?(%*ENV<RAKU_TEST_TIMES> // %*ENV<PERL6_TEST_TIMES>);
+  ?(%ENV<RAKU_TEST_TIMES> // %ENV<PERL6_TEST_TIMES>);
 my int $die_on_fail =
-  ?(%*ENV<RAKU_TEST_DIE_ON_FAIL> // %*ENV<PERL6_TEST_DIE_ON_FAIL>);
+  ?(%ENV<RAKU_TEST_DIE_ON_FAIL> // %ENV<PERL6_TEST_DIE_ON_FAIL>);
 
 # global state
 my @vars;
@@ -720,7 +721,7 @@ sub _is_deeply(Mu $got, Mu $expected) {
 sub die-on-fail {
     if !$todo_reason && !$subtest_level && nqp::iseq_i($die_on_fail,1) {
         _diag 'Test failed. Stopping test suite, because the '
-          ~ (%*ENV<RAKU_TEST_DIE_ON_FAIL> ?? 'RAKU' !! 'PERL6')
+          ~ (%ENV<RAKU_TEST_DIE_ON_FAIL> ?? 'RAKU' !! 'PERL6')
           ~ "_TEST_DIE_ON_FAIL\n"
           ~ 'environmental variable is set to a true value.';
         exit 255;
@@ -920,7 +921,9 @@ END {
       if nqp::iseq_i($done_testing_has_been_run,0)
       && nqp::iseq_i($no_plan,0);
 
-    .?close unless $_ === $*OUT || $_ === $*ERR
+    my $OUT := $*OUT;
+    my $ERR := $*ERR;
+    .?close unless $_ === $OUT || $_ === $ERR
       for $output, $failure_output, $todo_output;
 
     exit($num_of_tests_failed min 254) if $num_of_tests_failed > 0;

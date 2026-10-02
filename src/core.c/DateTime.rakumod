@@ -7,56 +7,6 @@ my class DateTime does Dateish {
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
       # DST-induced ambiguity could ruin our day.
 
-    my int $last-dst = -1;  # never matches initially
-    my int $TZ-was-set-explicitly;
-    my int $TZ-offset;
-    sub get-local-timezone-offset() {
-        if $TZ-was-set-explicitly {
-            $TZ-offset
-        }
-
-        # not set explicitly
-        else {
-            my int $utc = nqp::div_i(nqp::time,1000000000);
-            my $lt     := nqp::decodelocaltime($utc);
-
-            # first time, or possible DST change
-            if nqp::isne_i(nqp::atpos_i($lt,8),$last-dst) {
-                $last-dst = nqp::atpos_i($lt,8);
-
-                # algorithm from Claus Tøndering
-                my int $a = (14 - nqp::atpos_i($lt,4)) div 12;
-                my int $y = nqp::atpos_i($lt,5) + 4800 - $a;
-                my int $m = nqp::atpos_i($lt,4) + 12 * $a - 3;
-                my int $jd = nqp::atpos_i($lt,3) + (153 * $m + 2) div 5
-                  + 365 * $y + $y div 4 - $y div 100 + $y div 400 - 32045;
-                $TZ-offset = (
-                  ($jd - 2440588) * 86400
-                    + nqp::atpos_i($lt,2) * 3600
-                    + nqp::atpos_i($lt,1) * 60
-                    + nqp::atpos_i($lt,0)
-                ) - $utc
-            }
-
-            # cannot have been a DST change
-            else {
-                $TZ-offset
-            }
-        }
-    }
-
-    Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', sub TZ is raw {
-        PROCESS::<$TZ> := Proxy.new(
-          FETCH => -> $ {
-              get-local-timezone-offset
-          },
-          STORE => -> $, int $offset {
-              $TZ-was-set-explicitly = 1;
-              $TZ-offset             = $offset;
-          }
-        )
-    }
-
     method !formatter() { # ISO 8601 timestamp
         my $parts := nqp::list_s;
         nqp::islt_i($!year,1000) || nqp::isgt_i($!year,9999)
@@ -453,7 +403,7 @@ my class DateTime does Dateish {
 
     method now(:$timezone, :&formatter --> DateTime:D) {
         self.new(nqp::div_n(nqp::time(),1000000000e0),
-          timezone => $timezone // get-local-timezone-offset,
+          timezone => $timezone // Rakudo::Internals.GET-LOCAL-TIMEZONE-OFFSET,
           :&formatter
         )
     }

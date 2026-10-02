@@ -21,9 +21,12 @@ class RakuAST::IMPL::VarLoweringFrame {
     has int $!flatten-candidate;
     has int $!flatten-arg;
     has int $!flatten-blocked;
+    has int $!flatten-loop-body;
+    has int $!loop-finished;
     has Mu $!deferred-uses;
     has str $!implicit-slurpy-id;
     has int $!makes-calls;
+    has Mu $!names-reached;
 
     method new(RakuAST::Node $node, int $is-scope) {
         my $obj := nqp::create(self);
@@ -39,7 +42,7 @@ class RakuAST::IMPL::VarLoweringFrame {
     }
 
     method node() { $!node }
-    method is-scope() { $!is-scope }
+    method is-scope(--> Bool) { $!is-scope }
     # Poisoning a frame says its lexicals stay addressable by name, %_
     # among them. A construct that reaches the lexicals without being
     # able to name %_ poisons the frame except for the slurpy hash,
@@ -54,7 +57,7 @@ class RakuAST::IMPL::VarLoweringFrame {
         nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!poisoned', 1);
         Nil
     }
-    method is-poisoned() { $!poisoned }
+    method is-poisoned(--> Bool) { $!poisoned }
     method slurpy-reachable() { $!slurpy-reachable }
 
     method note-call() {
@@ -88,18 +91,41 @@ class RakuAST::IMPL::VarLoweringFrame {
         Nil
     }
     method flatten-arg() { $!flatten-arg }
-    method is-flatten-candidate() { $!flatten-candidate }
+    method is-flatten-candidate(--> Bool) { $!flatten-candidate }
     method block-flatten() {
         nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!flatten-blocked', 1);
         Nil
     }
     method flatten-blocked() { $!flatten-blocked }
+    method mark-flatten-loop-body() {
+        nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!flatten-loop-body', 1);
+        Nil
+    }
+    method is-flatten-loop-body(--> Bool) { $!flatten-loop-body }
+    method note-loop-finished() {
+        nqp::bindattr_i(self, RakuAST::IMPL::VarLoweringFrame, '$!loop-finished', 1);
+        Nil
+    }
+    method loop-finished() { $!loop-finished }
 
     method set-implicit-slurpy-id(str $id) {
         nqp::bindattr_s(self, RakuAST::IMPL::VarLoweringFrame, '$!implicit-slurpy-id', $id);
         Nil
     }
     method implicit-slurpy-id() { $!implicit-slurpy-id }
+
+    # A use inside this frame that resolved past it is emitted by name, so the
+    # backend binds it to the innermost declaration of that name. A
+    # declaration this frame makes after the use can be that one.
+    method note-name-reached(str $name) {
+        nqp::bindattr(self, RakuAST::IMPL::VarLoweringFrame, '$!names-reached',
+            nqp::hash()) unless nqp::isconcrete($!names-reached);
+        nqp::bindkey($!names-reached, $name, 1);
+        Nil
+    }
+    method name-reached(str $name) {
+        nqp::isconcrete($!names-reached) && nqp::existskey($!names-reached, $name)
+    }
 
     method add-deferred(str $id) {
         nqp::push($!deferred-uses, $id);
@@ -151,7 +177,10 @@ class RakuAST::IMPL::VarLowering {
     has Mu $!sentinel;
     has int $!debug;
     has int $!begin-context;
+    has int $!suspended-begin-context;
+    has int $!early-formed-depth;
     has int $!topic-not-dynamic;
+    has int $!scoped;
 
     method IMPL-MAKE-ANALYZER(RakuAST::Resolver $resolver) {
         my $analyzer := nqp::create(self);
@@ -178,13 +207,13 @@ class RakuAST::IMPL::VarLowering {
         $analyzer
     }
 
-    # Scoped analysis for one code object compiled ahead of the unit's
-    # optimize phase, a BEGIN-time routine or a role body: its QAST is
-    # emitted and cached right away, so the unit-wide analysis comes too
-    # late to affect it.
-    method analyze-routine(RakuAST::Code $routine, RakuAST::Resolver $resolver) {
+    # Scoped analysis for a code object compiled ahead of the unit's
+    # optimize phase, or for the node walked in its place, since its QAST
+    # is emitted and cached before the unit wide analysis runs.
+    method analyze-routine(RakuAST::Node $routine, RakuAST::Resolver $resolver) {
         return Nil if nqp::atkey(nqp::getenvhash(), 'RAKUDO_NO_LEX2LOCAL');
         my $analyzer := self.IMPL-MAKE-ANALYZER($resolver);
+        nqp::bindattr_i($analyzer, RakuAST::IMPL::VarLowering, '$!scoped', 1);
         $analyzer.IMPL-WALK($routine);
         Nil
     }
@@ -221,8 +250,9 @@ class RakuAST::IMPL::VarLowering {
         # Trait arguments, type parameterizations, and constant
         # initializers are evaluated at BEGIN time by dynamically
         # compiled code that reaches lexicals by name, which neither the
-        # frame nesting nor the resolutions here can show. Every use in
-        # such a subtree escapes.
+        # frame nesting nor the resolutions here can show. A use in such
+        # a subtree escapes unless a code node the unit alone forms
+        # declares what it names.
         my int $begin-entered;
         if nqp::istype($node, RakuAST::Trait)
             || nqp::istype($node, RakuAST::Type::Parameterized)
@@ -237,7 +267,63 @@ class RakuAST::IMPL::VarLowering {
                 $!begin-context - 1);
             return Nil;
         }
-        self.IMPL-WALK-INNER($node)
+        self.IMPL-WALK-INNER($node);
+        self.IMPL-NOTE-LOOP-FINISHED() if self.IMPL-EMITS-LOOP($node);
+        Nil
+    }
+
+    # Whether a for statement iterates its source in the frame around
+    # it rather than handing its body to the map method.
+    method IMPL-FOR-ITERATES-IN-PLACE(RakuAST::Statement::For $node) {
+        $node.mode eq 'serial'
+            && $node.IMPL-DISCARD-RESULT
+            && !nqp::isconcrete($node.otherwise)
+            && $node.IMPL-CAN-USE-STATEMENT-FORM($node.body)
+    }
+
+    # Whether the statement compiles to a loop in the frame around it.
+    # A for that delegates to map does not, and neither does a given.
+    method IMPL-EMITS-LOOP(RakuAST::Node $node) {
+        return 1 if nqp::istype($node, RakuAST::Statement::Loop);
+        return self.IMPL-FOR-ITERATES-IN-PLACE($node) ?? 1 !! 0
+            if nqp::istype($node, RakuAST::Statement::For);
+        if nqp::istype($node, RakuAST::Statement::Expression) {
+            my $loop := $node.loop-modifier;
+            return 1 if nqp::istype($loop, RakuAST::StatementModifier::WhileUntil);
+            return 1 if nqp::istype($loop, RakuAST::StatementModifier::For)
+                && $node.IMPL-DISCARD-RESULT;
+        }
+        0
+    }
+
+    # The VM specializes a running frame only once, from inside its
+    # first hot loop, so a loop starting later in it runs unspecialized.
+    # The scope a loop ends in records it for the flatten verdict.
+    method IMPL-NOTE-LOOP-FINISHED() {
+        my int $i := nqp::elems($!frames);
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            if $frame.is-scope {
+                $frame.note-loop-finished();
+                return Nil;
+            }
+        }
+        Nil
+    }
+
+    # Whether a loop has finished in the frame the candidate popped last
+    # would flatten into. Enclosing candidates still pending count too,
+    # since an approval joins them to that frame.
+    method IMPL-LOOP-FINISHED-IN-HOST() {
+        my int $i := nqp::elems($!frames);
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            if $frame.is-scope {
+                return 1 if $frame.loop-finished;
+                return 0 unless $frame.is-flatten-candidate;
+            }
+        }
+        0
     }
 
     # Whether this node's emission invokes a routine. The contextual
@@ -308,7 +394,7 @@ class RakuAST::IMPL::VarLowering {
                 $node.visit-children(-> $child {
                     self.IMPL-WALK($child) unless nqp::eqaddr($child, $body);
                 });
-                self.IMPL-WALK-FLATTEN-CANDIDATE($body);
+                self.IMPL-WALK-FLATTEN-CANDIDATE($body, :loop);
                 return Nil;
             }
         }
@@ -346,13 +432,10 @@ class RakuAST::IMPL::VarLowering {
         # pointy body with one plain parameter has the value bound to
         # the parameter's local instead.
         if nqp::istype($node, RakuAST::Statement::For)
-            && $node.mode eq 'serial'
-            && $node.IMPL-DISCARD-RESULT
-            && !nqp::isconcrete($node.otherwise)
-            && $node.IMPL-CAN-USE-STATEMENT-FORM($node.body) {
+            && self.IMPL-FOR-ITERATES-IN-PLACE($node) {
             self.IMPL-REGISTER-IMPLICIT-LOOKUPS($node);
             self.IMPL-WALK($node.source);
-            self.IMPL-WALK-FLATTEN-CANDIDATE($node.body, :arg);
+            self.IMPL-WALK-FLATTEN-CANDIDATE($node.body, :arg, :loop);
             $node.visit-labels(-> $label { self.IMPL-WALK($label) });
             return Nil;
         }
@@ -425,8 +508,15 @@ class RakuAST::IMPL::VarLowering {
             self.IMPL-REGISTER-TERM-PARAM($node);
         }
         elsif nqp::istype($node, RakuAST::VarDeclaration::Simple) {
+            # A declaration that names the scope's own lexical rather than
+            # making one is a use of that lexical.
+            self.IMPL-MARK-MAGICAL-USED($node.name)
+                if $node.already-declared || $node.shares-implicit;
             self.IMPL-REGISTER-DECL($node)
                 unless nqp::getattr($node, RakuAST::VarDeclaration::Simple, '$!is-parameter');
+        }
+        elsif nqp::istype($node, RakuAST::VarDeclaration::Term) {
+            self.IMPL-REGISTER-TERM-DECL($node);
         }
 
         # A list declaration bound with := goes through the runtime
@@ -441,7 +531,7 @@ class RakuAST::IMPL::VarLowering {
         # Feed stages are emitted inside blocks the tree does not show,
         # so anything a stage references stays a by-name lexical.
         if nqp::istype($node, RakuAST::ApplyListInfix)
-            && nqp::istype($node.infix, RakuAST::Feed) {
+            && nqp::istype($node.infix.IMPL-UNBRACKETED, RakuAST::Feed) {
             $node.visit-children(-> $child {
                 self.IMPL-ENTER($child, 0);
                 self.IMPL-WALK($child);
@@ -492,6 +582,9 @@ class RakuAST::IMPL::VarLowering {
         }
 
         my int $pushed;
+        my int $suspended-begin-context;
+        my int $early-formed;
+        my int $resumed-begin-context;
         if nqp::istype($node, RakuAST::MayCreateBlock) && $node.creates-block {
             self.IMPL-ENTER($node, nqp::istype($node, RakuAST::LexicalScope) ?? 1 !! 0);
             $pushed := 1;
@@ -499,6 +592,53 @@ class RakuAST::IMPL::VarLowering {
             # into the frame, so its lexicals must stay addressable.
             nqp::atpos($!frames, nqp::elems($!frames) - 1).poison()
                 if nqp::istype($node, RakuAST::Code) && $node.custom-args;
+            self.IMPL-REGISTER-PRIME-PARAMS($node)
+                if nqp::istype($node, RakuAST::Expression);
+            if nqp::istype($node, RakuAST::Code) {
+                my int $formed-early := $node.IMPL-BEGIN-TIME-CACHED
+                    || $node.IMPL-DYNAMICALLY-COMPILED;
+                # A code node an early compilation formed keeps every use
+                # under it escaping, and so does every block inside it,
+                # whether or not a code node above it lifted the rule.
+                if $formed-early && ($!begin-context || $!suspended-begin-context) {
+                    $early-formed := 1;
+                    nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                        '$!early-formed-depth', $!early-formed-depth + 1);
+                    unless $!begin-context {
+                        $resumed-begin-context := $!suspended-begin-context;
+                        nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                            '$!begin-context', $resumed-begin-context);
+                        nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                            '$!suspended-begin-context', 0);
+                    }
+                }
+                # A code node in a BEGIN-time subtree that no early
+                # compilation formed has only the frame the unit emits,
+                # so its own declarations lower as usual.
+                elsif $!begin-context && !$formed-early && !$!early-formed-depth {
+                    $suspended-begin-context := $!begin-context;
+                    nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!begin-context', 0);
+                    nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                        '$!suspended-begin-context', $suspended-begin-context);
+                }
+            }
+            # A block's or routine's placeholder parameters live in a
+            # signature only a pointy block visits as a child, so the walk
+            # takes that signature first, ahead of the body.
+            if nqp::istype($node, RakuAST::Block) && !nqp::istype($node, RakuAST::PointyBlock)
+                || nqp::istype($node, RakuAST::Routine) {
+                my $placeholder-signature := $node.placeholder-signature;
+                self.IMPL-WALK($placeholder-signature) if $placeholder-signature;
+            }
+        }
+
+        # Every occurrence of a placeholder name stands in the tree as
+        # a declaration node, and each reads the parameter the block
+        # generated for the name, so it counts as a use of that parameter.
+        if nqp::istype($node, RakuAST::VarDeclaration::Placeholder) {
+            my $declaration := $node.IMPL-LOWERING-DECLARATION;
+            self.IMPL-REGISTER-USE-ID(~nqp::objectid($declaration))
+                if nqp::isconcrete($declaration);
         }
 
         if nqp::istype($node, RakuAST::Lookup) && $node.is-resolved {
@@ -525,6 +665,20 @@ class RakuAST::IMPL::VarLowering {
 
         $node.visit-children(-> $child { self.IMPL-WALK($child) });
 
+        if $suspended-begin-context {
+            nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!begin-context',
+                $suspended-begin-context);
+            nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!suspended-begin-context', 0);
+        }
+        if $early-formed {
+            nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                '$!early-formed-depth', $!early-formed-depth - 1);
+            if $resumed-begin-context {
+                nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!begin-context', 0);
+                nqp::bindattr_i(self, RakuAST::IMPL::VarLowering,
+                    '$!suspended-begin-context', $resumed-begin-context);
+            }
+        }
         self.IMPL-LEAVE() if $pushed;
         Nil
     }
@@ -596,6 +750,9 @@ class RakuAST::IMPL::VarLowering {
                 $flattened := $approved;
                 if $approved {
                     $frame.node.IMPL-SET-FLATTEN-APPROVED();
+                    # A loop that finished in an approved body finished
+                    # in the scope it joins.
+                    self.IMPL-NOTE-LOOP-FINISHED() if $frame.loop-finished;
                     if $!debug {
                         my str $where := '';
                         my $origin := $frame.node.origin;
@@ -619,6 +776,9 @@ class RakuAST::IMPL::VarLowering {
                 }
             }
             self.IMPL-DECIDE-IMPLICITS($frame) unless $flattened;
+        }
+        else {
+            self.IMPL-DECIDE($frame);
         }
         Nil
     }
@@ -720,9 +880,12 @@ class RakuAST::IMPL::VarLowering {
         return 0 if $frame.is-poisoned
             || $frame.flatten-blocked
             || $frame.implicit-used;
+        # A loop body after a finished loop keeps its frame, which
+        # specializes from its calls.
+        return 0 if $frame.is-flatten-loop-body
+            && self.IMPL-LOOP-FINISHED-IN-HOST();
         my $block := $frame.node;
-        return 0 if nqp::getattr($block, RakuAST::LexicalScope, '$!catch-handlers')
-            || nqp::getattr($block, RakuAST::LexicalScope, '$!control-handlers');
+        return 0 if $block.IMPL-HAS-CATCH-HANDLER || $block.IMPL-HAS-CONTROL-HANDLER;
         return 0 if nqp::elems($block.IMPL-UNWRAP-LIST(
             $block.generated-lexical-declarations()));
         for $block.IMPL-UNWRAP-LIST($block.ast-lexical-declarations()) {
@@ -730,7 +893,8 @@ class RakuAST::IMPL::VarLowering {
             # analysis mark alone is not enough, since emission declines
             # some marked declarations, natives among them, and such a
             # declaration still needs the frame.
-            if nqp::istype($_, RakuAST::VarDeclaration::Simple)
+            if (nqp::istype($_, RakuAST::VarDeclaration::Simple)
+                || nqp::istype($_, RakuAST::VarDeclaration::Term))
                 && $_.IMPL-LOWERED-LOCAL-NAME {
             }
             else {
@@ -794,24 +958,68 @@ class RakuAST::IMPL::VarLowering {
         Nil
     }
 
+    # The frame of the scope providing a declaration's slot, which for a
+    # hoisted declaration is the scope it was hoisted to. A redeclaration
+    # of its name in that scope must not lower either.
+    method IMPL-DECLARING-SCOPE-INDEX(Mu $decl) {
+        my $owner := $decl.hoisted-to;
+        my int $i := nqp::elems($!frames);
+        while --$i >= 0 {
+            my $frame := nqp::atpos($!frames, $i);
+            if $frame.is-scope {
+                return $i unless nqp::isconcrete($owner);
+                return $i if nqp::eqaddr($frame.node, $owner);
+            }
+        }
+        # A scoped walk stops at its root, so a declaration hoisted past
+        # the root stays a lexical for the unit's walk to decide.
+        nqp::die('The scope holding ' ~ $decl.lexical-name ~ ' is outside the lowering walk')
+          if nqp::isconcrete($owner) && !$!scoped;
+        -1
+    }
+
+    # Register a sigilless term declaration with its scope's frame. One
+    # emitted in another frame, hoisted or under a thunk, stays a lexical.
+    method IMPL-REGISTER-TERM-DECL(RakuAST::VarDeclaration::Term $decl) {
+        return Nil unless $decl.scope eq 'my';
+
+        my int $scope-index := self.IMPL-DECLARING-SCOPE-INDEX($decl);
+        return Nil if $scope-index < 0;
+        my $scope-frame := nqp::atpos($!frames, $scope-index);
+
+        my str $declined := '';
+        if $decl.is-hoisted-to-outer {
+            $declined := 'hoisted';
+        }
+        elsif $scope-index != nqp::elems($!frames) - 1 || $decl.creates-block {
+            $declined := 'thunked';
+        }
+        $scope-frame.register($decl, $declined);
+        Nil
+    }
+
+    # A WhateverCode's parameters hang off its thunk, which the walk does
+    # not visit. They can only lower when that thunk's block is the one
+    # evaluating the expression, so that their uses share it.
+    method IMPL-REGISTER-PRIME-PARAMS(RakuAST::Expression $node) {
+        my $thunk := $node.IMPL-PRIMED;
+        return Nil unless $thunk && $thunk.IMPL-EVALUATES-EXPRESSION;
+        my $frame := nqp::atpos($!frames, nqp::elems($!frames) - 1);
+        for $thunk.IMPL-PARAMETERS {
+            $frame.register($_.target, '');
+        }
+        Nil
+    }
+
     # Register a `my` declaration with the frame of its declaring scope,
     # along with any reason it must stay a lexical that is knowable from
     # the declaration alone.
     method IMPL-REGISTER-DECL(RakuAST::VarDeclaration::Simple $decl, str $alias-id?) {
         return Nil unless $decl.scope eq 'my';
 
-        my int $i := nqp::elems($!frames);
-        my $scope-frame;
-        my int $scope-index := -1;
-        while --$i >= 0 {
-            my $frame := nqp::atpos($!frames, $i);
-            if $frame.is-scope {
-                $scope-frame := $frame;
-                $scope-index := $i;
-                last;
-            }
-        }
+        my int $scope-index := self.IMPL-DECLARING-SCOPE-INDEX($decl);
         return Nil if $scope-index < 0;
+        my $scope-frame := nqp::atpos($!frames, $scope-index);
 
         my str $declined := '';
         my str $sigil := $decl.sigil;
@@ -874,6 +1082,7 @@ class RakuAST::IMPL::VarLowering {
     method IMPL-REGISTER-IMPLICIT-LOOKUPS(RakuAST::Node $node) {
         if nqp::istype($node, RakuAST::ImplicitLookups) {
             for $node.IMPL-UNWRAP-LIST($node.get-implicit-lookups()) {
+                next if nqp::isnull($_);
                 self.IMPL-CHECK-NAME-REACHERS($_);
                 self.IMPL-REGISTER-USE($_)
                     if nqp::istype($_, RakuAST::Lookup) && $_.is-resolved;
@@ -888,7 +1097,7 @@ class RakuAST::IMPL::VarLowering {
     # and no signature that needs the runtime binder. Everything else
     # about eligibility is decided from what the walk observes, when
     # the frame pops.
-    method IMPL-WALK-FLATTEN-CANDIDATE(RakuAST::Node $body, :$arg?) {
+    method IMPL-WALK-FLATTEN-CANDIDATE(RakuAST::Node $body, :$arg?, :$loop?) {
         my int $shape-ok := nqp::eqaddr($body.WHAT, RakuAST::Block);
         $shape-ok := 1 if $arg
             && nqp::eqaddr($body.WHAT, RakuAST::PointyBlock)
@@ -903,6 +1112,7 @@ class RakuAST::IMPL::VarLowering {
         my $frame := self.IMPL-ENTER($body, 1);
         $frame.mark-flatten-candidate();
         $frame.mark-flatten-arg() if $arg;
+        $frame.mark-flatten-loop-body() if $loop;
         self.IMPL-REGISTER-IMPLICIT-LOOKUPS($body);
         $body.visit-children(-> $child { self.IMPL-WALK($child) });
         self.IMPL-LEAVE();
@@ -976,7 +1186,7 @@ class RakuAST::IMPL::VarLowering {
         }
         elsif nqp::istype($node, RakuAST::ApplyInfix)
             || nqp::istype($node, RakuAST::ApplyListInfix) {
-            my $infix := $node.infix;
+            my $infix := $node.infix.IMPL-UNBRACKETED;
             if nqp::istype($infix, RakuAST::Infix) {
                 my str $op := $infix.operator;
                 self.IMPL-MARK-MAGICAL-USED('$_')
@@ -1042,12 +1252,29 @@ class RakuAST::IMPL::VarLowering {
     # only by pending flatten-candidate bodies is deferred instead, since
     # an approved body dissolves into its parent's frame.
     method IMPL-REGISTER-USE(RakuAST::Node $node) {
-        self.IMPL-REGISTER-USE-ID(~nqp::objectid($node.resolution));
+        my $resolution := $node.resolution;
+        # A lookup of a placeholder's name reads the parameter generated
+        # for it, as the placeholder itself does.
+        if nqp::istype($resolution, RakuAST::VarDeclaration::Placeholder) {
+            my $declaration := $resolution.IMPL-LOWERING-DECLARATION;
+            $resolution := $declaration if nqp::isconcrete($declaration);
+        }
+        self.IMPL-REGISTER-USE-ID(~nqp::objectid($resolution), $resolution);
     }
 
-    method IMPL-REGISTER-USE-ID(str $id) {
+    # The name a use notes on each frame it reaches past. A callable is never
+    # lowered, so its name is left out.
+    method IMPL-NAME-REACHED-BY(Mu $resolution) {
+        return '' if nqp::istype($resolution, RakuAST::Code)
+          || !nqp::can($resolution, 'lexical-name');
+        my $name := $resolution.lexical-name;
+        nqp::isconcrete($name) && !nqp::eqat($name, '&', 0) ?? $name !! ''
+    }
+
+    method IMPL-REGISTER-USE-ID(str $id, Mu $resolution?) {
         my int $top := nqp::elems($!frames) - 1;
         my int $i := $top + 1;
+        my str $name;
         while --$i >= 0 {
             my $frame := nqp::atpos($!frames, $i);
             my $record := $frame.record-for-id($id);
@@ -1077,6 +1304,9 @@ class RakuAST::IMPL::VarLowering {
                 $frame.mark-implicit-used($implicit);
                 return Nil;
             }
+            $name := self.IMPL-NAME-REACHED-BY($resolution)
+              if $i == $top && nqp::isconcrete($resolution);
+            $frame.note-name-reached($name) if $name;
         }
         Nil
     }
@@ -1210,6 +1440,9 @@ class RakuAST::IMPL::VarLowering {
             }
             if $declined eq '' && nqp::existskey($record, 'captured') {
                 $declined := 'captured';
+            }
+            if $declined eq '' && $frame.name-reached($decl.lexical-name) {
+                $declined := 'reached-by-name';
             }
             nqp::bindkey($record, 'final', $declined);
             if $declined eq '' {

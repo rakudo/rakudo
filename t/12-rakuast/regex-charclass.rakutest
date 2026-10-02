@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 5;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -108,6 +108,56 @@ subtest 'Multiple unicode characters specified by name negated' => {
 
     for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
         is "ab" ~~ $result, "a", "@type[$++]: pass case";
+    }
+}
+
+
+subtest 'A range of marks and a format character' => {
+    # /<+[\x[17B4]..\x[17B5] \c[ZERO WIDTH NON-JOINER]]>/
+    ast RakuAST::Regex::Assertion::CharClass.new(
+      RakuAST::Regex::CharClassElement::Enumeration.new(
+        elements => (
+          RakuAST::Regex::CharClassEnumerationElement::Range.new(
+            from => 0x17B4,
+            to   => 0x17B5
+          ),
+          RakuAST::Regex::CharClass::Specified.new(
+            characters => "\x[200C]"
+          ),
+        )
+      )
+    );
+    is-deeply $deparsed,
+      '/<+[\x[17B4]..\x[17B5] \c[ZERO WIDTH NON-JOINER]]>/',
+      'deparse';
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    my $target := "\x[17B5]";
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $target ~~ $result, $target, "@type[$++]: pass case";
+    }
+}
+
+subtest 'A range of combining marks' => {
+    # /<+[\x[300]..\x[302]]>/
+    ast RakuAST::Regex::Assertion::CharClass.new(
+      RakuAST::Regex::CharClassElement::Enumeration.new(
+        elements => (
+          RakuAST::Regex::CharClassEnumerationElement::Range.new(
+            from => 0x300,
+            to   => 0x302
+          ),
+        )
+      )
+    );
+    is-deeply $deparsed, '/<+[\x[300]..\x[302]]>/', 'deparse';
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    my $target := "\x[301]";
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $target ~~ $result, $target, "@type[$++]: pass case";
     }
 }
 

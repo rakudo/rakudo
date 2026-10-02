@@ -9,7 +9,35 @@ use lib $*PROGRAM.parent(2).add('packages/Test-Helpers');
 use Test;
 use Test::Helpers;
 
-plan 2;
+plan 5;
+
+subtest "Line of a declaration with its keyword on an earlier line" => {
+    plan 3;
+    # The span of a declaration starts at its keyword, while the line of
+    # its code object and of its reported problems stays the line of its name.
+    is EVAL(q[sub
+        foo() { }; &foo]).line, 2,
+      'a sub reports the line of its name';
+    is EVAL(q[class K { method
+        m() { } }; K]).^lookup('m').line, 2,
+      'a method reports the line of its name';
+    throws-like { EVAL q[my
+        $x is foo;] }, X::Comp, line => 2,
+      'a problem with a variable declaration is reported on the line of its name';
+}
+
+subtest "Text of an operator application" => {
+    plan 1;
+    # A WhateverCode keeps the text of the expression it was made from. The
+    # legacy frontend does not keep it.
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        is EVAL(q[*.foo(1).bar]).gist, '*.foo(1).bar',
+          'a WhateverCode made from a chain of method calls keeps all of its text';
+    }
+    else {
+        skip 'the legacy frontend does not keep the text of a WhateverCode';
+    }
+}
 
 subtest "Locations" => {
     my $origins;
@@ -54,32 +82,33 @@ ORIG
             %( :line(2), :orig-line(2), :file("foo.raku"), from => tp('^10 {'), :WHAT(RakuAST::Prefix) ),
             %( :line(2), :orig-line(2), :file("foo.raku"), from => tp('for ^10 {'), :WHAT(RakuAST::Statement::For) )),
         (tp('ine ",'),
-            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('"line ",') + 1, :WHAT(RakuAST::QuotedString) ),
+            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('line ",'), :WHAT(RakuAST::StrLiteral) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp(', ($line'),
-            # The comma belongs to arglist which starts with the first space after `say`
+            # The comma belongs to the argument list, which starts at its first argument
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('"line ",'), :WHAT(RakuAST::ArgList) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('$line = 2'),
-            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('$line = 2'), :WHAT(RakuAST::ApplyInfix) ),
+            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('$line = 2'), :WHAT(RakuAST::Var::Lexical) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('++",'),
-            %( :line(11), :orig-line(5), :file("test.raku"), from => tp('+++",'), :WHAT(RakuAST::QuotedString) ),
+            %( :line(11), :orig-line(5), :file("test.raku"), from => tp('+++",'), :WHAT(RakuAST::StrLiteral) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp(/',' \n \s+ '"---'/),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('"line ",'), :WHAT(RakuAST::ArgList) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('--",'),
-            %( :line(12), :orig-line(6), :file("test.raku"), from => tp('---",'), :WHAT(RakuAST::QuotedString) ),
+            %( :line(12), :orig-line(6), :file("test.raku"), from => tp('---",'), :WHAT(RakuAST::StrLiteral) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp('##",'),
-            %( :line(13), :orig-line(7), :file("test.raku"), from => tp('###",'), :WHAT(RakuAST::QuotedString) ),
+            %( :line(13), :orig-line(7), :file("test.raku"), from => tp('###",'), :WHAT(RakuAST::StrLiteral) ),
             %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::Statement::Expression) )),
         (tp(";\n}"),
-            %( :line(2), :orig-line(2), :file("foo.raku"), from => tp(/\n '#line 10'/), :WHAT(RakuAST::StatementList) ),
-            %( :line(2), :orig-line(2), :file("foo.raku"), from => tp(/\n '#line 10'/), :WHAT(RakuAST::StatementList) )),
+            # A statement list starts at its first statement, past the line directive
+            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::StatementList) ),
+            %( :line(10), :orig-line(4), :file("test.raku"), from => tp('say "line'), :WHAT(RakuAST::StatementList) )),
         (tp('exit(0)'),
-            %( :line(16), :orig-line(10), :file("test.raku"), from => tp('exit(0)'), :WHAT(RakuAST::Call::Name) ),
+            %( :line(16), :orig-line(10), :file("test.raku"), from => tp('exit(0)'), :WHAT(RakuAST::Name) ),
             %( :line(16), :orig-line(10), :file("test.raku"), from => tp('exit(0)'), :WHAT(RakuAST::Statement::Expression) )),
         ;
 
@@ -110,6 +139,292 @@ ORIG
             }
         }
     }
+}
+
+subtest "Spans" => {
+    # Every node produced from source text has an origin covering exactly
+    # the text of its construct, so a tool can find the source of any node.
+    my $source = q:to/SOURCE/;
+    use #`(version) v6.d;
+    my (@a, $x, $y, $a, %h);
+    $x = @a[0].foo(1, 2), 3;
+    $y ?? $a + 1 !! 2;
+    %h<k>:exists;
+    -$a++;
+    $a.=abs;
+    $a = 1 + 2 * 3;
+    my Int $v = 1;
+    our sub f(Int $p) { }
+    multi sub g() { }
+    class K is Any {
+        has Int $.k is rw = 1;
+        method m() { }
+        submethod BUILD() { }
+    }
+    my \t = 5;
+    grammar Gr { token t { a } }
+    my ($s, $u);
+    $s = "a b" ~ q:w{c d} ~ <e f>;
+    $s = "x\t$s y";
+    $u = q:to/H/;
+      body
+      H
+    $u = qq:to/I/; $u = 1;
+      a { $s } b
+      I
+    sub h() {
+        # leading
+        $a;
+        $y; # trailing
+    }  # after
+    say( # first
+      1, 2 );
+    L1: for ^1 { }
+    $s ~~ rx/ ab /;
+    #| doc for dd
+    sub dd(Int $q = 3) { } #= trailing for dd
+    $s ~~ / a+ <[b..d]> <.alpha> \d /;
+    $a += 1;
+    my ($w = 7);
+    $s = << a # c
+      b >>;
+    @a = [ # c
+    ];
+    my $pp = Pair.new :key<a>;
+    #| #hash doc
+    sub ee() { }
+    sub ff() { } #=((nested doc))
+    $s ~~ / <[\s]> a+ % ','  b /;
+    SOURCE
+
+    my $comp := Perl6::Compiler.new();
+    $comp.language('Raku');
+    $comp.parsegrammar(Raku::Grammar);
+    $comp.parseactions(Raku::Actions);
+    $comp.addstage('syntaxcheck', :before<ast>);
+    $comp.addstage('qast', :after<ast>);
+    my $root := $comp.compile($source, :target<ast>, :source-name<spans.raku>, :compunit_ok);
+
+    # Nodes by type in depth first order, each node once.
+    my %seen;
+    my %nodes;
+    sub collect($node) {
+        return if %seen{$node.WHICH}++;
+        %nodes{$node.^name}.push($node);
+        $node.visit-children(&collect);
+    }
+    collect($root);
+
+    # The source text of the node of a type at an index in depth first
+    # order, or of the first node of the type a condition holds for.
+    sub node(Mu $type, $which) {
+        $which ~~ Int
+          ?? %nodes{$type.^name}[$which]
+          !! %nodes{$type.^name}.first($which)
+    }
+    sub text(Mu $node) {
+        my $origin = $node.origin;
+        $origin
+          ?? $source.substr($origin.from, $origin.to - $origin.from)
+          !! Nil
+    }
+    sub span(Mu $type, $which = 0) {
+        text(node($type, $which))
+    }
+    sub from(Mu $type, $which = 0) {
+        node($type, $which).origin.from
+    }
+
+    plan 66;
+
+    is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
+      'a list infix application covers all of its operands';
+    is span(RakuAST::ApplyPostfix, 0), '@a[0].foo(1, 2)',
+      'a method call covers its invocant';
+    is span(RakuAST::ApplyPostfix, 1), '@a[0]',
+      'a postcircumfix covers its operand';
+    is span(RakuAST::Ternary), '$y ?? $a + 1 !! 2',
+      'a ternary covers its condition and both branches';
+    is span(RakuAST::ApplyInfix, 1), '$a + 1',
+      'an infix application covers both operands';
+    is span(RakuAST::ApplyPostfix, 2), '%h<k>:exists',
+      'a postcircumfix covers an adverb applied to it';
+    is span(RakuAST::ApplyPrefix), '-$a++',
+      'a prefix application covers its operand';
+    is span(RakuAST::ApplyPostfix, 3), '$a++',
+      'a postfix application covers its operand';
+    is span(RakuAST::ApplyDottyInfix), '$a.=abs',
+      'a mutating method call covers its invocant';
+    is span(RakuAST::ApplyInfix, 3), '1 + 2 * 3',
+      'an infix application covers a reduced left operand';
+    is span(RakuAST::ApplyInfix, 4), '2 * 3',
+      'an infix application nested on the right covers its operands';
+
+    is span(RakuAST::VarDeclaration::Signature, 1), 'my ($s, $u)',
+      'a list declaration covers its scope declarator';
+    is span(RakuAST::VarDeclaration::Simple, *.name eq '$v'), 'my Int $v = 1',
+      'a variable declaration covers its scope declarator and type';
+    is span(RakuAST::Sub, 0), 'our sub f(Int $p) { }',
+      'a sub covers its scope declarator and keyword';
+    is span(RakuAST::Sub, 1), 'multi sub g() { }',
+      'a multi sub covers its multi declarator';
+    is from(RakuAST::Class), $source.index('class K'),
+      'a class starts at its package declarator';
+    is span(RakuAST::VarDeclaration::Simple, *.name eq '$.k'), 'has Int $.k is rw = 1',
+      'an attribute covers its scope declarator';
+    is span(RakuAST::Method), 'method m() { }',
+      'a method covers its keyword';
+    is span(RakuAST::Submethod), 'submethod BUILD() { }',
+      'a submethod covers its keyword';
+    is span(RakuAST::VarDeclaration::Term), 'my \t = 5',
+      'a sigilless declaration covers its scope declarator';
+    is from(RakuAST::TokenDeclaration), $source.index('token t'),
+      'a token starts at its keyword';
+
+    is span(RakuAST::QuotedString, 1), '"a b"',
+      'a double quoted string covers its quotes';
+    is span(RakuAST::QuotedString, 2), 'q:w{c d}',
+      'a q string covers its adverb and delimiters';
+    is span(RakuAST::QuotedString, 3), '<e f>',
+      'a quote words term covers its angle brackets';
+    is span(RakuAST::Heredoc), 'q:to/H/',
+      'a heredoc covers its introducer';
+    is span(RakuAST::QuotedRegex), 'rx/ ab /',
+      'a quoted regex covers its adverb and delimiters';
+    is node(RakuAST::QuotedRegex, 0).body.origin.from, $source.index('ab /'),
+      'the body of a quoted regex leaves out its delimiters';
+
+    is span(RakuAST::Class), q:to/CLASS/.chomp, 'a class ends at its closing brace';
+      class K is Any {
+          has Int $.k is rw = 1;
+          method m() { }
+          submethod BUILD() { }
+      }
+      CLASS
+    is span(RakuAST::TokenDeclaration), 'token t { a }',
+      'a token ends at its closing brace';
+    is span(RakuAST::Trait::Is, { .name.defined && .name.canonicalize eq 'rw' }), 'is rw',
+      'a trait leaves out the whitespace after it';
+    is span(RakuAST::Statement::Expression, { .origin && .origin.from == $source.index('sub h') }),
+      "sub h() \{\n    # leading\n    \$a;\n    \$y; # trailing\n}",
+      'a statement leaves out a comment after it';
+    is span(RakuAST::StatementList, { .origin && .origin.from == $source.index('$a;') }),
+      "\$a;\n    \$y;",
+      'a statement list starts at its first statement and ends at its last terminator';
+    is span(RakuAST::ArgList, { .origin && .origin.from == $source.index('1, 2 )') }),
+      '1, 2',
+      'an argument list leaves out a comment before its first argument';
+    is span(RakuAST::Statement::For), 'L1: for ^1 { }',
+      'a labeled statement covers its label';
+    is node(RakuAST::SemiList, { .origin && !.statements }).origin.from, $source.index('[ # c') + 1,
+      'an empty list sits before a comment in it';
+    my $pod-source = "say 1;\n=begin pod\nx\n=end pod\n";
+    my $pod-unit := $comp.compile($pod-source, :target<ast>, :source-name<pod.raku>, :compunit_ok);
+    ok $pod-unit.origin.from <= $pod-unit.statement-list.origin.from
+      && $pod-unit.statement-list.origin.to <= $pod-unit.origin.to,
+      'a compilation unit covers the doc blocks after its last statement';
+
+    is text(node(RakuAST::QuotedString, 1).segments[0]), 'a b',
+      'a string literal covers the text of a string';
+    is text(node(RakuAST::QuotedString, 4).segments[0]), 'x\t',
+      'a string literal before an interpolation covers its escapes';
+    is text(node(RakuAST::QuotedString, 4).segments[2]), ' y',
+      'a string literal after an interpolation starts after it';
+    is text(node(RakuAST::Heredoc, 0).segments[0]), "  body\n",
+      'a string literal in a heredoc body covers its source text';
+    my $words = node(RakuAST::QuotedString, { .origin && .origin.from == $source.index('<< a') });
+    is-deeply $words.segments.map({ text($_) }).List, (' a ', "\n  b "),
+      'the string literals of quote words leave out a comment between them';
+
+    my $body = node(RakuAST::Heredoc, 0).body-origin;
+    is $source.substr($body.from, $body.to - $body.from), "  body\n  H",
+      'a heredoc body spans from its first line to the end of its terminator';
+    my $interpolating = node(RakuAST::Heredoc, 1);
+    my $block = $interpolating.segments.first(RakuAST::Block);
+    is text($block), '{ $s }',
+      'a block interpolated into a heredoc body covers its braces';
+    ok $interpolating.body-origin.from <= $block.origin.from
+      && $block.origin.to <= $interpolating.body-origin.to,
+      'a block interpolated into a heredoc is inside of its body';
+    is text($interpolating), 'qq:to/I/',
+      'a heredoc followed by code on its line covers only its introducer';
+
+    is span(RakuAST::Statement::LanguageVersion), 'use #`(version) v6.d',
+      'a language version statement covers its use keyword';
+    is text(node(RakuAST::ApplyPostfix, 0).postfix.name), 'foo',
+      'the name of a method call covers its identifier';
+    my $abs = node(RakuAST::ApplyDottyInfix, 0).right;
+    is $abs.args.origin.from, $source.index('abs;') + 3,
+      'the empty argument list of a method call sits after its name';
+    is text(node(RakuAST::VarDeclaration::Simple, *.name eq '$v').type.name), 'Int',
+      'the name of a type covers its identifier';
+    my $p = node(RakuAST::Sub, 0).signature.parameters[0];
+    is text($p.target), '$p',
+      'a parameter target covers its variable';
+    is text($p.target.declaration), '$p',
+      'the declaration of a parameter target covers its variable';
+    is text(node(RakuAST::ApplyInfix, 1).args), '$a + 1',
+      'the argument list of an infix application spans its operands';
+    is text(node(RakuAST::Sub, 3).WHY), "#| doc for dd\nsub dd(Int \$q = 3) \{ } #= trailing for dd",
+      'a declarator doc spans its leading and trailing doc comments';
+    is text(node(RakuAST::Sub, *.name.canonicalize eq 'ee').WHY), '#| #hash doc',
+      'a declarator doc whose text starts with a # covers its #|';
+    is text(node(RakuAST::Sub, *.name.canonicalize eq 'ff').WHY), '#=((nested doc))',
+      'a declarator doc with doubled brackets covers all of its closers';
+    is text(node(RakuAST::VarDeclaration::Signature, 2).signature.parameters[0].target.declaration),
+      '$w = 7',
+      'a variable of a list declaration covers the default it takes over';
+    is span(RakuAST::Regex::QuantifiedAtom), 'a+',
+      'a quantified regex atom covers its quantifier';
+    is span(RakuAST::Regex::CharClassEnumerationElement::Range), 'b..d',
+      'a range in a character class covers both of its ends';
+    is span(RakuAST::Regex::Assertion::Named), '<.alpha>',
+      'a named regex assertion covers its angle brackets';
+    is span(RakuAST::Regex::CharClass::Digit), '\d',
+      'a backslash character class covers its backslash';
+    is text(node(RakuAST::ApplyInfix, { .infix ~~ RakuAST::MetaInfix::Assign }).infix.infix), '+',
+      'the operator an assignment meta operator wraps leaves out the =';
+    is text(node(RakuAST::ApplyPostfix, { .postfix ~~ RakuAST::Call::Method && .postfix.name.canonicalize eq 'new' }).postfix.args),
+      ':key<a>',
+      'an adverb on a method call without arguments starts its argument list';
+
+    # No node lies outside of the nodes it is a child of. A declarator doc
+    # is written apart from its declarand, and the children of a heredoc lie
+    # in its body.
+    my %parents;
+    sub check-containment($node, $from, $to) {
+        my $origin = $node.origin;
+        my ($f, $t) = $origin ?? ($origin.from, $origin.to) !! ($from, $to);
+        my $which = $node.WHICH;
+        if $origin && $from.defined && $node !~~ RakuAST::Doc::Declarator {
+            %parents{$which}.push: $from <= $f && $t <= $to;
+        }
+        return if %parents{$which}:exists && %parents{$which}.elems > 1;
+        my ($cf, $ct) = $node ~~ RakuAST::Heredoc && $node.body-origin
+          ?? ($node.body-origin.from, $node.body-origin.to)
+          !! ($f, $t);
+        $node.visit-children(-> $child { check-containment($child, $cf, $ct) });
+    }
+    check-containment($root, Int, Int);
+    is %parents.values.grep({ !.any }).elems, 0,
+      'every node lies inside of a node it is a child of';
+    is span(RakuAST::Regex::CharClass::Space), '\s',
+      'a backslash character class in a character class covers its backslash';
+    is span(RakuAST::Regex::QuantifiedAtom, *.separator.defined), "a+ % ','  ",
+      'a quantified atom with a separator covers the sigspace wrapper of its separator';
+
+    # Nodes without an origin are made by the compiler with no source text
+    # of their own.
+    my constant @synthesized = <
+      Parameter ParameterTarget::Var VarDeclaration::Simple Type::Simple
+      Type::Setting Name Signature Initializer::Assign Method::Initializer
+      Trait::WillBuild Blockoid StatementList Block
+      VarDeclaration::Implicit::Doc::Pod VarDeclaration::Implicit::Doc::Data
+      VarDeclaration::Implicit::Doc::Finish VarDeclaration::Implicit::Doc::Rakudoc
+    >.map({ "RakuAST::$_" });
+    my @unexpected = %nodes.values.map(|*).grep({ !.origin && .^name ne @synthesized.any }).map(*.^name).unique;
+    is-deeply @unexpected, [],
+      'only nodes the compiler makes without source text have no origin';
 }
 
 if $*DISTRO.is-win {

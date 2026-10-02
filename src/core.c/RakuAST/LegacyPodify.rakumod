@@ -174,7 +174,7 @@ class RakuAST::LegacyPodify {
                      ?? $ast.meta.map(*.key)
                      !! @meta,
                    contents => $letter eq 'C'
-                     ?? $ast.atoms.join.subst("\n", ' ', :g)
+                     ?? $ast.atoms.join.trim-leading.subst("\n", ' ', :g)
                      !! $letter eq 'E'
                        ?? $ast.meta.map(*.value)
                        !! self!contentify($ast.atoms)
@@ -397,7 +397,14 @@ class RakuAST::LegacyPodify {
         Pod::Defn.new: :$term, :@contents, :$config
     }
 
-    multi method podify(RakuAST::Doc::Declarator:D $ast, $WHEREFORE) {
+    # Given the Pod::Block::Declarator made for the same WHEREFORE before,
+    # fills that in again rather than making a new one. A type's doc is set
+    # through its HOW, as the type may not be composed yet.
+    multi method podify(
+      RakuAST::Doc::Declarator:D $ast,
+      Mu $WHEREFORE,
+      $pod?
+    ) {
         sub normalize(@paragraphs) {
             @paragraphs
               .map(*.lines.map({.trim if $_}).Slip)
@@ -415,9 +422,18 @@ class RakuAST::LegacyPodify {
         %args<leading>   =  $leading   if $leading;
         %args<trailing>  = [$trailing] if $trailing;
 
-        my $pod := Pod::Block::Declarator.new(|%args);
-        $WHEREFORE.set_why($pod);
-        $pod
+        my $declarator := Pod::Block::Declarator.new(|%args);
+        if $pod {
+            for <@!leading @!trailing> -> $name {
+                nqp::bindattr(nqp::decont($pod),Pod::Block::Declarator,$name,
+                  nqp::getattr($declarator,Pod::Block::Declarator,$name));
+            }
+            $declarator := nqp::decont($pod);
+        }
+        nqp::isconcrete($WHEREFORE)
+          ?? $WHEREFORE.set_why($declarator)
+          !! $WHEREFORE.HOW.set_why($declarator);
+        $declarator
     }
 }
 

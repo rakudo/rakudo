@@ -24,7 +24,7 @@ class RakuAST::StatementModifier
 # The base of all condition statement modifiers.
 class RakuAST::StatementModifier::Condition
   is RakuAST::StatementModifier
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     # Set by the optimize pass, allowing a native-int condition to be
     # tested directly.
@@ -259,7 +259,7 @@ class RakuAST::StatementModifier::Loop
 
 class RakuAST::StatementModifier::WhileUntil
   is RakuAST::StatementModifier::Loop
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     # Is the condition negated?
     method negate() { False }
@@ -366,8 +366,8 @@ class RakuAST::StatementModifier::Given
 # The for statement modifier.
 class RakuAST::StatementModifier::For
   is RakuAST::StatementModifier::Loop
-  is RakuAST::ForLoopImplementation
-  is RakuAST::ImplicitLookups
+  does RakuAST::ForLoopImplementation
+  does RakuAST::ImplicitLookups
 {
     # Set when the optimize pass has approved lowering a CORE integer-range
     # source to a native counting loop.
@@ -471,16 +471,22 @@ class RakuAST::StatementModifier::Condition::Thunk
         $obj
     }
 
+    method IMPL-FORMS-BLOCK() { False }
+
     method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
             RakuAST::Expression $expression) {
 
-        # Statement::Expression wraps this thunk before any loop thunk, so it
-        # is always innermost and the expression can be emitted directly. A
-        # caller that chained it over another thunk would silently lose that
-        # thunk, so refuse it.
-        nqp::die('Condition modifier thunk cannot wrap an inner thunk')
-            if self.next;
-        $target.push($!condition.IMPL-WRAP-QAST($context, $expression.IMPL-EXPR-QAST($context)));
+        # The condition wraps what the expression evaluates to, which is the
+        # value of an inner thunk when the expression already had one, as
+        # a WhateverCode does.
+        if self.next {
+            self.next.IMPL-THUNK-CODE-QAST($context, $target, $expression);
+            $target.push($!condition.IMPL-WRAP-QAST($context,
+                self.next.IMPL-THUNK-VALUE-QAST($context)));
+        }
+        else {
+            $target.push($!condition.IMPL-WRAP-QAST($context, $expression.IMPL-EXPR-QAST($context)));
+        }
     }
 
     method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {

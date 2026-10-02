@@ -56,11 +56,21 @@ class RakuAST::Resolver {
     # Parametric role groups created in this compunit, keyed by object id.
     has Mu $!compunit-role-groups;
 
+    # Sorries and worries produced by the compiler.
+    has Mu $!sorries;
+    has Mu $!worries;
+
+    # The declarators use statements took from a module's EXPORTHOW,
+    # keyed by the object id of the lexical scope of the use statement. Each
+    # value maps a declarator, or its `-attr` companion, to the type the
+    # module gave it.
+    has Mu $!exporthow;
+
     method register-compunit-role-group(Mu $group) {
         $!compunit-role-groups{nqp::objectid($group)} := $group;
         Nil
     }
-    method is-compunit-role-group(Mu $group) {
+    method is-compunit-role-group(Mu $group --> Bool) {
         nqp::existskey($!compunit-role-groups, nqp::objectid($group))
     }
 
@@ -85,7 +95,7 @@ class RakuAST::Resolver {
         0
     }
 
-    method declare-our-package(Mu $target, str $final, RakuAST::Package $pkg) {
+    method declare-our-package(Mu $target, str $final, RakuAST::Declaration $pkg) {
         # Skip the 6.d `module Foo::Bar { class Foo::Bar { } }`
         # pattern: silent-replace at install time, no tracker entry.
         # Canonical name is only needed when we have an enclosing
@@ -123,6 +133,8 @@ class RakuAST::Resolver {
           nqp::clone($!our-package-decl-map));
         nqp::bindattr($clone,RakuAST::Resolver,'$!compunit-role-groups',
           nqp::clone($!compunit-role-groups));
+        nqp::bindattr($clone,RakuAST::Resolver,'$!exporthow',
+          nqp::clone($!exporthow));
         $clone
     }
 
@@ -179,9 +191,42 @@ class RakuAST::Resolver {
     # or no targets left for the given name.
     method find-attach-target(str $name, Bool :$skip-first) {
         my @stack := $!attach-targets{$name};
-        nqp::isconcrete(@stack) && nqp::elems(@stack) > +$skip-first
-          ?? @stack[nqp::elems(@stack) - (1 + $skip-first)]
+        my int $skip := ?$skip-first;
+        nqp::isconcrete(@stack) && nqp::elems(@stack) > $skip
+          ?? @stack[nqp::elems(@stack) - (1 + $skip)]
           !! Nil
+    }
+
+    # Makes a declarator known in the current lexical scope and the scopes
+    # inside it, or with :unit in the whole compilation unit, below what a
+    # use statement makes known.
+    method declare-exporthow(str $declarator, Mu $how, Bool :$unit) {
+        my str $key := $unit ?? '' !! nqp::objectid(self.current-scope);
+        my $declarators := nqp::atkey($!exporthow, $key);
+        $!exporthow{$key} := $declarators := nqp::hash
+          unless nqp::isconcrete($declarators);
+        $declarators{$declarator} := $how;
+        Nil
+    }
+
+    # The type a use statement in an active scope declared for the name,
+    # nearest scope first, else the one the compilation unit declared, in a
+    # one element list. The list keeps find-scope-property from skipping a
+    # type object. Nil when nothing declared it.
+    method resolve-exporthow(str $declarator) {
+        my $declarators := $!exporthow;
+        my $found := self.find-scope-property(-> $scope {
+            my $known := nqp::atkey($declarators, nqp::objectid($scope));
+            nqp::isconcrete($known) && nqp::existskey($known, $declarator)
+              ?? nqp::list($known{$declarator})
+              !! Nil
+        });
+        unless $found {
+            my $unit := nqp::atkey($declarators, '');
+            $found := nqp::list($unit{$declarator})
+              if nqp::isconcrete($unit) && nqp::existskey($unit, $declarator);
+        }
+        $found
     }
 
     # Set the global package when we're starting a fresh compilation unit.
@@ -287,6 +332,13 @@ class RakuAST::Resolver {
         )
     }
 
+    # Why the heredoc body being parsed may not use the name. Only a resolver
+    # that parses source has heredoc bodies.
+    method IMPL-HEREDOC-REFUSED(Str $name) { '' }
+    method IMPL-CHECK-HEREDOC-WATCHES() { Nil }
+    method IMPL-HEREDOCS-AWAITING-BODY() { 0 }
+    method IMPL-HEREDOC-SCOPE-CLOSED(Mu $scope) { False }
+
     # Resolve a RakuAST::Name, optionally adding the specified sigil to the
     # final component.
     method resolve-name(RakuAST::Name $Rname, str :$sigil) {
@@ -297,7 +349,8 @@ class RakuAST::Resolver {
 
             # Single-part name, so look lexically.
             $name  := $sigil ~ $name if $sigil;
-            $found := self.resolve-lexical($name)
+            $found := self.resolve-lexical($name);
+            return Nil if !$found && self.IMPL-HEREDOC-REFUSED($name);
         }
         elsif !$Rname.is-empty {
             # All package name installations happen via the symbol table as
@@ -309,9 +362,12 @@ class RakuAST::Resolver {
     }
 
     # Resolve a RakuAST::Name to a constant.
-    method resolve-name-constant(RakuAST::Name $Rname, str :$sigil, :$current-scope-only) {
+    method resolve-name-constant(RakuAST::Name $Rname, str :$sigil, Bool :$current-scope-only) {
         self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :$sigil, :$current-scope-only)
-          // ($current-scope-only ?? Nil !! self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil))
+          // ($current-scope-only
+                || $Rname.is-identifier && self.IMPL-HEREDOC-REFUSED($sigil ~ $Rname.canonicalize)
+                ?? Nil
+                !! self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil))
     }
 
     # Resolve a RakuAST::Name to a constant looking only in the setting.
@@ -396,7 +452,7 @@ class RakuAST::Resolver {
         nqp::die('Empty name lookup not possible as a constant')
             if $constant.is-empty;
         my @parts := nqp::clone($constant.IMPL-UNWRAP-LIST($constant.parts));
-        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
+        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::EmptyEdge);
 
         my $root := @parts.shift;
         # Only CORE, GLOBAL and EXPORT roots get special treatment here; any
@@ -404,7 +460,7 @@ class RakuAST::Resolver {
         # not final: the code generation of an unresolved name falls back to
         # a run time lookup, which is where pseudo-package roots and symbols
         # only present in GLOBAL's stash are found, as in the legacy frontend.
-        if nqp::istype($root, RakuAST::Name::Part::Empty) {
+        if nqp::istype($root, RakuAST::Name::Part::EmptyEdge) {
             return Nil;
         }
         elsif nqp::istype($root, RakuAST::Name::Part::Expression) && !$root.has-compile-time-name {
@@ -417,7 +473,7 @@ class RakuAST::Resolver {
         if ($name eq 'CORE') {
             return Nil unless @parts;  # bare CORE has nothing to resolve
             $root := nqp::shift(@parts);
-            if nqp::istype($root, RakuAST::Name::Part::Empty) {
+            if nqp::istype($root, RakuAST::Name::Part::EmptyEdge) {
                 return Nil;
             }
             elsif nqp::istype($root, RakuAST::Name::Part::Expression) && !$root.has-compile-time-name {
@@ -675,10 +731,9 @@ class RakuAST::Resolver {
     }
 
     # Check if a name is known (declared) at all.
-    method is-name-known(RakuAST::Name $Rname) {
-        $Rname.is-pseudo-package || nqp::isconcrete(self.resolve-name($Rname.base-name))
-          ?? True
-          !! False
+    method is-name-known(RakuAST::Name $Rname --> Bool) {
+        $Rname.is-pseudo-package
+          || nqp::isconcrete(self.resolve-name($Rname.base-name))
     }
 
     # Build an exception object for a check-time exception.
@@ -759,6 +814,11 @@ class RakuAST::Resolver {
     method add-node-with-check-time-problems(RakuAST::CheckTime $node) {
         unless $!nodes-with-check-time-problems {
             nqp::bindattr(self, RakuAST::Resolver, '$!nodes-with-check-time-problems', []);
+        }
+        # A node's sorries and worries are gathered once per entry, so a node
+        # more than one check reaches is listed once.
+        for $!nodes-with-check-time-problems {
+            return Nil if nqp::eqaddr($_, $node);
         }
         nqp::push($!nodes-with-check-time-problems, $node);
         Nil
@@ -878,8 +938,30 @@ class RakuAST::Resolver {
         nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST(self.all-sorries)) ?? True !! False
     }
 
-    # Gathers all sorries (from check time, if performed, and any specific to
-    # a given resolver).
+    # Add a sorry check-time problem produced by the compiler.
+    method add-sorry(Any $exception) {
+        nqp::push($!sorries, $exception);
+        Nil
+    }
+    method has-sorries(--> Bool) { nqp::elems($!sorries) > 0 }
+
+    # Add a worry check-time problem produced by the compiler.
+    method add-worry(Any $exception) {
+        my $worries := self.find-scope-property(-> $scope { $scope.tell-worries });
+        if !nqp::isconcrete($worries) || $worries {
+            nqp::push($!worries, $exception);
+        }
+        Nil
+    }
+    method has-worries(--> Bool) { nqp::elems($!worries) > 0 }
+
+    # Panic with the specified exception. This immediately throws it,
+    # incorporating any sorries and worries.
+    method panic(Any $exception) {
+        self.produce-compilation-exception(:panic($exception)).throw
+    }
+
+    # Gathers the sorries of check time, the unresolved symbols and add-sorry.
     method all-sorries() {
         my @sorries;
         if $!nodes-with-check-time-problems {
@@ -892,11 +974,13 @@ class RakuAST::Resolver {
         for RakuAST::Node.IMPL-UNWRAP-LIST(self.unresolved-symbol-exceptions) {
             @sorries.push($_);
         }
+        for $!sorries {
+            @sorries.push($_);
+        }
         RakuAST::Node.IMPL-WRAP-LIST(@sorries)
     }
 
-    # Gathers all worries (from check time, if performed, and any specific to
-    # a given resolver).
+    # Gathers the worries of check time and add-worry.
     method all-worries() {
         my @worries;
         if $!nodes-with-check-time-problems {
@@ -905,6 +989,9 @@ class RakuAST::Resolver {
                     @worries.push($_);
                 }
             }
+        }
+        for $!worries {
+            @worries.push($_);
         }
         RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }
@@ -1239,6 +1326,9 @@ class RakuAST::Resolver::EVAL
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!sorries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!worries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!exporthow', nqp::hash());
         my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
             $cur-package
@@ -1314,14 +1404,17 @@ class RakuAST::Resolver::EVAL
     }
 
     # Whether the nearest active scope declaring the name is the outermost
-    # one and declares it as the given declaration.
+    # one and declares it as the given declaration. A routine's own scope
+    # finding the routine itself is skipped, since that lookup runs in the
+    # enclosing frame.
     method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
         my @scopes := $!scopes;
         my int $i := nqp::elems(@scopes);
         while $i-- {
             my $found := @scopes[$i].find-lexical($name);
             return nqp::eqaddr(@scopes[$i], @scopes[0]) && nqp::eqaddr($found, $decl) ?? 1 !! 0
-                if nqp::isconcrete($found);
+                if nqp::isconcrete($found)
+                && !(nqp::eqaddr($found, $decl) && nqp::eqaddr(@scopes[$i], $decl));
         }
         0
     }
@@ -1517,9 +1610,17 @@ class RakuAST::Resolver::Compile
     # Scopes stack; an array of RakuAST::Resolver::Compile::Scope.
     has Mu $!scopes;
 
-    # Sorries and worries produced by the compiler.
-    has Mu $!sorries;
-    has Mu $!worries;
+    # The heredoc body being parsed, if any, as IMPL-ENTER-HEREDOC-BODY
+    # records it.
+    has Mu $!heredoc-body;
+
+    # The names heredoc bodies used, each with the scopes opened later on
+    # the heredoc's line that must not declare it after the body.
+    has Mu $!heredoc-watches;
+
+    # How many heredocs await their body, and what runs once they have it.
+    has int $!heredocs-awaiting-body;
+    has Mu $!after-heredoc-bodies;
 
     # Create a resolver from given arguments
     method new(Mu :$setting!, Mu :$outer!, Mu :$global!, Mu :$scopes, Mu :$attach-targets) {
@@ -1531,11 +1632,12 @@ class RakuAST::Resolver::Compile
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
         nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!exporthow', nqp::hash());
 
         nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes',
           $scopes // []);
-        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!sorries', []);
-        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!worries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!sorries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!worries', []);
         $obj
     }
 
@@ -1678,14 +1780,17 @@ class RakuAST::Resolver::Compile
     # parsed answers from its live declaration map, so its AST lexical
     # lookup table is not cached before its declarations are complete.
     # The outermost scope can be on the stack twice, entered by the parse
-    # and pushed again by a batch walk, so scopes compare by node.
+    # and pushed again by a batch walk, so scopes compare by node. A
+    # routine's own scope finding the routine itself is skipped, since
+    # that lookup runs in the enclosing frame.
     method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
         my @scopes := $!scopes;
         my int $i := nqp::elems(@scopes);
         while $i-- {
             my $found := @scopes[$i].find-lexical($name);
             return nqp::eqaddr(@scopes[$i].scope, @scopes[0].scope) && nqp::eqaddr($found, $decl) ?? 1 !! 0
-                if nqp::isconcrete($found);
+                if nqp::isconcrete($found)
+                && !(nqp::eqaddr($found, $decl) && nqp::eqaddr(@scopes[$i].scope, $decl));
         }
         0
     }
@@ -1696,17 +1801,244 @@ class RakuAST::Resolver::Compile
         Nil
     }
 
+    # The scopes, attachment targets and packages that code at this point
+    # compiles in, as they stand now. A heredoc records them where it starts,
+    # so its body binds names, attaches and declares as code there would.
+    method IMPL-HEREDOC-STATE() {
+        nqp::bindattr_i(self, RakuAST::Resolver::Compile, '$!heredocs-awaiting-body',
+          $!heredocs-awaiting-body + 1);
+        my @scopes;
+        nqp::push(@scopes, $_.IMPL-SNAPSHOT) for $!scopes;
+        nqp::hash(
+          'scopes', @scopes,
+          'attach-targets', self.IMPL-CLONE-ATTACH-TARGETS,
+          'packages', nqp::clone(nqp::getattr(self, RakuAST::Resolver, '$!packages')))
+    }
+
+    # Switches to the state a heredoc recorded where it starts, for parsing
+    # its body. The body notes the scopes where it is parsed, how many scopes
+    # it runs in, and what IMPL-LEAVE-HEREDOC-BODY restores.
+    method IMPL-ENTER-HEREDOC-BODY(Mu $state) {
+        nqp::bindattr_i(self, RakuAST::Resolver::Compile, '$!heredocs-awaiting-body',
+          $!heredocs-awaiting-body - 1);
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!heredoc-watches', nqp::hash())
+          unless nqp::isconcrete($!heredoc-watches);
+        my @scopes := $state<scopes>;
+        $_.IMPL-TAKE-BODY-DECLARATIONS for @scopes;
+        my int $shared;
+        $shared++ while $shared < nqp::elems(@scopes) && $shared < nqp::elems($!scopes)
+          && nqp::eqaddr(@scopes[$shared].scope, $!scopes[$shared].scope);
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!heredoc-body', nqp::hash(
+          'outer', $!heredoc-body,
+          'scopes', $!scopes,
+          'parse-scopes', nqp::clone($!scopes),
+          'depth', nqp::elems(@scopes),
+          'shared', $shared,
+          'attach-targets', nqp::getattr(self, RakuAST::Resolver, '$!attach-targets'),
+          'packages', nqp::getattr(self, RakuAST::Resolver, '$!packages')));
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!scopes', @scopes);
+        nqp::bindattr(self, RakuAST::Resolver, '$!attach-targets', $state<attach-targets>);
+        nqp::bindattr(self, RakuAST::Resolver, '$!packages', $state<packages>);
+        Nil
+    }
+
+    method IMPL-LEAVE-HEREDOC-BODY() {
+        my %body := $!heredoc-body;
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!scopes', %body<scopes>);
+        nqp::bindattr(self, RakuAST::Resolver, '$!attach-targets', %body<attach-targets>);
+        nqp::bindattr(self, RakuAST::Resolver, '$!packages', %body<packages>);
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!heredoc-body', %body<outer>);
+        Nil
+    }
+
+    method IMPL-HEREDOCS-AWAITING-BODY() { $!heredocs-awaiting-body }
+
+    # Whether the heredoc body being parsed starts in the scope but is written
+    # after its closing brace.
+    method IMPL-HEREDOC-SCOPE-CLOSED(Mu $scope) {
+        my $body := $!heredoc-body;
+        return False unless nqp::isconcrete($body);
+        my int $i := $body<depth>;
+        my int $starts-in;
+        while $i-- {
+            $starts-in := 1 if nqp::eqaddr($!scopes[$i].scope, $scope);
+        }
+        return False unless $starts-in;
+        for $body<parse-scopes> {
+            return False if nqp::eqaddr($_.scope, $scope);
+        }
+        True
+    }
+
+    # Runs the code once the queued heredocs have their bodies.
+    method IMPL-AFTER-HEREDOC-BODIES(Mu $code) {
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!after-heredoc-bodies', [])
+          unless nqp::isconcrete($!after-heredoc-bodies);
+        nqp::push($!after-heredoc-bodies, $code);
+        Nil
+    }
+
+    # Called by the parser once it attached the queued heredoc bodies.
+    method IMPL-HEREDOC-BODIES-ATTACHED() {
+        my $after := $!after-heredoc-bodies;
+        if nqp::isconcrete($after) && !$!heredocs-awaiting-body {
+            nqp::bindattr(self, RakuAST::Resolver::Compile, '$!after-heredoc-bodies', Mu);
+            $_() for $after;
+        }
+        Nil
+    }
+
+    # How code where the heredoc starts finds the name. Returns why the body
+    # may not use it, or the empty string, and the declaration it finds. A
+    # lookup notes why on the lookup node being parsed.
+    method IMPL-HEREDOC-LOOKUP(Str $name, :$note) {
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        my $found := Nil;
+        # The names the compiler declares for the code a body runs in are
+        # exempt, such as self, the topic and those with a ? twigil.
+        if $name eq 'self' || $name eq '$_' || $name eq '$/'
+          || $name eq '$!' || $name eq '$¢'
+          || nqp::eqat($name, '?', 1) || nqp::eqat($name, '::?', 0) {
+            while $i-- {
+                $found := @scopes[$i].find-lexical($name);
+                return ['', $found] if nqp::isconcrete($found);
+            }
+            return ['', Nil];
+        }
+        my int $later;
+        while $i-- {
+            my $scope := @scopes[$i];
+            $found := $scope.find-lexical($name);
+            last if nqp::isconcrete($found);
+            # A routine is visible in all of its scope, so one declared after
+            # the heredoc starts is what code there calls. Anything else
+            # declared then would be used before its declaration.
+            $found := $scope.IMPL-FIND-LATER-LEXICAL($name);
+            last if nqp::istype($found, RakuAST::Routine);
+            $later := 1 if nqp::isconcrete($found);
+            $found := Nil;
+        }
+        my str $refusal := self.IMPL-HEREDOC-REFUSAL($name, $i);
+        if $later && $refusal eq '' {
+            $refusal := $i >= 0 || nqp::isconcrete(self.resolve-lexical-in-outer($name))
+              ?? 'ambiguous'
+              !! 'undeclared';
+        }
+        # Where the body is written a package name not in scope is looked up
+        # in the packages, which can reach the same package an our declared.
+        elsif $refusal eq 'hidden' && nqp::istype($found, RakuAST::CompileTimeValue)
+          && nqp::index('$@%&', nqp::substr($name, 0, 1)) < 0 {
+            my $packages := nqp::getattr(self, RakuAST::Resolver, '$!packages');
+            nqp::bindattr(self, RakuAST::Resolver, '$!packages', $!heredoc-body<packages>);
+            my $in-packages := self.IMPL-RESOLVE-NAME-IN-PACKAGES(
+              RakuAST::Name.from-identifier($name));
+            nqp::bindattr(self, RakuAST::Resolver, '$!packages', $packages);
+            if nqp::isconcrete($in-packages) {
+                $refusal := nqp::eqaddr(nqp::decont($in-packages.compile-time-value),
+                  nqp::decont($found.compile-time-value)) ?? '' !! 'ambiguous';
+            }
+        }
+        if $refusal && $note {
+            my $node := nqp::getlexdyn('$*IMPL-LOOKUP-NODE');
+            $node.IMPL-HEREDOC-REFUSE($refusal, $name)
+              if !nqp::isnull($node) && nqp::istype($node, RakuAST::Lookup);
+        }
+        [$refusal, $found]
+    }
+
+    # A body may only use a name meaning the same declaration where it starts,
+    # in the scope at the index or none at -1, and where it is written. Hidden
+    # is a name only in a block closed before the body.
+    method IMPL-HEREDOC-REFUSAL(Str $name, int $found-at) {
+        my $scopes := $!scopes;
+        my $declaring := $found-at >= 0 ?? $scopes[$found-at].scope !! Mu;
+        my $body := $!heredoc-body;
+        my int $i := $found-at;
+        while nqp::isconcrete($body) {
+            return '' if $i >= $body<depth>
+              || $i >= 0 && $scopes[$i].IMPL-DECLARED-THROUGH($name);
+            my $start := $scopes;
+            $scopes := $body<parse-scopes>;
+            $i := nqp::elems($scopes);
+            repeat { --$i } until $i < 0 || nqp::isconcrete($scopes[$i].find-lexical($name));
+            if ($i >= 0 ?? !nqp::eqaddr($scopes[$i].scope, $declaring) !! nqp::isconcrete($declaring)) {
+                return $i >= 0 && nqp::isconcrete($declaring)
+                  || nqp::isconcrete(self.resolve-lexical-in-outer($name))
+                  ?? 'ambiguous'
+                  !! nqp::isconcrete($declaring) ?? 'hidden' !! 'undeclared';
+            }
+            self.IMPL-WATCH-LATER-SCOPES($name, $start, $scopes, $body<depth>, $i);
+            $body := $body<outer>;
+        }
+        ''
+    }
+
+    # Notes the name on the scopes opened later on the heredoc's line that the
+    # body is written in, and that do not declare it. One that declares it
+    # after the body makes the body text mean another declaration.
+    method IMPL-WATCH-LATER-SCOPES(Str $name, Mu $start, Mu $parse, int $depth, int $found-at) {
+        my int $elems := nqp::elems($parse);
+        my int $shared;
+        while $shared < $depth && $shared < $elems
+          && nqp::eqaddr($start[$shared].scope, $parse[$shared].scope) {
+            ++$shared;
+        }
+        my int $i := $elems;
+        while --$i > $found-at && $i >= $shared {
+            my $scope := $parse[$i];
+            $!heredoc-watches{nqp::objectid($scope) ~ ' ' ~ $name} := [$scope, $name];
+        }
+        Nil
+    }
+
+    # Reports a name a heredoc body used that a scope opened later on its line
+    # declares after the body.
+    method IMPL-CHECK-HEREDOC-WATCHES() {
+        return Nil unless nqp::isconcrete($!heredoc-watches);
+        for $!heredoc-watches {
+            my $scope := $_.value[0];
+            my $decl := $scope.find-lexical($_.value[1]);
+            if nqp::isconcrete($decl) {
+                my $ex := self.build-exception('X::Syntax::Heredoc::AmbiguousName',
+                  :symbol($_.value[1]));
+                (nqp::isconcrete($decl.origin) ?? $decl !! $scope.scope).IMPL-LOCATE-EXCEPTION($ex);
+                self.add-sorry($ex);
+            }
+        }
+        Nil
+    }
+
+    # Why the heredoc body being parsed may not use the name, or the empty
+    # string when it may or no body is being parsed.
+    method IMPL-HEREDOC-REFUSED(Str $name) {
+        nqp::isconcrete($!heredoc-body) ?? self.IMPL-HEREDOC-LOOKUP($name)[0] !! ''
+    }
+
     # Add a lexical declaration. Used when the compiler produces the
     # declaration, so that we can resolve it without requiring it to be
     # linked into the tree.
-    method declare-lexical(RakuAST::Declaration $decl) {
+    method declare-lexical(RakuAST::Node $decl) {
         CATCH {
             if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
                 self.build-exception('X::Syntax::Extension::TooComplex', name => nqp::getpayload($_).name).throw;
             }
             nqp::rethrow($_);
         }
-        $!scopes[nqp::elems($!scopes) - 1].declare-lexical($decl)
+        my int $top := nqp::elems($!scopes) - 1;
+        my $body := $!heredoc-body;
+        # A heredoc body written after a closing brace declares in the
+        # innermost scope also open where it is written, which code where the
+        # heredoc starts reaches by name too.
+        if nqp::isconcrete($body) && $top == $body<depth> - 1 && $body<shared> < $body<depth>
+          && nqp::istype($decl, RakuAST::Declaration) {
+            $top := $body<shared> - 1;
+            my $scope := $!scopes[$top].scope;
+            $decl.set-hoisted-to($scope);
+            $scope.add-generated-lexical-declaration($decl)
+              if $decl.is-simple-lexical-declaration;
+        }
+        $!scopes[$top].declare-lexical($decl)
     }
 
     # Add a lexical declaration in the outer scope relative to the current one.
@@ -1734,6 +2066,13 @@ class RakuAST::Resolver::Compile
 
         if $name eq 'GLOBAL' {
             return self.global-package;
+        }
+
+        if nqp::isconcrete($!heredoc-body) {
+            my @lookup := self.IMPL-HEREDOC-LOOKUP($name, :note);
+            return @lookup[0] ne '' ?? Nil
+              !! nqp::isconcrete(@lookup[1]) ?? @lookup[1]
+              !! self.resolve-lexical-in-outer($name);
         }
 
         # Walk active scopes, most nested first.
@@ -1833,6 +2172,15 @@ class RakuAST::Resolver::Compile
               !! Nil
         }
 
+        elsif nqp::isconcrete($!heredoc-body) {
+            my @lookup := self.IMPL-HEREDOC-LOOKUP($name, :note);
+            my $found := @lookup[1];
+            @lookup[0] ne '' ?? Nil
+              !! nqp::isconcrete($found)
+              ?? (nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil)
+              !! self.resolve-lexical-constant-in-outer($name)
+        }
+
         # Walk active scopes, most nested first
         else {
             my @scopes := $!scopes;
@@ -1849,49 +2197,6 @@ class RakuAST::Resolver::Compile
             # Fall back to looking in outer scopes
             self.resolve-lexical-constant-in-outer($name)
         }
-    }
-
-    # Add a sorry check-time problem produced by the compiler.
-    method add-sorry(Any $exception) {
-        nqp::push($!sorries, $exception);
-        Nil
-    }
-    method has-sorries() { nqp::elems($!sorries) > 0 }
-
-    # Add a worry check-time problem produced by the compiler.
-    method add-worry(Any $exception) {
-        my $worries := self.find-scope-property(-> $scope { $scope.tell-worries });
-        if !nqp::isconcrete($worries) || $worries {
-            nqp::push($!worries, $exception);
-        }
-        Nil
-    }
-    method has-worries() { nqp::elems($!worries) > 0 }
-
-    # Panic with the specified exception. This immediately throws it,
-    # incorporating any sorries and worries.
-    method panic(Any $exception) {
-        self.produce-compilation-exception(:panic($exception)).throw
-    }
-
-    # Gathers all sorries (from check time, if performed, and syntactic).
-    method all-sorries() {
-        my @sorries := RakuAST::Node.IMPL-UNWRAP-LIST:
-            nqp::findmethod(RakuAST::Resolver,'all-sorries')(self);
-        for $!sorries {
-            @sorries.push($_);
-        }
-        RakuAST::Node.IMPL-WRAP-LIST(@sorries)
-    }
-
-    # Gathers all worries (from check time, if performed, and syntactic).
-    method all-worries() {
-        my @worries := RakuAST::Node.IMPL-UNWRAP-LIST:
-            nqp::findmethod(RakuAST::Resolver,'all-worries')(self);
-        for $!worries {
-            @worries.push($_);
-        }
-        RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }
 
     method walk-scopes(Hash $seen, Code $inner-evaluator) {
@@ -1938,6 +2243,18 @@ class RakuAST::Resolver::Compile::Scope
     # The live declaration map, used when not in batch mode.
     has Mu $!live-decl-map;
 
+    # For a snapshot, the scope it was taken of, which declarations made
+    # through the snapshot also reach.
+    has Mu $!snapshot-of;
+
+    # For a snapshot, the names heredoc bodies declared, which a body may use
+    # though they are not visible where it is parsed.
+    has Mu $!declared-through;
+
+    # The declarations that heredoc bodies made through snapshots of this
+    # scope, which a later heredoc body sees.
+    has Mu $!declared-by-bodies;
+
     method new(RakuAST::LexicalScope :$scope!, int :$batch-mode) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver::Compile::Scope, '$!scope', $scope);
@@ -1950,6 +2267,61 @@ class RakuAST::Resolver::Compile::Scope
 
     method batch-mode() {
         $!batch-mode ?? True !! False
+    }
+
+    # A copy of the scope holding only the declarations made so far. A scope
+    # in batch mode is returned as it is.
+    method IMPL-SNAPSHOT() {
+        return self if $!batch-mode;
+        my $snapshot := nqp::clone(self);
+        nqp::bindattr($snapshot, RakuAST::Resolver::Compile::Scope,
+          '$!live-decl-map', nqp::clone($!live-decl-map));
+        nqp::bindattr($snapshot, RakuAST::Resolver::Compile::Scope,
+          '$!snapshot-of', self);
+        nqp::bindattr($snapshot, RakuAST::Resolver::Compile::Scope,
+          '$!declared-through', nqp::hash());
+        nqp::bindattr($snapshot, RakuAST::Resolver::Compile::Scope,
+          '$!declared-by-bodies', Mu);
+        $snapshot
+    }
+
+    # Declares on behalf of a heredoc body parsed in a snapshot of this scope.
+    method IMPL-DECLARE-FROM-BODY(RakuAST::Node $decl) {
+        my $existed := self.declare-lexical($decl);
+        nqp::bindattr(self, RakuAST::Resolver::Compile::Scope,
+          '$!declared-by-bodies', nqp::hash())
+          unless nqp::isconcrete($!declared-by-bodies);
+        nqp::bindkey($!declared-by-bodies, $decl.lexical-name, $decl);
+        $existed
+    }
+
+    # Takes in what earlier heredoc bodies declared through snapshots of the
+    # same scope, as a body that starts later on the line runs after them.
+    method IMPL-TAKE-BODY-DECLARATIONS() {
+        return Nil unless nqp::isconcrete($!snapshot-of);
+        $!snapshot-of.IMPL-TAKE-BODY-DECLARATIONS;
+        my $declared := nqp::getattr($!snapshot-of,
+          RakuAST::Resolver::Compile::Scope, '$!declared-by-bodies');
+        if nqp::isconcrete($declared) {
+            for $declared {
+                my str $name := $_.key;
+                unless nqp::existskey($!live-decl-map, $name) {
+                    $!live-decl-map{$name} := $_.value;
+                    nqp::bindkey($!declared-through, $name, 1);
+                }
+            }
+        }
+        Nil
+    }
+
+    # For a snapshot, a declaration its scope made after the snapshot.
+    method IMPL-FIND-LATER-LEXICAL(Str $name) {
+        nqp::isconcrete($!snapshot-of) ?? $!snapshot-of.find-lexical($name) !! Nil
+    }
+
+    method IMPL-DECLARED-THROUGH(Str $name) {
+        nqp::isconcrete($!declared-through)
+          && nqp::existskey($!declared-through, $name)
     }
 
     method find-lexical(Str $name) {
@@ -1972,12 +2344,18 @@ class RakuAST::Resolver::Compile::Scope
         @declarations
     }
 
-    method declare-lexical(RakuAST::Declaration $decl) {
+    method declare-lexical(RakuAST::Node $decl) {
         nqp::die('Should not be calling declare-lexical in batch mode')
           if $!batch-mode;
         my $name    := $decl.lexical-name;
         my $existed := nqp::atkey($!live-decl-map, $name);
         $!live-decl-map{$decl.lexical-name} := $decl;
+        if nqp::isconcrete($!snapshot-of) {
+            # The original scope may hold a declaration made after the snapshot.
+            my $original := $!snapshot-of.IMPL-DECLARE-FROM-BODY($decl);
+            $existed := $original if nqp::isnull($existed);
+            nqp::bindkey($!declared-through, $name, 1);
+        }
         $existed
     }
 

@@ -1,7 +1,6 @@
 # Done by anything that implies a lexical scope.
-class RakuAST::LexicalScope
-  is RakuAST::MayCreateBlock
-  is RakuAST::Node
+role RakuAST::LexicalScope
+  does RakuAST::MayCreateBlock
 {
     # Caching of lexical declarations in this scope due to AST nodes.
     has List $!declarations-cache;
@@ -17,6 +16,7 @@ class RakuAST::LexicalScope
     # Handlers related to this scope.
     has int $!need-succeed-handler;
     has int $!nil-on-succeed;
+    has int $!topic-on-fallthrough;
     has Mu $!catch-handlers;
     has Mu $!control-handlers;
 
@@ -60,11 +60,20 @@ class RakuAST::LexicalScope
     method IMPL-ADD-LOWERED-DEBUG-MAPPINGS(Mu $block) {
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
             if (nqp::istype($_, RakuAST::VarDeclaration::Simple)
+                || nqp::istype($_, RakuAST::VarDeclaration::Term)
                 || nqp::istype($_, RakuAST::ParameterTarget::Term)
                 || nqp::istype($_, RakuAST::VarDeclaration::Implicit::Self))
                 && $_.IMPL-LOWERED-LOCAL-NAME {
                 $block.add_local_debug_mapping(
                     $_.IMPL-LOWERED-LOCAL-NAME, $_.lexical-name);
+            }
+        }
+        for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations()) {
+            if nqp::istype($_, RakuAST::VarDeclaration::Placeholder) {
+                my $declaration := $_.IMPL-LOWERING-DECLARATION;
+                $block.add_local_debug_mapping(
+                    $declaration.IMPL-LOWERED-LOCAL-NAME, $_.lexical-name)
+                    if nqp::isconcrete($declaration) && $declaration.IMPL-LOWERED-LOCAL-NAME;
             }
         }
         Nil
@@ -140,14 +149,49 @@ class RakuAST::LexicalScope
             my @variables;
             my %variables-seen;
             my @not-if-duplicate;
+            my %implicit;
+            my $declare := -> $decl {
+                unless %declarations-seen{nqp::objectid($decl)} {
+                    nqp::push(@declarations, $decl);
+                    nqp::push(@variables, $decl) unless nqp::istype($decl, RakuAST::Routine);
+                    %declarations-seen{nqp::objectid($decl)} := 1;
+                }
+            };
+            # A phaser's statement runs in a block of its own, and this scope
+            # holds the declarations the phaser hoisted to it, along with
+            # their implicit declarations.
+            my $gather-hoisted;
+            $gather-hoisted := -> $statement {
+                $statement.visit-dfs: -> $inner {
+                    if nqp::istype($inner, RakuAST::StatementPrefix::Phaser::HoistsStatement)
+                      && nqp::isconcrete($inner.IMPL-HOISTED-STATEMENT) {
+                        $gather-hoisted($inner.IMPL-HOISTED-STATEMENT);
+                        0
+                    }
+                    else {
+                        if nqp::istype($inner, RakuAST::Declaration)
+                          && nqp::eqaddr($inner.hoisted-to, self) {
+                            $declare($inner) if $inner.is-simple-lexical-declaration;
+                            if nqp::istype($inner, RakuAST::ImplicitDeclarations)
+                              && !nqp::istype($inner, RakuAST::LexicalScope) {
+                                for self.IMPL-UNWRAP-LIST($inner.get-implicit-declarations()) {
+                                    $declare($_) if $_.is-simple-lexical-declaration;
+                                }
+                            }
+                        }
+                        elsif nqp::istype($inner, RakuAST::Var::Lexical)
+                            || nqp::istype($inner, RakuAST::Var::Dynamic)
+                        {
+                            nqp::push(@variables, $inner);
+                        }
+                        !nqp::istype($inner, RakuAST::LexicalScope)
+                    }
+                }
+            };
             self.visit-dfs: -> $node {
                 if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration
                   && !$node.is-hoisted-to-outer {
-                    unless %declarations-seen{nqp::objectid($node)} {
-                        nqp::push(@declarations, $node);
-                        nqp::push(@variables, $node) unless nqp::istype($node, RakuAST::Routine);
-                        %declarations-seen{nqp::objectid($node)} := 1;
-                    }
+                    $declare($node);
                 }
                 elsif nqp::istype($node, RakuAST::Var::Lexical)
                     || nqp::istype($node, RakuAST::Var::Dynamic)
@@ -158,19 +202,28 @@ class RakuAST::LexicalScope
                     nqp::push(@variables, $node) unless nqp::existskey(%variables-seen, $node.declared-name);
                     %variables-seen{$node.declared-name} := 1;
                 }
-                if $node =:= self || !nqp::istype($node, RakuAST::LexicalScope) {
-                    if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+                if nqp::istype($node, RakuAST::StatementPrefix::Phaser::HoistsStatement)
+                  && nqp::isconcrete($node.IMPL-HOISTED-STATEMENT) {
+                    $gather-hoisted($node.IMPL-HOISTED-STATEMENT);
+                    0
+                }
+                elsif $node =:= self || !nqp::istype($node, RakuAST::LexicalScope) {
+                    if nqp::istype($node, RakuAST::ImplicitDeclarations)
+                      && !(nqp::istype($node, RakuAST::Declaration) && $node.is-hoisted-to-outer) {
                         for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
                             if $decl.is-simple-lexical-declaration {
                                 if (nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockTopic)
                                       && $decl.IMPL-NOT-IF-DUPLICATE)
-                                  || nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockMatch) {
+                                  || nqp::istype($decl, RakuAST::VarDeclaration::Implicit::BlockMatch)
+                                  || nqp::istype($decl, RakuAST::VarDeclaration::Implicit::Outer) {
                                     nqp::push(@not-if-duplicate, $decl);
                                 }
                                 elsif !%declarations-seen{nqp::objectid($decl)} {
                                     nqp::push(@declarations, $decl);
                                     nqp::push(@variables, $decl);
                                     %declarations-seen{nqp::objectid($decl)} := 1;
+                                    %implicit{$decl.lexical-name} := 1
+                                      if nqp::istype($decl, RakuAST::VarDeclaration::Implicit);
                                 }
                             }
                         }
@@ -206,10 +259,26 @@ class RakuAST::LexicalScope
                     }
                 }
             }
+            # A declaration of a name the scope declares for itself, such as
+            # the topic, names that lexical rather than making one of its own.
+            if %implicit {
+                for @declarations {
+                    $_.claim-implicit if nqp::existskey(%implicit, $_.lexical-name);
+                }
+            }
             nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache', @declarations);
             nqp::bindattr(self, RakuAST::LexicalScope, '$!variables-cache', @variables);
         }
         $!declarations-cache
+    }
+
+    # Drops the gathered declarations, so a declaration given to this scope
+    # after it gathered is found on the next request.
+    method IMPL-DROP-DECLARATION-CACHES() {
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache', Mu);
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!variables-cache', Mu);
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!lexical-lookup-hash', Mu);
+        Nil
     }
 
     # Get a list of generated lexical declarations. These are symbols that are
@@ -318,6 +387,14 @@ class RakuAST::LexicalScope
         $!nil-on-succeed ?? True !! False
     }
 
+    # Marks this scope as producing its topic when its statements run
+    # to the end, as a QUIT phaser does to hand back the exception it
+    # did not succeed on.
+    method set-topic-on-fallthrough() {
+        nqp::bindattr_i(self, RakuAST::LexicalScope, '$!topic-on-fallthrough', 1);
+        Nil
+    }
+
     method attach-catch-handler(RakuAST::Statement::Catch $catch) {
         if $!catch-handlers {
             nqp::push($!catch-handlers, $catch);
@@ -339,18 +416,68 @@ class RakuAST::LexicalScope
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
+    }
+
+    # Check the declarations of the scope, which a node with more to
+    # check at CHECK time calls from its own PERFORM-CHECK.
+    method IMPL-CHECK-DECLARATIONS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my %lookup;
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations) {
             my $lexical-name := $_.lexical-name;
             if $lexical-name && !($_ =:= self) {
                 if nqp::existskey(%lookup, $lexical-name) {
                     my $prev := %lookup{$lexical-name};
-                    self.add-worry:
-                      $resolver.build-exception: 'X::Redeclaration',
-                        :symbol($_.declaration-name), :what($_.declaration-kind)
-                    # It will be two worries for var declaration, so skip one, not sure about others.
-                    unless nqp::istype($_, RakuAST::VarDeclaration)
-                        || (nqp::istype($prev, RakuAST::Routine) && $prev.is-stub);
+                    # A routine that follows a stub of its name rebinds the
+                    # stub's lexical rather than declaring a second one.
+                    if nqp::istype($prev, RakuAST::Routine) && $prev.is-stub {
+                        $_.set-replace-stub(True)
+                          if nqp::can($_, 'set-replace-stub') && $_.multiness ne 'multi';
+                        %lookup{$lexical-name} := $_;
+                    }
+                    # The lexicals a scope declares for itself are not in
+                    # scope as its body is parsed, so the parser cannot
+                    # report a redeclaration of one and this does.
+                    elsif nqp::istype($prev, RakuAST::VarDeclaration::Implicit)
+                      && $_.report-redeclaration {
+                        my $exception := $resolver.build-exception:
+                          'X::Redeclaration', :symbol($lexical-name);
+                        # This scope is popped by the time its own check
+                        # runs, so its pragmas are read from it and the
+                        # resolver is asked only for the outer ones.
+                        my $fatal := nqp::isconcrete($!fatal)
+                          ?? $!fatal
+                          !! $resolver.find-scope-property(-> $scope { $scope.fatal });
+                        # A declaration that cannot name the lexical takes
+                        # it, and the scope gives its own up. A block cannot
+                        # give up a topic it takes as a parameter.
+                        my int $refused := !$_.shares-implicit
+                          && nqp::istype($prev,
+                               RakuAST::VarDeclaration::Implicit::BlockTopic)
+                          && ($prev.parameter || $prev.exception);
+                        $prev.IMPL-SET-UNUSED
+                          if !$_.shares-implicit && !$refused;
+                        if $fatal || $refused {
+                            $_.add-sorry($exception);
+                        }
+                        else {
+                            my $tell-worries := nqp::isconcrete($!tell-worries)
+                              ?? $!tell-worries
+                              !! $resolver.find-scope-property(-> $scope { $scope.tell-worries });
+                            $_.add-worry($exception)
+                              if !nqp::isconcrete($tell-worries) || $tell-worries;
+                        }
+                        $resolver.add-node-with-check-time-problems($_)
+                          if $_.has-check-time-problems;
+                        %lookup{$lexical-name} := $_;
+                    }
+                    else {
+                        self.add-worry:
+                          $resolver.build-exception: 'X::Redeclaration',
+                            :symbol($_.declaration-name), :what($_.declaration-kind)
+                        # It will be two worries for var declaration, so skip one, not sure about others.
+                        unless nqp::istype($_, RakuAST::VarDeclaration);
+                    }
                 }
                 else {
                     %lookup{$lexical-name} := $_;
@@ -371,14 +498,33 @@ class RakuAST::LexicalScope
                             # A routine declaration that shadows an imported stub of
                             # the same name reuses the imported lexical slot rather
                             # than declaring its own.
-                            $shadower.set-replace-stub(1);
+                            $shadower.set-replace-stub(True);
                         }
                         else {
-                            self.add-sorry:
-                              $resolver.build-exception: 'X::Redeclaration',
-                                :symbol($_.declaration-name),
-                                :what($_.declaration-kind),
-                                :postfix(nqp::istype($_, RakuAST::VarDeclaration::Placeholder) ?? 'as a placeholder parameter' !! '');
+                            # The parser reports a redeclaration it found
+                            # already declared. What is left here is a
+                            # placeholder that follows the declaration.
+                            if nqp::istype($_, RakuAST::VarDeclaration::Placeholder) {
+                                # A method takes no placeholder parameter
+                                # other than the `%_` it always has.
+                                self.add-sorry(
+                                  $resolver.build-exception: 'X::Redeclaration',
+                                    # A placeholder is named as it is
+                                    # written, twigil and all.
+                                    :symbol($_.declared-name),
+                                    :what($_.declaration-kind),
+                                    :postfix('as a placeholder parameter')
+                                ) if $shadower.report-redeclaration
+                                  || nqp::istype(self, RakuAST::Method)
+                                     && $_.lexical-name ne '%_';
+                            }
+                            else {
+                                self.add-sorry:
+                                  $resolver.build-exception: 'X::Redeclaration',
+                                    :symbol($_.declaration-name),
+                                    :what($_.declaration-kind),
+                                    :postfix('');
+                            }
                         }
                     }
                 }
@@ -393,7 +539,10 @@ class RakuAST::LexicalScope
         while $!variables-cache {
             my $var := nqp::pop($!variables-cache);
             if nqp::istype($var, RakuAST::Declaration) {
-                %declarations{$var.lexical-name} := $var if $var.report-redeclaration;
+                # A lexical the scope makes exists from its entry, so a use
+                # above a declaration that names it is not a use before it.
+                %declarations{$var.lexical-name} := $var
+                  if $var.report-redeclaration && !$var.shares-implicit;
             }
             else {
                 if $var.is-resolved && nqp::existskey(%declarations, $var.name) {
@@ -423,8 +572,41 @@ class RakuAST::LexicalScope
         $!catch-handlers ?? True !! False
     }
 
+    method IMPL-HAS-CONTROL-HANDLER() {
+        $!control-handlers ?? True !! False
+    }
+
+    # Hand the exception handlers attached to this scope, and the succeed
+    # handler it was asked for, to another scope. Returns whether the
+    # succeed handler moved.
+    method IMPL-MOVE-HANDLERS-TO(RakuAST::LexicalScope $scope) {
+        for $!catch-handlers // [] {
+            $scope.attach-catch-handler($_);
+        }
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', nqp::null());
+        for $!control-handlers // [] {
+            $scope.attach-control-handler($_);
+        }
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', nqp::null());
+        if $!need-succeed-handler {
+            nqp::bindattr_i(self, RakuAST::LexicalScope, '$!need-succeed-handler', 0);
+            $scope.require-succeed-handler();
+            True
+        }
+        else {
+            False
+        }
+    }
+
     method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements,
                                         Bool :$is-handler) {
+        if $!topic-on-fallthrough {
+            $statements := QAST::Stmts.new(
+                $statements,
+                QAST::Var.new( :name('$_'), :scope('lexical') )
+            );
+        }
+
         # If it's an exception handler, add rethrow logic.
         if $is-handler {
             $statements := QAST::Stmts.new(
@@ -594,23 +776,22 @@ class RakuAST::LexicalScope
 }
 
 # Done by anything that is a declaration - that is, declares a symbol.
-class RakuAST::Declaration
-  is RakuAST::Node
-{
+role RakuAST::Declaration {
     has str $!scope;
 
-    # When set, this declaration's lexpad slot is provided by an outer scope
-    # (as a generated lexical) rather than the scope that textually contains
-    # it. Used by -n/-p so a program's declarations live in the compunit
-    # mainline and persist across the per-line loop, like the legacy frontend.
-    has int $!hoisted-to-outer;
+    # The scope providing this declaration's lexpad slot when that is not
+    # the scope holding it in the tree. -n and -p hoist to the compunit
+    # mainline, FIRST and POST to the scope the phaser is attached to.
+    has RakuAST::LexicalScope $!hoisted-to;
 
-    method set-hoisted-to-outer() {
-        nqp::bindattr_i(self, RakuAST::Declaration, '$!hoisted-to-outer', 1);
+    method set-hoisted-to(RakuAST::LexicalScope $scope) {
+        nqp::bindattr(self, RakuAST::Declaration, '$!hoisted-to', $scope);
         Nil
     }
 
-    method is-hoisted-to-outer() { $!hoisted-to-outer ?? True !! False }
+    method hoisted-to() { $!hoisted-to }
+
+    method is-hoisted-to-outer(--> Bool) { nqp::isconcrete($!hoisted-to) ?? True !! False }
 
     # Returns the default scope of this kind of declaration.
     method default-scope() {
@@ -673,9 +854,9 @@ class RakuAST::Declaration
     }
 
     # Tests if this is a lexical declaration (`my` or `state` scope).
-    method is-lexical() {
-        my str $scope := self.scope;
-        $scope eq 'my' || $scope eq 'state'
+    method is-lexical(--> Bool) {
+        my constant SCOPES := nqp::hash('my', 1, 'state', 1);
+        nqp::existskey(SCOPES,self.scope)
     }
 
     # Tests if this declaration should be gathered as a lexical declaration.
@@ -699,6 +880,14 @@ class RakuAST::Declaration
         True
     }
 
+    # Whether the declaration names a lexical that an implicit declaration of
+    # its scope already makes, rather than declaring one of its own.
+    method shares-implicit() { False }
+
+    # Offer the declaration that lexical. Most kinds of declaration have no
+    # say, and one that needs a container of its own declines.
+    method claim-implicit() { Nil }
+
     method declaration-kind() {
         'symbol'
     }
@@ -714,9 +903,7 @@ class RakuAST::Declaration
 # to the enclosing lexical scope, implicit declarations are considered as being
 # on the inside; this makes a difference in the case the node is also doing
 # RakuAST::LexicalScope and is thus a lexical scope boundary.
-class RakuAST::ImplicitDeclarations
-  is RakuAST::Node
-{
+role RakuAST::ImplicitDeclarations {
     has List $!implicit-declarations-cache;
 
     # A node typically implements this to specify the implicit declarations
@@ -725,6 +912,12 @@ class RakuAST::ImplicitDeclarations
     # get-implicit-declarations and handle the caching themselves.
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         []
+    }
+
+    # Drop the implicit declarations so the next request produces them
+    # anew.
+    method IMPL-CLEAR-IMPLICIT-DECLARATIONS() {
+        nqp::bindattr(self, RakuAST::ImplicitDeclarations, '$!implicit-declarations-cache', Mu);
     }
 
     # Get a list of the implicit declarations.
@@ -739,7 +932,8 @@ class RakuAST::ImplicitDeclarations
 # A lexical declaration that comes from an external symbol (for example, the
 # setting or an EVAL).
 class RakuAST::Declaration::External
-  is RakuAST::Declaration
+  is RakuAST::Node
+  does RakuAST::Declaration
 {
     has str $.lexical-name;
     has Mu $!native-type;
@@ -776,12 +970,12 @@ class RakuAST::Declaration::External
     }
 }
 
-class RakuAST::Declaration::Mergeable {
+role RakuAST::Declaration::Mergeable {
     method is-stub() {
         return True if nqp::istype(self, RakuAST::Declaration::LexicalPackage) && self.package-is-stub;
         my $how  := self.return-type.HOW;
         my $name := $how.HOW.name($how);
-        $name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW'
+        ($name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW') ?? True !! False
     }
 
     method merge(RakuAST::Declaration $other, RakuAST::Resolver :$resolver!) {
@@ -855,17 +1049,15 @@ class RakuAST::Declaration::Mergeable {
         }
     }
 
-    method set-value(Mu $value) {
-        nqp::die('set-value not implemented on ' ~ self.HOW.name(self));
-    }
+    method set-value(Mu $value) { ... }
 }
 
 # A lexical declaration that comes with an external symbol, which has a fixed
 # value available during compilation.
 class RakuAST::Declaration::External::Constant
   is RakuAST::Declaration::External
-  is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::CompileTimeValue
+  does RakuAST::Declaration::Mergeable
 {
     has Mu $.compile-time-value;
 
@@ -896,8 +1088,8 @@ class RakuAST::Declaration::External::Constant
 # where the optimize pass folds a bound once constant term to its value.
 class RakuAST::Declaration::External::Setting
   is RakuAST::Declaration::External
-  is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  does RakuAST::CompileTimeValue
+  does RakuAST::Declaration::Mergeable
 {
     has Mu $.compile-time-value;
 
@@ -937,15 +1129,16 @@ class RakuAST::Declaration::Import
 # installation in RakuAST::Package, and installed as a generated lexical in a
 # RakuAST::LexicalScope.
 class RakuAST::Declaration::LexicalPackage
-  is RakuAST::Declaration
-  is RakuAST::CompileTimeValue
-  is RakuAST::Declaration::Mergeable
+  is RakuAST::Node
+  does RakuAST::Declaration
+  does RakuAST::CompileTimeValue
+  does RakuAST::Declaration::Mergeable
 {
     has str $.lexical-name;
     has Mu $.compile-time-value;
-    has RakuAST::Package $.package;
+    has RakuAST::Declaration $.package;
 
-    method new(str :$lexical-name!, Mu :$compile-time-value! is raw, RakuAST::Package :$package!) {
+    method new(str :$lexical-name!, Mu :$compile-time-value! is raw, RakuAST::Declaration :$package!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::LexicalPackage,
             '$!lexical-name', $lexical-name);
@@ -993,8 +1186,9 @@ class RakuAST::Declaration::LexicalPackage
 # resolution always compiles into that. The name it was looked up under is
 # not preserved.
 class RakuAST::Declaration::ResolvedConstant
-  is RakuAST::Declaration
-  is RakuAST::CompileTimeValue
+  is RakuAST::Node
+  does RakuAST::Declaration
+  does RakuAST::CompileTimeValue
 {
     has Mu $.compile-time-value;
 
@@ -1032,9 +1226,7 @@ class RakuAST::Declaration::ResolvedConstant
 
 # Done by anything that is a lookup of a symbol. May or may not need resolution
 # at compile time.
-class RakuAST::Lookup
-  is RakuAST::Node
-{
+role RakuAST::Lookup {
     has RakuAST::Declaration $!resolution;
 
     # Set by the optimize pass when the name still reaches the declaration
@@ -1059,11 +1251,52 @@ class RakuAST::Lookup
 
     method IMPL-CALL-OP() { $!static-lookup ?? 'callstatic' !! 'call' }
 
+    # Set when a heredoc body may not use a name the lookup resolves, to 1
+    # when it is hidden where the body is written, 2 when it is ambiguous, 3
+    # when it is not declared where the heredoc starts and 4 once reported.
+    has int $!heredoc-refused;
+    has str $!heredoc-refused-name;
+
+    # Notes why the heredoc body being parsed may not use the name. The
+    # lookup then takes no resolution, also not at check time.
+    method IMPL-HEREDOC-REFUSE(str $refusal, str $name) {
+        unless $!heredoc-refused {
+            nqp::bindattr_i(self, RakuAST::Lookup, '$!heredoc-refused',
+              $refusal eq 'hidden' ?? 1 !! $refusal eq 'ambiguous' ?? 2 !! 3);
+            nqp::bindattr_s(self, RakuAST::Lookup, '$!heredoc-refused-name', $name);
+        }
+        Nil
+    }
+
+    # Notes why the heredoc body being parsed may not use a name the lookup
+    # does not resolve itself, if so.
+    method IMPL-NOTE-HEREDOC-REFUSAL(RakuAST::Resolver $resolver, str $name) {
+        my str $refusal := $resolver.IMPL-HEREDOC-REFUSED($name);
+        self.IMPL-HEREDOC-REFUSE($refusal, $name) if $refusal;
+        Nil
+    }
+
+    method IMPL-HEREDOC-SYMBOL(str $name) { $name }
+
+    # Reports a name a heredoc body may not use. One that is not declared
+    # where the heredoc starts is left to be reported as undeclared.
+    method IMPL-HEREDOC-REPORT(RakuAST::Resolver $resolver) {
+        my int $refused := $!heredoc-refused;
+        if $refused == 1 || $refused == 2 {
+            my $ex := $resolver.build-exception($refused == 1
+                ?? 'X::Syntax::Heredoc::HiddenName'
+                !! 'X::Syntax::Heredoc::AmbiguousName',
+              :symbol(self.IMPL-HEREDOC-SYMBOL($!heredoc-refused-name)));
+            self.IMPL-LOCATE-EXCEPTION($ex);
+            $resolver.add-sorry($ex);
+            nqp::bindattr_i(self, RakuAST::Lookup, '$!heredoc-refused', 4);
+        }
+        $refused == 1 || $refused == 2 || $refused == 4
+    }
+
     method needs-resolution() { True }
 
-    method is-resolved() {
-        nqp::isconcrete($!resolution) ?? True !! False
-    }
+    method is-resolved(--> Bool) { nqp::isconcrete($!resolution) }
 
     method resolution() {
         if nqp::isconcrete($!resolution) {
@@ -1080,8 +1313,9 @@ class RakuAST::Lookup
         }
     }
 
-    method set-resolution(RakuAST::Declaration $resolution) {
+    method set-resolution(RakuAST::Node $resolution) {
         nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $resolution)
+          unless $!heredoc-refused;
     }
 
     # Given a resolved routine and the compile-time argument types and native
@@ -1168,10 +1402,16 @@ class RakuAST::Lookup
         my int $positionals := 0;
         my int $flat := 0;
         my int $scan := $start;
+        my @object-args;
         while $scan < $n {
             my $arg := $call.list[$scan];
             $flat := 1 if $arg.flat;
-            ++$positionals unless $arg.named;
+            unless $arg.named {
+                nqp::push(@object-args, !$flat && (nqp::istype($arg, QAST::WVal)
+                    || nqp::istype($arg, QAST::Var) && !$arg.decl
+                        && !nqp::objprimspec($arg.returns)) ?? 1 !! 0);
+                ++$positionals;
+            }
             ++$scan;
         }
         $positionals := -1 if $flat;
@@ -1185,6 +1425,7 @@ class RakuAST::Lookup
         my @hoist;
         my @named;
         my int $impure := 0;
+        my int $condition-read := 0;
         my int $first-read := -1;
         my int $past-flat := 0;
         my int $pos := 0;
@@ -1215,6 +1456,18 @@ class RakuAST::Lookup
                     nqp::push(@reads, $arg.list[nqp::elems($arg.list) - 1]);
                     $first-read := $child if $first-read < 0;
                 }
+                elsif !$past-flat
+                    && nqp::isconcrete(my $cond := self.IMPL-ARG-CONDITION-READ($arg))
+                    && ($cond.ann('native-value-read')
+                        || self.IMPL-PARAM-NEVER-RW($routine, $pos, $positionals, :value, :@object-args)) {
+                    unless $cond.ann('native-value-read') {
+                        $cond.scope($cond.scope eq 'lexicalref' ?? 'lexical' !! 'attribute');
+                        $cond.annotate('native-value-read', 1);
+                    }
+                    nqp::push(@reads, $cond);
+                    $condition-read := 1;
+                    $first-read := $child if $first-read < 0;
+                }
                 elsif $child > $start && !self.IMPL-ARG-IS-PURE($arg) {
                     # The hoist list notes what may move, while the note
                     # of impurity also serves a chain link whose read
@@ -1243,6 +1496,15 @@ class RakuAST::Lookup
         }
         elsif !$chained && $first-read >= 0 {
             nqp::splice(@hoist, @named, nqp::elems(@hoist), 0);
+            # A conditional takes its branch where it stands and yields the
+            # variable the callee reads as it binds. Only the reference gives
+            # both, so a call moving an argument past one keeps its references.
+            if $condition-read && nqp::elems(@hoist) {
+                for @reads {
+                    self.IMPL-RESTORE-REF($_);
+                }
+                return $call;
+            }
             # A native reference cannot survive a value temporary, so a
             # call with one among the arguments to move keeps all its
             # references instead, and the callee reads them as it binds.
@@ -1309,27 +1571,60 @@ class RakuAST::Lookup
     }
 
 
-    # Whether the given argument code is a temporary slot this pass
-    # built: a statement list ending in a settled value read.
+    # Whether the given argument code is a temporary slot this pass built.
+    # Such a slot ends in a settled value read, or in a two operand
+    # conditional whose condition is one.
     method IMPL-ARG-IS-SLOT(Mu $node) {
         return 0 unless nqp::istype($node, QAST::Stmts)
             && nqp::elems($node.list);
         my $last := $node.list[nqp::elems($node.list) - 1];
+        $last := self.IMPL-ARG-CONDITION-READ($last) unless nqp::istype($last, QAST::Var);
         nqp::istype($last, QAST::Var) && $last.ann('native-value-read') ?? 1 !! 0
     }
 
-    # Whether the given argument code's result is a native reference,
-    # behind any statement wrappers.
+    # The native variable a two operand conditional argument yields when its
+    # branch does not run, behind any wrapper of a single statement, or Mu.
+    # Only a pure branch, as an impure one could write the variable first.
+    method IMPL-ARG-CONDITION-READ(Mu $node) {
+        while (nqp::istype($node, QAST::Stmts) || nqp::istype($node, QAST::Stmt))
+            && nqp::elems($node.list) == 1 {
+            $node := $node.list[0];
+        }
+        if nqp::istype($node, QAST::Op) && ($node.op eq 'if' || $node.op eq 'unless')
+            && nqp::elems($node.list) == 2 && self.IMPL-ARG-IS-PURE($node.list[1]) {
+            my $cond := $node.list[0];
+            if nqp::istype($cond, QAST::Var) && !$cond.decl && nqp::objprimspec($cond.returns) {
+                my str $scope := $cond.scope;
+                return $cond if $scope eq 'lexicalref' || $scope eq 'attributeref'
+                    || $cond.ann('native-value-read');
+            }
+        }
+        Mu
+    }
+
+    # Whether the given argument code's result may be a native reference,
+    # behind any statement wrappers. A native assignment to a lexical
+    # reference yields the reference unless the QAST compiler finds the
+    # lexical declared and lowers the assignment to a bind. An assignment
+    # to an attribute reference always lowers.
     method IMPL-ARG-RESULT-REF(Mu $node) {
         $node := self.IMPL-ARG-RESULT-NODE($node);
+        if nqp::istype($node, QAST::Op) && nqp::eqat($node.op, 'assign_', 0) {
+            my $target := $node.list[0];
+            return nqp::istype($target, QAST::Var)
+                ?? $target.scope eq 'lexicalref'
+                !! self.IMPL-ARG-RESULT-REF($target);
+        }
         nqp::istype($node, QAST::Var) && nqp::objprimspec($node.returns)
             && ($node.scope eq 'lexicalref' || $node.scope eq 'attributeref')
     }
 
     # Put a native variable read this pass settled back to its reference
-    # form. A value read that never was a reference, the lookup of a
-    # read-only native parameter among them, stays as it is.
+    # form, reaching the condition of a conditional through its code. A
+    # value read that never was a reference, the lookup of a read-only
+    # native parameter among them, stays as it is.
     method IMPL-RESTORE-REF(Mu $node) {
+        $node := self.IMPL-ARG-CONDITION-READ($node) unless nqp::istype($node, QAST::Var);
         if nqp::istype($node, QAST::Var) && nqp::objprimspec($node.returns)
             && $node.ann('native-value-read') {
             my str $scope := $node.scope;
@@ -1349,16 +1644,21 @@ class RakuAST::Lookup
     # that cannot be introspected, or that has no positional parameter
     # at the position, means the reference must be kept. A slurpy positional
     # binds its own position and every one after it.
-    method IMPL-PARAM-NEVER-RW(Mu $routine, int $i, int $positionals) {
+    # With :value the callee must bind a boxed value just as it binds the
+    # reference, so no raw or container keeping parameter, and no candidate
+    # within reach taking a native where @object-args knows of an object.
+    method IMPL-PARAM-NEVER-RW(Mu $routine, int $i, int $positionals, :$value, :@object-args) {
         # The routine and its candidates are read through their attributes:
         # a method lookup on a mixin type, which a candidate with a typed
         # return has, can miss where its method cache is not published.
         # A dispatcher holds a dispatchee list, and the flag bit is the one
         # the onlystar method reads.
         my @candidates;
+        my int $dispatcher := 0;
         if nqp::istype($routine, Routine)
             && nqp::defined(nqp::getattr($routine, Routine, '@!dispatchees')) {
             return 0 unless nqp::getattr_i($routine, Routine, '$!flags') +& 0x04;
+            $dispatcher := 1;
             for nqp::getattr($routine, Routine, '@!dispatchees') {
                 nqp::push(@candidates, $_);
             }
@@ -1382,24 +1682,38 @@ class RakuAST::Lookup
             }
             my $param;
             my int $pos := 0;
+            my int $object-miss := 0;
             for nqp::getattr($sig, Signature, '@!params') {
                 my int $flags := nqp::getattr_i($_, Parameter, '$!flags');
                 unless nqp::getattr($_, Parameter, '@!named_names')
                     || $flags +& (nqp::const::SIG_ELEM_SLURPY_NAMED
                         +| nqp::const::SIG_ELEM_IS_CAPTURE) {
-                    if $pos == $i
-                        || $flags +& (nqp::const::SIG_ELEM_SLURPY_POS
-                            +| nqp::const::SIG_ELEM_SLURPY_LOL
-                            +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
-                        $param := $_;
+                    if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS
+                        +| nqp::const::SIG_ELEM_SLURPY_LOL
+                        +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
+                        $param := $_ unless nqp::isconcrete($param);
                         last;
+                    }
+                    if $pos == $i {
+                        $param := $_;
+                    }
+                    elsif $pos < nqp::elems(@object-args) && @object-args[$pos]
+                        && nqp::objprimspec(nqp::getattr($_, Parameter, '$!type')) {
+                        $object-miss := 1;
                     }
                     ++$pos;
                 }
             }
+            # A candidate with a native parameter where the call passes an
+            # object is out of reach of the dispatch.
+            next if $value && $dispatcher && $object-miss;
             return 0 unless nqp::isconcrete($param);
             my int $pflags := nqp::getattr_i($param, Parameter, '$!flags');
             return 0 if $pflags +& nqp::const::SIG_ELEM_IS_RW;
+            return 0 if $value && $pflags +& (nqp::const::SIG_ELEM_IS_RAW
+                +| nqp::const::SIG_ELEM_SLURPY_LOL +| nqp::const::SIG_ELEM_SLURPY_ONEARG);
+            return 0 if $value && $dispatcher
+                && nqp::objprimspec(nqp::getattr($param, Parameter, '$!type'));
             # A slurpy that keeps its arguments' containers keeps the
             # reference, as a container argument stays a live view of the
             # variable there. A native sub's slurpy takes the value, since
@@ -1541,11 +1855,14 @@ class RakuAST::Lookup
             }
             nqp::push(@args, $arg);
         }
+        # A native variable is read where the inlined op runs, whether
+        # by value or through a reference under a statement wrapper.
         my int $reorder := 0;
         my int $read := 0;
         for @args {
-            if nqp::istype($_, QAST::Var) && nqp::objprimspec($_.returns)
-                && ($_.scope eq 'lexical' || $_.scope eq 'attribute') {
+            my $result := self.IMPL-ARG-RESULT-NODE($_);
+            if nqp::istype($result, QAST::Var) && nqp::objprimspec($result.returns)
+                && !$result.decl {
                 $read := 1;
             }
             elsif $read && !self.IMPL-ARG-IS-PURE($_) {
@@ -1620,9 +1937,7 @@ class RakuAST::UndeclaredSymbolDescription::Type
 # there the condition is not matched). Implicit lookups are not children of
 # the node, but they will receive their parse/begin time prior to the node's
 # parse time.
-class RakuAST::ImplicitLookups
-  is RakuAST::Node
-{
+role RakuAST::ImplicitLookups {
     has List $!implicit-lookups-cache;
 
     # A node typically implements this to specify the implicit lookups
@@ -1642,6 +1957,11 @@ class RakuAST::ImplicitLookups
             !! [])
     }
 
+    # Take over the implicit lookups of another node.
+    method IMPL-SET-IMPLICIT-LOOKUPS(List $lookups) {
+        nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache', $lookups);
+    }
+
     # Drive the implicit lookups to their begin time.
     method implicit-lookups-to-begin-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         for self.IMPL-UNWRAP-LIST(self.get-implicit-lookups()) {
@@ -1654,9 +1974,9 @@ class RakuAST::ImplicitLookups
 }
 
 # Anything that needs to stub packages into existence -- or to fill in stubbed packages -- does RakuAST::PackageInstaller
-class RakuAST::PackageInstaller {
+role RakuAST::PackageInstaller {
     ### Consuming classes must define:
-    #    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) { ... }
+    #    method IMPL-GENERATE-LEXICAL-DECLARATION(str $name, Mu $type-object) { ... }
 
     # Worries from installing the symbol. Installation runs at BEGIN time,
     # before the parser has attached the node's origin, so a worry raised
@@ -1688,7 +2008,7 @@ class RakuAST::PackageInstaller {
         RakuAST::Resolver $resolver,
         str $scope,
         RakuAST::Name $name,
-        RakuAST::Package $current-package,
+        Mu $current-package,
         Mu :$meta-object
     ) {
         # Anonymous declarations install no symbol, whether the name itself
@@ -1807,7 +2127,7 @@ class RakuAST::PackageInstaller {
         else {
             my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
             $final := nqp::pop(@parts).name;
-            nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
+            nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::EmptyEdge);
             my $first-read := @parts[0].name;
             my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
 

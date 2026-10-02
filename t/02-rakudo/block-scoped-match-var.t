@@ -1,8 +1,10 @@
 use v6.e.PREVIEW;
+use lib <t/packages/Test-Helpers>;
 use nqp;
 use Test;
+use Test::Helpers;
 
-plan 31;
+plan 35;
 
 # https://github.com/rakudo/rakudo/issues/1235
 
@@ -195,6 +197,38 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
         with "abc" { /b/.Bool }
         is $/.defined, False,
           'a bare regex match inside a with block does not leak into the enclosing $/';
+    }
+
+    # A closure an EVAL builds at BEGIN time has the EVAL unit's frame as
+    # the end of its outer chain once it comes back from the precompilation
+    # store, and reaches $/ through that frame.
+    {
+        my $dir = make-temp-dir();
+        $dir.add('MatchInEval.rakumod').spurt: q:to/CODE/;
+            use v6.e.PREVIEW;
+            unit module MatchInEval;
+            my $f = BEGIN EVAL q[-> $a { $a ~~ /\d+/; ~$/ }];
+            sub render($n) is export { $f($n) }
+            CODE
+        CompUnit::RepositoryRegistry.use-repository(
+          CompUnit::Repository::FileSystem.new(:prefix($dir.absolute)));
+        require MatchInEval <&render>;
+        is render('x42'), '42',
+          'a precompiled closure from a BEGIN time EVAL reads its own block $/';
+    }
+
+    # An EVAL unit carries the caller's $/ for its blocks and its own
+    # regex operators, while a my $/ inside it is a container of its own.
+    {
+        "abc" ~~ /(b)/;
+        is EVAL(q[do { ~$0 }]), "b",
+          'a block inside an EVAL reads the match of the code around the EVAL';
+        EVAL q["xyz" ~~ /(y)/];
+        is ~$0, "y",
+          'a regex match inside an EVAL writes the $/ of the code around it';
+        EVAL q[my $/ = 5];
+        is ~$0, "y",
+          'a my $/ inside an EVAL leaves the $/ of the code around it alone';
     }
 }
 else {

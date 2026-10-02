@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 11;
+plan 18;
 
 my $ast;
 my $deparsed;
@@ -438,6 +438,246 @@ CODE
         dies-ok { ::<&frobnicate>(666) }, 'can NOT call with positionals';
         dies-ok { ::<&frobnicate>(:bar) }, 'can NOT call with nameds';
     }
+}
+
+subtest 'A required positional parameter needs no marker' => {
+    # sub ($param) { $param }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new(:name<$param>),
+              :!optional
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$param')
+            ),
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub ($param) {
+    $param
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $sub := EVAL($it);
+        is-deeply $sub(199), 199, "$type: the argument is passed";
+        dies-ok { $sub() }, "$type: the parameter is still required";
+    }
+}
+
+subtest 'A sub with an operator name' => {
+    # sub infix:<+++> ($a, $b) { $a + $b }; 1 +++ 2
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name => RakuAST::Name.from-identifier('infix',
+            colonpairs => (
+              RakuAST::QuotedString.new(
+                segments   => [RakuAST::StrLiteral.new('+++')],
+                processors => <words val>
+              ),
+            )
+          ),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+              ),
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+              ),
+            )
+          ),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new('$a'),
+                  infix => RakuAST::Infix.new('+'),
+                  right => RakuAST::Var::Lexical.new('$b')
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::IntLiteral.new(1),
+          infix => RakuAST::Infix.new('+++'),
+          right => RakuAST::IntLiteral.new(2)
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub infix:<+++> ($a, $b) {
+    $a + $b
+}
+1 +++ 2
+CODE
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Sub with an empty signature' => {
+    # sub f { 42 }; f()
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name      => RakuAST::Name.from-identifier('f'),
+          signature => RakuAST::Signature.new(parameters => ()),
+          body      => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(42)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f')
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub f {
+    42
+}
+f()
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply $ast.DEPARSE, $deparsed, 'deparse after the sub was compiled';
+}
+
+
+subtest 'An anonymous sub with a trait keeps its parentheses' => {
+    # sub () is rw { 42 }
+    ast RakuAST::Sub.new(
+      traits => [
+        RakuAST::Trait::Is.new(name => RakuAST::Name.from-identifier('rw'))
+      ],
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub () is rw {
+    42
+}
+CODE
+
+    is-deeply $_(), 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A routine with a documented parameter ends with its body' => {
+    # sub documented (
+    #   #| the doc
+    #   $x
+    # ) { $x }
+    # documented(42)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name => RakuAST::Name.from-identifier('documented'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$x>),
+                WHY    => RakuAST::Doc::Declarator.new(leading => ['the doc'])
+              ),
+            )
+          ),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('documented'),
+          args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(42))
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub documented (
+  #| the doc
+  $x
+) {
+    $x
+}
+documented(42)
+CODE
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'An operator name that holds a double angle' => {
+    # sub infix:«>>=» ($a, $b) {
+    #     $a ~ "=" ~ $b
+    # }
+    # 1 >>= 2
+    ast Q:to/SOURCE/.AST;
+    sub infix:«>>=»($a, $b) { $a ~ "=" ~ $b }
+    1 >>= 2
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub infix:«>>=» ($a, $b) {
+    $a ~ "=" ~ $b
+}
+1 >>= 2
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "1=2", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'An operator name that holds a double open angle' => {
+    # sub infix:«<<=» ($a, $b) {
+    #     $a ~ "=" ~ $b
+    # }
+    # 1 <<= 2
+    ast Q:to/SOURCE/.AST;
+    sub infix:«<<=»($a, $b) { $a ~ "=" ~ $b }
+    1 <<= 2
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+sub infix:«<<=» ($a, $b) {
+    $a ~ "=" ~ $b
+}
+1 <<= 2
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, "1=2", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

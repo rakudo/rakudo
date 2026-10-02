@@ -76,10 +76,10 @@ class RakuAST::IMPL::QASTContext {
     # that either node's finalize call clears.
     has Hash $!stubbed-code-objects;
 
-    method new(Mu :$sc!, int :$precompilation-mode, :$setting, :$language-revision) {
+    method new(Mu :$sc!, Bool :$precompilation-mode, :$setting, :$language-revision) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
-        nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!precompilation-mode', $precompilation-mode);
+        nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!precompilation-mode', ?$precompilation-mode);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!post-deserialize', []);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!code-ref-blocks', []);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-code-object', {});
@@ -152,7 +152,7 @@ class RakuAST::IMPL::QASTContext {
 #?endif
     }
 
-    method is-precompilation-mode() {
+    method is-precompilation-mode(--> Bool) {
         $!precompilation-mode
     }
 
@@ -173,7 +173,7 @@ class RakuAST::IMPL::QASTContext {
         Nil
     }
 
-    method has-stubbed-code-object(Mu $code-obj) {
+    method has-stubbed-code-object(Mu $code-obj --> Bool) {
         nqp::existskey($!stubbed-code-objects, ~nqp::objectid($code-obj))
     }
 
@@ -343,6 +343,35 @@ class RakuAST::IMPL::InterpContext {
     }
 }
 
+# Takes the place of an operand's thunks while BEGIN time evaluation compiles
+# the application around it, so the operand compiles to the value it has.
+class RakuAST::IMPL::BeginTimeValue {
+    has Mu $!value;
+
+    method new(Mu $value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::IMPL::BeginTimeValue, '$!value', $value);
+        $obj
+    }
+
+    method next() { Mu }
+
+    method thunk-kind() { 'BEGIN time value' }
+
+    method thunk-details() { '' }
+
+    method visit-children(Code $visitor) { Nil }
+
+    method IMPL-QAST-BLOCK(*@pos, *%named) { Nil }
+
+    method IMPL-THUNK-CODE-QAST(*@pos) { Nil }
+
+    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        $context.ensure-sc($!value);
+        QAST::WVal.new(:value($!value))
+    }
+}
+
 # Shared metamodel-archetype helpers, called from RakuAST nodes anywhere
 # that needs to inspect a type object's archetypes. archetypes() must be
 # called with the type as argument: DefiniteHOW and CoercionHOW stash the
@@ -352,7 +381,7 @@ class RakuAST::IMPL::InterpContext {
 # through these helpers keeps callers from having to remember the
 # argument form.
 class RakuAST::IMPL::Archetypes {
-    method is-generic(Mu $v) {
+    method generic(Mu $v) {
         nqp::can($v.HOW, 'archetypes')
             && $v.HOW.archetypes($v).generic
     }

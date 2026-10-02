@@ -236,13 +236,20 @@ my class X::Method::NotFound is Exception {
     }
 
     method !create-message() {
+        # The accessor would call .item on the invocant, which an uncomposed
+        # class that declares no parent does not have yet
         my @message = $.private
           ?? "No such private method '!$.method' for invocant $.of-type"
-          !! nqp::istype($.invocant,Str)
+          !! nqp::istype($!invocant,Str)
             ?? "No such method '$.method' for string '$.invocant'"
             !! "No such method '$.method' for invocant $.of-type";
 
         @!tips.push: "You actually called '$.method' on a container, was that what you intended?" if $.containerized;
+
+        my $how := $!invocant.HOW;
+        @!tips.push: "'$.typename' is not composed yet, so its multi methods and any methods from its roles or its default parent are not available yet."
+          if nqp::istype($how,Metamodel::ClassHOW)
+          && !$how.is_composed($!invocant);
 
         @message.push: $.addendum if $.addendum;
 
@@ -1876,6 +1883,19 @@ my class X::Syntax::Variable::Match does X::Syntax {
 my class X::Syntax::Variable::Initializer does X::Syntax {
     has $.name = '<anon>';
     method message() { "Cannot use variable $!name in declaration to initialize itself" }
+}
+
+my class X::Syntax::Heredoc::AmbiguousName does X::Syntax {
+    has $.symbol;
+    method message() {
+        "Name '$!symbol' in a heredoc body is ambiguous: it means one declaration where the heredoc starts and another where its body is written".naive-word-wrapper
+    }
+}
+
+my class X::Syntax::Heredoc::HiddenName is X::Undeclared {
+    method message() {
+        "Name '$.symbol' in a heredoc body is declared only inside a block that closes on the heredoc's line, before the body. Move the closing brace of the block after the body to use it".naive-word-wrapper
+    }
 }
 
 my class X::Syntax::Variable::SignatureAssignment does X::Syntax {
@@ -3796,6 +3816,16 @@ my class X::WhateverCode::SmartMatch::LHS {
     method message() {
         "WhateverCode on LHS of smart-match does not curry the smart-match expression.\n"
             ~ "Try placing the WhateverCode expression on the RHS instead if results are not as expected."
+    }
+}
+
+my class X::Whatever::ShortCircuit {
+    has $.what;
+    has $.operator;
+    method message() {
+        "$!what tested first by $!operator does not curry the $!operator expression,\n"
+            ~ "and is always true and defined.\n"
+            ~ "Try a block using \$_ instead if results are not as expected."
     }
 }
 

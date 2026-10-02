@@ -1,0 +1,101 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 4;
+
+my $ast;
+my $deparsed;
+my $raku;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $ast.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Simple transliteration on topic' => {
+    # tr/a..c/x..z/;
+    ast RakuAST::Transliteration.new(
+      left  => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("a..c")]
+      ),
+      right => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x..z")]
+      ),
+      :destructive
+    );
+    is-deeply $deparsed, 'tr/a..c/x..z/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "abcd";
+
+        isa-ok EVAL($it), StrDistance, "$type: did we get a StrDistance";
+        is $_, "xyzd", "$type: is topic changed";
+    }
+}
+
+subtest 'Simple non-destructive transliteration on topic' => {
+    # TR/a..c/x..z/;
+    ast RakuAST::Transliteration.new(
+      left  => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("a..c")]
+      ),
+      right => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x..z")]
+      ),
+      :!destructive
+    );
+    is-deeply $deparsed, 'TR/a..c/x..z/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "abcd";
+
+        is-deeply EVAL($it), "xyzd", "$type: did we get right return value";
+        is $_, "abcd", "$type: is topic unchanged";
+    }
+}
+
+subtest 'Transliteration with an adverb' => {
+    # tr:d/a..c/x/;
+    ast RakuAST::Transliteration.new(
+      left  => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("a..c")]
+      ),
+      right => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x")]
+      ),
+      adverbs => [RakuAST::ColonPair::True.new("d")],
+      :destructive
+    );
+    is-deeply $deparsed, 'tr:d/a..c/x/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "abcd";
+
+        isa-ok EVAL($it), StrDistance, "$type: did we get a StrDistance";
+        is $_, "xd", "$type: is topic changed with unmatched characters deleted";
+    }
+}
+
+subtest 'Transliteration with the delimiter in a side' => {
+    # tr/a\/b/x/;
+    ast RakuAST::Transliteration.new(
+      left  => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("a/b")]
+      ),
+      right => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x")]
+      ),
+      :destructive
+    );
+    is-deeply $deparsed, 'tr/a\/b/x/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "a/b";
+
+        isa-ok EVAL($it), StrDistance, "$type: did we get a StrDistance";
+        is $_, "xxx", "$type: is the delimiter transliterated as well";
+    }
+}
+
+# vim: expandtab shiftwidth=4

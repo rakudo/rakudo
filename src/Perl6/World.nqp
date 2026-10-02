@@ -2124,29 +2124,20 @@ class Perl6::World is HLL::World {
                 @value_type[0] := self.find_single_symbol_in_setting(
                     $*LANGUAGE-REVISION >= 3 ?? 'Mu' !! 'Any'
                 ) unless +@value_type;
-                my $shape_ast := $shape[0].ast;
-                if nqp::istype($shape_ast, QAST::Stmts) {
-                    if +@($shape_ast) == 1 {
-                        if $shape_ast[0].has_compile_time_value {
-                            @value_type[1] := $shape_ast[0].compile_time_value;
-                        } elsif nqp::istype(
-                          (my $op_ast := $shape_ast[0]), QAST::Op) {
-                            if $op_ast.op eq "call" && +@($op_ast) == 2 {
-                                if !nqp::isconcrete($op_ast[0].value) && !nqp::isconcrete($op_ast[1].value) {
-                                    self.throw($/, 'X::Comp::NYI',
-                                        feature => "coercive type declarations");
-                                }
-                            }
-                        } else {
-                            self.throw($/, "X::Comp::AdHoc",
-                                payload => "Invalid hash shape; type expected");
-                        }
-                    } elsif +@($shape_ast) > 1 {
-                        self.throw($/, 'X::Comp::NYI',
-                            feature => "multidimensional shaped hashes");
-                    }
-                } else {
-                    self.throw($/, "X::Comp::AdHoc",
+                my @statements := $shape[0]<statement> || [];
+                my $key_ast := nqp::elems(@statements) == 1
+                  && @statements[0]<EXPR> && @statements[0].ast;
+                if nqp::elems(@statements) > 1 {
+                    $/.typed_sorry('X::Comp::NYI',
+                        feature => "multidimensional shaped hashes");
+                }
+                elsif $key_ast && $key_ast.has_compile_time_value
+                  && !nqp::isconcrete($key_ast.compile_time_value)
+                  && !nqp::eqaddr($key_ast.compile_time_value, NQPMu) {
+                    @value_type[1] := $key_ast.compile_time_value;
+                }
+                else {
+                    $/.typed_sorry('X::Comp::AdHoc',
                         payload => "Invalid hash shape; type expected");
                 }
             }
@@ -2771,6 +2762,7 @@ class Perl6::World is HLL::World {
         # Locate various interesting symbols.
         my $code_type    := self.find_single_symbol_in_setting('Code');
         my $routine_type := self.find_single_symbol_in_setting('Routine');
+        my $sig_type     := self.find_single_symbol_in_setting('Signature');
 
         # Attach code object to QAST node.
         $code_past.annotate('code_object', $code);
@@ -2807,7 +2799,16 @@ class Perl6::World is HLL::World {
 #?if !js
             # Temporarily disabled for js until we figure the bug out
             unless nqp::isnull($code_obj) {
-                return $code_obj(|@pos, |%named);
+                my $result := $code_obj(|@pos, |%named);
+                # This stub is NQP code, so a native return arrives boxed
+                # into NQP's bootstrap types, not the Raku ones.
+                my $signature := nqp::getattr($code_obj, $code_type, '$!signature');
+                my $returns := nqp::isconcrete($signature)
+                    ?? nqp::ifnull(nqp::getattr($signature, $sig_type, '$!returns'), Mu)
+                    !! Mu;
+                return nqp::objprimspec($returns)
+                    ?? nqp::hllizefor($result, 'Raku')
+                    !! $result;
             }
 #?endif
 

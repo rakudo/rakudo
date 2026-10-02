@@ -4,6 +4,7 @@ use Test::Helpers::QAST;
 use Test;
 use QAST:from<NQP>;
 use nqp;
+plan :skip-all('these tests observe the optimize phase') unless optimizer-enabled;
 plan 26;
 
 # A `my` declaration whose every access stays inside its declaring frame

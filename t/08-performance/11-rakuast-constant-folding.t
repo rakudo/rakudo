@@ -3,7 +3,8 @@ use Test::Helpers;
 use Test;
 use experimental :rakuast;
 
-plan 56;
+plan :skip-all('these tests observe the optimize phase') unless optimizer-enabled;
+plan 59;
 
 # Constant folding rewrites a pure operator on constant operands into the
 # literal result. The helper deparses a source after optimizing it, so
@@ -46,6 +47,15 @@ ok optimized-deparse(Q[my $x = 5 * 3 + (2 ** 2) - 10 + 2 * 5]).contains('= 19'),
 ok optimized-deparse(Q[my $x = ((2 ** 3))]).contains('= 8'),                 'nested grouping parentheses fold';
 ok optimized-deparse(Q[my int $i = 3 * 4]).contains('= 12'),                 'a native int initializer folds';
 { my int $i = 3 * 4; is $i, 12, 'a folded native int initializer widens correctly'; }
+
+# A rewrite applies inside a thunk as it does outside one, and takes the
+# thunk over, so the code a thunk evaluates is optimized too.
+ok optimized-deparse(Q[my $y = (42 andthen 0 || $_ + 1)]).contains('(42 andthen $_ + 1)'),
+    'a constant || right of andthen collapses inside the topic thunk';
+ok optimized-deparse(Q[my $y = (42 andthen True ?? $_ + 1 !! 0)]).contains('(42 andthen $_ + 1)'),
+    'a ternary with a constant condition right of andthen collapses inside the topic thunk';
+ok optimized-deparse(Q[my @a; sub f($c = @a[0, 1]) { }]).contains('@a.AT-POS(0), @a.AT-POS(1)'),
+    'a slice as a parameter default unrolls inside the default thunk';
 
 # Folding declines where the rewrite would not preserve the program.
 ok optimized-deparse(Q[my $a = 5; my $y = $a + 3]).contains('$a + 3'),
@@ -150,7 +160,7 @@ ok optimized-deparse(Q[sub f() { 2 ** 3 }; multi sub infix:<**>(Int $a, Int $b) 
     'a user multi declared after the use keeps the operator';
 {
     my $t = optimized-deparse(Q[sub outer() { 2 ** 3 }; sub inner() { { sub infix:<**>($a, $b) { 'user' }; 2 ** 3 } }]);
-    ok $t.subst(/\s+/, ' ', :g).contains('sub outer () { 8 }') && $t.contains('2 ** 3'),
+    ok $t.subst(/\s+/, ' ', :g).contains('sub outer { 8 }') && $t.contains('2 ** 3'),
         'a user infix in an inner block leaves a use outside it folding and keeps its own';
 }
 {

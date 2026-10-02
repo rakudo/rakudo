@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -177,9 +177,7 @@ subtest 'Simple Callable substitution on variable' => {
     );
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-$string ~~ s/o/{
-    $x
-}/
+$string ~~ s/o/{ $x }/
 CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
@@ -188,6 +186,109 @@ CODE
         is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
         is $/.gist, '｢o｣', "$type: did it set \$/ correctly";
         is $string, "fxo", "$type: is the result correct";
+    }
+}
+
+subtest 'Substitution with the delimiter in both sides' => {
+    # s/"a/b"/x\/y/;
+    ast RakuAST::Substitution.new(
+      pattern     => RakuAST::Regex::Literal.new("a/b"),
+      replacement => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("x/y")]
+      ),
+    );
+    is-deeply $deparsed, 's/"a/b"/x\/y/', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "a/b";
+
+        is-deeply EVAL($it).gist, '｢a/b｣', "$type: did we get right return value";
+        is $_, "x/y", "$type: is topic changed";
+    }
+}
+
+
+subtest 'A closure in a replacement keeps its slashes' => {
+    # my $x = "ab"; $x ~~ s/a/{ $/.chars ~ "/" }/; $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('ab')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$x'),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::Substitution.new(
+            pattern     => RakuAST::Regex::Literal.new('a'),
+            replacement => RakuAST::QuotedString.new(
+              :segments[
+                RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::ApplyInfix.new(
+                          left  => RakuAST::ApplyPostfix.new(
+                            operand => RakuAST::Var::Lexical.new('$/'),
+                            postfix => RakuAST::Call::Method.new(
+                              name => RakuAST::Name.from-identifier('chars')
+                            )
+                          ),
+                          infix => RakuAST::Infix.new('~'),
+                          right => RakuAST::StrLiteral.new('/')
+                        )
+                      )
+                    )
+                  )
+                )
+              ]
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = "ab";
+$x ~~ s/a/{ $/.chars ~ "/" }/;
+$x
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), '1/b', "$type: the closure runs";
+    }
+}
+
+
+subtest 'A slash in the character class of a substitution' => {
+    # s/<+[\/]>/-/
+    ast RakuAST::Substitution.new(
+      pattern     => RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Enumeration.new(
+          elements => (
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("/"),
+          )
+        )
+      ),
+      replacement => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new("-")]
+      ),
+    );
+    is-deeply $deparsed, 's/<+[\/]>/-/', 'deparse';
+    is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
+      'the deparse parses back to itself';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $_ = "a/b";
+        EVAL($it);
+        is $_, "a-b", "$type: is topic changed";
     }
 }
 

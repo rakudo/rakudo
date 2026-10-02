@@ -62,26 +62,48 @@ class RakuAST::Node {
         nqp::bindattr(self, RakuAST::Node, '$!origin', $origin);
     }
 
-    # Attaches this node's file, line and source excerpt to an exception
-    # that can carry them. A node without a sourced origin, or a type
-    # object standing in for one, leaves the exception as it is.
-    method IMPL-LOCATE-EXCEPTION(Mu $exception) {
+    # Attaches this node's file, line and source excerpt, at its locus or with
+    # $at-start at its start, to an exception that can carry them. A node
+    # without a sourced origin, or a type object, leaves the exception as is.
+    method IMPL-LOCATE-EXCEPTION(Mu $exception, Bool :$at-start) {
         if nqp::isconcrete(self)
           && nqp::isconcrete($!origin)
           && nqp::isconcrete($!origin.source)
           && nqp::can($exception, 'SET_FILE_LINE') {
-            my $match := $!origin.as-match;
-            $exception.SET_FILE_LINE($match.file, $match.line);
+            my $source := $!origin.source;
+            my int $pos := $at-start ?? $!origin.from !! $!origin.locus;
+            my @location := $source.location-of-pos($pos);
+            $exception.SET_FILE_LINE(@location[2], @location[0]);
             if nqp::can($exception, 'SET_PRE_POST') {
-                my @prepost := $!origin.source.prepost-of-pos($!origin.from);
+                my @prepost := $source.prepost-of-pos($pos);
                 $exception.SET_PRE_POST(@prepost[0], @prepost[1]);
             }
         }
         Nil
     }
 
+    # Locates an exception that has no line yet. One that already has a line,
+    # such as from an EVAL, keeps it, as does a group of located errors.
+    method IMPL-LOCATE-UNLOCATED-EXCEPTION(Mu $exception) {
+        self.IMPL-LOCATE-EXCEPTION($exception)
+          unless nqp::can($exception, 'sorrows')
+          || nqp::can($exception, 'line') && nqp::isconcrete($exception.line);
+        Nil
+    }
+
+    # While compiling, throws the typed error located at this node.
+    method IMPL-THROW-IF-COMPILING(Str $type-name, *%opts) {
+        my $resolver := nqp::getlexdyn('$*R');
+        if nqp::isconcrete($resolver) {
+            my $ex := $resolver.build-exception($type-name, |%opts);
+            self.IMPL-LOCATE-EXCEPTION($ex);
+            $ex.throw;
+        }
+        Nil
+    }
+
     # Find the narrowest key origin node for an original position
-    method locate-node(int $pos, int $to?, :$key) {
+    method locate-node(int $pos, Int $to?, :$key) {
         return Nil unless nqp::isconcrete($!origin)
                             && $pos >= $!origin.from && $pos < $!origin.to
                             && (!nqp::isconcrete($to) || $to <= $!origin.to);
@@ -207,10 +229,38 @@ class RakuAST::Node {
                 $resolver.add-node-with-check-time-problems(self) if self.has-check-time-problems;
             }
         }
-        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved && self.needs-resolution {
+        # A name a heredoc body may not use is reported as such instead.
+        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved
+          && !self.IMPL-HEREDOC-REPORT($resolver) && self.needs-resolution {
             $resolver.add-node-unresolved-after-check-time(self);
         }
 
+        self.IMPL-SETTLE-ARGUMENT-PASSING($resolver);
+
+        Nil
+    }
+
+    # Make the marks that decide what a callee binds a native argument as.
+    # They answer to the tree as parsed, not to any rewrite, so the check
+    # walk settles them and the optimize walk settles them again.
+    method IMPL-SETTLE-ARGUMENT-PASSING(RakuAST::Resolver $resolver) {
+        my int $infix := nqp::istype(self, RakuAST::ApplyInfix);
+        if $infix {
+            self.IMPL-WITHDRAW-NEGATE-NOT(self);
+            self.IMPL-WITHDRAW-LONE-LINK(self);
+            self.IMPL-POISON-NATIVE-INDEX-BIND(self);
+        }
+        self.IMPL-WITHDRAW-IDENTITY-MARKS(self)
+            if self.IMPL-IN-SOFT-SCOPE($resolver);
+        self.IMPL-MARK-VALUE-ARGS($resolver, self)
+            if $infix
+            || nqp::istype(self, RakuAST::ApplyPrefix)
+            || nqp::istype(self, RakuAST::ApplyPostfix)
+            || nqp::istype(self, RakuAST::Call::Name);
+        if $infix {
+            self.IMPL-MARK-CHAIN-LINKS($resolver, self);
+            self.IMPL-MARK-NEGATE-NOT($resolver, self);
+        }
         Nil
     }
 
@@ -253,6 +303,28 @@ class RakuAST::Node {
         Nil
     }
 
+    # A thunk around an expression evaluates it when and where the code around
+    # it needs, so a rewrite takes the thunk over. A compile time value stands
+    # without one, unless it is callable, which the thunk's user may call.
+    method IMPL-REPLACE-THUNKED(RakuAST::Resolver $resolver, Mu $expr, Mu $result) {
+        return $result
+          unless nqp::istype($expr, RakuAST::Expression) && $expr.outer-most-thunk;
+        if $result.has-compile-time-value {
+            my $Callable := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Callable');
+            nqp::isnull($Callable)
+              || nqp::istype($result.maybe-compile-time-value, $Callable)
+              ?? $expr
+              !! $result
+        }
+        elsif nqp::istype($result, RakuAST::Expression) && !$result.outer-most-thunk {
+            $result.IMPL-TAKE-THUNKS($expr);
+            $result
+        }
+        else {
+            $expr
+        }
+    }
+
     # Replace a directly held child node with another node, locating the slot
     # that holds it by identity: any object attribute bound to the child, and
     # any element of any list attribute. All occurrences are replaced. A child
@@ -269,9 +341,10 @@ class RakuAST::Node {
         for self.IMPL-UNWRAP-LIST(self.HOW.mro(self)) -> $class {
             for self.IMPL-UNWRAP-LIST($class.HOW.attributes($class, :local)) -> $attr {
                 next if nqp::objprimspec($attr.type);
-                my $value := nqp::getattr(self, $class, $attr.name);
+                my $package := $attr.package;
+                my $value := nqp::getattr(self, $package, $attr.name);
                 if nqp::eqaddr($value, $old) {
-                    nqp::bindattr(self, $class, $attr.name, $new);
+                    nqp::bindattr(self, $package, $attr.name, $new);
                 }
                 elsif nqp::islist($value) {
                     my int $i := 0;
@@ -833,13 +906,12 @@ class RakuAST::Node {
                 $result := self.IMPL-COLLAPSE-DEAD-BRANCH($resolver, $expr);
             }
 
-            if $apply-infix && $result =:= $expr {
-                $result := self.IMPL-REWRITE-SQUARE($resolver, $expr);
-            }
-
             if $apply-postfix && $result =:= $expr {
                 $result := self.IMPL-UNROLL-SLICE($resolver, $expr);
             }
+
+            $result := self.IMPL-REPLACE-THUNKED($resolver, $expr, $result)
+              unless $result =:= $expr;
         }
 
         if $apply-infix {
@@ -904,8 +976,10 @@ class RakuAST::Node {
                     if $routine-lookup;
                 self.IMPL-MARK-CONSTANT-TERM($resolver, $expr)
                     if $term-name;
-                self.IMPL-MARK-NATIVE-INDEX($resolver, $expr)
-                    if $apply-postfix;
+                if $apply-postfix {
+                    self.IMPL-MARK-NATIVE-INDEX($resolver, $expr);
+                    self.IMPL-MARK-DIRECT-POS($resolver, $expr);
+                }
                 self.IMPL-MARK-RETURN-DECONT($resolver, $expr)
                     if $routine;
                 self.IMPL-MARK-ARRAY-INIT($resolver, $expr)
@@ -1017,9 +1091,13 @@ class RakuAST::Node {
         elsif nqp::istype($expr, RakuAST::ApplyPostfix) {
             $expr.IMPL-SET-NATIVE-INCDEC(0);
             my $postfix := $expr.postfix;
-            $postfix.IMPL-SET-CALLSTATIC(0) if nqp::istype($postfix, RakuAST::Postfix);
-            $postfix.IMPL-SET-NATIVE-INDEX(0, nqp::null)
-                if nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex);
+            $postfix.IMPL-SET-CALLSTATIC(0)
+                if nqp::istype($postfix, RakuAST::Postfix)
+                || nqp::istype($postfix, RakuAST::Postfix::Literal);
+            if nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex) {
+                $postfix.IMPL-SET-NATIVE-INDEX(0, nqp::null);
+                $postfix.IMPL-SET-DIRECT-POS(0);
+            }
         }
         elsif nqp::istype($expr, RakuAST::ApplyInfix) {
             my $infix := $expr.infix;
@@ -1121,8 +1199,9 @@ class RakuAST::Node {
         return Nil unless $spec == 1 || $spec == 2;
         # The right operand must be a native value: a native variable of the
         # same flavour, or a float literal. An integer literal is an `Int`,
-        # so `$i += 1` is left to the operator call, which pairs the literal
-        # with the native target. A float literal never overflows that way.
+        # so `$i += 1` is left to the base operator, whose dispatch pairs the
+        # literal with the native target. A float literal never overflows
+        # that way.
         my $right := $expr.right;
         my int $rhs-ok := 0;
         if nqp::istype($right, RakuAST::Var::Attribute)
@@ -1384,6 +1463,62 @@ class RakuAST::Node {
         Nil
     }
 
+    # Mark an array variable subscripted by a native int lexical, a
+    # setting operator's native int result, or a fitting non-negative int
+    # literal, with no adverb, for calling AT-POS or ASSIGN-POS itself.
+    method IMPL-MARK-DIRECT-POS(RakuAST::Resolver $resolver, Mu $expr) {
+        return Nil unless nqp::istype($expr, RakuAST::ApplyPostfix);
+        my $postfix := $expr.postfix;
+        return Nil unless nqp::istype($postfix, RakuAST::Postcircumfix::ArrayIndex)
+            && !$postfix.is-multislice
+            && nqp::elems(self.IMPL-UNWRAP-LIST($postfix.colonpairs)) == 0
+            && $postfix.is-resolved
+            && nqp::istype($postfix.resolution, RakuAST::Declaration::External::Setting);
+        # A scalar may hold a Failure, which the setting's subscript
+        # answers with itself while Failure's own AT-POS does the same,
+        # but a scalar may hold anything else too, so only an array qualifies.
+        my $operand := $expr.operand;
+        return Nil unless (nqp::istype($operand, RakuAST::Var::Lexical) && $operand.is-resolved
+                || nqp::istype($operand, RakuAST::Var::Attribute))
+            && $operand.sigil eq '@';
+        my $statements := $postfix.index.code-statements;
+        return Nil unless nqp::elems($statements) == 1
+            && nqp::istype($statements[0], RakuAST::Statement::Expression)
+            && !nqp::isconcrete($statements[0].condition-modifier)
+            && !nqp::isconcrete($statements[0].loop-modifier);
+        my $index := $statements[0].expression;
+        if nqp::istype($index, RakuAST::IntLiteral) {
+            return Nil unless $index.IMPL-FITS-NATIVE-INT
+                && !nqp::islt_I($index.compile-time-value, nqp::box_i(0, Int));
+        }
+        else {
+            # A variable qualifies by its slot, an operator application by
+            # the native int static type its settled candidate gave it. A
+            # user operator may hand back anything through a native return.
+            if nqp::istype($index, RakuAST::Var) {
+                my int $spec := self.IMPL-NATIVE-LEXICAL-PRIMSPEC($index);
+                return Nil unless $spec == 1 || $spec == 10;
+            }
+            elsif nqp::istype($index, RakuAST::ApplyInfix) {
+                return Nil unless nqp::objprimspec($index.IMPL-STATIC-ARG-TYPE) == 1
+                    && nqp::istype($index.infix, RakuAST::Infix)
+                    && self.IMPL-OPERATOR-IS-CORE($resolver, $index.infix);
+            }
+            elsif nqp::istype($index, RakuAST::ApplyPrefix) {
+                return Nil unless nqp::objprimspec($index.IMPL-STATIC-ARG-TYPE) == 1
+                    && nqp::istype($index.prefix, RakuAST::Prefix)
+                    && self.IMPL-OPERATOR-IS-CORE($resolver, $index.prefix);
+            }
+            else {
+                return Nil;
+            }
+        }
+        $postfix.IMPL-SET-DIRECT-POS(
+            self.IMPL-DECLARATION-CURRENT($resolver, '&postcircumfix:<[ ]>', $postfix.resolution)
+                ?? 1 !! 0);
+        Nil
+    }
+
     # Mark a plain constant term whose lexical is bound once for
     # compiling as its value. A name read through the frame chain costs
     # on every evaluation, and a setting name's lookup op keeps the
@@ -1452,15 +1587,19 @@ class RakuAST::Node {
     }
 
     # Mark a postfix operator whose lexical is bound once for a static callee
-    # lookup at code generation.
+    # lookup at code generation. A literal postfix goes by its routine's name.
     method IMPL-MARK-STATIC-POSTFIX(RakuAST::Resolver $resolver, Mu $expr) {
         return Nil unless nqp::istype($expr, RakuAST::ApplyPostfix);
         my $postfix := $expr.postfix;
-        return Nil unless nqp::istype($postfix, RakuAST::Postfix)
+        my int $literal := nqp::istype($postfix, RakuAST::Postfix::Literal);
+        return Nil unless ($literal || nqp::istype($postfix, RakuAST::Postfix))
             && $postfix.is-resolved;
+        my $resolution := $postfix.resolution;
+        my $name := $literal
+            ?? $resolution.lexical-name
+            !! '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator);
         $postfix.IMPL-SET-CALLSTATIC(
-            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $postfix.resolution,
-                '&postfix' ~ $resolver.IMPL-CANONICALIZE-PAIR($postfix.operator)) ?? 1 !! 0);
+            self.IMPL-RESOLUTION-BOUND-ONCE($resolver, $resolution, $name) ?? 1 !! 0);
         Nil
     }
 
@@ -1927,6 +2066,12 @@ class RakuAST::Node {
         }
         elsif nqp::istype($expr, RakuAST::ApplyInfix) {
             my $infix := $expr.infix;
+            # A native compound assignment compiles its base operator
+            # itself, so the base is what takes the mark.
+            if nqp::istype($infix, RakuAST::MetaInfix::Assign)
+                && $infix.IMPL-COMPILES-BASE-OPERATOR($expr.left) {
+                $infix := $infix.infix;
+            }
             return Nil unless nqp::istype($infix, RakuAST::Infix) && $infix.is-resolved;
             return Nil if nqp::elems($expr.colonpairs);
             my $left := $expr.left;
@@ -2039,6 +2184,11 @@ class RakuAST::Node {
         $type
     }
 
+    # Whether this node in argument position yields a value rather than
+    # a variable a callee could write through. Only a variable read,
+    # possibly parenthesized, offers its variable.
+    method IMPL-STATIC-ARG-IS-VALUE() { !nqp::istype(self, RakuAST::Var) }
+
     # The native kind this node's constant value compiles a native
     # alternative for, or Nil. A node that answers a kind emits a QAST::Want
     # whose native alternative IMPL-TO-QAST-ARG can select.
@@ -2124,8 +2274,10 @@ class RakuAST::Node {
             # A literal with a native form is a value, never a container.
             # This mirrors what the legacy frontend knows of a literal
             # through its allomorphic Want, so the frontends rule out an
-            # `is rw` candidate for the same arguments.
+            # `is rw` candidate for the same arguments. A native result
+            # of an operator or an assignment is a value the same way.
             nqp::push(@flags, nqp::defined($_.IMPL-NATIVE-LITERAL-KIND)
+                    || $ps && $_.IMPL-STATIC-ARG-IS-VALUE
                 ?? $ps +| $ARG_IS_LITERAL
                 !! $ps);
         }
@@ -2201,11 +2353,11 @@ class RakuAST::Node {
     # operator and ACCEPTS routines that wrapping relies on.
     # The pieces a literal matcher's smartmatch reduces to, or null when
     # the matcher is anything else: the literal's value, the setting
-    # comparison the reduced match runs, the Junction and Nil types the
-    # emission guards with, and whether the comparison is by string. Only
+    # routine that decides the match as the literal's ACCEPTS would, and
+    # the Junction type the emission guards with. Only
     # an int, num, or str literal qualifies, since the reduction leans on
     # what the value's own ACCEPTS comes down to: numeric equality over
-    # the topic's Numeric, or string equality over its Stringy. A NaN or
+    # the topic's Numeric, or string equality over its Str. A NaN or
     # infinite literal compares by identity instead, and a user ACCEPTS
     # candidate that could take a concrete matcher keeps the dispatch.
     method IMPL-LITMATCH-DATA(RakuAST::Resolver $resolver, Mu $matcher) {
@@ -2233,15 +2385,14 @@ class RakuAST::Node {
             && nqp::istrue($accepts.IS-SETTING-ONLY(
                 nqp::const::SIG_ELEM_UNDEFINED_ONLY));
         my $eq-name := RakuAST::Name.from-identifier(
-            $string ?? '&infix:<eq>' !! '&infix:<==>');
+            $string ?? '&STR-LITERAL-ACCEPTS' !! '&NUMERIC-LITERAL-ACCEPTS');
         my $eq-res := $resolver.resolve-name-constant-in-setting($eq-name);
         return nqp::null() unless nqp::isconcrete($eq-res);
         my $eq := $eq-res.compile-time-value;
         return nqp::null() unless nqp::isconcrete($eq);
         my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
-        my $Nil      := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Nil');
-        return nqp::null() if nqp::isnull($Junction) || nqp::isnull($Nil);
-        [$value, $eq, $Junction, $Nil, $string]
+        return nqp::null() if nqp::isnull($Junction);
+        [$value, $eq, $Junction]
     }
 
     # A smartmatch against a literal comes down to an equality check. A
@@ -2306,8 +2457,8 @@ class RakuAST::Node {
 
     # A reduced literal match: the topic, bound to a local so the guards
     # and the comparison evaluate it once, compared against the literal.
-    # A numeric comparison coerces the topic the way the literal's ACCEPTS
-    # would, with a failed coercion becoming NaN, which no number equals.
+    # The comparison is the setting routine the data names, which coerces
+    # the topic itself.
     # An undefined topic answers without comparing, since the coercions
     # would warn on it, and a topic that turns out to be a concrete
     # Junction autothreads over the literal's ACCEPTS instead.
@@ -2315,8 +2466,6 @@ class RakuAST::Node {
         my $value    := @data[0];
         my $eq       := @data[1];
         my $junction := @data[2];
-        my $nil      := @data[3];
-        my int $string := @data[4];
         $context.ensure-sc($value);
         $context.ensure-sc($eq);
         $context.ensure-sc($junction);
@@ -2324,30 +2473,10 @@ class RakuAST::Node {
         $context.ensure-sc($neg-bool);
         my str $tmp := QAST::Node.unique('litmatch_topic');
         my $topic := QAST::Var.new( :name($tmp), :scope<local> );
-        my $coerced;
-        if $string {
-            $coerced := QAST::Op.new( :op<callmethod>, :name<Stringy>, $topic );
-        }
-        else {
-            $context.ensure-sc($nil);
-            my $fail-or-nil := QAST::Op.new( :op<hllbool>, QAST::IVal.new( :value(1) ) );
-            $fail-or-nil.named('fail-or-nil');
-            my str $ntmp := QAST::Node.unique('litmatch_numeric');
-            $coerced := QAST::Stmts.new(
-                QAST::Op.new( :op<bind>,
-                    QAST::Var.new( :name($ntmp), :scope<local>, :decl<var> ),
-                    QAST::Op.new( :op<callmethod>, :name<Numeric>, $topic, $fail-or-nil )),
-                QAST::Op.new( :op<if>,
-                    QAST::Op.new( :op<istype>,
-                        QAST::Var.new( :name($ntmp), :scope<local> ),
-                        QAST::WVal.new( :value($nil) )),
-                    QAST::NVal.new( :value(nqp::nan()) ),
-                    QAST::Var.new( :name($ntmp), :scope<local> )));
-        }
         my $cmp := QAST::Op.new( :op<call>,
             QAST::WVal.new( :value($eq) ),
-            QAST::WVal.new( :value($value) ),
-            $coerced);
+            $topic,
+            QAST::WVal.new( :value($value) ));
         $cmp := QAST::Op.new( :op<callmethod>, :name<not>, $cmp ) if $negated;
         QAST::Stmts.new(
             QAST::Op.new( :op<bind>,
@@ -2381,27 +2510,36 @@ class RakuAST::Node {
             return Nil;
         }
         if nqp::istype($expr, RakuAST::Statement::Loop) {
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition,
+                self.IMPL-BLOCK-TAKES-CONDITION($expr.body))
                 if nqp::isconcrete($expr.condition);
         }
         elsif nqp::istype($expr, RakuAST::Statement::IfWith) {
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition)
+            my int $value-used := self.IMPL-BLOCK-TAKES-CONDITION($expr.then)
+                || self.IMPL-BLOCK-TAKES-CONDITION($expr.else);
+            for $expr.IMPL-UNWRAP-LIST($expr.elsifs) {
+                $value-used := 1 if self.IMPL-BLOCK-TAKES-CONDITION($_.then);
+            }
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition,
+                $value-used)
                 if $expr.IMPL-QAST-TYPE eq 'if';
             for $expr.IMPL-UNWRAP-LIST($expr.elsifs) {
-                self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $_.condition)
+                self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $_.condition,
+                    $value-used)
                     if $_.IMPL-QAST-TYPE eq 'if';
             }
         }
         elsif nqp::istype($expr, RakuAST::Statement::Unless) {
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition);
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.condition,
+                self.IMPL-BLOCK-TAKES-CONDITION($expr.body));
         }
         elsif nqp::istype($expr, RakuAST::Statement::Expression) {
             my $loop := $expr.loop-modifier;
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $loop.expression)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $loop.expression, 0)
                 if nqp::isconcrete($loop)
                 && nqp::istype($loop, RakuAST::StatementModifier::WhileUntil);
             my $cond := $expr.condition-modifier;
-            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $cond.expression)
+            self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $cond.expression, 0)
                 if nqp::isconcrete($cond)
                 && (nqp::istype($cond, RakuAST::StatementModifier::If)
                     && !nqp::istype($cond, RakuAST::StatementModifier::When)
@@ -2413,20 +2551,30 @@ class RakuAST::Node {
                 my str $op := $prefix.operator;
                 if ($op eq '?' || $op eq '!' || $op eq 'so' || $op eq 'not')
                     && self.IMPL-OPERATOR-IS-CORE($resolver, $prefix) {
-                    self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.operand);
+                    self.IMPL-TRY-BOOLEAN-CONDITION($resolver, $expr.operand, 0);
                 }
             }
         }
         Nil
     }
 
-    # A condition in a truth-only position may take either boolean-form
-    # reduction: a junction comparison unfolds, and a smartmatch against
-    # a junction of types becomes a chain of type checks.
-    method IMPL-TRY-BOOLEAN-CONDITION(RakuAST::Resolver $resolver, Mu $cond) {
-        self.IMPL-TRY-JUNCTION-FOLD($resolver, $cond);
+    # A condition in boolean position may unfold a junction comparison,
+    # unless a block takes its value and so expects the Junction, and may
+    # reduce a smartmatch against a junction of types to type checks.
+    method IMPL-TRY-BOOLEAN-CONDITION(RakuAST::Resolver $resolver, Mu $cond, int $value-used) {
+        self.IMPL-TRY-JUNCTION-FOLD($resolver, $cond) unless $value-used;
         self.IMPL-TRY-JUNCTION-TYPEMATCH($resolver, $cond);
         Nil
+    }
+
+    # Whether a block takes the value of the condition that guards it,
+    # which for a junction comparison is the Junction it produces.
+    method IMPL-BLOCK-TAKES-CONDITION(Mu $block) {
+        return 0 unless nqp::isconcrete($block) && nqp::istype($block, RakuAST::Block);
+        my $signature := $block.signature || $block.placeholder-signature;
+        nqp::isconcrete($signature)
+            && nqp::elems($block.IMPL-UNWRAP-LIST($signature.parameters))
+            ?? 1 !! 0
     }
 
     # A smartmatch against a junction of type objects, in a position that
@@ -2518,8 +2666,17 @@ class RakuAST::Node {
             && $right.infix.properties.chain;
         return Nil unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
         return Nil if self.IMPL-IN-SOFT-SCOPE($resolver);
+        my str $op := $infix.operator;
+        my int $negated := $op eq '!=' || $op eq '≠' || $op eq 'ne';
+        my int $numeric := $op eq '==' || $op eq '<' || $op eq '<='
+            || $op eq '>' || $op eq '>=' || $op eq '≤' || $op eq '≥'
+            || $op eq '!=' || $op eq '≠';
+        return Nil unless $numeric || $op eq 'eq' || $op eq 'lt'
+            || $op eq 'le' || $op eq 'gt' || $op eq 'ge' || $op eq 'ne';
         my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
         return Nil if nqp::isnull($Junction);
+        my @kinds := self.IMPL-JUNCTION-FOLD-KINDS($resolver);
+        return Nil unless nqp::elems(@kinds) == 4;
         my int $side := 0;
         $side := 1 if self.IMPL-JUNCTION-FOLD-OPERAND($resolver, $left, $Junction);
         $side := 2 if !$side && self.IMPL-JUNCTION-FOLD-OPERAND($resolver, $right, $Junction);
@@ -2541,10 +2698,131 @@ class RakuAST::Node {
         else {
             return Nil;
         }
-        return Nil unless nqp::isconcrete($routine)
-            && self.IMPL-JUNCTION-CHAIN-HANDLES-ANY($resolver, $routine);
-        $infix.IMPL-SET-JUNCTION-FOLD($side, $Junction);
+        return Nil unless nqp::isconcrete($routine);
+        # A negated comparison binds a junction to its Mu candidate and
+        # negates the collapsed comparison, so its chain joins the other
+        # way round rather than standing in for autothreading.
+        return Nil unless $negated
+            || self.IMPL-JUNCTION-CHAIN-HANDLES-ANY($resolver, $routine);
+        my @constants := self.IMPL-JUNCTION-FOLD-CONSTANTS(
+            $side == 1 ?? $left !! $right, $Junction);
+        my $type := self.IMPL-JUNCTION-FOLD-TYPE($resolver, @constants, $numeric);
+        my int $mask := self.IMPL-JUNCTION-FOLD-MASK(@kinds, @constants, $numeric);
+        return Nil if nqp::isnull($type) && !$mask;
+        my int $guard := self.IMPL-JUNCTION-FOLD-GUARD(@kinds, $other, $type, $mask);
+        return Nil if $guard < 0;
+        if $guard == 2 {
+            $type := nqp::null();
+            $guard := 0;
+        }
+        elsif $guard == 3 {
+            $mask := 0;
+            $guard := 0;
+        }
+        $infix.IMPL-SET-JUNCTION-FOLD($side, $Junction, $guard, $type, $mask,
+            @kinds, $negated);
         Nil
+    }
+
+    # The compile-time values among the eigenstates of a junction operand,
+    # out of a constant Junction or the constant arguments of the call
+    # that builds one.
+    method IMPL-JUNCTION-FOLD-CONSTANTS(Mu $operand, Mu $Junction) {
+        my @constants;
+        if $operand.has-compile-time-value {
+            my $value := nqp::decont($operand.maybe-compile-time-value);
+            for nqp::getattr($value, $Junction, '$!eigenstates') {
+                nqp::push(@constants, $_);
+            }
+        }
+        else {
+            for nqp::istype($operand, RakuAST::ApplyListInfix)
+                ?? $operand.IMPL-UNWRAP-LIST($operand.operands)
+                !! [$operand.left, $operand.right] {
+                nqp::push(@constants, nqp::decont($_.maybe-compile-time-value))
+                    if $_.has-compile-time-value;
+            }
+        }
+        @constants
+    }
+
+    # The type every value an unfolded comparison compares must be for
+    # the chain to stand in for autothreading, or null. Such values reach
+    # a core candidate that compares natively, so skipping one goes unseen.
+    method IMPL-JUNCTION-FOLD-TYPE(RakuAST::Resolver $resolver, @constants, int $numeric) {
+        my $type := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver,
+            $numeric ?? 'Int' !! 'Str');
+        if $numeric && nqp::elems(@constants) {
+            my $Num := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Num');
+            $type := $Num if nqp::istype(@constants[0], $Num);
+        }
+        return nqp::null() if nqp::isnull($type);
+        for @constants {
+            return nqp::null() unless nqp::isconcrete($_)
+                && nqp::istype($_, $type);
+        }
+        $type
+    }
+
+    # The setting types Int, Num, Rat and Str, in the order of the bits
+    # that name them as exact kinds, or fewer when one is not available.
+    method IMPL-JUNCTION-FOLD-KINDS(RakuAST::Resolver $resolver) {
+        my @kinds;
+        for ['Int', 'Num', 'Rat', 'Str'] {
+            my $type := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, $_);
+            return @kinds if nqp::isnull($type);
+            nqp::push(@kinds, $type);
+        }
+        @kinds
+    }
+
+    # The bit for a value's exact type, 1 for Int, 2 for Num, 4 for Rat
+    # and 8 for Str, or 0 for a type object or any other type.
+    method IMPL-JUNCTION-FOLD-KIND(@kinds, Mu $value) {
+        return 0 unless nqp::isconcrete($value);
+        my $what := nqp::what($value);
+        my int $i := -1;
+        while ++$i < 4 {
+            return nqp::bitshiftl_i(1, $i) if nqp::eqaddr($what, nqp::atpos(@kinds, $i));
+        }
+        0
+    }
+
+    # The exact kinds, as bits, that the values of an unfolded comparison
+    # may mix while the chain still runs only core code, 7 for a numeric
+    # comparison and 15 for a string one, or 0 when a constant is not one.
+    method IMPL-JUNCTION-FOLD-MASK(@kinds, @constants, int $numeric) {
+        my int $mask := $numeric ?? 7 !! 15;
+        for @constants {
+            return 0 unless self.IMPL-JUNCTION-FOLD-KIND(@kinds, $_) +& $mask;
+        }
+        $mask
+    }
+
+    # How the plain operand of an unfolded comparison gets checked. 1 is a
+    # runtime check, 0 is known to pass the type and the kinds, 2 only the
+    # kinds, 3 only the type, and -1 neither, which rules the chain out.
+    method IMPL-JUNCTION-FOLD-GUARD(@kinds, Mu $operand, Mu $type, int $mask) {
+        my int $typed;
+        my int $kinded;
+        if $operand.has-compile-time-value {
+            my $value := nqp::decont($operand.maybe-compile-time-value);
+            return -1 unless nqp::isconcrete($value);
+            $typed := !nqp::isnull($type) && nqp::istype($value, $type);
+            $kinded := ($mask +& self.IMPL-JUNCTION-FOLD-KIND(@kinds, $value)) != 0;
+        }
+        elsif nqp::istype($operand, RakuAST::Var::Lexical) && $operand.is-resolved {
+            my int $spec := nqp::objprimspec($operand.return-type);
+            return 1 unless $spec;
+            my int $index := $spec == 2 ?? 1 !! $spec == 3 ?? 3 !! 0;
+            $typed := !nqp::isnull($type)
+                && nqp::istype(nqp::atpos(@kinds, $index), $type);
+            $kinded := ($mask +& nqp::bitshiftl_i(1, $index)) != 0;
+        }
+        else {
+            return 1;
+        }
+        $typed ?? ($kinded ?? 0 !! 3) !! ($kinded ?? 2 !! -1)
     }
 
     # Whether a comparison operand is a junction the unfolding handles: a
@@ -2610,29 +2888,47 @@ class RakuAST::Node {
         1
     }
 
-    # An unfolded junction comparison: the plain operand, bound to a
-    # local so it evaluates once, compared against each eigenstate in a
-    # short-circuit chain, disjunctive for an any junction, conjunctive
-    # for an all one. Or null when the operand's code is not one of the
-    # junction shapes after all, and the plain comparison stands.
-    method IMPL-JUNCTION-FOLD-QAST(RakuAST::IMPL::QASTContext $context, str $chain-op, str $chain-name, Mu $left-qast, Mu $right-qast, int $side, Mu $Junction) {
+    # An unfolded junction comparison, or null when the junction operand
+    # is not one of the shapes after all. Operands are bound in source
+    # order, and any value outside the checks takes the plain comparison.
+    method IMPL-JUNCTION-FOLD-QAST(RakuAST::IMPL::QASTContext $context, str $chain-op, str $chain-name, Mu $left-qast, Mu $right-qast, int $side, Mu $Junction, int $guard, Mu $type, int $mask, @kinds, int $negated) {
         my $junction-qast := $side == 1 ?? $left-qast !! $right-qast;
         my $other-qast    := $side == 1 ?? $right-qast !! $left-qast;
+        my int $typed := !nqp::isnull($type);
         my @eigen;
+        my @eigen-binds;
+        my @containers;
+        my @values;
+        my @checks;
         my int $conjunctive := 0;
+
+        # A constant eigenstate rules out the type it is not of and the
+        # kinds it is not one of, and the chain needs one of the two left.
+        my $constant := -> $value {
+            if nqp::isconcrete($value) {
+                $typed := 0 unless $typed && nqp::istype($value, $type);
+                $mask := 0 unless $mask
+                    && (self.IMPL-JUNCTION-FOLD-KIND(@kinds, $value) +& $mask);
+                $typed || $mask
+            }
+            else {
+                0
+            }
+        };
         if nqp::istype($junction-qast, QAST::WVal) {
             my $value := $junction-qast.value;
             return nqp::null() unless nqp::isconcrete($value)
                 && nqp::eqaddr($value.WHAT, $Junction);
-            my str $type := nqp::getattr($value, $Junction, '$!type');
-            return nqp::null() unless $type eq 'any' || $type eq 'all';
-            $conjunctive := $type eq 'all';
+            my str $junction-type := nqp::getattr($value, $Junction, '$!type');
+            return nqp::null() unless $junction-type eq 'any' || $junction-type eq 'all';
+            $conjunctive := $junction-type eq 'all';
             my $states := nqp::getattr($value, $Junction, '$!eigenstates');
             my int $n := nqp::elems($states);
             return nqp::null() if $n < 2;
             my int $i := -1;
             while ++$i < $n {
                 my $state := nqp::atpos($states, $i);
+                return nqp::null() unless $constant($state);
                 $context.ensure-sc($state);
                 nqp::push(@eigen, QAST::WVal.new( :value($state) ));
             }
@@ -2647,32 +2943,213 @@ class RakuAST::Node {
             while ++$i < $n {
                 my $child := nqp::atpos($junction-qast.list, $i);
                 return nqp::null() if $child.named || $child.flat;
-                nqp::push(@eigen, $child);
+                # Each eigenstate expression evaluates in source order into
+                # a local, and its value is read once they all have, as
+                # building the junction does. A constant stays inline.
+                my $const := nqp::istype($child, QAST::Want)
+                    ?? $child[0] !! $child;
+                if nqp::istype($const, QAST::WVal) {
+                    return nqp::null() unless $constant($const.value);
+                    nqp::push(@eigen, $child);
+                    nqp::push(@containers, QAST::WVal.new( :value($const.value) ));
+                    nqp::push(@values, QAST::WVal.new( :value($const.value) ));
+                }
+                else {
+                    my str $container := QAST::Node.unique('junction_eigenstate');
+                    my str $value := QAST::Node.unique('junction_eigenvalue');
+                    nqp::push(@eigen-binds, QAST::Op.new( :op<bind>,
+                        QAST::Var.new( :name($container), :scope<local>, :decl<var> ),
+                        $child));
+                    nqp::push(@eigen, QAST::Var.new( :name($value), :scope<local> ));
+                    nqp::push(@containers, QAST::Var.new( :name($container), :scope<local> ));
+                    nqp::push(@values, QAST::Var.new( :name($value), :scope<local> ));
+                    nqp::push(@checks, [$container, $value]);
+                }
             }
         }
         else {
             return nqp::null();
         }
+
+        # A comparison of an eigenstate, or the junction, against the other
+        # operand's local, with the two in their source order.
+        my $compare := -> $junction-side, str $local {
+            my $operand := QAST::Var.new( :name($local), :scope<local> );
+            $side == 1
+                ?? QAST::Op.new( :op($chain-op), :name($chain-name),
+                    $junction-side, $operand )
+                !! QAST::Op.new( :op($chain-op), :name($chain-name),
+                    $operand, $junction-side )
+        };
+
         my str $tmp := QAST::Node.unique('junction_unfold');
-        my str $joiner := $conjunctive ?? 'if' !! 'unless';
+        my str $chained := $guard ?? QAST::Node.unique('junction_unfold_value') !! $tmp;
+        # A negated comparison negates the collapsed junction, so its chain
+        # joins the other way round.
+        my str $joiner := ($negated ?? !$conjunctive !! $conjunctive) ?? 'if' !! 'unless';
         my $result := nqp::null();
         my int $i := nqp::elems(@eigen);
         while --$i >= 0 {
-            my $other := QAST::Var.new( :name($tmp), :scope<local> );
-            my $cmp := $side == 1
-                ?? QAST::Op.new( :op($chain-op), :name($chain-name),
-                    nqp::atpos(@eigen, $i), $other )
-                !! QAST::Op.new( :op($chain-op), :name($chain-name),
-                    $other, nqp::atpos(@eigen, $i) );
+            my $cmp := $compare(nqp::atpos(@eigen, $i), $chained);
             $result := nqp::isnull($result)
                 ?? $cmp
                 !! QAST::Op.new( :op($joiner), $cmp, $result );
         }
-        QAST::Stmts.new(
-            QAST::Op.new( :op<bind>,
-                QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
-                $other-qast),
-            $result)
+
+        my $stmts := QAST::Stmts.new();
+        my $bind-other := QAST::Op.new( :op<bind>,
+            QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
+            $other-qast);
+        $stmts.push($bind-other) if $side == 2;
+        for @eigen-binds {
+            $stmts.push($_);
+        }
+
+        # The chain runs when every value it compares is a concrete one of
+        # the type, or failing that when every one is an exact kind of the
+        # mix. Anything else takes the plain comparison against the junction.
+        if $guard || nqp::elems(@checks) {
+            $context.ensure-sc($type) if $typed;
+            my int $first := $typed ?? 1 !! 2;
+            my int $second := $typed && $mask ?? 2 !! 0;
+            my $junction := -> @args {
+                if nqp::istype($junction-qast, QAST::WVal) {
+                    QAST::WVal.new( :value($junction-qast.value) )
+                }
+                else {
+                    my $call := QAST::Op.new( :op($junction-qast.op),
+                        :name($junction-qast.name) );
+                    for @args {
+                        $call.push($_);
+                    }
+                    $call
+                }
+            };
+            my $plain := -> @args { $compare($junction(@args), $tmp) };
+            my $read := -> str $local, int $level {
+                $level == 1
+                    ?? QAST::Op.new( :op<dispatch>,
+                        QAST::SVal.new( :value<raku-concrete-value-of> ),
+                        QAST::Var.new( :name($local), :scope<local> ),
+                        QAST::WVal.new( :value($type) ) )
+                    !! QAST::Op.new( :op<dispatch>,
+                        QAST::SVal.new( :value<raku-core-value-of> ),
+                        QAST::Var.new( :name($local), :scope<local> ),
+                        QAST::IVal.new( :value($mask) ) )
+            };
+            # Whether the value read from a local at a level is missing,
+            # binding what was read. The first level declares the value local.
+            my $missing := -> str $from, str $to, int $level {
+                my $target := QAST::Var.new( :name($to), :scope<local> );
+                $target.decl('var') if $level == $first;
+                QAST::Op.new( :op<isnull>,
+                    QAST::Op.new( :op<bind>, $target, $read($from, $level) ))
+            };
+            my $either := -> $a, $b {
+                nqp::isnull($a) ?? $b
+                    !! nqp::isnull($b) ?? $a
+                    !! QAST::Op.new( :op<unless>, $a, $b )
+            };
+            my $eigen-missing := -> int $level, int $from-values {
+                my $cond := nqp::null();
+                for @checks {
+                    $cond := $either($cond,
+                        $missing($from-values ?? $_[1] !! $_[0], $_[1], $level));
+                }
+                $cond
+            };
+            my $other-missing := -> int $level, int $from-value {
+                $guard
+                    ?? $missing($from-value ?? $chained !! $tmp, $chained, $level)
+                    !! nqp::null()
+            };
+            my $local := -> str $name { QAST::Var.new( :name($name), :scope<local> ) };
+            my $int-local := -> str $name {
+                QAST::Var.new( :name($name), :scope<local>, :decl<var>, :returns(int) )
+            };
+
+            if !$second {
+                my $eigen := $eigen-missing($first, 0);
+                my $other := $other-missing($first, 0);
+                if $side == 1 && !nqp::isnull($eigen) {
+                    # A junction on the left is built before the right operand
+                    # evaluates. When an eigenstate rules out the chain, the
+                    # junction is built there and compared after that operand.
+                    my str $built := QAST::Node.unique('junction_built');
+                    $stmts.push(QAST::Op.new( :op<bind>,
+                        QAST::Var.new( :name($built), :scope<local>, :decl<var> ),
+                        QAST::Op.new( :op<if>, $eigen,
+                            $junction(@containers),
+                            QAST::Op.new( :op<null> ) )));
+                    $result := QAST::Op.new( :op<if>, $other, $plain(@values), $result)
+                        unless nqp::isnull($other);
+                    $result := QAST::Op.new( :op<if>,
+                        QAST::Op.new( :op<isnull>, $local($built) ),
+                        $result,
+                        $compare($local($built), $tmp));
+                }
+                else {
+                    $result := QAST::Op.new( :op<if>, $either($eigen, $other),
+                        $plain(@containers), $result);
+                }
+            }
+            elsif $side == 2 || !nqp::elems(@checks) {
+                # Every operand has evaluated, so a value the type rules out
+                # is read again for the kinds.
+                my $first-missing := $either($eigen-missing(1, 0), $other-missing(1, 0));
+                my $second-missing := $either($eigen-missing(2, 0), $other-missing(2, 0));
+                my $chain-ok := QAST::Op.new( :op<if>, $first-missing,
+                    QAST::Op.new( :op<not_i>, $second-missing ),
+                    QAST::IVal.new( :value(1) ));
+                $result := QAST::Op.new( :op<if>, $chain-ok, $result, $plain(@containers));
+            }
+            else {
+                # A junction on the left is built before the right operand
+                # evaluates, so its eigenstates are checked at both levels
+                # there, and a junction they rule out is built there too.
+                my str $first-missed := QAST::Node.unique('junction_missing');
+                my str $second-missed := QAST::Node.unique('junction_missing');
+                my str $built := QAST::Node.unique('junction_built');
+                $stmts.push(QAST::Op.new( :op<bind>, $int-local($first-missed),
+                    $eigen-missing(1, 0)));
+                $stmts.push(QAST::Op.new( :op<bind>, $int-local($second-missed),
+                    QAST::Op.new( :op<if>, $local($first-missed),
+                        $eigen-missing(2, 0),
+                        QAST::IVal.new( :value(0) ))));
+                $stmts.push(QAST::Op.new( :op<bind>,
+                    QAST::Var.new( :name($built), :scope<local>, :decl<var> ),
+                    QAST::Op.new( :op<if>,
+                        QAST::Op.new( :op<bitand_i>, $local($first-missed), $local($second-missed) ),
+                        $junction(@containers),
+                        QAST::Op.new( :op<null> ) )));
+                my $first-missing := $local($first-missed);
+                my $eigen-second := QAST::Op.new( :op<if>, $local($first-missed),
+                    $local($second-missed),
+                    $eigen-missing(2, 1));
+                my $other-second := nqp::null();
+                if $guard {
+                    my str $other-missed := QAST::Node.unique('junction_missing');
+                    $first-missing := QAST::Op.new( :op<bitor_i>, $first-missing,
+                        QAST::Op.new( :op<bind>, $int-local($other-missed),
+                            $other-missing(1, 0) ));
+                    $other-second := QAST::Op.new( :op<if>, $local($other-missed),
+                        $other-missing(2, 0),
+                        $other-missing(2, 1));
+                }
+                my $chain-ok := QAST::Op.new( :op<if>, $first-missing,
+                    QAST::Op.new( :op<not_i>, $either($eigen-second, $other-second) ),
+                    QAST::IVal.new( :value(1) ));
+                $result := QAST::Op.new( :op<if>, $chain-ok, $result,
+                    QAST::Op.new( :op<if>,
+                        QAST::Op.new( :op<isnull>, $local($built) ),
+                        $plain(@values),
+                        $compare($local($built), $tmp)));
+            }
+        }
+
+        $stmts.push($bind-other) if $side == 1;
+        $stmts.push($result);
+        $stmts
     }
 
     # A junction of type objects a node reduces to, or null: either a
@@ -2690,7 +3167,9 @@ class RakuAST::Node {
         my int $all := 0;
         my $junction;
         if $node.has-compile-time-value {
-            $junction := nqp::decont($node.maybe-compile-time-value);
+            # The checks replace evaluating the node.
+            $junction := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($node);
+            return nqp::null() if nqp::isnull($junction);
             return nqp::null() unless nqp::isconcrete($junction)
                 && nqp::eqaddr($junction.WHAT, $Junction);
             my str $jtype := nqp::getattr($junction, $Junction, '$!type');
@@ -2763,9 +3242,12 @@ class RakuAST::Node {
             return Nil;
         }
         return Nil unless nqp::istype($expr, RakuAST::Parameter);
-        my $where := $expr.where;
-        return Nil unless nqp::isconcrete($where)
-            && nqp::istype($where, RakuAST::Block);
+        # Only a constraint that is smartmatched rather than called can be
+        # a junction of types
+        my $written := $expr.where;
+        return Nil unless nqp::isconcrete($written)
+            && !nqp::istype($written, RakuAST::Code)
+            && !$written.IMPL-PRIMED;
         return Nil if self.IMPL-IN-SOFT-SCOPE($resolver);
         my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
         return Nil if nqp::isnull($Junction);
@@ -2776,18 +3258,6 @@ class RakuAST::Node {
         # one that counts.
         my $nominal := nqp::getattr($expr.meta-object, Parameter, '$!type');
         return Nil if nqp::istype($Junction, nqp::decont($nominal));
-
-        # The written constraint is the invocant of the ACCEPTS call the
-        # begin-time wrapping built around it.
-        my $statements := $where.body.statement-list.IMPL-UNWRAP-LIST(
-            $where.body.statement-list.statements);
-        return Nil unless nqp::elems($statements) == 1
-            && nqp::istype($statements[0], RakuAST::Statement::Expression);
-        my $bool-call := $statements[0].expression;
-        return Nil unless nqp::istype($bool-call, RakuAST::ApplyPostfix);
-        my $accepts-call := $bool-call.operand;
-        return Nil unless nqp::istype($accepts-call, RakuAST::ApplyPostfix);
-        my $written := $accepts-call.operand;
 
         my $data := self.IMPL-JUNCTION-OF-TYPES($resolver, $written);
         return Nil if nqp::isnull($data);
@@ -2804,14 +3274,25 @@ class RakuAST::Node {
         CATCH {
             return nqp::null();
         }
-        return nqp::null() unless $matcher.has-compile-time-value;
-        my $pair := $matcher.maybe-compile-time-value;
+        # The reduction replaces evaluating the matcher.
+        my $pair := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($matcher);
+        return nqp::null() if nqp::isnull($pair);
         my $Pair := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Pair');
         my $Assoc := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Associative');
         return nqp::null() if nqp::isnull($Pair) || nqp::isnull($Assoc);
         return nqp::null() unless nqp::isconcrete($pair)
             && nqp::istype($pair, $Pair)
             && nqp::eqaddr($pair.WHAT, $Pair);
+        # A thunk claims its code object rather than its result, and a
+        # mutable key or value can change before the match runs. A core
+        # type object and a block written as the value have a fixed truth.
+        my $value := nqp::getattr($pair, $Pair, '$!value');
+        return nqp::null()
+            unless self.IMPL-IMMUTABLE-VALUE($resolver, nqp::getattr($pair, $Pair, '$!key'))
+            && (self.IMPL-IMMUTABLE-VALUE($resolver, $value)
+                || !nqp::iscont($value) && !nqp::isconcrete($value)
+                    && self.IMPL-CORE-VALUE-TYPE($resolver, $value.WHAT)
+                || self.IMPL-BLOCK-VALUED-COLONPAIR($matcher));
         my $accepts := nqp::tryfindmethod($Pair, 'ACCEPTS');
         return nqp::null() unless nqp::isconcrete($accepts)
             && nqp::can($accepts, 'IS-SETTING-ONLY')
@@ -3020,11 +3501,14 @@ class RakuAST::Node {
             if $truth {
                 return $expr unless self.IMPL-BRANCH-COLLAPSIBLE($expr.then);
                 for $expr.IMPL-UNWRAP-LIST($expr.elsifs) {
-                    return $expr unless self.IMPL-DROPPABLE($_.condition);
+                    return $expr unless self.IMPL-DROPPABLE($_.condition)
+                        && self.IMPL-NO-FORMED-CODE($_.then);
                 }
+                return $expr unless self.IMPL-NO-FORMED-CODE($expr.else);
                 return self.IMPL-BRANCH-STATEMENT($expr.then);
             }
-            return $expr if nqp::elems($expr.IMPL-UNWRAP-LIST($expr.elsifs));
+            return $expr if nqp::elems($expr.IMPL-UNWRAP-LIST($expr.elsifs))
+                || !self.IMPL-NO-FORMED-CODE($expr.then);
             my $else := $expr.else;
             if nqp::isconcrete($else) {
                 return $expr unless self.IMPL-BRANCH-COLLAPSIBLE($else);
@@ -3041,6 +3525,7 @@ class RakuAST::Node {
                 return $expr unless self.IMPL-BRANCH-COLLAPSIBLE($expr.body);
                 return self.IMPL-BRANCH-STATEMENT($expr.body);
             }
+            return $expr unless self.IMPL-NO-FORMED-CODE($expr.body);
             return self.IMPL-EMPTY-STATEMENT($resolver, $expr);
         }
         elsif nqp::istype($expr, RakuAST::Statement::Expression) {
@@ -3137,14 +3622,14 @@ class RakuAST::Node {
     # The compile-time type object a matcher node reduces to a type check
     # against, or null when it is anything else: the matcher must carry a
     # compile-time type-object value, non-generic, whose ACCEPTS no user
-    # candidate can intercept.
+    # candidate can intercept. The check replaces evaluating the matcher,
+    # so the value comes from IMPL-TRUSTED-COMPILE-TIME-VALUE.
     method IMPL-TYPEMATCH-MATCHER-TYPE(Mu $matcher) {
         CATCH {
             return nqp::null();
         }
-        return nqp::null() unless $matcher.has-compile-time-value;
-        my $type := $matcher.maybe-compile-time-value;
-        return nqp::null() if nqp::isconcrete($type);
+        my $type := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($matcher);
+        return nqp::null() if nqp::isnull($type) || nqp::isconcrete($type);
         my $how := $type.HOW;
         return nqp::null() unless nqp::can($how, 'archetypes');
         return nqp::null() if $how.archetypes($type).generic;
@@ -3308,7 +3793,7 @@ class RakuAST::Node {
             && self.IMPL-FOLDABLE-OPERAND($left)
             && nqp::can($left-value.HOW, 'archetypes')
             && !$left-value.HOW.archetypes($left-value).generic
-            && self.IMPL-DROPPABLE($left) && self.IMPL-DROPPABLE($right) {
+            && self.IMPL-DROPPABLE($left) {
             my int $matches := nqp::istype($left-value, $type);
             $matches := nqp::not_i($matches) if $negated;
             return self.IMPL-SMARTMATCH-FOLD-RESULT($expr,
@@ -3321,8 +3806,11 @@ class RakuAST::Node {
         # autothreading, while a matcher wide enough to admit a Junction
         # does not autothread over one either. A failed guarantee proves
         # nothing about the runtime value, so only success folds, and a
-        # subset's refinement must still run.
-        if !$is-subset && nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved {
+        # subset's refinement must still run. A declared type is itself an
+        # undefined type object, so a match against a definite or coercion
+        # type proves nothing either.
+        if !$is-subset && !$archetypes.definite && !$archetypes.coercive
+            && nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved {
             my $topic-type := $left.return-type;
             my $resolution := $left.resolution;
             if $topic-type =:= Mu
@@ -3344,65 +3832,6 @@ class RakuAST::Node {
         $infix.IMPL-SET-TYPEMATCH($type,
             nqp::istype($type, $Junction) ?? nqp::null() !! $Junction);
         $expr
-    }
-
-    # Squaring by the core power operator becomes a multiply of the operand
-    # with itself: the power routine handles any exponent, bottoming out in a
-    # bignum power or libm pow, where the multiply is a single operation.
-    # Only a plain resolved variable qualifies, so no side effect is
-    # duplicated, and only one whose type rules out a Junction: a junction
-    # squares each eigenstate, but autothreads over both sides of a multiply,
-    # which builds a different junction. A native can never hold one; a boxed
-    # variable qualifies when its declared type and Junction are unrelated.
-    # The multiply emitted must itself be the core one in the node's scope.
-    # The soft pragma turns the rewrite off, since it bypasses the power
-    # routine that wrapping relies on.
-    method IMPL-REWRITE-SQUARE(RakuAST::Resolver $resolver, Mu $expr) {
-        return $expr if $resolver.IMPL-AHEAD-OF-UNIT-WALK;
-        CATCH {
-            return $expr;
-        }
-
-        return $expr unless nqp::istype($expr, RakuAST::ApplyInfix);
-        my $infix := $expr.infix;
-        return $expr unless nqp::istype($infix, RakuAST::Infix)
-            && $infix.is-resolved
-            && $infix.operator eq '**';
-
-        # An exponent that is the literal integer 2.
-        my $right := $expr.right;
-        return $expr unless nqp::istype($right, RakuAST::IntLiteral);
-        my $exp := $right.compile-time-value;
-        return $expr if nqp::isbig_I($exp);
-        return $expr unless nqp::iseq_i(nqp::unbox_i($exp), 2);
-
-        # A plain resolved variable whose type rules out a Junction.
-        my $left := $expr.left;
-        return $expr unless nqp::istype($left, RakuAST::Var::Lexical)
-            && $left.is-resolved;
-        my $type := $left.return-type;
-        unless nqp::objprimspec($type) {
-            my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
-            return $expr if nqp::isnull($Junction);
-            return $expr if $type =:= Mu;
-            return $expr unless nqp::can($type.HOW, 'archetypes')
-                && !$type.HOW.archetypes($type).generic;
-            return $expr if nqp::istype($type, $Junction)
-                || nqp::istype($Junction, $type);
-        }
-
-        return $expr if self.IMPL-IN-SOFT-SCOPE($resolver);
-        return $expr unless self.IMPL-OPERATOR-IS-CORE($resolver, $infix);
-        my $mul := $resolver.resolve-lexical('&infix:<*>');
-        return $expr unless nqp::isconcrete($mul)
-            && nqp::istype($mul, RakuAST::Declaration::External::Setting);
-
-        my $mul-op := RakuAST::Infix.new('*');
-        $mul-op.set-resolution($mul);
-        my $product := RakuAST::ApplyInfix.new(
-            :left($left), :infix($mul-op), :right($left));
-        $product.set-origin($expr.origin) if nqp::isconcrete($expr.origin);
-        $product
     }
 
     # A slice of a plain variable by literal integer indexes becomes the
@@ -3620,20 +4049,15 @@ class RakuAST::Node {
     # Raku truth value of a node, or -1 when it cannot be determined safely.
     # Folding only ever evaluates pure operators on foldable operands, while
     # truthiness has to consider any constant, so this is deliberately narrow:
-    # the value must be a concrete Cool or Bool, whose .Bool is pure and
-    # well-defined. Type objects (not concrete) are declined, since a type used
-    # here is not the instance the running program would test. Resolving the
-    # guard types also declines during early bootstrap, before they are
-    # available.
+    # the value must be one IMPL-IMMUTABLE-VALUE accepts, whose .Bool is pure
+    # and whose content never changes. Type objects (not concrete) are
+    # declined, since a type used here is not the instance the running
+    # program would test. Resolving the value types also declines during
+    # early bootstrap, before they are available.
     method IMPL-CONSTANT-TRUTH(RakuAST::Resolver $resolver, Mu $expr) {
-        return -1 unless $expr.has-compile-time-value;
-        my $value := $expr.maybe-compile-time-value;
-        return -1 unless nqp::isconcrete($value);
-
-        my $Cool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Cool');
-        my $Bool := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Bool');
-        return -1 if nqp::isnull($Cool) || nqp::isnull($Bool);
-        return -1 unless nqp::istype($value, $Cool) || nqp::istype($value, $Bool);
+        my $value := self.IMPL-TRUSTED-COMPILE-TIME-VALUE($expr);
+        return -1 if nqp::isnull($value)
+            || !self.IMPL-IMMUTABLE-VALUE($resolver, $value);
 
         # A constant whose .Bool itself throws keeps that throw at runtime,
         # where the program put it, so the collapse declines.
@@ -3693,16 +4117,103 @@ class RakuAST::Node {
     # comes first because a node can be both a declaration and a scope, the way
     # a named sub installs itself in the surrounding scope while its body is a
     # scope of its own. A node that is only a lexical scope confines anything
-    # declared inside it, so there is no need to look further down.
+    # declared inside it, so there is no need to look further down for a
+    # declaration.
+    # Code compiled ahead of the unit, such as a role method or a BEGIN block,
+    # has registered a code object for each block in it, and the unit must
+    # still emit every one of them, so a branch holding such code is kept.
     method IMPL-DROPPABLE(Mu $node) {
         return 1 unless nqp::isconcrete($node);
         return 0 if nqp::istype($node, RakuAST::Declaration);
-        return 1 if nqp::istype($node, RakuAST::LexicalScope);
+        return 0 if nqp::istype($node, RakuAST::Code) && $node.IMPL-HAS-QAST-BLOCK;
+        return self.IMPL-NO-FORMED-CODE($node)
+            if nqp::istype($node, RakuAST::LexicalScope);
         my int $droppable := 1;
         $node.visit-children(-> $child {
             $droppable := 0 unless self.IMPL-DROPPABLE($child);
         });
         $droppable
+    }
+
+    # Whether no code in the node has formed its block yet.
+    method IMPL-NO-FORMED-CODE(Mu $node) {
+        return 1 unless nqp::isconcrete($node);
+        return 0 if nqp::istype($node, RakuAST::Code) && $node.IMPL-HAS-QAST-BLOCK;
+        my int $none := 1;
+        $node.visit-children(-> $child {
+            $none := 0 if $none && !self.IMPL-NO-FORMED-CODE($child);
+        });
+        $none
+    }
+
+    # The compile-time value a node claims, or null when an optimization
+    # may not use it in place of evaluating the node. Removing the node must
+    # be safe, and a container's content can change before the node runs.
+    method IMPL-TRUSTED-COMPILE-TIME-VALUE(Mu $node) {
+        return nqp::null() unless $node.has-compile-time-value;
+        my $value := $node.maybe-compile-time-value;
+        nqp::iscont($value) || !self.IMPL-DROPPABLE($node)
+            ?? nqp::null() !! $value
+    }
+
+    # Whether a value is of a core value type, a core enum value, or a
+    # reified List of such values, whose content never changes and whose
+    # truth and string form no user code decides.
+    method IMPL-IMMUTABLE-VALUE(RakuAST::Resolver $resolver, Mu $value is raw) {
+        return 0 if nqp::iscont($value) || !nqp::isconcrete($value);
+        my $what := $value.WHAT;
+        return 1 if self.IMPL-CORE-VALUE-TYPE($resolver, $what);
+        my $how := $what.HOW;
+        if nqp::istype($how, Perl6::Metamodel::EnumHOW) {
+            my $core := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, $how.name($what));
+            return !nqp::isnull($core) && nqp::eqaddr($core, $what) ?? 1 !! 0;
+        }
+        my $List := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'List');
+        return 0 if nqp::isnull($List) || !nqp::eqaddr($what, $List)
+            || nqp::isconcrete(nqp::getattr($value, $List, '$!todo'));
+        my $reified := nqp::getattr($value, $List, '$!reified');
+        if nqp::isconcrete($reified) {
+            my int $i := -1;
+            my int $n := nqp::elems($reified);
+            while ++$i < $n {
+                return 0 unless self.IMPL-IMMUTABLE-VALUE($resolver,
+                    nqp::atpos($reified, $i));
+            }
+        }
+        1
+    }
+
+    # Whether a type is exactly one of the core value types.
+    method IMPL-CORE-VALUE-TYPE(RakuAST::Resolver $resolver, Mu $what) {
+        for <Bool Int Str Num Rat Complex IntStr NumStr RatStr ComplexStr> {
+            my $type := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, $_);
+            return 1 if !nqp::isnull($type) && nqp::eqaddr($what, $type);
+        }
+        0
+    }
+
+    # Whether a matcher is a colonpair written with a block as its value.
+    # The value evaluates to a code object, which is always true.
+    method IMPL-BLOCK-VALUED-COLONPAIR(Mu $matcher) {
+        my $pair := self.IMPL-UNWRAP-PARENS($matcher);
+        nqp::istype($pair, RakuAST::ColonPair::Value)
+            && nqp::istype(self.IMPL-UNWRAP-PARENS($pair.value), RakuAST::Block)
+            ?? 1 !! 0
+    }
+
+    # The expression inside any grouping parentheses around a single
+    # statement without a modifier, or the node itself.
+    method IMPL-UNWRAP-PARENS(Mu $node) {
+        while nqp::istype($node, RakuAST::Circumfix::Parentheses) {
+            my $semilist := $node.semilist;
+            return $node unless nqp::istype($semilist, RakuAST::SemiList)
+                && $semilist.IMPL-IS-SINGLE-EXPRESSION;
+            my $statement := self.IMPL-UNWRAP-LIST($semilist.statements)[0];
+            return $node if nqp::isconcrete($statement.condition-modifier)
+                || nqp::isconcrete($statement.loop-modifier);
+            $node := $statement.expression;
+        }
+        $node
     }
 
     # Constant folding. Given a child expression, if it is a pure operator
@@ -3842,6 +4353,7 @@ class RakuAST::Node {
     # is not flagged. A meta operator or one not yet resolved keeps the
     # operator node's own classification.
     method IMPL-SUNK-OPERATOR-PURE(Mu $operator) {
+        $operator := $operator.IMPL-UNBRACKETED if nqp::istype($operator, RakuAST::Infixish);
         (nqp::istype($operator, RakuAST::Infix)
           || nqp::istype($operator, RakuAST::Prefix))
           && $operator.is-resolved
@@ -3924,15 +4436,429 @@ class RakuAST::Node {
         my $inner := $statement.expression;
         self.IMPL-FOLDABLE-OPERAND($inner) ?? $inner !! $expr
     }
+
+    # What a pseudo-stash lookup asks once the context chain it walks runs
+    # out. Code run for a begin-time effect has the setting as its outer,
+    # so that chain reaches setting symbols and stops short of what the
+    # unit being compiled declares. The token restricts the answer to
+    # frames this compilation produced: the lookup consults the resolver
+    # only when the frame it runs in sees the same token, so foreign code
+    # the effect merely runs is not answered for. Null without a context,
+    # since no frame can then carry the token.
+    method IMPL-BEGIN-TIME-LOOKUP-STATE(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        nqp::isconcrete($context)
+          ?? nqp::list($resolver, $context.begin-time-marker)
+          !! nqp::null()
+    }
+
+    # The declarations under this node a scope outside its frame can own,
+    # along with the list declarations whose implicit declarations it can,
+    # leaving out the topic, a nested scope's own, and a bound list.
+    method IMPL-HOISTABLE-DECLARATIONS() {
+        my @hoistable;
+        self.visit-dfs: -> $node {
+            if nqp::istype($node, RakuAST::StatementPrefix::Phaser::HoistsStatement)
+              && nqp::isconcrete($node.IMPL-HOISTED-STATEMENT) {
+                for $node.IMPL-HOISTED-STATEMENT.IMPL-HOISTABLE-DECLARATIONS {
+                    nqp::push(@hoistable, $_);
+                }
+                0
+            }
+            elsif nqp::istype($node, RakuAST::VarDeclaration::Signature)
+              && nqp::isconcrete($node.initializer)
+              && $node.initializer.is-binding {
+                0
+            }
+            else {
+                if nqp::istype($node, RakuAST::Declaration)
+                  && !nqp::istype($node, RakuAST::VarDeclaration::Implicit) {
+                    if $node.is-simple-lexical-declaration {
+                        nqp::push(@hoistable, $node) if $node.lexical-name ne '$_';
+                    }
+                    elsif nqp::istype($node, RakuAST::ImplicitDeclarations)
+                      && !nqp::istype($node, RakuAST::LexicalScope) {
+                        nqp::push(@hoistable, $node);
+                    }
+                }
+                nqp::eqaddr($node, self) || !nqp::istype($node, RakuAST::LexicalScope)
+            }
+        }
+        @hoistable
+    }
+
+    # Called when a BEGIN-time construct needs to evaluate code. Tries to
+    # interpret simple things to avoid the cost of compilation, unless told
+    # to compile.
+    method IMPL-BEGIN-TIME-EVALUATE(
+                   RakuAST::Node $code,
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context,
+                           Bool :$compile
+    ) {
+        my $*IMPL-COMPILE-DYNAMICALLY := 1;
+        my $*BEGIN-TIME-LOOKUP :=
+          self.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
+
+        # Handle any execution error appropriately
+        CATCH {
+            self.IMPL-BEGIN-TIME-FAILURE($_, $resolver, $code);
+        }
+
+        # Can interprete, so do that
+        my $result;
+        if !$compile && $code.IMPL-CAN-INTERPRET {
+            $result := $code.IMPL-INTERPRET(
+              RakuAST::IMPL::InterpContext.new(:$resolver, :$context)
+            )
+        }
+
+        # A deferred phaser like INIT has not run at BEGIN time, so its value
+        # is whatever its cache holds, which is undefined until it runs. Hand
+        # that back rather than the block itself.
+        elsif nqp::istype($code, RakuAST::StatementPrefix::Phaser::Init) {
+            $result := nqp::ifnull(nqp::decont($code.container), Mu)
+        }
+
+        # A code literal's begin-time value is its own code object,
+        elsif nqp::istype($code, RakuAST::Code)
+          # unless it is a value-producing statement prefix (gather, start, and
+          # friends), whose value is what running it produces, not the code,
+          && (!nqp::istype($code, RakuAST::StatementPrefix)
+              # though a phaser is a statement prefix whose caller runs the
+              # code object we hand back, so keep those.
+              || nqp::istype($code, RakuAST::StatementPrefix::Phaser)) {
+            $result := $code.meta-object
+        }
+
+        # Wrap an expression in a thunk
+        elsif nqp::istype($code, RakuAST::Expression) {
+            my $thunk := RakuAST::ExpressionThunk.new;
+            $code.wrap-with-thunk($thunk);
+            $thunk.IMPL-SET-COMPILED-ALONE;
+            $thunk.IMPL-STUB-CODE($resolver, $context);
+            $code.apply-sink(False);
+            $thunk.IMPL-QAST-BLOCK($context, :expression($code));
+            $result := $thunk.meta-object()()
+        }
+        else {
+            nqp::die('BEGIN time evaluation only supported for simple constructs so far')
+        }
+
+        self.IMPL-BOX-VM-VALUE($result)
+    }
+
+    method IMPL-BEGIN-TIME-FAILURE(Mu $exception, RakuAST::Resolver $resolver, Mu $code?) {
+        my $ex := $resolver.convert-exception($exception);
+
+        # A node evaluating code before it has an origin, such as a package
+        # applying its traits, locates the error at that code instead.
+        $code.IMPL-LOCATE-UNLOCATED-EXCEPTION($ex)
+          if nqp::isconcrete($code)
+          && !(nqp::isconcrete(self) && nqp::isconcrete(self.origin));
+
+        # Can handle it properly
+        if nqp::istype(self,RakuAST::CheckTime) {
+            self.add-sorry: $ex;
+            $resolver.note-deferred-begin-sorry;
+        }
+
+        # Alas, need to rethrow wil line info if possible
+        else {
+            self.IMPL-LOCATE-UNLOCATED-EXCEPTION($ex);
+            $ex.rethrow;
+        }
+    }
+
+    # Whether BEGIN time evaluation is inside a call that can compile what it
+    # evaluates, which needs the QAST context of that call. The flag holds the
+    # call's resolver, so a nested compilation, such as an EVAL, does not.
+    method IMPL-IN-BEGIN-TIME-CALL(str $flag) {
+        my $resolver := nqp::getlexdyn($flag);
+        !nqp::isnull($resolver)
+          && nqp::isconcrete($resolver)
+          && nqp::eqaddr($resolver, nqp::getlexdyn('$*R')) ?? True !! False
+    }
+
+    method IMPL-CAN-COMPILE-OPERANDS() {
+        self.IMPL-IN-BEGIN-TIME-CALL('$*IMPL-INTERPRET-COMPILES')
+    }
+
+    # Whether an operand has a thunk other than a prime, which compiled code
+    # passes in its place.
+    method IMPL-THUNKED-OPERAND(Mu $operand) {
+        my $thunk := nqp::istype($operand, RakuAST::Expression)
+          ?? $operand.outer-most-thunk
+          !! Mu;
+        $thunk && !nqp::istype($thunk, RakuAST::PrimeThunk) ?? 1 !! 0
+    }
+
+    # The block or routine literal an operand is, parenthesized or not, whose
+    # BEGIN time value is its own code object.
+    method IMPL-CODE-LITERAL(Mu $operand) {
+        my $code := self.IMPL-UNWRAP-PARENS($operand);
+        nqp::istype($code, RakuAST::Block) || nqp::istype($code, RakuAST::Routine)
+          ?? $code
+          !! Nil
+    }
+
+    # Whether IMPL-INTERPRET-OPERAND can give an operand the value compiled
+    # code gives it. With $compile, an application whose operands the
+    # interpreter cannot all run compiles whole instead.
+    method IMPL-CAN-INTERPRET-OPERAND(Mu $operand, Bool :$compile) {
+        $compile && self.IMPL-CAN-COMPILE-OPERANDS
+          || !self.IMPL-THUNKED-OPERAND($operand)
+            && ($operand.IMPL-CAN-INTERPRET || $compile && self.IMPL-CODE-LITERAL($operand))
+    }
+
+    method IMPL-INTERPRET-OPERAND(RakuAST::IMPL::InterpContext $ctx, Mu $operand) {
+        my $code := self.IMPL-CODE-LITERAL($operand);
+        $code ?? $code.meta-object !! $operand.IMPL-INTERPRET($ctx)
+    }
+
+    # Runs an application at BEGIN time as compiled code runs it. Unless the
+    # interpreter runs every operand, the application compiles whole, so its
+    # operands share a frame as they do in compiled code.
+    method IMPL-INTERPRET-OR-COMPILE(RakuAST::IMPL::InterpContext $ctx, Mu $interpret) {
+        return $interpret() unless self.IMPL-CAN-COMPILE-OPERANDS;
+        self.IMPL-INTERPRETS-EACH-OPERAND
+          ?? self.IMPL-INTERPRET-WITHOUT-COMPILING($interpret)
+          !! self.IMPL-COMPILE-APPLICATION($ctx)
+    }
+
+    method IMPL-INTERPRETS-EACH-OPERAND() {
+        my $*IMPL-INTERPRET-COMPILES := nqp::null();
+        self.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET-WITHOUT-COMPILING(Mu $interpret) {
+        my $*IMPL-INTERPRET-COMPILES := nqp::null();
+        $interpret()
+    }
+
+    # The operands a compiled application needs no frame for, as they are a
+    # WhateverCode or code literal, found through the applications it runs in
+    # the same frame. None when a declared variable could reach one.
+    method IMPL-STATIC-OPERANDS() {
+        my @static;
+        return @static if self.IMPL-DECLARES-VARIABLE(self);
+        my @applications := [self];
+        while @applications {
+            for nqp::shift(@applications).IMPL-FRAME-OPERANDS {
+                next if self.IMPL-THUNKED-OPERAND($_);
+                my $operand := self.IMPL-UNWRAP-PARENS($_);
+                if self.IMPL-CODE-LITERAL($operand)
+                  || nqp::istype($operand, RakuAST::WhateverApplicable)
+                    && $operand.IMPL-PRIMED-CAN-INTERPRET {
+                    nqp::push(@static, $operand);
+                }
+                elsif nqp::elems($operand.IMPL-FRAME-OPERANDS) {
+                    nqp::push(@applications, $operand);
+                }
+            }
+        }
+        @static
+    }
+
+    # The operands an application evaluates in its own frame at BEGIN time.
+    method IMPL-FRAME-OPERANDS() { [] }
+
+    # Compiles an application on its own at BEGIN time, each static operand
+    # standing for the code object the interpreter gives it, so the object
+    # outlives the frame compiled here.
+    method IMPL-COMPILE-APPLICATION(RakuAST::IMPL::InterpContext $ctx) {
+        my @static := self.IMPL-STATIC-OPERANDS;
+        my @thunks;
+        CATCH {
+            my int $i := -1;
+            nqp::bindattr(@static[$i], RakuAST::Expression, '$!thunks', @thunks[$i])
+              while ++$i < nqp::elems(@thunks);
+            nqp::rethrow($_);
+        }
+        for @static -> $operand {
+            my $code := self.IMPL-CODE-LITERAL($operand);
+            my $value := $code ?? $code.meta-object !! $operand.IMPL-PRIMED-INTERPRET($ctx);
+            nqp::push(@thunks, nqp::getattr($operand, RakuAST::Expression, '$!thunks'));
+            nqp::bindattr($operand, RakuAST::Expression, '$!thunks',
+              RakuAST::IMPL::BeginTimeValue.new($value));
+        }
+        my $value := self.IMPL-COMPILE-OPERAND($ctx, self);
+        my int $i := -1;
+        nqp::bindattr(@static[$i], RakuAST::Expression, '$!thunks', @thunks[$i])
+          while ++$i < nqp::elems(@thunks);
+        $value
+    }
+
+    # IMPL-BEGIN-TIME-EVALUATE wraps the operand in a thunk of its own, so the
+    # operand's own thunks are put back afterwards.
+    method IMPL-COMPILE-OPERAND(RakuAST::IMPL::InterpContext $ctx, Mu $operand) {
+        my $thunks := nqp::getattr($operand, RakuAST::Expression, '$!thunks');
+        CATCH {
+            nqp::bindattr($operand, RakuAST::Expression, '$!thunks', $thunks);
+            nqp::rethrow($_);
+        }
+        nqp::bindattr($operand, RakuAST::Expression, '$!thunks', nqp::null());
+        my $value := RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(
+          $operand,
+          $ctx.resolver,
+          $ctx.context,
+          :compile
+        );
+        nqp::bindattr($operand, RakuAST::Expression, '$!thunks', $thunks);
+        $value
+    }
+
+    # Calls what compiled code calls, with the operands it passes, evaluated
+    # in the order it evaluates them. With $box, a VM value is passed as the
+    # Raku value compiled code would see.
+    method IMPL-INTERPRET-CALL(
+      RakuAST::IMPL::InterpContext $ctx,
+                                Mu $callee,
+                                   @operands,
+                             Bool :$box
+    ) {
+        my @values;
+        for @operands {
+            my $value := self.IMPL-INTERPRET-OPERAND($ctx, $_);
+            nqp::push(@values, $box ?? self.IMPL-BOX-VM-VALUE($value) !! $value);
+        }
+        $callee(|@values)
+    }
+
+    # Whether code declares a variable outside any scope of its own.
+    method IMPL-DECLARES-VARIABLE(Mu $code) {
+        my int $declares;
+        $code.visit-dfs(-> $node {
+            $declares := 1 if nqp::istype($node, RakuAST::VarDeclaration);
+            !$declares && !nqp::istype($node, RakuAST::LexicalScope)
+        });
+        $declares
+    }
+
+    # A native-typed expression evaluates to a bare VM-level box (for
+    # example a BOOTInt) where the same expression at run time would
+    # produce an Int. Such a box has no Raku method table and a null
+    # WHO, so letting it escape into a stash breaks stash consumers
+    # like the compunit GLOBAL merge. Box VM-level scalars into their
+    # Raku types; leave VM-level aggregates alone, as constants holding
+    # nqp hashes and lists rely on staying unboxed.
+    # The result parameter must stay raw: a begin-time value may be a
+    # container, like a Proxy a constant binds, and the entry decont the
+    # method compiler emits for a non-raw parameter would strip it.
+    method IMPL-BOX-VM-VALUE(Mu $result is raw) {
+        unless nqp::isnull($result) {
+            # A native reference must not escape either. The frame
+            # holding the referenced slot is gone once this evaluation
+            # returns, and a reference cannot be serialized. Snapshot
+            # the referenced value, leaving a VM-level box for the
+            # code below.
+            if nqp::iscont_i($result) {
+                $result := nqp::box_i(nqp::decont_i($result), nqp::bootint());
+            }
+            elsif nqp::iscont_u($result) {
+                $result := nqp::box_u(nqp::decont_u($result), nqp::bootint());
+            }
+            elsif nqp::iscont_n($result) {
+                $result := nqp::box_n(nqp::decont_n($result), nqp::bootnum());
+            }
+            elsif nqp::iscont_s($result) {
+                $result := nqp::box_s(nqp::decont_s($result), nqp::bootstr());
+            }
+            my $type := nqp::what($result);
+            $result := nqp::hllizefor($result, 'Raku')
+              if nqp::eqaddr($type, nqp::bootint())
+              || nqp::eqaddr($type, nqp::bootnum())
+              || nqp::eqaddr($type, nqp::bootstr());
+        }
+        $result
+    }
+
+    # Evaluate the argument of a pragma, use, import, or require into an
+    # argument list, boxing the result, which is consumed as a Raku List.
+    method IMPL-BEGIN-TIME-ARGLIST(
+                   RakuAST::Node $argument,
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        $argument
+          ?? nqp::hllizefor(
+               self.IMPL-BEGIN-TIME-EVALUATE($argument, $resolver, $context),
+               'Raku'
+             ).List.FLATTENABLE_LIST
+          !! Nil
+    }
+
+    # Called when a BEGIN-time construct wants to evaluate a resolved code
+    # with a set of arguments.
+    method IMPL-BEGIN-TIME-CALL(
+                   RakuAST::Node $callee,
+                RakuAST::ArgList $args,
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context,
+                   RakuAST::Node :$locus
+    ) {
+        my $*IMPL-COMPILE-DYNAMICALLY := 1;
+        my $*BEGIN-TIME-LOOKUP :=
+          self.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
+
+        # A primed argument (a WhateverCode) may be interpreted here, as
+        # its static block compiles against a real QAST context, and so may
+        # an application whose operands the interpreter cannot all run.
+        my $*IMPL-INTERPRET-PRIMED := $resolver;
+        my $*IMPL-INTERPRET-COMPILES := $resolver;
+
+        # Ready to call
+        if $callee.is-resolved
+          && nqp::istype($callee.resolution, RakuAST::CompileTimeValue)
+          && $args.IMPL-CAN-INTERPRET {
+            my $resolved := $callee.resolution.compile-time-value;
+            my $interpreted := self.IMPL-BEGIN-TIME-INTERPRET-ARGS($args, $resolver, $context);
+            return Nil if nqp::isnull($interpreted);
+
+            # Separate out positional and named args first before flattening
+            # them, as NQP is not as smart as is sometimes expected
+            my @pos   := $interpreted[0];
+            my %named := $interpreted[1];
+            $resolved(|@pos, |%named)
+        }
+
+        # Not ready, wrap in a call and evaluate that
+        else {
+            my $call := RakuAST::ApplyPostfix.new(
+              :postfix(RakuAST::Call::Term.new(:$args)),
+              :operand($callee)
+            );
+            # The call has no origin of its own, so an error in it reports at
+            # the locus.
+            $call.set-origin($locus.origin)
+              if nqp::isconcrete($locus) && nqp::isconcrete($locus.origin);
+            $call.to-begin-time($resolver, $context);
+            self.IMPL-BEGIN-TIME-EVALUATE($call, $resolver, $context)
+        }
+    }
+
+    # Interprets the arguments of a BEGIN time call, reporting an error as
+    # IMPL-BEGIN-TIME-EVALUATE does. Null when an error was reported. An error
+    # for code with no source position yet, such as a package, is rethrown.
+    method IMPL-BEGIN-TIME-INTERPRET-ARGS(
+                RakuAST::ArgList $args,
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        CATCH {
+            nqp::rethrow($_) unless nqp::isconcrete(self.origin);
+            self.IMPL-BEGIN-TIME-FAILURE($_, $resolver);
+            return nqp::null();
+        }
+        $args.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context))
+    }
 }
 
 # Anything with a known compile time value does RakuAST::CompileTimeValue.
-class RakuAST::CompileTimeValue
-  is RakuAST::Node
-{
-    method compile-time-value() {
-        nqp::die('compile-time-value not implemented for ' ~ self.HOW.name(self))
-    }
+role RakuAST::CompileTimeValue {
+    method compile-time-value() { ... }
 
     method has-compile-time-value() {
         True
@@ -3943,8 +4869,7 @@ class RakuAST::CompileTimeValue
     }
 }
 
-class RakuAST::MayCreateBlock {
-    method creates-block {
-        False
-    }
+# Done by anything that may need a block of its own in the generated code.
+role RakuAST::MayCreateBlock {
+    method creates-block(--> Bool) { ... }
 }

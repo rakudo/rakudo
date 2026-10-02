@@ -89,7 +89,8 @@ my role QuantHash::KeyOf[::CONSTRAINT] is implementation-detail {
     method keyof() { CONSTRAINT }
     method is-generic { CONSTRAINT.^archetypes.generic }
     method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
-        self.^parameterize: type-environment.instantiate(CONSTRAINT)
+        self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize:
+          type-environment.instantiate(CONSTRAINT)
     }
 
     # Create the Callable for checking the type of a key value and

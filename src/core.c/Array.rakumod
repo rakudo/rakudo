@@ -636,19 +636,13 @@ my class Array { # declared in BOOTSTRAP
         nqp::bitand_i(
           nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
           nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo'))),
-        ) ?? nqp::p6assign(
-               nqp::ifnull(
-                 nqp::atpos($reified, $pos),
-                 nqp::bindpos(
-                   $reified,
-                   $pos,
-                   nqp::p6bindattrinvres(
-                     nqp::create(Scalar),Scalar,'$!descriptor',$!descriptor
-                   )
-                 )
-               ),
-               nqp::decont(assignee)
-             )
+        ) ?? nqp::isnull(my \existing := nqp::atpos($reified, $pos))
+               ?? nqp::bindpos(
+                    $reified,
+                    $pos,
+                    nqp::p6scalarwithvalue($!descriptor, nqp::decont(assignee))
+                  )
+               !! nqp::p6assign(existing, nqp::decont(assignee))
           !! self!ASSIGN_POS_SLOW_PATH($pos, assignee)
     }
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is raw {
@@ -657,100 +651,98 @@ my class Array { # declared in BOOTSTRAP
                nqp::isconcrete(my \reified := nqp::getattr(self,List,'$!reified')),
                nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo'))),
              )
-            ?? nqp::p6assign(
-                 nqp::ifnull(
-                   nqp::atpos(reified, $pos),
-                   nqp::bindpos(
-                     reified,
-                     $pos,
-                     nqp::p6bindattrinvres(
-                       nqp::create(Scalar),Scalar,'$!descriptor',$!descriptor
-                     )
-                   )
-                 ),
-                 nqp::decont(assignee)
-               )
+            ?? nqp::isnull(my \existing := nqp::atpos(reified, $pos))
+              ?? nqp::bindpos(
+                   reified,
+                   $pos,
+                   nqp::p6scalarwithvalue($!descriptor, nqp::decont(assignee))
+                 )
+              !! nqp::p6assign(existing, nqp::decont(assignee))
             !! self!ASSIGN_POS_SLOW_PATH($pos, assignee)
           !! self!INDEX_OOR($pos)
     }
 
     method !ASSIGN_POS_SLOW_PATH(Array:D: int $pos, Mu \assignee) is raw {
         my \reified := nqp::getattr(self,List,'$!reified');
-        nqp::p6assign(
-          nqp::if(
-            nqp::isconcrete(reified),
-            nqp::ifnull(
-              nqp::atpos(reified,$pos),
-              nqp::if(
-                nqp::islt_i($pos,nqp::elems(reified)), # it's a hole
-                nqp::bindpos(
-                  reified,
-                  $pos,
-                  nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
-                ),
-                nqp::if(
-                  nqp::isconcrete(my \todo := nqp::getattr(self,List,'$!todo')),
-                  nqp::stmts(                    # can reify
-                    todo.reify-at-least(nqp::add_i($pos,1)),
-                    nqp::ifnull(
-                      nqp::atpos(reified,$pos),  # reified
-                      nqp::bindpos(              # outlander
-                        reified,
-                        $pos,
-                        nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
-                      )
-                    )
-                  ),
-                  nqp::bindpos(                  # outlander without todo
-                    reified,
-                    $pos,
-                    nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
-                  )
-                )
-              )
+        nqp::if(
+          nqp::isconcrete(reified),
+          nqp::stmts(
+            nqp::if(
+              nqp::isge_i($pos,nqp::elems(reified))
+                && nqp::isconcrete(my \todo := nqp::getattr(self,List,'$!todo')),
+              todo.reify-at-least(nqp::add_i($pos,1))
             ),
-            nqp::bindpos(                        # new outlander without reified
-              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
-              $pos,
-              nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor)
+            nqp::if(
+              nqp::isnull(my \existing := nqp::atpos(reified,$pos)),
+              nqp::bindpos(                      # hole or outlander
+                reified,
+                $pos,
+                nqp::p6scalarwithvalue($!descriptor, nqp::decont(assignee))
+              ),
+              nqp::p6assign(existing, nqp::decont(assignee))
             )
           ),
-          nqp::decont(assignee)
+          nqp::stmts(                            # new outlander without reified
+            (my \scalar := nqp::p6scalarwithvalue($!descriptor, nqp::decont(assignee))),
+            nqp::bindpos(
+              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer)),
+              $pos,
+              scalar
+            )
+          )
         )
     }
 
+    # A position below zero or beyond the reified elements takes the
+    # slow path, the former compared unsigned, so that path owns the
+    # range error.
     multi method BIND-POS(Array:D: uint $pos, Mu \bindval) is raw {
         nqp::if(
-          nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
-          nqp::if(
-            nqp::isge_i($pos, nqp::elems($reified))
-              && nqp::isconcrete(my $todo := nqp::getattr(self,List,'$!todo')),
-            $todo.reify-at-least(nqp::add_i($pos,1)),
+          nqp::islt_u(
+            $pos,
+            nqp::if(
+              nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
+              nqp::elems($reified)
+            )
           ),
-          ($reified := nqp::bindattr(
-            self,List,'$!reified',nqp::create(IterationBuffer)
-          ))
-        );
-        nqp::bindpos($reified,$pos,bindval)
+          nqp::bindpos($reified,$pos,bindval),
+          nqp::call(&BIND-POS-SLOW,self,$pos,bindval)
+        )
     }
     multi method BIND-POS(Array:D: Int:D $pos, Mu \bindval) is raw {
         nqp::if(
+          nqp::islt_u(
+            nqp::decont_i($pos),
+            nqp::if(
+              nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
+              nqp::elems($reified)
+            )
+          ),
+          nqp::bindpos($reified,$pos,bindval),
+          nqp::call(&BIND-POS-SLOW,self,$pos,bindval)
+        )
+    }
+
+    # Handle any bind that is not into an already reified slot. A sub
+    # called by the raw op keeps the candidates small enough to inline.
+    my sub BIND-POS-SLOW(\SELF, int $pos, Mu \bindval) is raw {
+        nqp::if(
           nqp::islt_i($pos,0),
-          self!INDEX_OOR($pos),
-          nqp::stmts(  # should refer to uint candidate when that inlines
+          SELF!INDEX_OOR($pos),
+          nqp::stmts(
             nqp::if(
               nqp::isconcrete(
-                my $reified := nqp::getattr(self,List,'$!reified')
+                my $reified := nqp::getattr(SELF,List,'$!reified')
               ),
               nqp::if(
                 nqp::isge_i($pos, nqp::elems($reified))
                   && nqp::isconcrete(
-                       my $todo := nqp::getattr(self,List,'$!todo')
+                       my $todo := nqp::getattr(SELF,List,'$!todo')
                      ),
                 $todo.reify-at-least(nqp::add_i($pos,1)),
               ),
               ($reified := nqp::bindattr(
-                self,List,'$!reified',nqp::create(IterationBuffer)
+                SELF,List,'$!reified',nqp::create(IterationBuffer)
               ))
             ),
             nqp::bindpos($reified,$pos,bindval)

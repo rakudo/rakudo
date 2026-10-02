@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 11;
 
 my $ast;
 my $deparsed;
@@ -137,6 +137,90 @@ subtest 'Hash composer with list of fat arrows works correctly' => {
     is-deeply $deparsed, '{x => 11, y => 22}', 'deparsed';
     is-deeply $_, {:11x, :22y}, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Parenthesized single statement keeps its modifier' => {
+    # (42 if 1)
+    ast RakuAST::Circumfix::Parentheses.new(
+      RakuAST::SemiList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(42),
+          condition-modifier => RakuAST::StatementModifier::If.new(
+            RakuAST::IntLiteral.new(1)
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '(42 if 1)', 'deparse';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Parenthesized for statement' => {
+    # (for 1 .. 2 { $_ }).elems
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::For.new(
+            source => RakuAST::ApplyInfix.new(
+              left  => RakuAST::IntLiteral.new(1),
+              infix => RakuAST::Infix.new('..'),
+              right => RakuAST::IntLiteral.new(2)
+            ),
+            body => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Var::Lexical.new('$_')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('elems')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparsed';
+(for 1 .. 2 {
+    $_
+}).elems
+CODE
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Parsed braces are a hash composer or a block' => {
+    # {}
+    ast '{}'.AST.statements[0].expression;
+    isa-ok $ast, RakuAST::Circumfix::HashComposer, 'empty braces';
+    is-deeply $deparsed, '{}', 'deparsed';
+    is-deeply $_, hash(), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # {a => 42}
+    ast '{a => 42}'.AST.statements[0].expression;
+    isa-ok $ast, RakuAST::Circumfix::HashComposer, 'a fatarrow';
+    is-deeply $deparsed, '{a => 42}', 'deparsed';
+    is-deeply $_, {:42a}, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # {$_ => 42}
+    ast '{$_ => 42}'.AST.statements[0].expression;
+    isa-ok $ast, RakuAST::Block, 'a fatarrow on the topic';
+}
+
+subtest 'An object hash composer parses with a Bool flag' => {
+    plan 3;
+    ok q[:{ }].AST.statements[0].expression.object-hash === True,
+      'an empty object hash reads back as True';
+    ok q[:{ a => 1 }].AST.statements[0].expression.object-hash === True,
+      'an object hash with a pair reads back as True';
+    ok q[{ a => 1 }].AST.statements[0].expression.object-hash === False,
+      'a plain hash composer reads back as False';
 }
 
 # vim: expandtab shiftwidth=4

@@ -36,7 +36,7 @@ class RakuAST::StatementPrefix
 # The `do` statement prefix.
 class RakuAST::StatementPrefix::Do
   is RakuAST::StatementPrefix
-  is RakuAST::SinkPropagator
+  does RakuAST::SinkPropagator
 {
     method type() { "do" }
 
@@ -56,7 +56,7 @@ class RakuAST::StatementPrefix::Do
 # The `quietly` statement prefix.
 class RakuAST::StatementPrefix::Quietly
   is RakuAST::StatementPrefix
-  is RakuAST::SinkPropagator
+  does RakuAST::SinkPropagator
 {
     method type() { "quietly" }
 
@@ -146,12 +146,10 @@ class RakuAST::StatementPrefix::Sink
 
 # Done by statement prefixes that insist on thunking expressions into a code
 # object.
-class RakuAST::StatementPrefix::Thunky
-  is RakuAST::StatementPrefix
-  is RakuAST::MayCreateBlock
-  is RakuAST::Meta
-  is RakuAST::Code
-  is RakuAST::BeginTime
+role RakuAST::StatementPrefix::Thunky
+  does RakuAST::Code
+  does RakuAST::Meta
+  does RakuAST::BeginTime
 {
     method creates-block() {
         nqp::istype(self.blorst, RakuAST::Block) ?? False !! True;
@@ -247,21 +245,8 @@ class RakuAST::StatementPrefix::Thunky
         }
     }
 
-    method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
-            RakuAST::Expression :$expression) {
-        nqp::istype(self.blorst, RakuAST::Block)
-            ?? self.blorst.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
-            !! nqp::findmethod(RakuAST::Code, 'IMPL-QAST-BLOCK')(self,
-                   $context, :$blocktype, :$expression)
-    }
-
-    # A thunk with a block body hands out that block's code object, so
-    # the block is also the node carrying the dynamic compilation mark
-    # and the QAST block a closure of it binds.
-    method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
-        nqp::istype(self.blorst, RakuAST::Block)
-            ?? self.blorst.IMPL-CLOSURE-QAST($context, :$regex)
-            !! nqp::findmethod(RakuAST::Code, 'IMPL-CLOSURE-QAST')(self, $context, :$regex)
+    method IMPL-CODE-CARRIER() {
+        nqp::istype(self.blorst, RakuAST::Block) ?? self.blorst !! self
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
@@ -291,9 +276,10 @@ class RakuAST::StatementPrefix::Thunky
 # expression in a called code object like the traditional grammar, where
 # a backtrace shows the call as a frame.
 class RakuAST::StatementPrefix::Try
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitLookups
+  is RakuAST::StatementPrefix
+  does RakuAST::StatementPrefix::Thunky
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitLookups
 {
     method new(RakuAST::Blorst $blorst) {
         # A try block throws a Failure produced inside it, then catches it here,
@@ -400,8 +386,9 @@ class RakuAST::StatementPrefix::Try
 
 # The `gather` statement prefix.
 class RakuAST::StatementPrefix::Gather
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
+  is RakuAST::StatementPrefix
+  does RakuAST::StatementPrefix::Thunky
+  does RakuAST::SinkPropagator
 {
     method type() { "gather" }
 
@@ -416,9 +403,10 @@ class RakuAST::StatementPrefix::Gather
 
 # Statement prefix base class for generic blorst handling
 class RakuAST::StatementPrefix::Blorst
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::StatementPrefix
+  does RakuAST::StatementPrefix::Thunky
+  does RakuAST::SinkPropagator
+  does RakuAST::ImplicitBlockSemanticsProvider
 {
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(False);
@@ -468,7 +456,7 @@ class RakuAST::StatementPrefix::Blorst
 # The `once` statement prefix.
 class RakuAST::StatementPrefix::Once
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::ImplicitDeclarations
+  does RakuAST::ImplicitDeclarations
 {
     has str $!state-name;
     has RakuAST::VarDeclaration::Implicit::State $!state-decl;
@@ -496,15 +484,9 @@ class RakuAST::StatementPrefix::Once
         # its value rather than nqp::p6stateinit makes the once fire exactly
         # once per clone of the frame that owns the variable, even when the
         # once runs inside a phaser or other thunk with a frame of its own.
-        my $sentinel := $!state-decl.sentinel-value;
-        $context.ensure-sc($sentinel);
         QAST::Op.new(:op<decont>,
           QAST::Op.new(:op<if>,
-            QAST::Op.new(:op<eqaddr>,
-              QAST::Op.new(:op<decont>,
-                QAST::Var.new(:name($!state-name), :scope<lexical>)),
-              QAST::WVal.new(:value($sentinel))
-            ),
+            $!state-decl.IMPL-SENTINEL-TEST-QAST($context),
             QAST::Op.new(:op<p6store>,
               QAST::Var.new(:name($!state-name), :scope<lexical>),
               QAST::Op.new(:op<call>, self.IMPL-CLOSURE-QAST($context))
@@ -518,9 +500,15 @@ class RakuAST::StatementPrefix::Once
 # The `start` statement prefix.
 class RakuAST::StatementPrefix::Start
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     method type() { "start" }
+
+    # Nothing can observe the result of a discarded Promise. So a sunk start
+    # sinks its code, which runs a loop eagerly and throws a Failure.
+    method propagate-sink(Bool $is-sunk) {
+        self.blorst.apply-sink($is-sunk);
+    }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
@@ -548,7 +536,7 @@ class RakuAST::StatementPrefix::Start
 # # Base class for prefixes that can have whenevers in them
 class RakuAST::StatementPrefix::Wheneverable
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::AttachTarget
+  does RakuAST::AttachTarget
 {
     has List $!whenevers;
 
@@ -675,8 +663,8 @@ class RakuAST::StatementPrefix::Phaser
 # Done by all phasers that don't produce a result.
 class RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::ImplicitLookups
-  is RakuAST::SinkPropagator
+  does RakuAST::ImplicitLookups
+  does RakuAST::SinkPropagator
 {
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(True);
@@ -696,8 +684,7 @@ class RakuAST::StatementPrefix::Phaser::Sinky
 # The BEGIN phaser.
 class RakuAST::StatementPrefix::Phaser::Begin
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     has Mu  $!value;
     has int $!has-value;
@@ -712,8 +699,12 @@ class RakuAST::StatementPrefix::Phaser::Begin
 
         self.blorst.propagate-sink(False) if nqp::istype(self.blorst, RakuAST::Block);
 
-        nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1); # avoid infinite loop
-        my $producer := self.IMPL-BEGIN-TIME-EVALUATE(self,$resolver,$context);
+        self.IMPL-MARK-BEGIN-PERFORMED; # avoid infinite loop
+        my $producer := self.meta-object;
+        # Compile the block now, so an error in compiling it is reported
+        # as itself rather than as a failure of running the BEGIN.
+        my $compstuff := nqp::getattr($producer, Code, '@!compstuff');
+        $compstuff[1]() if $compstuff;
         {
             CATCH {
                 my $ex := $resolver.convert-begin-time-exception($_);
@@ -754,8 +745,7 @@ class RakuAST::StatementPrefix::Phaser::Begin
 # The CHECK phaser.
 class RakuAST::StatementPrefix::Phaser::Check
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     has Mu $!value;
 
@@ -776,7 +766,7 @@ class RakuAST::StatementPrefix::Phaser::Check
     }
 
     method run(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
+        my $producer := RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value', $producer())
     }
 
@@ -790,8 +780,7 @@ class RakuAST::StatementPrefix::Phaser::Check
 # The INIT phaser.
 class RakuAST::StatementPrefix::Phaser::Init
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     has Scalar $.container;
 
@@ -834,8 +823,7 @@ class RakuAST::StatementPrefix::Phaser::Init
 # The ENTER phaser.
 class RakuAST::StatementPrefix::Phaser::Enter
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     has str $!result-name;
 
@@ -884,8 +872,7 @@ class RakuAST::StatementPrefix::Phaser::Enter
 # The END phaser.
 class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Thunky
 {
     method type() { "END" }
 
@@ -900,24 +887,23 @@ class RakuAST::StatementPrefix::Phaser::End
 # The QUIT phaser.
 class RakuAST::StatementPrefix::Phaser::Quit
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method type() { "QUIT" }
+
+    # Like CATCH, QUIT takes the exception as its topic, so it needs a block.
+    method new(RakuAST::Block $blorst) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
+        $obj
+    }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('block').add-phaser("QUIT", self);
 
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            self.blorst.set-needs-result(True);
-            self.blorst.set-nil-on-succeed();
-            self.blorst.body.statement-list.add-statement(
-                RakuAST::Statement::Expression.new(
-                    :expression(
-                        RakuAST::Var::Lexical.new('$_', :sigil('$'), :desigilname(RakuAST::Name.from-identifier('_'))).to-begin-time($resolver, $context)
-                    )
-                )
-            );
-        }
+        self.blorst.set-needs-result(True);
+        self.blorst.set-nil-on-succeed();
+        self.blorst.set-topic-on-fallthrough();
     }
 
     method meta-object() {
@@ -928,24 +914,82 @@ class RakuAST::StatementPrefix::Phaser::Quit
 # base class for all other phasers that are connect to the current block
 class RakuAST::StatementPrefix::Phaser::Block
   is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::ParseTime
+  does RakuAST::StatementPrefix::Thunky
 {
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        ($resolver.find-attach-target('block')
-              // $resolver.find-attach-target('compunit')
-            ).add-phaser(
-          self.type, self, :has-exit-handler(self.exit-handler));
+        my $target := $resolver.find-attach-target('block')
+            // $resolver.find-attach-target('compunit');
+        $target.add-phaser(self.type, self, :has-exit-handler(self.exit-handler));
+        self.IMPL-ATTACHED($target);
         self.IMPL-STUB-CODE($resolver, $context);
     }
 
+    # What a phaser does with the scope it is attached to.
+    method IMPL-ATTACHED(RakuAST::LexicalScope $target) { Nil }
+
     method exit-handler() { False }
+}
+
+# A phaser that runs its statement in a block of its own while the scope
+# it is attached to declares the statement's variables, as it would for a
+# statement of its own.
+role RakuAST::StatementPrefix::Phaser::HoistsStatement {
+    # The blorst as given, kept for the deparse and .raku of the phaser
+    # once a block made around it has taken its place.
+    has RakuAST::Blorst $!original-blorst;
+
+    method original-blorst() {
+        $!original-blorst // nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst')
+    }
+
+    # The statement whose declarations the attach scope holds, or Mu for a
+    # block, which keeps its own.
+    method IMPL-HOISTED-STATEMENT() {
+        my $blorst := self.original-blorst;
+        nqp::istype($blorst, RakuAST::Block) ?? Mu !! $blorst
+    }
+
+    # An evaluated tree resolves the statement before the phaser attaches,
+    # so a scope that gathered by then gathers again now that the
+    # declarations have their owner.
+    method IMPL-ATTACHED(RakuAST::LexicalScope $target) {
+        my $statement := self.IMPL-HOISTED-STATEMENT;
+        if nqp::isconcrete($statement) {
+            $_.set-hoisted-to($target) for $statement.IMPL-HOISTABLE-DECLARATIONS;
+            $target.IMPL-DROP-DECLARATION-CACHES;
+            my $blorst := self.blorst;
+            $blorst.IMPL-DROP-DECLARATION-CACHES
+              if nqp::istype($blorst, RakuAST::LexicalScope);
+        }
+        Nil
+    }
+
+    # A bound list's variables live in the frame binding them, which the
+    # attach scope cannot reach.
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $statement := self.IMPL-HOISTED-STATEMENT;
+        if nqp::isconcrete($statement) {
+            $statement.visit-dfs: -> $node {
+                if nqp::istype($node, RakuAST::VarDeclaration::Signature)
+                  && nqp::isconcrete($node.initializer) && $node.initializer.is-binding {
+                    self.add-sorry($resolver.build-exception('X::Comp::AdHoc',
+                        payload => 'Cannot bind a list of variables in a ' ~ self.type
+                          ~ ' statement, only in a ' ~ self.type ~ ' block'));
+                    0
+                }
+                else {
+                    !nqp::istype($node, RakuAST::LexicalScope)
+                }
+            }
+        }
+        Nil
+    }
 }
 
 # The FIRST phaser.
 class RakuAST::StatementPrefix::Phaser::First
   is RakuAST::StatementPrefix::Phaser::Block
-  is RakuAST::BeginTime
+  does RakuAST::StatementPrefix::Phaser::HoistsStatement
 {
     method type() { "FIRST" }
 
@@ -959,25 +1003,18 @@ class RakuAST::StatementPrefix::Phaser::First
     # synthetic AST generation in PERFORM-BEGIN.
     has str $!value-var-name;
 
-    # Because we are going to preserve our initial blorst for presentation / round trip
-    # via AST/DEPARSE/.raku. In EVAL, $!original-blorst will not be defined, because
-    # our original blorst is in $!blorst
-    has RakuAST::Blorst $!original-blorst;
-    method original-blorst() {
-        $!original-blorst // nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst')
-    }
-
     # We do a lot of things like other RakuAST::StatementPrefix::Phaser::Block nodes,
     # but being sinky isn't one of those things.
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(False)
     }
 
-    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
 
         my $blorst := nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst');
-        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::First, '$!original-blorst', $blorst);
+        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::HoistsStatement,
+          '$!original-blorst', $blorst);
 
         my $True := RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True'));
 
@@ -990,18 +1027,31 @@ class RakuAST::StatementPrefix::Phaser::First
         $attach-block.add-generated-lexical-declaration($value-var);
         nqp::bindattr_s(self, RakuAST::StatementPrefix::Phaser::First, '$!value-var-name', $value-name);
 
-        $blorst := $blorst.as-block;
-        $blorst :=
-            RakuAST::Block.new:
-                :body(RakuAST::Blockoid.new:
-                    RakuAST::StatementList.new:
-                        RakuAST::Statement::Expression.new(
-                            :expression(RakuAST::ApplyInfix.new:
-                                :infix(RakuAST::Assignment.new(:item)),
-                                :left($value-lookup),
-                                :right(RakuAST::ApplyPostfix.new:
-                                    :postfix(RakuAST::Call::Term.new),
-                                    :operand($blorst))))); # 🛸 ... the actual FIRST code
+        # The blocks made here report the place of the FIRST code. A key
+        # origin spares their statement lists a search for the key node.
+        my $origin := $blorst.origin;
+        if nqp::isconcrete($origin) && !$origin.is-key {
+            $origin := RakuAST::Origin.new(:from($origin.from), :to($origin.to),
+                :nestings([]), :source($origin.source));
+        }
+        my $as-block := -> $statement {
+            my $block := $statement.as-block;
+            if nqp::isconcrete($origin) {
+                $statement.set-origin($origin) unless nqp::isconcrete($statement.origin);
+                $block.set-origin($origin);
+                $block.body.set-origin($origin);
+                $block.body.statement-list.set-origin($origin);
+            }
+            $block
+        };
+        $blorst := $as-block($blorst) unless nqp::istype($blorst, RakuAST::Block);
+        $blorst := $as-block(RakuAST::Statement::Expression.new(
+            :expression(RakuAST::ApplyInfix.new:
+                :infix(RakuAST::Assignment.new(:item)),
+                :left($value-lookup),
+                :right(RakuAST::ApplyPostfix.new:
+                    :postfix(RakuAST::Call::Term.new),
+                    :operand($blorst))))); # 🛸 ... the actual FIRST code
 
         $blorst.IMPL-BEGIN($resolver, $context);
         nqp::bindattr(self, RakuAST::StatementPrefix, '$!blorst', $blorst);
@@ -1102,7 +1152,9 @@ class RakuAST::StatementPrefix::Phaser::Pre
                      operand => $blorst,
                      postfix => RakuAST::Call::Term.new
                    )
-                !! $blorst
+                !! nqp::istype($blorst, RakuAST::Statement::Expression)
+                  ?? $blorst.expression
+                  !! $blorst
             )
           )
         );
@@ -1121,12 +1173,15 @@ class RakuAST::StatementPrefix::Phaser::Pre
 # The POST phaser.
 class RakuAST::StatementPrefix::Phaser::Post
   is RakuAST::StatementPrefix::Phaser::Block
+  does RakuAST::StatementPrefix::Phaser::HoistsStatement
 {
     method type() { "POST" }
     method exit-handler() { True }
 
     method new(RakuAST::Blorst $blorst, Str $condition?) {
         my $obj  := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::StatementPrefix::Phaser::HoistsStatement,
+          '$!original-blorst', $blorst);
 
         # The POST phaser needs extra code to get the required
         # functionality, so this converts a given
@@ -1181,8 +1236,11 @@ class RakuAST::StatementPrefix::Phaser::Post
                            postfix => RakuAST::Call::Term.new
                          )
                       !! nqp::istype($blorst, RakuAST::Statement::Expression)
+                           && !nqp::isconcrete($blorst.condition-modifier)
+                           && !nqp::isconcrete($blorst.loop-modifier)
                         ?? $blorst.expression
-                        !! $blorst
+                        # a modifier stays in force as part of a do
+                        !! RakuAST::StatementPrefix::Do.new($blorst)
                   )
                 )
               )

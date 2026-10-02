@@ -400,9 +400,18 @@ my class Binder {
                       !! nqp::not_i(nqp::iscont_s($oval))
                         ?? "str"
                         !! 0 -> $expected {
-                    nqp::bindpos($error, 0,
-                      "Expected a modifiable native $expected argument for '$varname'"
-                    ) if nqp::defined($error);
+                    nqp::bindpos($error, 0, {
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                          'X::Parameter::RW',
+                          "Expected a modifiable native $expected argument for '$varname'",
+                          :got($got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
+                                 ?? nqp::box_n($nval, Num)
+                                 !! $got_native == nqp::const::SIG_ELEM_NATIVE_STR_VALUE
+                                   ?? nqp::box_s($sval, Str)
+                                   !! nqp::box_i($ival, Int)),
+                          :symbol($varname)
+                        )
+                    }) if nqp::defined($error);
 
                     return nqp::const::BIND_RESULT_FAIL;
                 }
@@ -2071,6 +2080,12 @@ BEGIN {
         $self := nqp::decont($self);
 
         nqp::getattr($self, Attribute, '$!type')
+    }));
+    Attribute.HOW.add_method(Attribute, 'package',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Attribute, '$!package')
     }));
 
     Attribute.HOW.add_method(Attribute, 'container_descriptor',
@@ -3822,12 +3837,16 @@ BEGIN {
                         # Wider; skip over here so we don't go counting this
                         # as tied in the next branch.
                     }
-                    elsif nqp::istype($type_obj_a, $type_obj_b) {
+                    # Mu accepts any value, so every other type is narrower
+                    # than it, even a type without Mu in its MRO.
+                    elsif nqp::eqaddr($type_obj_b, Mu)
+                      || nqp::istype($type_obj_a, $type_obj_b) {
                         # Narrower - note it and we're done.
                         ++$narrower;
                     }
 
-                    elsif nqp::not_i(nqp::istype($type_obj_b, $type_obj_a)) {
+                    elsif nqp::not_i(nqp::eqaddr($type_obj_a, Mu))
+                      && nqp::not_i(nqp::istype($type_obj_b, $type_obj_a)) {
                         # Make sure it's tied, rather than the other way around.
                         ++$tied;
                     }
@@ -6418,5 +6437,23 @@ Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
 # does not yet work.
 nqp::bindhllsym('Raku', 'QASTRegex', QAST::Regex);
 nqp::bindhllsym('Raku', 'QRegex', QRegex);
+
+# NQP calls this when an argument does not satisfy the object type a
+# parameter of NQP compiled code declares, the RakuAST node methods
+# included. Throw the exception the Raku binder would, or die with the
+# message while the setting is being built and the exception types do not
+# exist yet.
+nqp::bindhllsym('nqp', 'parameter-type-check-failure', sub ($value, $type, $name, $code, $definedness?) {
+    my str $got-name := nqp::isnull($value) ?? 'null' !! $value.HOW.name($value);
+    Perl6::Metamodel::Configuration.throw_or_die(
+        'X::TypeCheck::Binding::Parameter',
+        "Type check failed in binding to parameter '" ~ $name ~ "' of '"
+          ~ nqp::getcodename($code) ~ "'; expected " ~ $type.HOW.name($type)
+          ~ " but got " ~ $got-name,
+        :got(nqp::isnull($value) ?? Mu !! $value),
+        :expected($type),
+        :symbol($name)
+    );
+});
 
 # vim: expandtab sw=4

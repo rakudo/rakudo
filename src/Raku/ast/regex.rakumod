@@ -1,6 +1,7 @@
 # Base marker for all things that may appear as top-level regex syntax.
 class RakuAST::Regex
   is RakuAST::Node
+  does RakuAST::RegexBody
 {
     has str $!alt-nfa-prefix;
 
@@ -158,10 +159,11 @@ class RakuAST::Regex
     # list reduces directly, since its negated zerowidth op holds at the
     # end of the string. The class and range ops demand a character even
     # when negated, so their negated forms pair with an anchor to the end
-    # of the string in a sequential alternation instead. The negated
-    # literal op fails wherever fewer characters remain than the length,
-    # all positions where the negated assertion must hold, so no anchor
-    # pairing preserves it and it stays a thunk.
+    # of the string in a sequential alternation instead. The class op
+    # ignores negation for `.`, so that negated assertion reduces to the
+    # anchor alone. The negated literal op fails wherever fewer characters
+    # remain than the length, all positions where the negated assertion
+    # must hold, so no anchor pairing preserves it and it stays a thunk.
     method IMPL-BEFORE-SIMPLE-ATOM(Mu $qast) {
         return nqp::null()
             unless $qast.rxtype eq 'subrule'
@@ -191,9 +193,12 @@ class RakuAST::Regex
                 :node($atom.node), :$negate, $atom[0] )
         }
         elsif $rxtype eq 'cclass' {
-            self.IMPL-HOLD-AT-EOS($negate, QAST::Regex.new(
-                :rxtype<cclass>, :subtype<zerowidth>,
-                :node($atom.node), :$negate, :name($atom.name) ))
+            $negate && $atom.name eq '.'
+                ?? QAST::Regex.new( :rxtype<anchor>, :subtype<eos>,
+                    :node($atom.node) )
+                !! self.IMPL-HOLD-AT-EOS($negate, QAST::Regex.new(
+                    :rxtype<cclass>, :subtype<zerowidth>,
+                    :node($atom.node), :$negate, :name($atom.name) ))
         }
         elsif $rxtype eq 'charrange' {
             self.IMPL-HOLD-AT-EOS($negate, QAST::Regex.new(
@@ -344,25 +349,52 @@ class RakuAST::Regex::Sequence
 
         my @terms;
         my @literals;
+        my @origins;
 
-        my sub handle-literals($with-whitespace) {
+        # The span covering the given origins, if any of them is set.
+        my sub span-of(@spanned) {
+            my $from;
+            my $to;
+            for @spanned {
+                if nqp::isconcrete($_) {
+                    $from := $_ unless nqp::isconcrete($from) && $from.from <= $_.from;
+                    $to   := $_ unless nqp::isconcrete($to) && $to.to >= $_.to;
+                }
+            }
+            nqp::isconcrete($from)
+              ?? RakuAST::Origin.new(:from($from.from), :to($to.to), :source($from.source))
+              !! Mu
+        }
+
+        # Takes the whitespace wrapper of the last literal, if it had one.
+        my sub handle-literals($whitespace) {
             my $literal := RakuAST::Regex::Literal.new(nqp::join('',@literals));
-            @terms.push($with-whitespace
-              ?? RakuAST::Regex::WithWhitespace.new($literal)
-              !! $literal
-            );
+            my $origin := span-of(@origins);
+            $literal.set-origin($origin) if nqp::isconcrete($origin);
+            if $whitespace {
+                my $wrapper := RakuAST::Regex::WithWhitespace.new($literal);
+                my $wrapper-origin := span-of([$origin, $whitespace.origin]);
+                $wrapper.set-origin($wrapper-origin) if nqp::isconcrete($wrapper-origin);
+                @terms.push($wrapper);
+            }
+            else {
+                @terms.push($literal);
+            }
             nqp::setelems(@literals, 0);
+            nqp::setelems(@origins, 0);
         }
 
         for @atoms {
             if nqp::istype($_, RakuAST::Regex::Literal) {
                 @literals.push($_.text);
+                @origins.push($_.origin);
             }
             elsif nqp::istype($_, RakuAST::Regex::WithWhitespace) {
                 my $regex := $_.regex;
                 if nqp::istype($regex, RakuAST::Regex::Literal) && @literals {
                     @literals.push($regex.text);
-                    handle-literals(True);
+                    @origins.push($regex.origin);
+                    handle-literals($_);
                 }
                 else {
                     handle-literals(False) if @literals;
@@ -509,7 +541,7 @@ class RakuAST::Regex::Literal
 # frontend does when forming the candidate name.
 class RakuAST::Regex::Sym
   is RakuAST::Regex::Atom
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has RakuAST::ColonPair $.colonpair;
 
@@ -662,8 +694,8 @@ class RakuAST::Regex::Nested
 # A (positional, at least by default) capturing regex group, from the (...) syntax.
 class RakuAST::Regex::CapturingGroup
   is RakuAST::Regex::Atom
-  is RakuAST::RegexThunk
-  is RakuAST::ImplicitDeclarations
+  does RakuAST::RegexThunk
+  does RakuAST::ImplicitDeclarations
 {
     has RakuAST::Regex $.regex;
 
@@ -732,9 +764,9 @@ class RakuAST::Regex::NamedCapture
 {
     has str $.name;
     has Bool $.array;
-    has RakuAST::Term $.regex;
+    has RakuAST::Regex::Term $.regex;
 
-    method new(str :$name!, Bool :$array, RakuAST::Term :$regex!) {
+    method new(str :$name!, Bool :$array, RakuAST::Regex::Term :$regex!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Regex::NamedCapture, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Regex::NamedCapture, '$!array',
@@ -907,9 +939,7 @@ class RakuAST::Regex::CharClass::Negatable
 
 # Done by everything that can appear inside of a user-defined character class
 # enumeration (that is, `<[this]>`).
-class RakuAST::Regex::CharClassEnumerationElement
-  is RakuAST::Node
-{
+role RakuAST::Regex::CharClassEnumerationElement {
     method codepoint() { Nil }
 
     method IMPL-CCLASS-ENUM-CHARS(%mods) { '' }
@@ -936,7 +966,7 @@ class RakuAST::Regex::CharClassEnumerationElement
 # in a character class enumeration.
 class RakuAST::Regex::CharClass::BackSpace
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -953,7 +983,7 @@ class RakuAST::Regex::CharClass::BackSpace
 # The digit character class (\d, \D).
 class RakuAST::Regex::CharClass::Digit
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<d>, :negate(self.negated) )
@@ -967,7 +997,7 @@ class RakuAST::Regex::CharClass::Digit
 # The escape character class (\e, \E)
 class RakuAST::Regex::CharClass::Escape
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -984,7 +1014,7 @@ class RakuAST::Regex::CharClass::Escape
 # The form feed character class (\f, \F)
 class RakuAST::Regex::CharClass::FormFeed
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -1001,7 +1031,7 @@ class RakuAST::Regex::CharClass::FormFeed
 # The horizontal whitespace character class (\h, \H)
 class RakuAST::Regex::CharClass::HorizontalSpace
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-HSPACE-CHARS() {
         "\x[09,20,a0,1680,180e,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,200a,202f,205f,3000]"
@@ -1025,7 +1055,7 @@ class RakuAST::Regex::CharClass::HorizontalSpace
 # The newline character class (\n, \N).
 class RakuAST::Regex::CharClass::Newline
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<n>, :negate(self.negated) )
@@ -1039,7 +1069,7 @@ class RakuAST::Regex::CharClass::Newline
 # The carriage return character class (\r, \R)
 class RakuAST::Regex::CharClass::CarriageReturn
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -1056,7 +1086,7 @@ class RakuAST::Regex::CharClass::CarriageReturn
 # The space character class (\s, \S).
 class RakuAST::Regex::CharClass::Space
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<s>, :negate(self.negated) )
@@ -1070,7 +1100,7 @@ class RakuAST::Regex::CharClass::Space
 # The tab character class (\t, \T)
 class RakuAST::Regex::CharClass::Tab
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
@@ -1087,7 +1117,7 @@ class RakuAST::Regex::CharClass::Tab
 # The vertical whitespace character class (\v, \V)
 class RakuAST::Regex::CharClass::VerticalSpace
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     # The single vertical-space codepoints. On its own, \v also matches the
     # two-codepoint CR LF grapheme (IMPL-REGEX-QAST appends it); inside a
@@ -1116,7 +1146,7 @@ class RakuAST::Regex::CharClass::VerticalSpace
 # The word character class (\w, \W).
 class RakuAST::Regex::CharClass::Word
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<w>, :negate(self.negated) )
@@ -1133,7 +1163,7 @@ class RakuAST::Regex::CharClass::Word
 # these sequences).
 class RakuAST::Regex::CharClass::Specified
   is RakuAST::Regex::CharClass::Negatable
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     has str $.characters;
     has Int $.codepoint;
@@ -1145,7 +1175,7 @@ class RakuAST::Regex::CharClass::Specified
         nqp::bindattr_s($obj, RakuAST::Regex::CharClass::Specified, '$!characters',
             $characters);
         nqp::bindattr($obj, RakuAST::Regex::CharClass::Specified, '$!codepoint',
-            $codepoint);
+            $codepoint // Int);
         $obj
     }
 
@@ -1185,7 +1215,7 @@ class RakuAST::Regex::CharClass::Specified
 # The nul character class (\0)
 class RakuAST::Regex::CharClass::Nul
   is RakuAST::Regex::CharClass
-  is RakuAST::Regex::CharClassEnumerationElement
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new: :rxtype<literal>, "\0"
@@ -1265,7 +1295,7 @@ class RakuAST::Regex::Statement
 # A block of code embedded in a regex, executed only for its side-effects.
 class RakuAST::Regex::Block
   is RakuAST::Regex::Atom
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Block $.block;
 
@@ -1303,8 +1333,8 @@ class RakuAST::Regex::Block
 # thus it can be constructed with any expression.
 class RakuAST::Regex::Interpolation
   is RakuAST::Regex::Atom
-  is RakuAST::CheckTime
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
+  does RakuAST::CheckTime
 {
     has RakuAST::Expression $.var;
     has Bool $.sequential;
@@ -1441,7 +1471,7 @@ class RakuAST::Regex::Assertion::Fail
 # argument are modeled as subclasses of this.
 class RakuAST::Regex::Assertion::Named
   is RakuAST::Regex::Assertion
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::Name $.name;
     has Bool $.capturing;
@@ -1554,7 +1584,7 @@ class RakuAST::Regex::Assertion::Named::Args
 {
     has RakuAST::ArgList $.args;
 
-    method new(RakuAST::Name :$name!, Bool :$capturing, Raku::ArgList :$args!) {
+    method new(RakuAST::Name :$name!, Bool :$capturing, RakuAST::ArgList :$args!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!capturing',
@@ -1578,7 +1608,7 @@ class RakuAST::Regex::Assertion::Named::Args
 # A named rule called with a regex argument.
 class RakuAST::Regex::Assertion::Named::RegexArg
   is RakuAST::Regex::Assertion::Named
-  is RakuAST::RegexThunk
+  does RakuAST::RegexThunk
 {
     has RakuAST::Regex $.regex-arg;
 
@@ -1586,7 +1616,7 @@ class RakuAST::Regex::Assertion::Named::RegexArg
     has str $!unique-name;
     has Mu $!body-qast;
 
-    method new(RakuAST::Name :$name!, Bool :$capturing, Raku::Regex :$regex-arg!) {
+    method new(RakuAST::Name :$name!, Bool :$capturing, RakuAST::Regex :$regex-arg!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!capturing',
@@ -1692,9 +1722,9 @@ class RakuAST::Regex::Assertion::Alias
   is RakuAST::Regex::Assertion
 {
     has str $.name;
-    has RakuAST::Regex::Assertion $.assertion;
+    has RakuAST::Regex::Atom $.assertion;
 
-    method new(str :$name!, RakuAST::Regex::Assertion :$assertion!) {
+    method new(str :$name!, RakuAST::Regex::Atom :$assertion!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Regex::Assertion::Alias, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Alias, '$!assertion', $assertion);
@@ -1722,9 +1752,9 @@ class RakuAST::Regex::Assertion::Lookahead
   is RakuAST::Regex::Assertion
 {
     has Bool $.negated;
-    has RakuAST::Regex::Assertion $.assertion;
+    has RakuAST::Regex::Atom $.assertion;
 
-    method new(Bool :$negated, RakuAST::Regex::Assertion :$assertion!) {
+    method new(Bool :$negated, RakuAST::Regex::Atom :$assertion!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Lookahead, '$!negated',
             $negated ?? True !! False);
@@ -1734,9 +1764,14 @@ class RakuAST::Regex::Assertion::Lookahead
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $qast := $!assertion.IMPL-REGEX-QAST($context, %mods);
-        $qast.subtype('zerowidth');
-        if $!negated {
-            $qast.negate(!$qast.negate);
+        # An anchor is already zero width, and changing its subtype would
+        # turn a failing one into a check that always passes.
+        if $qast.rxtype eq 'anchor' {
+            $qast.subtype($qast.subtype eq 'fail' ?? 'pass' !! 'fail') if $!negated;
+        }
+        else {
+            $qast.subtype('zerowidth');
+            $qast.negate(!$qast.negate) if $!negated;
         }
         $qast
     }
@@ -1750,7 +1785,7 @@ class RakuAST::Regex::Assertion::Lookahead
 # treating it as code to be evaluated.
 class RakuAST::Regex::Assertion::InterpolatedBlock
   is RakuAST::Regex::Assertion
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::Block $.block;
     has Bool $.sequential;
@@ -1789,8 +1824,8 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
 # treating it as code to be evaluated.
 class RakuAST::Regex::Assertion::InterpolatedVar
   is RakuAST::Regex::Assertion
-  is RakuAST::CheckTime
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
+  does RakuAST::CheckTime
 {
     has RakuAST::Expression $.var;
     has Bool $.sequential;
@@ -1837,10 +1872,10 @@ class RakuAST::Regex::Assertion::InterpolatedVar
 class RakuAST::Regex::Assertion::Callable
   is RakuAST::Regex::Assertion
 {
-    has RakuAST::Expression $.callee;
+    has RakuAST::Term $.callee;
     has RakuAST::ArgList $.args;
 
-    method new(RakuAST::Expression :$callee!, Raku::ArgList :$args) {
+    method new(RakuAST::Term :$callee!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Callable, '$!callee', $callee);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Callable, '$!args',
@@ -1928,15 +1963,27 @@ class RakuAST::Regex::Assertion::CharClass
             while $i < nqp::elems($!elements) {
                 my $elem := $!elements[$i];
                 my $elem-qast := $elem.IMPL-CCLASS-QAST($context, %mods, False);
-                if $elem.negated {
-                    $elem-qast.subtype('zerowidth');
-                    $qast := QAST::Regex.new:
-                        :rxtype<concat>, :subtype<zerowidth>, :negate,
-                        QAST::Regex.new( :rxtype<conj>, :subtype<zerowidth>, $elem-qast ),
-                        $qast;
-                }
-                else {
+                if !$elem.negated {
                     $qast := QAST::Regex.new( :rxtype<alt>, $qast, $elem-qast );
+                }
+                # An enumeration with nothing in it compiles to an anchor that
+                # fails, and subtracting nothing leaves the class alone.
+                elsif $elem-qast.rxtype ne 'anchor' {
+                    # A subtracted element compiles negated, so a zerowidth
+                    # check of it ahead of the class built so far excludes its
+                    # characters. A subtracted enumeration with more than one
+                    # part already compiles to that check, ahead of the `.`
+                    # that consumes the character.
+                    # Mirrors QRegex::P6Regex::Actions.assertion:sym<[>.
+                    my $check;
+                    if $elem-qast.rxtype eq 'concat' {
+                        $check := $elem-qast[0];
+                    }
+                    else {
+                        $elem-qast.subtype('zerowidth');
+                        $check := QAST::Regex.new( :rxtype<conj>, :subtype<zerowidth>, $elem-qast );
+                    }
+                    $qast := QAST::Regex.new( :rxtype<concat>, $check, $qast );
                 }
                 $i++;
             }
@@ -1955,18 +2002,14 @@ class RakuAST::Regex::Assertion::CharClass
 class RakuAST::Regex::Assertion::Recurse
   is RakuAST::Regex::Assertion
 {
-  has RakuAST::Regex::Term $.node;
-
-  method new(RakuAST::Regex $node) {
-    my $obj := nqp::create(self);
-    nqp::bindattr($obj, RakuAST::Regex::Assertion::Recurse, '$!node', $node);
-    $obj;
+  method new() {
+    nqp::create(self)
   }
 
   method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
      QAST::Regex.new:
         :rxtype<subrule>, :subtype<method>,
-        QAST::NodeList.new( QAST::SVal.new( :value('RECURSE') ), :node($!node));
+        QAST::NodeList.new( QAST::SVal.new( :value('RECURSE') ));
   }
 
 }
@@ -2044,7 +2087,7 @@ class RakuAST::Regex::CharClassElement::Property
 # including characters, ranges, and backslash sequences.
 class RakuAST::Regex::CharClassElement::Enumeration
   is RakuAST::Regex::CharClassElement
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
     has Mu $!elements;
 
@@ -2097,10 +2140,8 @@ class RakuAST::Regex::CharClassElement::Enumeration
         # If we collected characters, add the enumeration to the alternation
         # parts we'll compile into.
         if $enum {
-            @alts.push: QAST::Regex.new:
-                :rxtype<enumcharlist>, :negate(self.negated),
-                :subtype(%mods<m> ?? 'ignoremark' !! ''),
-                $enum
+            $enum := self.IMPL-FOLD-ENUM($enum, %mods, @alts) if %mods<i> || %mods<m>;
+            @alts.push(self.IMPL-ENUMCHARLIST-QAST($enum, %mods)) if $enum;
         }
 
         # A single alternation part can compile into just that.
@@ -2115,10 +2156,56 @@ class RakuAST::Regex::CharClassElement::Enumeration
 
         else {
             self.negated ??
-                QAST::Regex.new( :rxtype<concat>, :negate(1),
+                QAST::Regex.new( :rxtype<concat>,
                     QAST::Regex.new( :rxtype<conj>, :subtype<zerowidth>, |@alts ),
                     QAST::Regex.new( :rxtype<cclass>, :name<.> ) ) !!
                 QAST::Regex.new( :rxtype<alt>, |@alts );
+        }
+    }
+
+    method IMPL-ENUMCHARLIST-QAST(str $chars, %mods) {
+        QAST::Regex.new:
+            :rxtype<enumcharlist>, :negate(self.negated),
+            :subtype(%mods<m> ?? 'ignoremark' !! ''),
+            $chars
+    }
+
+    # Folds the assembled entries for ignoremark and ignorecase. This happens
+    # after assembly since adjacent entries can form one grapheme. A folded
+    # entry that would form one with the entry before it is pushed onto @alts
+    # as an enumeration of its own. A case form that is not a single
+    # character cannot be an entry and is left out.
+    method IMPL-FOLD-ENUM(str $entries, %mods, @alts) {
+        my str $folded := '';
+        my int $n := nqp::chars($entries);
+        my int $i;
+        while $i < $n {
+            my str $c := %mods<m>
+                ?? nqp::chr(nqp::ordbaseat($entries, $i))
+                !! nqp::substr($entries, $i, 1);
+            $folded := self.IMPL-ADD-ENTRY($folded, $c, %mods, @alts);
+            if %mods<i> {
+                for nqp::list(nqp::fc($c), nqp::uc($c), nqp::lc($c), nqp::tc($c)) -> str $form {
+                    $folded := self.IMPL-ADD-ENTRY($folded, $form, %mods, @alts)
+                        if nqp::chars($form) == 1 && $form ne $c;
+                }
+            }
+            ++$i;
+        }
+        $folded
+    }
+
+    method IMPL-ADD-ENTRY(str $folded, str $c, %mods, @alts) {
+        my str $joined := $folded ~ $c;
+        if nqp::index($folded, $c) >= 0 {
+            $folded
+        }
+        elsif nqp::chars($joined) == nqp::chars($folded) + 1 {
+            $joined
+        }
+        else {
+            @alts.push(self.IMPL-ENUMCHARLIST-QAST($c, %mods));
+            $folded
         }
     }
 
@@ -2132,7 +2219,8 @@ class RakuAST::Regex::CharClassElement::Enumeration
 # A single character in a character class enumeration (for example, the "a" in
 # `<[a]>`).
 class RakuAST::Regex::CharClassEnumerationElement::Character
-  is RakuAST::Regex::CharClassEnumerationElement
+  is RakuAST::Node
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     has str $.character;
 
@@ -2143,22 +2231,16 @@ class RakuAST::Regex::CharClassEnumerationElement::Character
         $obj
     }
 
-    method IMPL-CCLASS-ENUM-CHARS(%mods) {
-        my str $c := %mods<m>
-            ?? nqp::chr(nqp::ordbaseat($!character, 0))
-            !! $!character;
-        %mods<i>
-            ?? nqp::fc($c) ~ nqp::uc($c)
-            !! $c
-    }
+    method IMPL-CCLASS-ENUM-CHARS(%mods) { $!character }
 }
 
 # A range of characters in a character class enumeration, for example the a..f
 # in `<[a..f]>`. Constructed with two integer codepoints, which means that a
 # number of problems are not possible at the AST level.
 class RakuAST::Regex::CharClassEnumerationElement::Range
-  is RakuAST::CheckTime
-  is RakuAST::Regex::CharClassEnumerationElement
+  is RakuAST::Node
+  does RakuAST::CheckTime
+  does RakuAST::Regex::CharClassEnumerationElement
 {
     has int $.from;
     has int $.to;
@@ -2198,7 +2280,7 @@ class RakuAST::Regex::InternalModifier
     has  str $.modifier;  # for proper deparsing
     has Bool $.negated;
 
-    method new(str :$modifier, Bool :$negated) {
+    method new(Str :$modifier, Bool :$negated) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,RakuAST::Regex::InternalModifier,'$!modifier',
           $modifier // self.key);
@@ -2272,15 +2354,15 @@ class RakuAST::Regex::InternalModifier::Dba
 # optional separator.
 class RakuAST::Regex::QuantifiedAtom
   is RakuAST::Regex::Term
-  is RakuAST::CheckTime
+  does RakuAST::CheckTime
 {
-    has RakuAST::Atom $.atom;
-    has RakuAST::Quantifier $.quantifier;
+    has RakuAST::Regex::Atom $.atom;
+    has RakuAST::Regex::Quantifier $.quantifier;
     has RakuAST::Regex::Term $.separator;
     has Bool $.trailing-separator;
 
-    method new(RakuAST::Atom :$atom!, RakuAST::Quantifier :$quantifier!,
-               RakuAST::Separator :$separator, Bool :$trailing-separator) {
+    method new(RakuAST::Regex::Atom :$atom!, RakuAST::Regex::Quantifier :$quantifier!,
+               RakuAST::Regex::Term :$separator, Bool :$trailing-separator) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!atom', $atom);
         nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!quantifier', $quantifier);
@@ -2291,7 +2373,7 @@ class RakuAST::Regex::QuantifiedAtom
         $obj
     }
 
-    method replace-atom(RakuAST::Atom $atom) {
+    method replace-atom(RakuAST::Regex::Atom $atom) {
         nqp::bindattr(self, RakuAST::Regex::QuantifiedAtom, '$!atom', $atom);
         Nil
     }
@@ -2395,8 +2477,8 @@ class RakuAST::Regex::Quantifier::OneOrMore
 
 # The literal range (** 1..5) quantifier.
 class RakuAST::Regex::Quantifier::Range
-  is RakuAST::CheckTime
   is RakuAST::Regex::Quantifier
+  does RakuAST::CheckTime
 {
     has Int $.min;
     has Int $.max;
@@ -2480,10 +2562,10 @@ class RakuAST::Regex::Quantifier::BlockRange
 class RakuAST::Regex::BacktrackModifiedAtom
   is RakuAST::Regex::Term
 {
-    has RakuAST::Atom $.atom;
+    has RakuAST::Regex::Atom $.atom;
     has RakuAST::Regex::Backtrack $.backtrack;
 
-    method new(RakuAST::Atom :$atom!, RakuAST::Regex::Backtrack :$backtrack!) {
+    method new(RakuAST::Regex::Atom :$atom!, RakuAST::Regex::Backtrack :$backtrack!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::BacktrackModifiedAtom, '$!atom', $atom);
         nqp::bindattr($obj, RakuAST::Regex::BacktrackModifiedAtom, '$!backtrack', $backtrack);

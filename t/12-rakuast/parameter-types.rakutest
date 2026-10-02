@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 24; # Do not change this file to done-testing
+plan 25; # Do not change this file to done-testing
 
 # The node methods are generated from declarations that look like Raku
 # signatures. These tests cover what the declared parameter and return
@@ -343,5 +343,14 @@ subtest 'Only the first parameter of a node method is the invocant' => {
       'the expression parameter renders as a plain named parameter';
 }
 
+subtest 'A Bool return passes the Bool type object through' => {
+    plan 3;
+    ok RakuAST::Block.new.implicit-topic === Bool,
+      'an optional implicit topic reads back as the Bool type object';
+    ok RakuAST::Block.new(:!implicit-topic).implicit-topic === False,
+      'no implicit topic reads back as False';
+    ok RakuAST::Block.new(:required-topic).implicit-topic === True,
+      'a required implicit topic reads back as True';
+}
 
 # vim: expandtab shiftwidth=4

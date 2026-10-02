@@ -298,13 +298,13 @@ class RakuASTActions {
             my $/ := @tokens[$i];
             nqp::push(@code, ~$/) unless $<ws>;
             if $<name> {
-                # Rewrite `self` into `$SELF`, and True/False also.
+                # Rewrite `self` into `$SELF` and True/False into TRUE/FALSE.
                 my $name := ~$<name>;
                 if $name eq 'self' {
                     @chunks.push('$SELF');
                 }
                 elsif $name eq 'True' || $name eq 'False' {
-                    @chunks.push('(Bool.WHO)<' ~ $name ~ '>');
+                    @chunks.push(nqp::uc($name));
                 }
                 else {
                     @chunks.push($name);
@@ -727,7 +727,7 @@ sub emit-method($package, $method) {
                 ~ " || " ~ type-check-fail($param-name, $type, $value) ~ ";");
         }
         if $type eq 'Bool' {
-            @params-decont.push("$param-name := nqp::isint($param-name) ?? (nqp::unbox_i($param-name) ?? (Bool.WHO)<True> !! (Bool.WHO)<False>) !! nqp::eqaddr($param-name, NQPMu) ?? Bool !! $param-name;");
+            @params-decont.push("$param-name := nqp::isint($param-name) ?? (nqp::unbox_i($param-name) ?? TRUE !! FALSE) !! nqp::eqaddr($param-name, NQPMu) ?? Bool !! $param-name;");
         }
     }
     my $params-in := nqp::join("", @params-in);

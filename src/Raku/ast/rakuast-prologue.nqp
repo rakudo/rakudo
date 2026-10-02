@@ -18,6 +18,11 @@
     ));
     nqp::bindhllsym('Raku', 'Scalar', Scalar);
 
+    # Naming TRUE or FALSE compiles to a reference spesh treats as a constant,
+    # whereas reading the Bool stash costs a hash lookup on every call.
+    my constant TRUE  := (Bool.WHO)<True>;
+    my constant FALSE := (Bool.WHO)<False>;
+
     sub parent($class, $parent) {
         $class.HOW.add_parent($class, $parent);
     }
@@ -82,11 +87,11 @@
     # of a class because a node method runs as static code, which can reach
     # a type but not a sub of this block. MoarVM inlines a frame only below
     # a bytecode size limit, so each method here has to stay under it for a
-    # checked method to cost what an unchecked one does. Merging two of them
-    # goes over it. Running with MVM_SPESH_INLINE_LOG=1 says whether bool,
-    # bool-from-int and a checked method such as sunk still inline.
+    # checked method to cost what an unchecked one does. Running with
+    # MVM_SPESH_INLINE_LOG=1 says whether bool and a checked method such as
+    # sunk still inline.
     my class ReturnCheck {
-        method failure($value, $type, $name) {
+        method failure($value, $type, str $name) {
             Perl6::Metamodel::Configuration.throw_or_die('X::TypeCheck::Return',
                 "Type check failed for return value of '$name'; expected "
                     ~ $type.HOW.name($type) ~ " but got "
@@ -94,24 +99,29 @@
                 :got(nqp::isnull($value) ?? Mu !! $value), :expected($type));
         }
 
-        # A VM integer becomes a Bool, as it does for a Bool parameter. The
-        # other values are handled apart so that this stays small enough to
-        # inline.
-        method bool($value, $name) {
-            nqp::isint($value)
-              ?? self.bool-from-int(nqp::unbox_i($value))
+        # A VM integer becomes a Bool, as it does for a Bool parameter.
+        #
+        # This tests nqp::objprimspec rather than nqp::isint so that bool stays
+        # small enough to inline. For a method whose body is an integer, spesh
+        # knows the argument is a boxed integer and folds objprimspec, isstr and
+        # isnum to constants, which leaves only the conversion. It cannot do the
+        # same with isint, which it turns into a runtime null check, so the
+        # bool-object path would stay and push bool over the inline limit.
+        #
+        # objprimspec is nonzero for a VM box of an integer, number or string,
+        # and zero for every Raku and NQP object. A big integer or C string box
+        # would also reach nqp::unbox_i, but node code never returns one.
+        method bool($value, str $name) {
+            nqp::objprimspec($value)
+              ?? (nqp::isstr($value) || nqp::isnum($value)
+                    ?? self.failure($value, Bool, $name)
+                    !! (nqp::unbox_i($value) ?? TRUE !! FALSE))
               !! self.bool-object($value, $name)
-        }
-
-        # This reads the stash because a frame that uses nqp::hllboolfor
-        # is never inlined into a Raku caller.
-        method bool-from-int(int $value) {
-            $value ?? (Bool.WHO)<True> !! (Bool.WHO)<False>
         }
 
         # The NQPMu that NQP code returns for an absent value becomes the
         # Bool type object.
-        method bool-object($value, $name) {
+        method bool-object($value, str $name) {
             nqp::istype($value, Bool)
               ?? $value
               !! nqp::eqaddr($value, NQPMu)

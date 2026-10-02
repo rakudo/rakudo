@@ -101,21 +101,18 @@
 
         # A VM integer becomes a Bool, as it does for a Bool parameter.
         #
-        # This tests nqp::objprimspec rather than nqp::isint so that bool stays
-        # small enough to inline. For a method whose body is an integer, spesh
-        # knows the argument is a boxed integer and folds objprimspec, isstr and
-        # isnum to constants, which leaves only the conversion. It cannot do the
-        # same with isint, which it turns into a runtime null check, so the
-        # bool-object path would stay and push bool over the inline limit.
-        #
-        # objprimspec is nonzero for a VM box of an integer, number or string,
-        # and zero for every Raku and NQP object. A big integer or C string box
-        # would also reach nqp::unbox_i, but node code never returns one.
+        # Spesh has to be able to fold the test for a VM integer to a constant,
+        # so that a method whose body is an integer is left with only the
+        # conversion. Otherwise the bool-object path stays in the specialized
+        # bool and makes it too large to inline. Spesh cannot fold nqp::isint,
+        # which it turns into a runtime null check, nor a comparison with ==.
+        # It does fold nqp::objprimspec, which is 1 for a VM integer box, and
+        # the bitwise ops, so this tests whether objprimspec xor 1 is 0. Any
+        # other value, a VM string or number box among them, goes on to
+        # bool-object.
         method bool($value, str $name) {
-            nqp::objprimspec($value)
-              ?? (nqp::isstr($value) || nqp::isnum($value)
-                    ?? self.failure($value, Bool, $name)
-                    !! (nqp::unbox_i($value) ?? TRUE !! FALSE))
+            !nqp::bitxor_i(nqp::objprimspec($value), 1)
+              ?? (nqp::unbox_i($value) ?? TRUE !! FALSE)
               !! self.bool-object($value, $name)
         }
 

@@ -444,6 +444,14 @@ class RakuAST::Name::Part {
     method is-empty(--> Bool) {
         nqp::die("is-empty not implemented on " ~ self.HOW.name(self));
     }
+
+    method IMPL-PSEUDOS() {
+        my constant PSEUDOS := nqp::hash(
+          'CALLER', 1, 'CALLERS', 1, 'CLIENT', 1, 'DYNAMIC', 1, 'CORE', 1,
+          'LEXICAL', 1, 'MY', 1, 'OUR', 1, 'OUTER', 1, 'OUTERS', 1,
+          'SETTING', 1, 'UNIT', 1, 'COMPILING', 1
+        )
+    }
 }
 
 # A simple name part, wrapping a string name.
@@ -459,12 +467,7 @@ class RakuAST::Name::Part::Simple
     }
 
     method is-pseudo-package(--> Bool) {
-        my constant PSEUDOS := nqp::hash(
-          'CALLER', 1, 'CALLERS', 1, 'CLIENT', 1, 'DYNAMIC', 1, 'CORE', 1,
-          'LEXICAL', 1, 'MY', 1, 'OUR', 1, 'OUTER', 1, 'OUTERS', 1,
-          'SETTING', 1, 'UNIT', 1, 'COMPILING', 1
-        );
-        nqp::existskey(PSEUDOS,$!name)
+        nqp::existskey(self.IMPL-PSEUDOS,$!name)
     }
 
     method is-empty(--> Bool) {
@@ -555,6 +558,10 @@ class RakuAST::Name::Part::Expression
         nqp::defined(my $name := try $!expr.literalize)
           && (nqp::istype($name, Str) || nqp::isstr($name))
           && $name eq ''
+    }
+
+    method is-pseudo-package(--> Bool) {
+        self.IMPL-PSEUDOS(try self.name)
     }
 }
 

@@ -136,6 +136,7 @@ class RakuAST::Name
         for $!parts {
             return True if nqp::istype($_, RakuAST::Name::Part::Expression);
         }
+        False
     }
 
     method indirect-lookup-part() {

@@ -8,6 +8,7 @@ subtest "name from identifier" => {
     $_ := RakuAST::Name.from-identifier('foo');
     isa-ok $_, RakuAST::Name, '.from-identifier constructs a name';
     ok .is-identifier, 'The element is considered an identifier';
+    is-deeply .is-indirect-lookup, False, 'The element is not an indirect lookup';
     is-deeply .parts.elems, 1, 'Has one part';
     isa-ok .parts[0], RakuAST::Name::Part::Simple, 'Name has a single part';
     is-deeply .parts[0].name, 'foo', 'Part has expected name';
@@ -133,6 +134,7 @@ subtest "indirect name lookup" => {
       )
     );
     is-deeply .DEPARSE, '::("Int")', 'deparses the lookup as written';
+    is-deeply .name.is-indirect-lookup, True, 'the name is an indirect lookup';
     is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
 RakuAST::Term::Name.new(
   RakuAST::Name.new(

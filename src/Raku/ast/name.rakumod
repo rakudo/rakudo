@@ -24,10 +24,9 @@ class RakuAST::Name
     method from-identifier-parts(*@identifiers, List :$colonpairs) {
         my @parts;
         for @identifiers {
-            unless nqp::istype($_, Str) || nqp::isstr($_) {
-                nqp::die('Expected identifier parts to be Str, but got ' ~ $_.HOW.name($_));
-            }
-            @parts.push(RakuAST::Name::Part::Simple.new($_));
+            nqp::istype($_,Str) || nqp::isstr($_)
+              ?? @parts.push(RakuAST::Name::Part::Simple.new($_))
+              !! nqp::die('Expected identifier parts to be Str, but got ' ~ $_.HOW.name($_));
         }
         self.new(|@parts, :$colonpairs)
     }
@@ -57,10 +56,13 @@ class RakuAST::Name
     }
 
     method root-part() {
-        nqp::die("Can't get root-part of empty name") unless nqp::elems($!parts);
-        my $root := $!parts[0];
-        $root := $!parts[1] if nqp::elems($!parts) > 1 && nqp::istype($root, RakuAST::Name::Part::EmptyEdge);
-        $root
+        my $parts := $!parts;
+        nqp::elems($parts)
+          ?? $parts[
+               nqp::elems($parts) > 1
+                 && nqp::istype($parts[0], RakuAST::Name::Part::EmptyEdge)
+             ]
+          !! nqp::die("Can't get root-part of empty name")
     }
 
     method is-multi-part() {

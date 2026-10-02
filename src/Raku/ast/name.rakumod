@@ -464,7 +464,7 @@ class RakuAST::Name::Part::Simple
     }
 
     method is-empty() {
-        nqp::hllboolfor(nqp::iseq_s($!name,''),"Raku")
+        $!name eq ''
     }
 
     # The final part's stash key carries its sigil and, for a variable like
@@ -548,12 +548,10 @@ class RakuAST::Name::Part::Expression
     }
 
     method is-empty() {
-        nqp::hllboolfor(
-          (my $name := try $!expr.literalize)
-            && (nqp::istype($name,Str) || nqp::isstr($name))
-            && $name eq '',
-          "Raku"
-        )
+        my $name := try $!expr.literalize;
+        nqp::defined($name)
+          && (nqp::istype($name, Str) || nqp::isstr($name))
+          && $name eq ''
     }
 }
 

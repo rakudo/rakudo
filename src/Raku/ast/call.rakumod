@@ -340,9 +340,9 @@ class RakuAST::Call::Name
     # until that is fixed, this appears to be the best stopgap measure.
     method properties { OperatorProperties.prefix }
 
-    method needs-resolution() { $!name.is-identifier }
+    method needs-resolution(--> Bool) { ?$!name.is-identifier }
 
-    method needs-sink-call() {
+    method needs-sink-call(--> Bool) {
         # The built-in `take` and `take-rw` hand back the same value they
         # stash into the enclosing gather, so sinking the result would drain a
         # value that is not ours to consume. A same-named user routine has no
@@ -1504,8 +1504,8 @@ class RakuAST::Call::NameAsMethod
 
     method default-operator-properties() { self.default-properties('.&') }
 
-    method needs-resolution() {
-        $!name.is-identifier && !$!name.is-indirect-lookup
+    method needs-resolution(--> Bool) {
+        ?$!name.is-identifier && !$!name.is-indirect-lookup
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

@@ -824,8 +824,8 @@ class RakuAST::StatementList
         nqp::elems(self.code-statements) == 0 ?? True !! False
     }
 
-    method has-compile-time-value() {
-        self.IMPL-IS-SINGLE-EXPRESSION && $!statements[0].has-compile-time-value
+    method has-compile-time-value(--> Bool) {
+        self.IMPL-IS-SINGLE-EXPRESSION && ?$!statements[0].has-compile-time-value
     }
 
     method maybe-compile-time-value() {
@@ -1338,8 +1338,8 @@ class RakuAST::Statement::Expression
         self.visit-labels($visitor);
     }
 
-    method has-compile-time-value() {
-        !$!condition-modifier && !$!loop-modifier && $!expression.has-compile-time-value
+    method has-compile-time-value(--> Bool) {
+        !$!condition-modifier && !$!loop-modifier && ?$!expression.has-compile-time-value
     }
 
     method maybe-compile-time-value() {

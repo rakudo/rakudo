@@ -110,6 +110,11 @@
         # the bitwise ops, so this tests whether objprimspec xor 1 is 0. Any
         # other value, a VM string or number box among them, goes on to
         # bool-object.
+        #
+        # A body that mixes integers with calls returning a Bool gives spesh no
+        # single type to fold the test for, so such a body prefixes those calls
+        # with ? to keep its value an integer. That also stops checking what the
+        # call returns, so a body whose value was checked already keeps it.
         method bool($value, str $name) {
             !nqp::bitxor_i(nqp::objprimspec($value), 1)
               ?? (nqp::unbox_i($value) ?? TRUE !! FALSE)

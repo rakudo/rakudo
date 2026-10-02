@@ -3209,7 +3209,7 @@ class RakuAST::ApplyInfix
         $!infix.IMPL-APPLY-SINK-TO-OPERANDS($operands, $is-sunk);
     }
 
-    method needs-sink-call() { $!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION }
+    method needs-sink-call(--> Bool) { ?$!infix.is-pure || ?$!infix.IMPL-RESULT-NEEDS-ITERATION }
 
     # The interpreter passes no adverbs, so an application with one is
     # compiled.
@@ -4125,7 +4125,7 @@ class RakuAST::Postcircumfix
 class RakuAST::Postcircumfix::Index
   is RakuAST::Postcircumfix
 {
-    method is-multislice() {
+    method is-multislice(--> Bool) {
         my $statements := self.index.code-statements;
         nqp::elems($statements) > 1
         || nqp::elems(self.IMPL-UNWRAP-LIST(self.index.find-nodes(RakuAST::Prefix::Multislice, :stopper(RakuAST::Code))))

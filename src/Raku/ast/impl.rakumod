@@ -152,7 +152,7 @@ class RakuAST::IMPL::QASTContext {
 #?endif
     }
 
-    method is-precompilation-mode() {
+    method is-precompilation-mode(--> Bool) {
         $!precompilation-mode
     }
 
@@ -173,7 +173,7 @@ class RakuAST::IMPL::QASTContext {
         Nil
     }
 
-    method has-stubbed-code-object(Mu $code-obj) {
+    method has-stubbed-code-object(Mu $code-obj --> Bool) {
         nqp::existskey($!stubbed-code-objects, ~nqp::objectid($code-obj))
     }
 

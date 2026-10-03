@@ -50,3 +50,8 @@ our sub right-of-andthen-not-run() { C14.new.m }
 42 orelse my role R15 { method m { $v } };
 my class C15 does R15 { }
 our sub right-of-orelse-not-run() { C15.new.m }
+
+our sub unused-default($a, $r = my role R16 { method m { $v } }) {
+    my class C16 does R16 { }
+    C16.new.m
+}

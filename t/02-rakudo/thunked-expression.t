@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 233;
+plan 250;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -407,6 +407,30 @@ is (try EVAL(q[$_ = 1; 5 ~~ (my %h = a => $_); %h<a>])), 5,
     'a hash declaration as the right side of a smartmatch sees the topic the smartmatch gives';
 is-deeply (try EVAL(q[$_ = 1; my $r = 5 !~~ (my $y = $_); ($r, $y)])), (False, 5),
     'a declaration as the right side of a negated smartmatch sees the topic the smartmatch gives';
+is (try EVAL(q[sub f($x = my class C { }) { $x }; f().^name])), 'C',
+    'a class declared as a parameter default gives the class';
+is (try EVAL(q[my ($a, $b = my class C { }) := \(1); $b.^name])), 'C',
+    'a class declared as a signature binding default gives the class';
+is (try EVAL(q[my $n = 0; sub f($x = my class C { $n++ }) { $x }; f(); f(); $n])), 2,
+    'a class declared as a parameter default runs for each call';
+is-deeply (try EVAL(q[sub g($y) { my ($a, &c = { $y }) := \(1); &c }; (g(1), g(2)).map({ $_() }).List])), (1, 2),
+    'a block as a signature binding default gives a block for each bind';
+is-deeply (try EVAL(q[sub g($y) { my ($a, $b = sub { $y }) := \(1); $b }; (g(1), g(2)).map({ $_() }).List])), (1, 2),
+    'an anonymous sub as a signature binding default gives a sub for each bind';
+is-deeply (try EVAL(q[sub f($y, [$a, &c = { $y }]) { &c }; (f(1, [0]), f(2, [0])).map({ $_() }).List])), (1, 2),
+    'a block as a sub-signature parameter default gives a block for each call';
+is-deeply (try EVAL(q[sub g($y) { my ($a, $p = :a{ $y }) := \(1); $p }; (g(1), g(2)).map({ .value.() }).List])), (1, 2),
+    'a pair holding a block as a signature binding default gives a block for each bind';
+is (try EVAL(q[my $n = 0; sub g { my ($a, $b = my class C { $n++ }) := \(1) }; g(); g(); $n])), 2,
+    'a class declared as a signature binding default runs for each bind';
+is (try EVAL(q[sub f([$a, $b = my class C { }]) { $b }; f([1]).^name])), 'C',
+    'a class declared as a sub-signature parameter default gives the class';
+is (try EVAL(q[role R[$t = my class C { }] { method m { $t.^name } }; R.new.m])), 'C',
+    'a class declared as a role parameter default gives the class';
+is (try EVAL(q[my class A { }; sub f(A $x = my class B is A { }) { $x }; f().^name])), 'B',
+    'a class declared as a parameter default of a parent type gives the class';
+is (try EVAL(q[(-> $x = my class C { } { $x })().^name])), 'C',
+    'a class declared as a pointy block parameter default gives the class';
 # These hold without the thunk too, and guard what it keeps.
 todo 'binds in the frame of the thunk on the legacy frontend', 2 unless $rakuast;
 is (try EVAL(q[1 andthen my ($a, $b) := (1, 2); $a + $b])), 3,
@@ -445,6 +469,19 @@ throws-like q[sub f(Str $x = constant C = 5) { }], X::Parameter::Default::TypeCh
     'a constant declared as a parameter default of another type fails to compile';
 is-deeply (try EVAL(q[my @r; for (int, num) -> $T { @r.push: array[$T] ~~ Positional[$T] }; @r])), [True, True],
     'a smartmatch against a parameterization with a loop variable is checked at runtime';
+todo 'fails only when called on the legacy frontend', 2 unless $rakuast;
+throws-like q[sub f(Int $x = my class C { }) { }], X::Parameter::Default::TypeCheck,
+    'a class declared as a parameter default of another type fails to compile';
+throws-like q[sub f(Int $x = (sub { })) { }], X::Parameter::Default::TypeCheck,
+    'a parenthesized anonymous sub as a parameter default of another type fails to compile';
+todo 'the where clause misses the variable of its block on the legacy frontend' unless $rakuast;
+ok (try EVAL(q[sub f(&c = { my $n = 7; :($a where * eq $n) }) { c() }; \(7) ~~ f()])),
+    'a signature literal in a block as a parameter default gives a signature that binds';
+todo 'closes over the first call on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[sub f($y, $x = (my sub g { $y })) { g() }; (f(1), f(2, 0), f(3, 0))])), (1, 2, 3),
+    'a sub declared as a parameter default is called in the body of a call not evaluating the default';
+is-deeply (try EVAL(q[sub f($x = CHECK (my sub g { 42 })()) { $x + g() }; (f(), f(1))])), (84, 43),
+    'a sub declared under CHECK in a parameter default is called in the body';
 # These hold whichever block declares the code, and guard what it keeps.
 ok (try EVAL(q[my @s = ((try :($a, $b)) for 1..2); \(1, 2) ~~ @s[0]])),
     'a signature literal under try in a for modifier statement gives a signature that binds';

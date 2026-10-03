@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 34;
+plan 36;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -76,3 +76,7 @@ is-deeply (try EVAL(q[sub o($w) { 42 orelse my role R { method m { $w } }; my cl
     'a role declared right of orelse with a defined left side sees the lexicals of each call';
 is-deeply (try EVAL(q[sub o($w) { my @a = (my role R { method m { $w } }) xx 0; my class C does R { }; C.new.m }; (o(8), o(9))])), (8, 9),
     'a role declared on the left of xx 0 sees the lexicals of each call';
+is (try EVAL(q[my $v = 7; sub f($x = (my role R { method m { $v } })) { $x }; f().m])), 7,
+    'a role declared as a parameter default sees the lexicals around it';
+is-deeply (try EVAL(q[sub o($w, $r = my role R { method m { $w } }) { my class C does R { }; C.new.m }; (o(8, 1), o(9, 1))])), (8, 9),
+    'a role declared as a parameter default that is not used sees the lexicals of each call';

@@ -3,7 +3,7 @@ use Test;
 use nqp;
 use RoleBodyLexicals;
 
-plan 15;
+plan 16;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -12,7 +12,7 @@ my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 is RoleBodyLexicals::hash-composer(), 7,
     'a role declared in a hash composer in a precompiled module sees the lexicals around it';
-todo 'gives a wrong value on the legacy frontend', 14 unless $rakuast;
+todo 'gives a wrong value on the legacy frontend', 15 unless $rakuast;
 is RoleBodyLexicals::for-modifier(), 7,
     'a role declared as a for modifier statement in a precompiled module sees the lexicals around it';
 is RoleBodyLexicals::for-modifier-over-nothing(), 7,
@@ -42,3 +42,5 @@ is RoleBodyLexicals::right-of-andthen-not-run(), 7,
     'a role declared right of andthen that does not run in a precompiled module sees the lexicals around it';
 is RoleBodyLexicals::right-of-orelse-not-run(), 7,
     'a role declared right of orelse that does not run in a precompiled module sees the lexicals around it';
+is RoleBodyLexicals::unused-default(1), 7,
+    'a role declared as a parameter default that is not used in a precompiled module sees the lexicals around it';

@@ -924,14 +924,11 @@ class RakuAST::Parameter
         $!optional // ($!default || $!names ?? True !! False)
     }
 
-    # Whether the default binds as its compile time value. BEGIN time thunks
-    # one that evaluates to something else, and a thunked one may come to have
-    # such a value, from a heredoc body or the optimizer, if it holds no code.
+    # Whether the default binds as a literal, which needs it to give its compile
+    # time value and hold no code. BEGIN time thunks any other default, and a
+    # heredoc body or the optimizer can give a thunked one such a value.
     method IMPL-DEFAULT-IS-LITERAL() {
-        return False unless $!default;
-        $!default.outer-most-thunk
-          ?? !nqp::isnull(self.IMPL-LITERAL-VALUE($!default))
-          !! $!default.has-compile-time-value
+        $!default && !nqp::isnull(self.IMPL-LITERAL-VALUE($!default)) ?? True !! False
     }
 
     # The meta-object binds a literal default as a literal, even when BEGIN
@@ -1314,9 +1311,7 @@ class RakuAST::Parameter
             nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $block);
         }
 
-        # A default that evaluates to anything but its compile time value is
-        # evaluated by a thunk on each call.
-        if $!default && nqp::isnull(self.IMPL-EVALUATED-VALUE($!default)) {
+        if $!default && !self.IMPL-DEFAULT-IS-LITERAL {
             $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
             my $default-thunk := $!default.outer-most-thunk;
             $default-thunk.IMPL-SET-PRELUDE-PRODUCER(
@@ -1497,6 +1492,9 @@ class RakuAST::Parameter
                     how => 'required', parameter => $!target.lexical-name;
             }
 
+            # A default holding code gives a value of its compile time value's
+            # type on each call, a new closure for a block or the type object
+            # for a package, so the check covers it too.
             my $value := self.IMPL-EVALUATED-VALUE($!default);
             if nqp::isconcrete($!type) && !nqp::isnull($value) {
                 my $type := self.IMPL-NOMINAL-TYPE;

@@ -2647,11 +2647,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 1
             }
         }
-        $seen-decl-or-topic
-          ?? $object-hash
-            ?? Nil
-            !! $ast
-          !! Nodify('Circumfix::HashComposer').new($expression, :$object-hash)
+        if $seen-decl-or-topic {
+            return $object-hash ?? Nil !! $ast;
+        }
+        # A role in the braces declares its lexical fixup in their scope, which
+        # a hash does not have.
+        $ast.IMPL-HAND-OVER-FIXUPS($*R.current-scope);
+        Nodify('Circumfix::HashComposer').new($expression, :$object-hash)
     }
 
     method circumfix:sym<{ }>($/) {

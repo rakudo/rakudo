@@ -318,6 +318,16 @@ role RakuAST::LexicalScope
         @code
     }
 
+    # A scope that generates no code of its own hands the lexical fixups of the
+    # roles declared in it to the scope around it, which then points the
+    # role bodies at its frame.
+    method IMPL-HAND-OVER-FIXUPS(RakuAST::LexicalScope $to) {
+        for $!generated-lexical-declarations // [] {
+            $to.add-generated-lexical-declaration($_) if nqp::istype($_, RakuAST::LexicalFixup);
+        }
+        Nil
+    }
+
     method lexical-declarations() {
         my $declarations := nqp::clone(self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations));
         for ($!generated-lexical-declarations // []) {

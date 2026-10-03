@@ -1084,17 +1084,21 @@ role RakuAST::Code
     method signature() { Nil }
 }
 
+# Declares a role's body with the fixup that makes the frame of the scope
+# declaring them the body's outer, whatever thunk the role is evaluated in.
 class RakuAST::LexicalFixup
   is RakuAST::Node
   does RakuAST::Declaration
 {
     has RakuAST::Block $!block;
     has FixupList $!fixup-list;
+    has Mu $!role;
 
-    method new() {
+    method new(Mu $role) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::LexicalFixup, '$!block', RakuAST::Block);
         nqp::bindattr($obj, RakuAST::LexicalFixup, '$!fixup-list', LexicalFixup);
+        nqp::bindattr($obj, RakuAST::LexicalFixup, '$!role', $role);
         $obj.replace-scope('my');
         $obj
     }
@@ -1105,19 +1109,16 @@ class RakuAST::LexicalFixup
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $stmts := QAST::Stmts.new($!role.IMPL-QAST-BODY($context));
         if $!block {
-            QAST::Stmts.new(
-                $!block.IMPL-QAST-DECL-CODE($context),
-                QAST::Op.new(
-                    :op('callmethod'), :name('resolve'),
-                    QAST::WVal.new( :value($!fixup-list) ),
-                    QAST::Op.new( :op('takeclosure'), $!block.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>)),
-                )
-            )
+            $stmts.push($!block.IMPL-QAST-DECL-CODE($context));
+            $stmts.push(QAST::Op.new(
+                :op('callmethod'), :name('resolve'),
+                QAST::WVal.new( :value($!fixup-list) ),
+                QAST::Op.new( :op('takeclosure'), $!block.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>)),
+            ));
         }
-        else {
-            QAST::Stmt.new;
-        }
+        $stmts
     }
 
     method lexical-name() { '' }

@@ -1082,10 +1082,10 @@ class RakuAST::Infix
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, self);
-        return $constant unless nqp::isnull($constant);
-        my $name := self.resolution.lexical-name;
-        QAST::Var.new( :scope('lexical'), :$name )
+        nqp::ifnull(
+          self.IMPL-CONSTANT-HOP-INFIX-QAST($context, self),
+          QAST::Var.new(:name(self.resolution.lexical-name), :scope<lexical>)
+        )
     }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
@@ -2202,10 +2202,11 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
-        return $constant unless nqp::isnull($constant);
-        QAST::Op.new(:op<call>,
-          :name<&METAOP_NEGATE>, $!infix.IMPL-HOP-INFIX-QAST($context)
+        nqp::ifnull(
+          self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
+          QAST::Op.new(:op<call>,
+            :name<&METAOP_NEGATE>, $!infix.IMPL-HOP-INFIX-QAST($context)
+          )
         )
     }
 
@@ -2276,11 +2277,12 @@ class RakuAST::MetaInfix::Reverse
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
-        return $constant unless nqp::isnull($constant);
-        QAST::Op.new:
-            :op('callstatic'), :name('&METAOP_REVERSE'),
-            $!infix.IMPL-HOP-INFIX-QAST($context)
+        nqp::ifnull(
+          self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
+          QAST::Op.new(:op<callstatic>,
+            :name<&METAOP_REVERSE>, $!infix.IMPL-HOP-INFIX-QAST($context)
+          )
+        )
     }
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
@@ -2449,12 +2451,14 @@ class RakuAST::MetaInfix::Cross
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
-        return $constant unless nqp::isnull($constant);
-        QAST::Op.new:
-            :op('callstatic'), :name('&METAOP_CROSS'),
+        nqp::ifnull(
+          self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
+          QAST::Op.new(:op<callstatic>,
+            :name<&METAOP_CROSS>,
             $!infix.IMPL-HOP-INFIX-QAST($context),
-            QAST::Var.new( :name($!infix.reducer-name), :scope('lexical') )
+            QAST::Var.new(:name($!infix.reducer-name), :scope<lexical>)
+          )
+        )
     }
 
     method IMPL-HOP-INFIX() {
@@ -2550,12 +2554,14 @@ class RakuAST::MetaInfix::Zip
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
-        return $constant unless nqp::isnull($constant);
-        QAST::Op.new:
-            :op('callstatic'), :name('&METAOP_ZIP'),
+        nqp::ifnull(
+          self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
+          QAST::Op.new(:op<callstatic>,
+            :name<&METAOP_ZIP>,
             $!infix.IMPL-HOP-INFIX-QAST($context),
-            QAST::Var.new( :name($!infix.reducer-name), :scope('lexical') )
+            QAST::Var.new(:name($!infix.reducer-name), :scope<lexical>)
+          )
+        )
     }
 
     method IMPL-HOP-INFIX() {
@@ -2653,18 +2659,24 @@ class RakuAST::MetaInfix::Hyper
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $constant := self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix);
-        return $constant unless nqp::isnull($constant);
-        my $call := QAST::Op.new:
-            :op('callstatic'), :name('&METAOP_HYPER'),
-            $!infix.IMPL-HOP-INFIX-QAST($context);
-        if $!dwim-left {
-            $call.push: QAST::WVal.new: :value(True), :named('dwim-left');
-        }
-        if $!dwim-right {
-            $call.push: QAST::WVal.new: :value(True), :named('dwim-right');
-        }
-        $call
+        nqp::ifnull(
+          self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
+          nqp::stmts(
+            (my $call := QAST::Op.new(:op<callstatic>,
+              :name<&METAOP_HYPER>,
+              $!infix.IMPL-HOP-INFIX-QAST($context)
+            )),
+            nqp::if(
+              $!dwim-left,
+              $call.push(QAST::WVal.new(:value(True), :named<dwim-left>))
+            ),
+            nqp::if(
+              $!dwim-right,
+              $call.push(QAST::WVal.new(:value(True), :named<dwim-right>))
+            ),
+            $call
+          )
+        )
     }
 
     method IMPL-HOP-INFIX() {

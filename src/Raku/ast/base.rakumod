@@ -530,10 +530,10 @@ class RakuAST::Node {
     # compiler's for a tree compiled outside one, as through the RakuAST
     # API at runtime
     method IMPL-LANGUAGE-REVISION() {
-        my $revision := nqp::getlexdyn('$*LANGUAGE-REVISION');
-        nqp::isnull($revision)
-          ?? nqp::getcomp('Raku').language_revision
-          !! $revision
+        nqp::ifnull(
+          nqp::getlexdyn('$*LANGUAGE-REVISION'),
+          nqp::getcomp('Raku').language_revision
+        )
     }
 
     method IMPL-WRAP-LIST(Mu $vm-array) {
@@ -2432,8 +2432,8 @@ class RakuAST::Node {
         }
 
         my $data := self.IMPL-LITMATCH-DATA($resolver, $right);
-        return $expr if nqp::isnull($data);
-        $infix.IMPL-SET-LITMATCH($data);
+        $infix.IMPL-SET-LITMATCH($data) unless nqp::isnull($data);
+
         $expr
     }
 

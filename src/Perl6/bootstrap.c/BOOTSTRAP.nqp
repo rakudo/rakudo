@@ -1308,11 +1308,46 @@ my class Binder {
         )
     }
 
+    # The name of a variable the signature binds, if it binds any.
+    sub bound_name($sig) {
+        my @params := nqp::getattr($sig, Signature, '@!params');
+        my int $num_params := nqp::elems(@params);
+        my int $i := -1;
+        while ++$i < $num_params {
+            my $param := nqp::atpos(@params, $i);
+            my str $varname := nqp::getattr_s($param, Parameter, '$!variable_name');
+            return $varname unless nqp::isnull_s($varname);
+            my $type_caps := nqp::getattr($param, Parameter, '@!type_captures');
+            return nqp::atpos_s($type_caps, 0)
+              unless nqp::isnull($type_caps) || nqp::elems($type_caps) == 0;
+            my $subsig := nqp::getattr($param, Parameter, '$!sub_signature');
+            unless nqp::isnull($subsig) {
+                my str $name := bound_name($subsig);
+                return $name if $name;
+            }
+        }
+        ''
+    }
+
+    # A declaration binds its variables in the frame declaring them, which is
+    # further out than the caller when a thunk around the declaration binds.
     method bind_cap_to_sig($sig, $capture) {
+        my $ctx := nqp::ctxcaller(nqp::ctx);
+        my @params := nqp::getattr($sig, Signature, '@!params');
+        my str $name := nqp::elems(@params)
+          ?? nqp::getattr_s(nqp::atpos(@params, 0), Parameter, '$!variable_name')
+          !! nqp::null_s;
+        $name := bound_name($sig) if nqp::isnull_s($name);
+        if $name {
+            my $declarer := $ctx;
+            $declarer := nqp::ctxouter($declarer)
+              until nqp::isnull($declarer) || nqp::existskey($declarer, $name);
+            $ctx := $declarer unless nqp::isnull($declarer);
+        }
         if bind(
              make_vm_capture($capture),
              $sig,
-             nqp::ctxcaller(nqp::ctx),
+             $ctx,
              0,
              my @error
         ) {

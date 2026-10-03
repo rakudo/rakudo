@@ -41,6 +41,7 @@ my class Unicode {
       '15.1' => 0x2FFC.chr,
       '16.0' => 0x0897.chr,
       '17.0' => 0x088F.chr,
+      '18.0' => 0x1B123.chr,
     # PLEASE ADD NEWER UNICODE VERSIONS HERE, AS SOON AS THE UNICODE
     # CONSORTIUM HAS RELEASED A NEW VERSION
     ).first(*.value.uniprop('Age') ne 'Unassigned', :end).key.Version;

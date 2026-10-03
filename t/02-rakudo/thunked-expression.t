@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 25;
+plan 28;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -56,6 +56,12 @@ given 100 {
     is-deeply (42 andthen my ($p, $q) = $_ + 1, 2).List, (43, 2),
         'a signature declaration that assigns right of andthen is evaluated in the topic block';
 }
+is (try EVAL(q[try { !!! * ~ "x" }; $!.message.^name])), 'WhateverCode',
+    'a stub given a WhateverCode as its message keeps it';
+is (try EVAL(q[try { !!! { 42 } }; $!.message.^name])), 'Block',
+    'a stub given a block as its message keeps it';
+is (try EVAL(q[my $x = 5; try { !!! "m $x" }; $!.message])), 'm 5',
+    'a stub message using a variable of an outer block is built';
 # These hold without the thunk too, and guard what it keeps.
 todo 'binds in the frame of the thunk on the legacy frontend', 2 unless $rakuast;
 is (try EVAL(q[1 andthen my ($a, $b) := (1, 2); $a + $b])), 3,

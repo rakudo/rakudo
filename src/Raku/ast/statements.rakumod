@@ -1988,11 +1988,12 @@ class RakuAST::Statement::Loop
                 $qast
             }
             else {
-                my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
                 my $qast := QAST::Op.new(:op<callmethod>, :name('from-loop'),
                     $Seq,
                     $!body.IMPL-TO-QAST($context),
-                    $!condition.IMPL-TO-QAST($context),
+                    $!condition
+                      ?? $!condition.IMPL-TO-QAST($context)
+                      !! QAST::WVal.new(:value(Code)),
                 );
                 $qast.push: $!increment.IMPL-TO-QAST($context) if $!increment;
                 # A plain while or until has no increment or condition thunk to

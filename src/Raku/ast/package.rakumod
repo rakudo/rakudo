@@ -261,8 +261,8 @@ class RakuAST::Package
         my $full-name := nqp::eqaddr($current,$resolver.get-global)
             ?? $name.is-global-lookup ?? $name.without-first-part !! $name
             !! $name.qualified-with(
-                RakuAST::Name.from-identifier-parts(
-                    |nqp::split('::', $current.HOW.name($current))
+                RakuAST::Name.from-identifier-list(
+                  nqp::split('::', $current.HOW.name($current))
                 )
             );
     }

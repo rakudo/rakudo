@@ -261,7 +261,7 @@ class RakuAST::CompUnit
             nqp::unshift(@parts,$base);
         }
 
-        my $name := RakuAST::Name.from-identifier-parts(|@parts);
+        my $name := RakuAST::Name.from-identifier-list(@parts);
         $!statement-list.add-statement: RakuAST::Statement::Expression.new(
           expression => RakuAST::StatementPrefix::Phaser::Init.new(
             RakuAST::Block.new(

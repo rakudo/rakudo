@@ -13,7 +13,7 @@ class RakuAST::Name
 
         if $colonpairs {
             for self.IMPL-UNWRAP-LIST($colonpairs) {
-                $obj.add-colonpair($_)
+                $obj.add-colonpair($_);  # need typechecking
             }
         }
 

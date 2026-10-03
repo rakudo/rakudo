@@ -4790,7 +4790,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             make Nodify('Name::Part::Expression').new($ast);
         }
         else {
-            make Nodify('Name::Part::EmptyEdge');
+            make Nodify('Name::Part::EmptyEdge').new;
         }
     }
 

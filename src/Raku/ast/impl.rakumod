@@ -366,6 +366,10 @@ class RakuAST::IMPL::BeginTimeValue {
 
     method IMPL-THUNK-CODE-QAST(*@pos) { Nil }
 
+    method IMPL-DECLARES-EVALUATED-CODE() { False }
+
+    method IMPL-COMPILED-ALONE() { False }
+
     method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
         $context.ensure-sc($!value);
         QAST::WVal.new(:value($!value))

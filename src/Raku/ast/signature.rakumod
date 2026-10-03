@@ -566,6 +566,13 @@ class RakuAST::FakeSignature
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # The binder evaluates the defaults and wheres of the literal without
+        # entering its block, so no entry takes the closures of their routines.
+        my @parameters;
+        $!signature.IMPL-COLLECT-PARAMETERS(@parameters);
+        for @parameters {
+            $_.IMPL-SET-DECLARED-BY-EVALUATING-CODE for $_.IMPL-ROUTINES-BOUND-WITH;
+        }
         $!block.to-begin-time($resolver, $context);
     }
 
@@ -1307,6 +1314,9 @@ class RakuAST::Parameter
             # If it doesn't have a compile-time value, we'll need to thunk it.
             unless $!default.has-compile-time-value {
                 $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
+                my $default-thunk := $!default.outer-most-thunk;
+                $default-thunk.IMPL-SET-PRELUDE-PRODUCER(
+                  -> $context { self.IMPL-QAST-ENTRY-CLOSURES($context, $default-thunk) });
                 $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
             }
         }
@@ -1367,6 +1377,59 @@ class RakuAST::Parameter
           if $!where;
 
         $!where.IMPL-THUNK-WHERE($resolver, $context) if $!where;
+        my $where-thunk := $!where ?? $!where.IMPL-WHERE-THUNK !! Nil;
+        $where-thunk.IMPL-SET-PRELUDE-PRODUCER(-> $context { self.IMPL-QAST-ENTRY-CLOSURES($context, $where-thunk) })
+          if $where-thunk;
+    }
+
+    # The routines declared in the default and where, which code evaluates as
+    # the signature binds. Those under a phaser run at its time instead.
+    method IMPL-ROUTINES-BOUND-WITH() {
+        my @routines;
+        my @todo;
+        @todo.push($!default) if $!default;
+        @todo.push($!where) if $!where;
+        while @todo {
+            my $node := @todo.shift;
+            if nqp::istype($node, RakuAST::Routine) {
+                @routines.push($node);
+            }
+            elsif !nqp::istype($node, RakuAST::LexicalScope)
+              && !nqp::istype($node, RakuAST::StatementPrefix::Phaser) {
+                $node.visit-children(-> $child { @todo.push($child) });
+            }
+        }
+        @routines
+    }
+
+    # The closures of the routines in the default and where. The scope declaring
+    # them takes them on entry after the signature binds, and a trial bind not at
+    # all, so evaluating the default or where takes them over the frame bound.
+    method IMPL-QAST-ENTRY-CLOSURES(RakuAST::IMPL::QASTContext $context, Mu $thunk?) {
+        my @routines;
+        for self.IMPL-ROUTINES-BOUND-WITH {
+            @routines.push($_) if $_.IMPL-TAKES-ENTRY-CLOSURE;
+        }
+        return Nil unless @routines;
+        # A thunk compiled on its own at BEGIN time binds no frame, and its
+        # compilation holds no block of the routines. The unit forms it again.
+        if nqp::isconcrete($thunk)
+          && nqp::eqaddr(nqp::getlexdyn('$*IMPL-DYNAMIC-ROOT'), $thunk) {
+            $*IMPL-FORM-AGAIN := 1
+              unless nqp::isnull(nqp::getlexdyn('$*IMPL-FORM-AGAIN'));
+            return Nil;
+        }
+        my $stmts := QAST::Stmts.new;
+        $stmts.push($_.IMPL-QAST-ENTRY-CLOSURE($context, :callers)) for @routines;
+        $stmts
+    }
+
+    # A where that is code to call is the routine itself, not a thunk taking
+    # its closure, so the binding does.
+    method IMPL-WHERE-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := $!where.IMPL-TO-QAST($context);
+        my $closures := $!where.IMPL-WHERE-THUNK ?? Nil !! self.IMPL-QAST-ENTRY-CLOSURES($context);
+        nqp::isconcrete($closures) ?? QAST::Stmts.new($closures, $qast) !! $qast
     }
 
     # Type captures are the only generic parameter types the lowered
@@ -2130,7 +2193,7 @@ class RakuAST::Parameter
                             :op<istrue>,
                             QAST::Op.new(
                                 :op('callmethod'), :name('ACCEPTS'),
-                                $!where.IMPL-TO-QAST($context),
+                                self.IMPL-WHERE-QAST($context),
                                 $temp-qast-var
                             )
                         )
@@ -2887,6 +2950,8 @@ class RakuAST::ParameterDefaultThunk
     method thunk-details() {
         ''
     }
+
+    method IMPL-REBUILD-ELIGIBLE() { 1 }
 
     # Its stub compiles it around the default it holds.
     method IMPL-QAST-BLOCK-AHEAD-OF-UNIT(RakuAST::Resolver $resolver,

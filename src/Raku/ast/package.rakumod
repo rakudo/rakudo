@@ -829,6 +829,11 @@ class RakuAST::Role
             for $signature.IMPL-UNWRAP-LIST($signature.parameters) {
                 $_.set-owner($role-body);
             }
+            my @parameters;
+            $signature.IMPL-COLLECT-PARAMETERS(@parameters);
+            for @parameters {
+                $_.IMPL-SET-OUTER($role-body) for $_.IMPL-ROUTINES-BOUND-WITH;
+            }
 
             my $body := $role-body.body;
             my $resolve-instantiations;

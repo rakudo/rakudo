@@ -326,6 +326,7 @@ class RakuAST::Trait::Will
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Trait::Will, '$!phase', $phase);
         nqp::bindattr($obj, RakuAST::Trait::Will, '$!block', $block);
+        $block.IMPL-SET-FIRED-BY-ITS-SCOPE;
         $obj
     }
 

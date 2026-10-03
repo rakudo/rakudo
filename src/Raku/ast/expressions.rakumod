@@ -99,6 +99,30 @@ class RakuAST::Expression
         False
     }
 
+    # Whether the expression is code a thunk around it declares. Code its scope
+    # declares, as a named routine or a phaser, is left to that scope.
+    method IMPL-CODE-DECLARED-BY-THUNK() {
+        return False
+          unless nqp::istype(self, RakuAST::Code) && !self.IMPL-DECLARED-BY-ITS-SCOPE;
+        my $thunk := $!thunks;
+        while $thunk {
+            return True if $thunk.IMPL-DECLARES-EVALUATED-CODE;
+            $thunk := $thunk.next;
+        }
+        False
+    }
+
+    # Whether a thunk around the expression is compiled on its own, and so
+    # declares the state guards in it.
+    method IMPL-THUNK-COMPILED-ALONE() {
+        my $thunk := $!thunks;
+        while $thunk {
+            return True if $thunk.IMPL-COMPILED-ALONE;
+            $thunk := $thunk.next;
+        }
+        False
+    }
+
     method visit-thunks(Code $visitor) {
         my $cur-thunk := $!thunks;
         while $cur-thunk {

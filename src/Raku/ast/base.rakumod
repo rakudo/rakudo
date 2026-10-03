@@ -391,10 +391,18 @@ class RakuAST::Node {
 
     method IMPL-QAST-NESTED-BLOCK-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new;
+        # A scope declares the code it binds the lexical of or fires, wherever
+        # that code sits below it.
+        if nqp::istype(self, RakuAST::LexicalScope) {
+            for self.IMPL-OWNED-CODE -> $code {
+                $stmts.push($code.IMPL-QAST-DECL-CODE($context));
+            }
+        }
         my @code-todo := [self];
         while @code-todo {
             my $visit := @code-todo.shift;
             $visit.visit-children: -> $node {
+                my int $owned := self.IMPL-OWNED-BY-SCOPE($node);
                 if nqp::istype($node, RakuAST::Code) {
                     if nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) &&
                             $visit.IMPL-IMMEDIATELY-USES($node) {
@@ -409,10 +417,21 @@ class RakuAST::Node {
                         # Its declaration already lives in the containing
                         # regex's own block.
                     }
+                    elsif $owned {
+                        # The scope that binds its lexical or fires it declares it.
+                    }
+                    elsif nqp::istype($node, RakuAST::Expression) && $node.IMPL-CODE-DECLARED-BY-THUNK {
+                        # The thunk that evaluates it declares it.
+                    }
                     else {
                         my $code := $node.IMPL-QAST-DECL-CODE($context);
                         $stmts.push($code);
                     }
+                }
+                elsif nqp::istype($node, RakuAST::FakeSignature) && !$node.outer-most-thunk {
+                    # A signature literal binds under the code of its block, which a
+                    # thunked literal leaves to its thunk to declare.
+                    $stmts.push($node.block.IMPL-QAST-DECL-CODE($context));
                 }
                 if nqp::istype($node, RakuAST::Expression) {
                     $node.IMPL-QAST-ADD-THUNK-DECL-CODE($context, $stmts);
@@ -428,9 +447,17 @@ class RakuAST::Node {
                     # its traits' blocks do belong here.
                     if nqp::istype($node, RakuAST::TraitTarget) && !nqp::istype($node, RakuAST::Code) {
                         $node.visit-traits(-> $trait { @code-todo.push($trait) });
+                        # So does the code the package would declare.
+                        for $node.IMPL-OWNED-CODE -> $code {
+                            $stmts.push($code.IMPL-QAST-DECL-CODE($context));
+                        }
                     }
                 }
+                elsif $owned {
+                    # It declares what it holds when its scope declares it.
+                }
                 elsif nqp::istype($node, RakuAST::MayCreateBlock) && $node.creates-block {
+                    # A thunk or statement prefix declares the code in it.
                 }
                 else {
                     @code-todo.push($node);
@@ -438,6 +465,37 @@ class RakuAST::Node {
             }
         }
         $stmts
+    }
+
+    # Whether a scope around the node declares it, as for a routine whose
+    # lexical it binds, a phaser it fires and the block of a will trait.
+    method IMPL-OWNED-BY-SCOPE(Mu $node) {
+        nqp::istype($node, RakuAST::Code) && $node.IMPL-DECLARED-BY-ITS-SCOPE ?? 1 !! 0
+    }
+
+    # The code node to declare for code a scope declares, which for a phaser
+    # with a block is that block.
+    method IMPL-OWNED-CARRIER(Mu $node) {
+        nqp::istype($node, RakuAST::StatementPrefix) && nqp::istype($node.blorst, RakuAST::Block)
+          ?? $node.blorst !! $node
+    }
+
+    # The code in the node that a scope around it declares, which a compilation
+    # of the node on its own has to declare as well.
+    method IMPL-SCOPE-OWNED-CODE-WITHIN() {
+        my @code;
+        my @todo := [self];
+        while @todo {
+            @todo.shift.visit-children: -> $node {
+                if self.IMPL-OWNED-BY-SCOPE($node) {
+                    nqp::push(@code, self.IMPL-OWNED-CARRIER($node));
+                }
+                elsif !nqp::istype($node, RakuAST::LexicalScope) {
+                    nqp::push(@todo, $node);
+                }
+            }
+        }
+        @code
     }
 
     # Recursively walks the tree finding nodes of the specified type that are
@@ -4509,6 +4567,7 @@ class RakuAST::Node {
                            Bool :$compile
     ) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
+        my $*IMPL-DYNAMIC-COMPILATION := nqp::list();
         my $*BEGIN-TIME-LOOKUP :=
           self.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
 
@@ -4810,6 +4869,7 @@ class RakuAST::Node {
                    RakuAST::Node :$locus
     ) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
+        my $*IMPL-DYNAMIC-COMPILATION := nqp::list();
         my $*BEGIN-TIME-LOOKUP :=
           self.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
 

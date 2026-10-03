@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 29;
+plan 35;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -85,5 +85,22 @@ is (try EVAL(q[my ($a where 0 || 5) := (5,); $a])), 5,
     'a constant || as the where of a signature declaration binds';
 is-deeply (try EVAL(q[my ($a where 0 || { $_ > 0 }, $b) := (5, 2); ($a, $b)])), (5, 2),
     'a constant || giving a block as the where of a signature declaration binds';
+# These hold whichever block declares the code, and guard what it keeps.
+is (try EVAL(q[my subset P of Str where /^a/; BEGIN "ab" ~~ P])), True,
+    'a regex as the where of a subset used at BEGIN time is smartmatched';
+is (try EVAL(q[my subset P of Int where (multi g(Int $v) { $v > 0 })($_); BEGIN 3 ~~ P])), True,
+    'a multi declared in the where of a subset used at BEGIN time is called';
+is (try EVAL(q[sub f { my subset P of Int where (multi g(Int $v) { $v > 0 })($_); BEGIN 3 ~~ P }; f()])), True,
+    'a multi declared in the where of a subset in a routine used at BEGIN time is called';
+is (try EVAL(q[my class A { has Int $.x where (multi g(Int $v) { $v > 0 })($_) }; BEGIN A.new(x => 3).x])), 3,
+    'a multi declared in the where of an attribute used at BEGIN time is called';
+sub routine-in-where($y, $x where (sub w($v) { $v eq "d$y" })($_)) { $x }
+BEGIN routine-in-where(1, 'd1');
+is (try routine-in-where(2, 'd2')), 'd2',
+    'a sub declared in the where of a parameter closes over each call of its routine after a call at BEGIN time';
+sub multi-in-where($y, $x where (multi w($v) { $v eq "m$y" })($_)) { $x }
+BEGIN multi-in-where(1, 'm1');
+is (try multi-in-where(2, 'm2')), 'm2',
+    'a multi declared in the where of a parameter closes over each call of its routine after a call at BEGIN time';
 
 # vim: expandtab shiftwidth=4

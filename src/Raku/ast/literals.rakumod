@@ -575,8 +575,8 @@ class RakuAST::QuotedString
             }
             elsif $_ eq 'heredoc' {
                 # The block being formed is formed again once the body arrives.
-                $*IMPL-AWAITED-HEREDOC := 1
-                  unless nqp::isnull(nqp::getlexdyn('$*IMPL-AWAITED-HEREDOC'));
+                $*IMPL-FORM-AGAIN := 1
+                  unless nqp::isnull(nqp::getlexdyn('$*IMPL-FORM-AGAIN'));
                 $qast := QAST::Op.new(
                     :op('die_s'), QAST::SVal.new( :value("Premature heredoc consumption") )
                 );

@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 40;
+plan 168;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -101,6 +101,154 @@ isa-ok (try EVAL(q[sub f { 42 andthen ... }; f().exception])), X::StubCode,
     is-deeply (try EVAL($ast).map(*.^name).List), ('Signature', 'Signature'),
         'a signature built through the RakuAST API as a for modifier statement gives the signature each iteration';
 }
+ok (try EVAL(q[my @s = ((:($a, $b) for 1..2) for 1..2); \(1, 2) ~~ @s[1][1]])),
+    'a signature literal in nested for modifier statements gives a signature that binds';
+ok (try EVAL(q[my $x = 1; my @r = (($x, :($a)) xx 2 for 1..2); \(5) ~~ @r[0][0][1]])),
+    'a signature literal in a thunked list in a for modifier statement gives a signature that binds';
+given 100 {
+    is (42 andthen try $_ + 1), 43,
+        'a try right of andthen sees the topic andthen gives';
+    is-deeply (42 andthen gather take $_ + 1).List, (43,),
+        'a gather right of andthen sees the topic andthen gives';
+    is (42 andthen once $_ + 1), 43,
+        'a once right of andthen sees the topic andthen gives';
+    is (await (42 andthen start $_ + 1)), 43,
+        'a start right of andthen sees the topic andthen gives';
+    is (Nil orelse try $_.raku), 'Nil',
+        'a try right of orelse sees the topic orelse gives';
+    is (Nil notandthen try $_.raku), 'Nil',
+        'a try right of notandthen sees the topic notandthen gives';
+}
+if $rakuast {
+    given 100 {
+        my $r = (42 andthen /a$_/);
+        ok "a42" ~~ $r, 'a regex right of andthen sees the topic andthen gives';
+    }
+}
+else {
+    skip 'dies on the legacy frontend', 1;
+}
+is-deeply (try EVAL(q[sub g($i) { ((my sub foo { $i * 10 }; $i) xx 1); foo() }; (g(1), g(2), g(3))])), (10, 20, 30),
+    'a sub declared in parenthesized statements on the left of xx closes over each call of its routine';
+todo 'closes over the previous call on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[sub g($i) { try my sub foo { $i * 10 }; foo() }; (g(1), g(2), g(3))])), (10, 20, 30),
+    'a sub declared under try closes over each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { once ((my sub foo { $i * 10 }; $i) xx 1); foo() }; (g(1), g(2), g(3))])), (10, 20, 30),
+    'a sub declared on the left of xx under once closes over each call of its routine';
+todo 'closes over the previous call on the legacy frontend', 2 unless $rakuast;
+is-deeply (try EVAL(q[sub g($i) { (gather take my sub foo { $i * 10 }).eager; foo() }; (g(1), g(2), g(3))])), (10, 20, 30),
+    'a sub declared under gather closes over each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { (try my sub foo { $i * 10 }) xx 1; foo() }; (g(1), g(2), g(3))])), (10, 20, 30),
+    'a sub declared under try on the left of xx closes over each call of its routine';
+is (try EVAL(q[constant K = (42 andthen try $_ + 1); K])), 43,
+    'a try right of andthen in the value of a constant sees the topic andthen gives';
+is (try EVAL(q[my $x is default(42 andthen try $_ + 1); $x])), 43,
+    'a try right of andthen in a trait argument sees the topic andthen gives';
+ok (try EVAL(q[my $s = try :($a, $b); \(1, 2) ~~ $s])),
+    'a signature literal under try gives a signature that binds';
+ok (try EVAL(q[my $s = (gather take :($a, $b))[0]; \(1, 2) ~~ $s])),
+    'a signature literal under gather gives a signature that binds';
+todo 'sees the first call on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[sub g($n) { my $s = try :($a where * > $n); \(5) ~~ $s }; (g(3), g(7))])), (True, False),
+    'a signature literal under try has a where clause that sees each call of its routine';
+ok (try EVAL(q[my $s; { $s = :($a, $b) }; \(1, 2) ~~ $s])),
+    'a signature literal in a bare block gives a signature that binds';
+ok (try EVAL(q[my @s; for 1..2 { @s.push: :($a, $b) }; \(1, 2) ~~ @s[1]])),
+    'a signature literal in the body of a for loop gives a signature that binds';
+ok (try EVAL(q[my $s = BEGIN :($a, $b); \(1, 2) ~~ $s])),
+    'a signature literal under BEGIN gives a signature that binds';
+is-deeply (try EVAL(q[sub g($i) { ((my proto foo($x) { $i * 10 + $x }; $i) xx 1); foo(1) }; (g(1), g(2), g(3))])), (11, 21, 31),
+    'a proto with a body declared on the left of xx closes over each call of its routine';
+is-deeply (try EVAL(q[sub h($y) { my $x = $y; ENTER (0 || my sub foo { $x }); foo() }; (h(1), h(2))])), (1, 2),
+    'a sub declared under ENTER closes over each call of its routine';
+is-deeply (try EVAL(q[sub h($y) { my $x = $y; LEAVE (0 || my sub foo { $x }); foo() }; (h(1), h(2))])), (1, 2),
+    'a sub declared under LEAVE closes over each call of its routine';
+is-deeply (try EVAL(q[sub h($y) { my $x = $y; PRE (my sub foo { $x }; 1); foo() }; (h(1), h(2))])), (1, 2),
+    'a sub declared under PRE closes over each call of its routine';
+todo 'runs on each call on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[sub g($i) { ((once $i) for 1) }; (g(1), g(2)).map(*.List).List])), ((1,), (1,)),
+    'a once as a for modifier statement runs once per closure of its routine';
+todo 'sees the first call on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[sub g($i) { my $r = (try ENTER $i * 10); $r }; (g(1), g(2))])), (10, 20),
+    'an ENTER phaser under try sees each call of its routine';
+todo 'gives Mu on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[my @s; for 1..3 -> $i { try LAST @s.push: $i }; @s.List])), (3,),
+    'a LAST phaser under try sees the last iteration';
+todo 'sees the first call on the legacy frontend' unless $rakuast;
+is (try EVAL(q[my $s = ''; sub g($i) { try my $x will enter { $s ~= "e$i " }; 1 }; g(1); g(2); $s])), 'e1 e2 ',
+    'a will enter trait under try sees each call of its routine';
+todo 'gives Mu on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[my @s; for 1..3 -> $i { try my $x will last { @s.push: $i } }; @s.List])), (3,),
+    'a will last trait under try sees the last iteration';
+todo 'gives 1 on the legacy frontend' unless $rakuast;
+is (try EVAL(q[constant K = * + (state $x = 5); K.(1)])), 6,
+    'a state declaration in a Whatever curry as the value of a constant is initialized';
+is (try EVAL(q[my $s = ''; sub g($i) { ENTER { $s ~= "e$i " } xx 1; 1 }; g(1); g(2); $s])), 'e1 e2 ',
+    'an ENTER block as the left of xx sees each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { [ENTER { $i * 10 }] xx 1 }; (g(1), g(2)).map(*[0][0]).List])), (10, 20),
+    'an ENTER block in an array on the left of xx sees each call of its routine';
+is (try EVAL(q[my $s = ''; for 1..3 -> $i { 1 andthen FIRST $s ~= "f$i" }; $s])), 'f1',
+    'a FIRST phaser right of andthen runs on the first iteration';
+todo 'sees the first call on the legacy frontend', 3 unless $rakuast;
+is (try EVAL(q[my $s = ''; sub g($i) { 1 andthen ENTER { $s ~= "e$i " }; 1 }; g(1); g(2); $s])), 'e1 e2 ',
+    'an ENTER block right of andthen sees each call of its routine';
+is (try EVAL(q[my $s = ''; sub g($i) { try ENTER { $s ~= "e$i " }; 1 }; g(1); g(2); $s])), 'e1 e2 ',
+    'an ENTER block under try sees each call of its routine';
+is (try EVAL(q[sub g($i) { 1 andthen ENTER $i * 10 }; BEGIN g(1); g(2)])), 20,
+    'an ENTER phaser right of andthen in a routine called at BEGIN time sees each call';
+todo 'closes over the first call on the legacy frontend' unless $rakuast;
+is (try EVAL(q[sub g($i) { my $s = ''; ("x" ~~ / :my sub foo { $i }; x { $s ~= foo() } /) xx 1; $s }; g(1) ~ g(2)])), '12',
+    'a sub declared in a regex on the left of xx closes over each call of its routine';
+todo 'sees the first call on the legacy frontend' unless $rakuast;
+is (try EVAL(q[sub g($i) { my $s = "x"; ($s ~~ s[x] = ENTER "e$i") xx 1; $s }; g(1) ~ g(2)])), 'e1e2',
+    'an ENTER phaser in a substitution on the left of xx gives its value';
+is (try EVAL(q[my $s = ''; sub g($i) { my token tk { x { $s ~= $i } }; -> $t { $t ~~ &tk } }; my $a = g(1); my $b = g(2); $a("x"); $b("x"); $s])), '12',
+    'a lexical token closes over each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { my method m { $i }; -> { 5.&m } }; my $a = g(1); my $b = g(2); ($a(), $b())])), (1, 2),
+    'a lexical method closes over each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { my module M { our method m { $i }; our sub k { &m } }; M::k() }; my $a = g(1); my $b = g(2); (5.$a, 5.$b)])), (1, 2),
+    'an our method closes over each call of its routine';
+is (try EVAL(q[my $s = ''; sub g($i) { my module M { our token t { x { $s ~= $i } }; our sub k { &t } }; M::k() }; my $a = g(1); my $b = g(2); "x" ~~ $a; "x" ~~ $b; $s])), '12',
+    'an our token closes over each call of its routine';
+is-deeply (try EVAL(q[sub h($y) { my $x = $y; POST (my sub foo { $x }; 1); foo() }; (h(1), h(2), h(3))])), (1, 2, 3),
+    'a sub declared under POST closes over each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { my $r; for 1 { FIRST (0 || my sub foo { $i }); $r = foo() }; $r }; (g(1), g(2), g(3))])), (1, 2, 3),
+    'a sub declared right of || under FIRST closes over each call of its routine';
+todo 'closes over the previous call on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[sub g($i) { my $r; for 1 { FIRST my sub foo { $i }; $r = foo() }; $r }; (g(1), g(2), g(3))])), (1, 2, 3),
+    'a sub declared under FIRST closes over each call of its routine';
+is-deeply (try EVAL(q[sub h($y) { my $x = $y; BEGIN my sub foo { $x }; foo() }; (h(1), h(2))])), (1, 2),
+    'a sub declared under BEGIN in a routine closes over each call of the routine';
+is-deeply (try EVAL(q[sub h($y) { my $x = $y; CHECK my sub foo { $x }; foo() }; (h(1), h(2))])), (1, 2),
+    'a sub declared under CHECK in a routine closes over each call of the routine';
+if $rakuast {
+    is-deeply (try EVAL(q[sub h($y) { my $x = $y; constant c = try my sub foo { $x }; foo() }; (h(1), h(2))])), (1, 2),
+        'a sub declared in the value of a constant in a routine closes over each call of the routine';
+}
+else {
+    skip 'dies on the legacy frontend', 1;
+}
+is-deeply (try EVAL(q[sub h($y) { my $x = $y; my enum E (a => ((my sub foo { $x }) xx 1)); foo() }; (h(1), h(2))])), (1, 2),
+    'a sub declared in an enum value in a routine closes over each call of the routine';
+is-deeply (try EVAL(q[sub a($y) { my $x = $y; FIRST (FIRST (my sub foo { $x }; 1); 1); foo() }; (a(1), a(2), a(3))])), (1, 2, 3),
+    'a sub declared under a FIRST in the statement of a FIRST closes over each call of its routine';
+is-deeply (try EVAL(q[sub b($y) { my $x = $y; POST (FIRST (my sub foo { $x }; 1); 1); foo() }; (b(1), b(2), b(3))])), (1, 2, 3),
+    'a sub declared under a FIRST in the statement of a POST closes over each call of its routine';
+todo 'sees the first call on the legacy frontend' unless $rakuast;
+is (try EVAL(q[my $s = ''; sub g($i) { FIRST my $x will enter { $s ~= "en$i " }; 1 }; g(1); g(2); $s])), 'en1 en2 ',
+    'a will enter trait under FIRST sees each call of its routine';
+todo 'sees the first iteration on the legacy frontend' unless $rakuast;
+is (try EVAL(q[my $s = ''; for 1..2 -> $i { FIRST my $x will leave { $s ~= "L$i " }; 1 }; $s])), 'L1 L2 ',
+    'a will leave trait under FIRST sees each iteration';
+is (try EVAL(q[my $s = ''; sub f($p) { LEAVE (multi g(Int) { $s ~= "l$p" }); g(1) }; f(1); f(2); $s])), 'l1l2',
+    'a multi declared under LEAVE closes over each call of its routine';
+todo 'closes over the first call on the legacy frontend', 2 unless $rakuast;
+is-deeply (try EVAL(q[sub g($i) { my ($a, $b = (my sub foo { $i * 10 })()) := \(1); $b + foo() }; (g(1), g(2))])), (20, 40),
+    'a sub declared in a default of a signature declaration closes over each call of its routine';
+is-deeply (try EVAL(q[sub f($y, $x = (my sub g { $y })()) { g() }; (f(1), f(2, 0), f(3, 0))])), (1, 2, 3),
+    'a sub declared in a parameter default is called in the body of a later call not evaluating the default';
+is-deeply (try EVAL(q[sub g($i) { my ($a where (my sub w($v) { $v == $i })($_)) := \($i); w($i) }; (g(1), g(2))])), (True, True),
+    'a sub declared in the where of a signature declaration closes over each call of its routine';
 # These hold without the thunk too, and guard what it keeps.
 todo 'binds in the frame of the thunk on the legacy frontend', 2 unless $rakuast;
 is (try EVAL(q[1 andthen my ($a, $b) := (1, 2); $a + $b])), 3,
@@ -111,3 +259,207 @@ is (try EVAL(q[1 orelse (my ($a, $b) := die "boom"); "end"])), 'end',
     'a parenthesized signature declaration that binds right of orelse is not evaluated for a defined left side';
 is (try EVAL(q[my $n = 0; (my ($a, $b) := do { $n++; (1, 2) }) xx 0; $n])), 0,
     'a signature declaration that binds on the left of xx 0 is not evaluated';
+# These hold whichever block declares the code, and guard what it keeps.
+ok (try EVAL(q[my @s = ((try :($a, $b)) for 1..2); \(1, 2) ~~ @s[0]])),
+    'a signature literal under try in a for modifier statement gives a signature that binds';
+ok (try EVAL(q[my @s = ((gather take :($a, $b)) for 1..2); \(1, 2) ~~ @s[0][0]])),
+    'a signature literal under gather in a for modifier statement gives a signature that binds';
+is-deeply (try EVAL(q[sub g($i) { (my sub foo { $i }) xx 2; foo() }; (g(1), g(2), g(3))])), (1, 2, 3),
+    'a sub declared on the left of xx closes over each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { my $k = 0; (my sub foo { $i * 10 } while $k++ < 1); foo() }; (g(1), g(2), g(3))])), (10, 20, 30),
+    'a sub declared as a while modifier statement closes over each call of its routine';
+is-deeply (try EVAL(q[constant X = ((my sub foo { 42 }; foo() + 1) xx 2).List; X.map(*[1]).List])), (43, 43),
+    'a sub declared on the left of xx in the value of a constant is called';
+is (try EVAL(q[constant K = * + ((my sub foo { 7 }; foo()))[*-1]; K.(1)])), 8,
+    'a sub declared in a Whatever curry as the value of a constant is called';
+is-deeply (try EVAL(q[my $x is default(((my sub foo { 42 }; foo()) xx 2).List); $x.map(*[1]).List])), (42, 42),
+    'a sub declared on the left of xx in a trait argument is called';
+is (try EVAL(q[constant K = try (my sub foo { 7 }; foo())[1]; K])), 7,
+    'a sub declared under try in the value of a constant is called';
+is (try EVAL(q[BEGIN my sub foo { 42 }; foo()])), 42,
+    'a sub declared under BEGIN is called';
+is (try EVAL(q[CHECK my sub foo { 42 }; foo()])), 42,
+    'a sub declared under CHECK is called';
+is (try EVAL(q[sub g { (BEGIN my sub foo { 42 }; 1) xx 1; foo() }; g()])), 42,
+    'a sub declared under BEGIN on the left of xx is called';
+todo 'sees the first call on the legacy frontend', 2 unless $rakuast;
+is-deeply (try EVAL(q[sub g($i) { my $r = (1 andthen ENTER $i * 10); $r }; (g(1), g(2))])), (10, 20),
+    'an ENTER phaser right of andthen sees each call of its routine';
+is (try EVAL(q[my $s = ''; sub g($i) { 1 andthen PRE { $s ~= "p$i "; True }; 1 }; g(1); g(2); $s])), 'p1 p2 ',
+    'a PRE phaser right of andthen sees each call of its routine';
+todo 'misses the loop variable on the legacy frontend' unless $rakuast;
+is (try EVAL(q[my $s = ''; for 1..3 -> $i { 1 andthen LAST $s ~= "l$i" }; $s])), 'l3',
+    'a LAST phaser right of andthen sees the last iteration';
+is (try EVAL(q[my $s = ''; sub g($i) { (ENTER $s ~= "e$i "; 1) xx 2; 1 }; g(1); g(2); $s])), 'e1 e2 ',
+    'an ENTER phaser on the left of xx sees each call of its routine';
+is (try EVAL(q[my $s = ''; for 1..3 -> $i { (LAST $s ~= "l$i"; 1) xx 1 }; $s])), 'l3',
+    'a LAST phaser on the left of xx sees the last iteration';
+is (try EVAL(q[my $s = ''; sub g($i) { (my $x will enter { $s ~= "e$i " }) xx 1; 1 }; g(1); g(2); $s])), 'e1 e2 ',
+    'a will enter trait on the left of xx sees each call of its routine';
+is (try EVAL(q[my $s = ''; for 1..3 -> $i { (my $x will last { $s ~= "l$i" }) xx 1 }; $s])), 'l3',
+    'a will last trait on the left of xx sees the last iteration';
+todo 'gives Mu on the legacy frontend', 2 unless $rakuast;
+is-deeply (try EVAL(q[sub g($i) { (once $i) xx 1 }; (g(1), g(2)).map(*.List).List])), ((1,), (1,)),
+    'a once on the left of xx runs once per closure of its routine';
+is-deeply (try EVAL(q[my $n = 0; my &f = -> $x = once ++$n { $x }; (f(), f(), f())])), (1, 1, 1),
+    'a once as a pointy block parameter default runs once per closure of the block';
+if $rakuast {
+    is-deeply (try EVAL(q[my $n = 0; sub f($x = once ++$n) { $x }; (f(), f(), f())])), (1, 1, 1),
+        'a once as a parameter default runs once per closure of its routine';
+}
+else {
+    skip 'dies on the legacy frontend', 1;
+}
+if $rakuast {
+    is (try EVAL(q[constant K = * + once 5; K.(1)])), 6,
+        'a once in a Whatever curry as the value of a constant gives its value';
+}
+else {
+    skip 'dies on the legacy frontend', 1;
+}
+if $rakuast {
+    is-deeply (try EVAL(q[my $n = 0; sub g { * + once ++$n }; (g()(1), g()(1))])), (2, 3),
+        'a once in a Whatever curry runs once per closure of the curry';
+}
+else {
+    skip 'dies on the legacy frontend', 1;
+}
+is (try EVAL(q[my $s = ''; sub g($i) { (ENTER { $s ~= "e$i " }; 1) xx 2; 1 }; g(1); g(2); $s])), 'e1 e2 ',
+    'an ENTER block on the left of xx sees each call of its routine';
+is (try EVAL(q[my $s = ''; sub g($i) { for 1..2 { (NEXT { $s ~= "n$i " }; 1) xx 1 } }; g(1); g(2); $s])), 'n1 n1 n2 n2 ',
+    'a NEXT block on the left of xx sees each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { (ENTER $i * 10) xx 1 }; BEGIN g(1); g(2)])), (20,),
+    'an ENTER phaser on the left of xx in a routine called at BEGIN time gives its value';
+todo 'gives nothing on the legacy frontend' unless $rakuast;
+is (try EVAL(q[my $s = ''; sub g($i) { for 1..2 { $s ~= (FIRST $i) xx 1 } }; g(1); g(2); $s])), '1122',
+    'a FIRST phaser on the left of xx sees each call of its routine';
+is (try EVAL(q[sub g($i) { my $s = "x"; 1 andthen $s ~~ s[x] = (my sub f { "r$i" })(); $s }; g(1) ~ g(2)])), 'r1r2',
+    'a sub declared in a substitution right of andthen closes over each call of its routine';
+is (try EVAL(q[my $s = ''; sub g($i) { ("x" ~~ / :my $y will leave { $s ~= "l$i" } = 1; x /) xx 1; 1 }; g(1); g(2); $s])), 'l1l2',
+    'a will leave trait in a regex on the left of xx runs';
+is-deeply (try EVAL(q[sub g($i) { * + (my sub foo { $i })() }; my $a = g(1); my $b = g(2); ($a(10), $b(10))])), (11, 12),
+    'a sub declared in a Whatever curry closes over the call that made the curry';
+is-deeply (try EVAL(q[sub g($i) { gather take my sub foo { $i } }; my $a = g(1); my $b = g(2); g(3); ($a[0](), $b[0]())])), (1, 2),
+    'a sub declared under a lazy gather closes over the call that made the gather';
+is (try EVAL(q[my $s = ''; sub g($i) { * ~~ (my token tk { x { $s ~= $i } }) }; my $a = g(1); my $b = g(2); $a("x"); $b("x"); $s])), '12',
+    'a token declared in a Whatever curry closes over the call that made the curry';
+throws-like q[sub g { my $v = sub foo {...}; sub foo { "real" }; $v() }; g()], X::StubCode,
+    'the value of a stub declaration is the stub';
+is (try EVAL(q[constant C = (FIRST my sub d { 5 }; d()); C[1]])), 5,
+    'a sub declared under FIRST in the value of a constant is called';
+is (try EVAL(q[my $x = BEGIN (FIRST my sub d { 5 }; d()); $x[1]])), 5,
+    'a sub declared under FIRST under BEGIN is called';
+is (try EVAL(q[my @s; multi trait_mod:<will>(Routine:D $r, $b, :$foo!) { @s.push: $b }; my $c = sub () will foo { "f" } { }; @s[0]()])), 'f',
+    'a will trait on an anonymous sub runs its block';
+is (try EVAL(q[multi trait_mod:<will>(Routine:D $r, $b, :$foo!) { $r.wrap(-> |c { $b() ~ callsame }) }; my class K { method m will foo { "p-" } { "m" } }; K.m])), 'p-m',
+    'a will trait on a method runs its block';
+is (try EVAL(q[my @s; multi trait_mod:<will>(Routine:D $r, $b, :$foo!) { @s.push: $b }; multi g(Int) will foo { "f" } { }; @s[0]()])), 'f',
+    'a will trait on a multi candidate runs its block';
+is (try EVAL(q[my @s; multi trait_mod:<will>(Routine:D $r, $b, :$foo!) { @s.push: $b }; my grammar G { token t will foo { "f" } { x } }; @s[0]()])), 'f',
+    'a will trait on a token runs its block';
+is (try EVAL(q[my $t; multi trait_mod:<is>(Mu:U $c, :$tagged!) { $t = $tagged }; my class C is tagged(sub g { 42 }) { }; $t()])), 42,
+    'a sub declared in a trait argument of a class is called';
+is (try EVAL(q[my role P[&c] { method pm { c() } }; my class C does P[sub g { 42 }] { }; C.pm])), 42,
+    'a sub declared in a role argument of a class is called';
+is-deeply (try EVAL(q[my role P[&c] { method pm { c() } }; sub f($v) { my class C does P[sub g { $v }] { }; C.pm }; (f(1), f(2))])), (1, 2),
+    'a sub declared in a role argument of a class in a routine closes over each call of the routine';
+is (try EVAL(q[sub f($p) { (multi g(Int) { "i$p" }) xx 0; g(1) }; f(1) ~ f(2)])), 'i1i2',
+    'a multi declared on the left of xx 0 closes over each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { *.&(my multi mf($x) { $x + $i }) }; my $a = g(1); my $b = g(2); ($a(10), $b(10))])), (11, 12),
+    'a multi declared in a Whatever curry closes over the call of its routine that made the curry';
+is-deeply (try EVAL(q[sub g($i) { sub (\d = ((my multi mm { $i * 10 }; mm()))) { d[1] }() }; (g(1), g(2))])), (10, 20),
+    'a multi declared in a parameter default closes over each call of the routine around';
+todo 'the where clause misses the variable of its block on the legacy frontend' unless $rakuast;
+ok (try EVAL(q[my @r = { my $n = 7; :($a where * eq $n) } xx 2; \(7) ~~ @r[0]()])),
+    'a signature literal in a block on the left of xx gives a signature that binds';
+is (try EVAL(q[constant K = try 42; K])), 42,
+    'a try as the value of a constant gives the value of its statement';
+is-deeply (try EVAL(q[sub g($i) { my ($q, $d = ((my method m { $i * 10 }; 5.&m))) := \(1); $d[1] }; (g(1), g(2), g(3))])), (10, 20, 30),
+    'a lexical method declared in a default of a signature declaration closes over each call of its routine';
+is-deeply (try EVAL(q[sub g($i) { my ($q, $d = ((my regex rr { $i }; ~("x{$i}y" ~~ &rr)))) := \(1); $d[1] }; (g(1), g(2), g(3))])), ('1', '2', '3'),
+    'a regex declared in a default of a signature declaration closes over each call of its routine';
+is-deeply (try EVAL(q[sub f($x where BEGIN (my sub w($v) { $v > 0 })) { $x }; (f(1), (try f(-1)) // 'rej')])), (1, 'rej'),
+    'a sub declared under BEGIN as the where of a parameter is smartmatched';
+if $rakuast {
+    is-deeply EVAL(q[sub f($i) { :($a, $b where (my sub w($v) { $v == $i })($_)) }; ((\(1, 1) ~~ f(1)), (\(1, 2) ~~ f(2)))]), (True, True),
+        'a sub declared in the where of a signature literal closes over the call of its routine that made the literal';
+}
+else {
+    skip 'dies on the legacy frontend', 1;
+}
+sub routine-in-default($y, $x = (sub g(Int) { "d$y" })(1)) { $x }
+BEGIN routine-in-default(1);
+is routine-in-default(2), 'd2',
+    'a sub declared in a parameter default closes over each call of its routine after a call at BEGIN time';
+sub routine-in-default-and-body($y, $x = (my sub g(Int) { "d$y" })(1)) { $x ~ g(1) }
+BEGIN routine-in-default-and-body(1);
+is routine-in-default-and-body(2), 'd2d2',
+    'a sub declared in a parameter default and called in the body closes over each call of its routine after a call at BEGIN time';
+sub multi-in-default($y, $x = (my multi g(Int) { "m$y" })(1)) { $x }
+BEGIN multi-in-default(1);
+is multi-in-default(2), 'm2',
+    'a multi declared in a parameter default closes over each call of its routine after a call at BEGIN time';
+todo 'closes over an earlier bind on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[sub f($y, $x where (my sub w($v) { $v > $y })($_)) { 1 }; (\(1, 2) ~~ &f.signature, \(5, 2) ~~ &f.signature)])), (True, False),
+    'a sub declared in the where of a parameter closes over the frame of a trial bind';
+is-deeply (try EVAL(q[sub f($y, Int $x = (my sub g { $y > 3 ?? "s" !! 1 })()) { 1 }; (\(1) ~~ &f.signature, \(5) ~~ &f.signature)])), (True, False),
+    'a sub declared in a parameter default closes over the frame of a trial bind';
+todo 'closes over an earlier bind on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[multi f($y, $x where (my sub w($v) { $v > $y })($_)) { "a" }; multi f($y, $x) { "b" }; (&f.cando(\(1, 2)).elems, &f.cando(\(5, 2)).elems)])), (2, 1),
+    'a sub declared in the where of a multi candidate closes over the frame of the trial bind of cando';
+is (try EVAL(q[role RV[$p, $q where (my sub w($v) { $v > $p })($_)] { method m { "a" } }; role RV[$p, $q] { method m { "o" } }; ((5 but RV[1, 2]).m, (5 but RV[5, 2]).m, (5 but RV[1, 2]).m).join])), 'aoa',
+    'a sub declared in the where of a role parameter closes over the frame of each variant selection';
+if $rakuast {
+    is-deeply EVAL(q[my class P { has $.v; method COERCE(Int $v where (my sub w($x) { $v > 0 })($_)) { self.new(:$v) } }; sub f(P() $p) { $p.v }; (f(5), (try f(-5)) // 'rej', f(6))]), (5, 'rej', 6),
+        'a sub declared in the where of a COERCE method closes over the frame of the trial bind of a coercion';
+}
+else {
+    skip 'dies on the legacy frontend', 1;
+}
+todo 'closes over the first instantiation on the legacy frontend' unless $rakuast;
+is-deeply (try EVAL(q[role RM[$p, $q = (my multi g(Int) { $p })(1)] { method m { $q ~ g(1) } }; ((5 but RM[1]).m, (6 but RM[2]).m)])), ('11', '22'),
+    'a multi declared in a role parameter default closes over each instantiation of the role';
+if $rakuast {
+    is EVAL(q[role RS[$p, ($a, $b where (my sub w($v) { $v > $p })($_))] { method m { "a" } }; role RS[$p, $q] { method m { "o" } }; ((1 but RS[1, (1, 2)]).m, (1 but RS[5, (1, 2)]).m).join]), 'ao',
+        'a sub declared in the where of a role parameter sub-signature closes over the frame of each variant selection';
+}
+else {
+    skip 'dies on the legacy frontend', 1;
+}
+is (try EVAL(q[role RD[$p, ($a, Int $b = (my sub g { $p > 3 ?? "s" !! 1 })())] { method m { "a" } }; role RD[$p, $q] { method m { "o" } }; ((1 but RD[5, (1,)]).m, (1 but RD[1, (1,)]).m).join])), 'oa',
+    'a sub declared in a default of a role parameter sub-signature closes over the frame of each variant selection';
+is-deeply (try EVAL(q[my $c; multi trait_mod:<is>(Routine $r, :$checked!) { $c = $r.signature.params[0].constraint_list[0](5) }; sub f($x where (my sub w($v) { $v > 0 })($_)) is checked { 1 }; ($c, f(1))])), (True, 1),
+    'a where holding a sub called by a trait of its routine at BEGIN time is smartmatched';
+{
+    my $c;
+    multi trait_mod:<is>(Routine $r, :$checked!) { $c = $r.signature.params[1].constraint_list[0](5) }
+    sub checked-where($y, $x where (my sub w($v) { $v > ($y // 0) })($_)) is checked { 1 }
+    todo 'closes over the call at BEGIN time on the legacy frontend' unless $rakuast;
+    is-deeply ($c, (try checked-where(-3, -1)), (try checked-where(5, 2)) // 'rej'), (True, 1, 'rej'),
+        'a where holding a sub called by a trait at BEGIN time closes over the frame bound at runtime';
+}
+{
+    sub default-at-begin($y, $x = (my sub g { "g" ~ ($y // "U") })()) { $x }
+    BEGIN &default-at-begin.signature.params[1].default.();
+    todo 'closes over the call at BEGIN time on the legacy frontend' unless $rakuast;
+    is default-at-begin(1), 'g1',
+        'a default holding a sub called at BEGIN time closes over the frame bound at runtime';
+}
+if $rakuast {
+    is EVAL(q[role RB[$p, $b = (my sub g { "g" ~ ($p // "U") })()] { method m { $b } }; BEGIN RB.^candidates[0].^body_block.signature.params[2].default.(); (1 but RB[5]).m]), 'g5',
+        'a role parameter default holding a sub called at BEGIN time is compiled on its own';
+    is EVAL(q[role RW[$p] { method m($y, $x where (my sub w($v) { $v > ($y // 0) })($_)) { "ok" } }; BEGIN RW.^candidates[0].^method_table<m>.signature.params[2].constraint_list[0](5); my class A does RW[1] { }; A.m(-3, -1)]), 'ok',
+        'a role method where holding a sub called at BEGIN time is compiled on its own';
+}
+else {
+    skip 'dies on the legacy frontend', 2;
+}
+is (try EVAL(q[sub f($x = &?BLOCK.^name) { $x }; BEGIN f(); f()])), 'Code',
+    'a default reading &?BLOCK in a routine called at BEGIN time gives the code object';
+{
+    sub where-at-begin($y, $x where (my sub w($v) { $v > ($y // 0) })($_)) { 'ok' }
+    BEGIN &where-at-begin.signature.params[1].constraint_list[0](5);
+    BEGIN where-at-begin(1, 2);
+    is-deeply ((try where-at-begin(-3, -1)), (try where-at-begin(5, 1)) // 'rej'), ('ok', 'rej'),
+        'a where holding a sub called at BEGIN time and then by a call at BEGIN time closes over the frame bound at runtime';
+}

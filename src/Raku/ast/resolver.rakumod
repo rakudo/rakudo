@@ -370,7 +370,7 @@ class RakuAST::Resolver {
         self.resolve-name-constant-in-setting(
           +@parts == 1
             ?? RakuAST::Name.from-identifier(@parts[0])
-            !! RakuAST::Name.from-identifier-parts(|@parts)
+            !! RakuAST::Name.from-identifier-list(@parts)
         ).compile-time-value
     }
 
@@ -609,7 +609,7 @@ class RakuAST::Resolver {
     method setting-constant(*@name) {
         nqp::isconcrete(
           my $resolved := self.resolve-name-constant-in-setting(
-              RakuAST::Name.from-identifier-parts(|@name)
+              RakuAST::Name.from-identifier-list(@name)
             )
         ) ?? $resolved.compile-time-value
           !! $resolved
@@ -728,7 +728,7 @@ class RakuAST::Resolver {
 
     # Build an exception object for a check-time exception.
     method build-exception(Str $type-name, *%opts) {
-        my $name := RakuAST::Name.from-identifier-parts(|nqp::split('::', $type-name));
+        my $name := RakuAST::Name.from-identifier-list(nqp::split('::', $type-name));
         my $type-res := self.resolve-name-constant-in-setting($name);
         my $XComp-res := self.resolve-name-constant-in-setting:
             RakuAST::Name.from-identifier-parts('X', 'Comp');

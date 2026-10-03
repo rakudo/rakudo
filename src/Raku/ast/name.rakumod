@@ -29,6 +29,10 @@ class RakuAST::Name
     }
 
     method from-identifier-parts(*@identifiers) {
+        self.from-identifier-list(@identifiers)
+    }
+
+    method from-identifier-list(@identifiers) {
         my @parts;
         for @identifiers {
             nqp::istype($_,Str) || nqp::isstr($_)

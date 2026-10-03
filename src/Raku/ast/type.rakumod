@@ -1337,8 +1337,8 @@ class RakuAST::Type::Subset
             $type.HOW.set_name(
               $type,
               $!name.qualified-with(
-                RakuAST::Name.from-identifier-parts(
-                  |nqp::split('::', $package.HOW.name($package))
+                RakuAST::Name.from-identifier-list(
+                  nqp::split('::', $package.HOW.name($package))
                 )
               ).canonicalize(:colonpairs(0))
             ) unless nqp::eqaddr($package, $resolver.get-global);

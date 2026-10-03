@@ -309,6 +309,8 @@ class RakuAST::Node {
     method IMPL-REPLACE-THUNKED(RakuAST::Resolver $resolver, Mu $expr, Mu $result) {
         return $result
           unless nqp::istype($expr, RakuAST::Expression) && $expr.outer-most-thunk;
+        # A where keeps its thunk, which the declarations it constrains hold on to.
+        return $expr if $expr.IMPL-WHERE-THUNK;
         if $result.has-compile-time-value {
             my $Callable := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Callable');
             nqp::isnull($Callable)
@@ -323,6 +325,33 @@ class RakuAST::Node {
         else {
             $expr
         }
+    }
+
+    # The anonymous state and the state guards in the node, its own included,
+    # which a compilation of the node on its own declares, as a scope around it
+    # would.
+    method IMPL-STATE-WITHIN() {
+        my @decls;
+        my $collect := -> $node {
+            nqp::push(@decls, $node)
+              if nqp::istype($node, RakuAST::VarDeclaration::Anonymous) && $node.scope eq 'state';
+            if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+                for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) {
+                    nqp::push(@decls, $_)
+                      if nqp::istype($_, RakuAST::VarDeclaration::Implicit::State)
+                      && $_.is-simple-lexical-declaration;
+                }
+            }
+        };
+        $collect(self);
+        my @todo := [self];
+        while @todo {
+            @todo.shift.visit-children: -> $node {
+                $collect($node);
+                @todo.push($node) unless nqp::istype($node, RakuAST::LexicalScope);
+            }
+        }
+        @decls
     }
 
     # Replace a directly held child node with another node, locating the slot

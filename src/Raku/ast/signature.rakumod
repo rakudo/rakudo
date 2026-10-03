@@ -619,9 +619,6 @@ class RakuAST::Parameter
     has RakuAST::Parameter::Slurpy $.slurpy;
     has RakuAST::Expression        $.default;
     has RakuAST::Expression        $.where;
-    # The block BEGIN time wraps around a where constraint that is
-    # smartmatched rather than called, so the constraint stays as written
-    has RakuAST::Block             $!where-thunk;
     # Set by the optimize pass when the where constraint is a junction of
     # type objects: the types the argument is checked against inline, and
     # whether it must be all of them rather than any.
@@ -815,11 +812,18 @@ class RakuAST::Parameter
 
     method set-where(RakuAST::Expression $where) {
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $where);
-        nqp::bindattr(self, RakuAST::Parameter, '$!where-thunk', RakuAST::Block);
         nqp::bindattr(self, RakuAST::Parameter, '$!where-junction-types', Mu);
         nqp::bindattr_i(self, RakuAST::Parameter, '$!where-junction-all', 0);
         self.IMPL-CLEAR-META-OBJECT;
         Nil
+    }
+
+    # The variable a parameter of a declaration declares carries the where in the
+    # subset made for its type, which is then the where's one parent.
+    method IMPL-WHERE-IN-TARGET-TYPE() {
+        nqp::istype($!target, RakuAST::ParameterTarget::Var)
+          && nqp::isconcrete($!target.declaration)
+          && $!target.declaration.IMPL-WHERE-IN-TYPE ?? True !! False
     }
 
     method IMPL-SET-WHERE-JUNCTION(Mu @types, int $all) {
@@ -978,12 +982,7 @@ class RakuAST::Parameter
         $visitor($!type)          if $!type;
         $visitor($!target)        if $!target;
         $visitor($!default)       if $!default;
-        if $!where-thunk {
-            $visitor($!where-thunk);
-        }
-        elsif $!where {
-            $visitor($!where);
-        }
+        $visitor($!where)         if $!where && !self.IMPL-WHERE-IN-TARGET-TYPE;
         $visitor($!array-shape)   if $!array-shape;
         $visitor($!sub-signature) if $!sub-signature;
         $visitor(self.WHY)        if self.WHY;
@@ -1118,11 +1117,9 @@ class RakuAST::Parameter
                 }
             }
         }
-        if $!where-thunk {
-            nqp::push(@post_constraints, $!where-thunk.meta-object);
-        }
-        elsif $!where {
-            nqp::push(@post_constraints, $!where.IMPL-PRIMED ?? $!where.IMPL-PRIMED.meta-object !! $!where.meta-object);
+        if $!where {
+            my $thunk := $!where.IMPL-WHERE-THUNK;
+            nqp::push(@post_constraints, $thunk ?? $thunk.meta-object !! $!where.meta-object);
         }
         if $!array-shape {
             nqp::push(@post_constraints, $!array-shape.meta-object);
@@ -1357,47 +1354,19 @@ class RakuAST::Parameter
         Nil
     }
 
-    # The BEGIN time of the where constraint: the parentheses it was
-    # written in come off, a double closure is a sorry, and a where that
-    # is smartmatched rather than called is wrapped in a block. A where
-    # that has its block keeps it.
+    # At BEGIN time a where constraint loses the parentheses it was written in,
+    # a double closure in it is a sorry, and one smartmatched rather than called
+    # is thunked, once.
     method IMPL-BEGIN-WHERE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $!where.IMPL-UNWRAP-WHERE-PARENS)
             if $!where;
 
-        # Catch a double closure in the user's own where block, before it is
-        # wrapped in the synthetic ACCEPTS block below. A bare `where *` is not a
-        # block, so it is left alone and its wrapper is not mistaken for one.
+        # Catch a double closure in the user's own where block. A bare
+        # `where *` is not a block, so it is left alone.
         self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!where, $resolver, $context, :tested)
           if $!where;
 
-        if $!where && !$!where-thunk && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-PRIMED {
-            my $block := RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            expression => RakuAST::ApplyPostfix.new(
-                                operand => RakuAST::ApplyPostfix.new(
-                                    operand => $!where,
-                                    postfix => RakuAST::Call::Method.new(
-                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
-                                        args => RakuAST::ArgList.new(
-                                            RakuAST::Var::Lexical.new('$_'),
-                                        ),
-                                    ),
-                                ),
-                                postfix => RakuAST::Call::Method.new(
-                                    name => RakuAST::Name.from-identifier('Bool'),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            );
-            $block.IMPL-BEGIN($resolver, $context);
-            $block.IMPL-CHECK($resolver, $context);
-            nqp::bindattr(self, RakuAST::Parameter, '$!where-thunk', $block);
-        }
+        $!where.IMPL-THUNK-WHERE($resolver, $context) if $!where;
     }
 
     # Type captures are the only generic parameter types the lowered
@@ -2161,7 +2130,7 @@ class RakuAST::Parameter
                             :op<istrue>,
                             QAST::Op.new(
                                 :op('callmethod'), :name('ACCEPTS'),
-                                ($!where-thunk || $!where).IMPL-TO-QAST($context),
+                                $!where.IMPL-TO-QAST($context),
                                 $temp-qast-var
                             )
                         )
@@ -2917,6 +2886,14 @@ class RakuAST::ParameterDefaultThunk
 
     method thunk-details() {
         ''
+    }
+
+    # Its stub compiles it around the default it holds.
+    method IMPL-QAST-BLOCK-AHEAD-OF-UNIT(RakuAST::Resolver $resolver,
+            RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        nqp::findmethod(RakuAST::ExpressionThunk, 'IMPL-QAST-BLOCK-AHEAD-OF-UNIT')(self,
+          $resolver, $context, :$blocktype, :expression($expression // $!parameter.default))
     }
 
     method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {

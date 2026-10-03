@@ -155,6 +155,15 @@ role RakuAST::StatementPrefix::Thunky
         nqp::istype(self.blorst, RakuAST::Block) ?? False !! True;
     }
 
+    # A compilation of the prefix on its own declares the state in it that a
+    # scope around it declares too.
+    method IMPL-EXTRA-BEGIN-TIME-DECLS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STATE-FOR-SCOPE-AROUND
+    }
+
+    # The state in the prefix, which the scope around it declares.
+    method IMPL-STATE-FOR-SCOPE-AROUND() { self.IMPL-STATE-WITHIN }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
         Nil
@@ -724,7 +733,10 @@ class RakuAST::StatementPrefix::Phaser::Begin
             []
         }
         else {
-            self.IMPL-UNWRAP-LIST($resolver.current-scope.generated-lexical-declarations);
+            my @decls := nqp::clone(self.IMPL-UNWRAP-LIST(
+              $resolver.current-scope.generated-lexical-declarations));
+            nqp::push(@decls, $_) for self.IMPL-STATE-WITHIN;
+            @decls
         }
     }
 

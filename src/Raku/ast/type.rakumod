@@ -1300,38 +1300,7 @@ class RakuAST::Type::Subset
             $block := $block.IMPL-UNWRAP-WHERE-PARENS;
             nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
         }
-        if $block
-          && !$block.IMPL-PRIMED
-          && (!nqp::istype($block, RakuAST::Code)
-               || nqp::istype($block, RakuAST::RegexThunk
-             )
-        ) {
-            $block := RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            expression => RakuAST::ApplyPostfix.new(
-                                operand => RakuAST::ApplyPostfix.new(
-                                    operand => $!block,
-                                    postfix => RakuAST::Call::Method.new(
-                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
-                                        args => RakuAST::ArgList.new(
-                                            RakuAST::Var::Lexical.new('$_'),
-                                        ),
-                                    ),
-                                ),
-                                postfix => RakuAST::Call::Method.new(
-                                    name => RakuAST::Name.from-identifier('Bool'),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            );
-            nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
-            # Check time reaches the block through visit-children.
-            $block.IMPL-BEGIN($resolver, $context);
-        }
+        $block.IMPL-THUNK-WHERE($resolver, $context) if $block;
 
         # set up the meta object
         my $package := $!current-package;
@@ -1388,8 +1357,8 @@ class RakuAST::Type::Subset
         my $block := $!block;
 
         $type.HOW.set_of($type, $!of.meta-object) if $!of;
-        $type.HOW.set_where($type, $block.IMPL-PRIMED
-            ?? $block.IMPL-PRIMED.meta-object
+        $type.HOW.set_where($type, $block.IMPL-WHERE-THUNK
+            ?? $block.IMPL-WHERE-THUNK.meta-object
             !! $block.compile-time-value
         ) if $block;
 

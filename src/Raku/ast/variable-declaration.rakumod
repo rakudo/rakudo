@@ -753,6 +753,8 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Method      $!accessor;
     has RakuAST::Type        $!conflicting-type;
     has RakuAST::Expression  $.where;
+    # Set once the where is the constraint of the subset made for the type.
+    has int $!where-in-type;
     has RakuAST::Type        $.original-type;
     has Bool                 $!is-parameter;
     # Set on a variable of a declaration list, which no signature binding
@@ -1019,7 +1021,10 @@ class RakuAST::VarDeclaration::Simple
 
     method set-where(RakuAST::Expression $where) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!where', $where);
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!where-in-type', 0);
     }
+
+    method IMPL-WHERE-IN-TYPE() { $!where-in-type ?? True !! False }
 
     method add-colonpair(RakuAST::ColonPair $pair) {
         nqp::die("Cannot add colonpair to variable declaration without initializer")
@@ -1062,7 +1067,8 @@ class RakuAST::VarDeclaration::Simple
         }
         $visitor($!shape)       if nqp::isconcrete($!shape);
         $visitor($!accessor)    if nqp::isconcrete($!accessor);
-        $visitor($!where)       if nqp::isconcrete($!where);
+        # The subset made of a where carries it, so the where has one parent.
+        $visitor($!where)       if nqp::isconcrete($!where) && !$!where-in-type;
         $visitor($!original-type) if nqp::isconcrete($!original-type) && !($!original-type =:= $!type);
         self.visit-traits($visitor);
         $visitor(self.WHY) if self.WHY;
@@ -1322,6 +1328,7 @@ class RakuAST::VarDeclaration::Simple
             $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($type || RakuAST::Type), :$where;
             $subset.to-begin-time($resolver, $context);
             self.set-type($subset, :replace);
+            nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!where-in-type', 1);
         }
 
         self.IMPL-RESOLVE-CONTAINER-VIVIFY-MODE($resolver)

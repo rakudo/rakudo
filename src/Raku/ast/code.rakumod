@@ -889,21 +889,32 @@ role RakuAST::Code
             :decl('static'), :value($marker)
         ));
 
+        # The variables go ahead of the code, as the fixup below resolves a name
+        # the code uses only once the declaration of it has gone by.
+        my $variables := QAST::Stmts.new;
+        my $code := QAST::Stmts.new;
         for self.IMPL-EXTRA-BEGIN-TIME-DECLS($resolver, $context) {
             # A code node the compiled block takes a closure of, declared
-            # here as the scope enclosing that block would in a unit.
-            if nqp::istype($_, RakuAST::Code) && !nqp::istype($_, RakuAST::Declaration) {
-                $wrapper[0].push($_.IMPL-QAST-DECL-CODE($context));
+            # here as the scope enclosing that block would in a unit, or what
+            # the frame around a thunk declares for it.
+            if nqp::istype($_, RakuAST::VarDeclaration::Implicit::State)
+              || nqp::istype($_, RakuAST::VarDeclaration::Simple) {
+                $variables.push($_.IMPL-QAST-DECL($context));
+            }
+            elsif nqp::istype($_, RakuAST::Code) && !nqp::istype($_, RakuAST::Declaration) {
+                $code.push($_.IMPL-QAST-DECL-CODE($context));
             }
             elsif nqp::istype($_, RakuAST::CompileTimeValue) {
                 my $value := $_.compile-time-value;
                 $context.ensure-sc($value);
-                $wrapper[0].push(QAST::Var.new(
+                $variables.push(QAST::Var.new(
                     :name($_.lexical-name), :scope('lexical'),
                     :decl('static'), :$value)
                 );
             }
         }
+        $wrapper[0].push($variables);
+        $wrapper[0].push($code);
 
         self.IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK($resolver, $context, $wrapper);
 
@@ -1129,19 +1140,66 @@ class RakuAST::ExpressionThunk
         Nil
     }
 
+    # A compilation of the thunk at BEGIN time declares the expression when it is
+    # code, and what the frame around declares for it. One on its own, as a
+    # constant's value is, has no frame around but for its anonymous state.
+    method IMPL-EXTRA-BEGIN-TIME-DECLS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my @decls := self.IMPL-DECLS-LEFT-AROUND($context);
+        if nqp::istype($!formed-expression, RakuAST::Code) {
+            nqp::unshift(@decls, $!formed-expression);
+            # A statement prefix leaves its state to the scope around it, the
+            # anonymous state among it already in the list.
+            if nqp::can($!formed-expression, 'IMPL-STATE-FOR-SCOPE-AROUND') {
+                my %listed;
+                %listed{nqp::objectid($_)} := 1 for @decls;
+                for $!formed-expression.IMPL-STATE-FOR-SCOPE-AROUND {
+                    nqp::push(@decls, $_) unless %listed{nqp::objectid($_)};
+                }
+            }
+        }
+        @decls
+    }
+
+    # What the frame around the thunk declares for the expression, its variables
+    # and state guards. A thunk compiled on its own leaves to its compilation
+    # only the anonymous state its block does not declare.
+    method IMPL-DECLS-LEFT-AROUND(RakuAST::IMPL::QASTContext $context) {
+        my @decls;
+        return @decls unless nqp::isconcrete($!formed-expression);
+        my int $alone := $!compiled-alone;
+        my %seen;
+        my $collect := -> $node {
+            unless %seen{nqp::objectid($node)}++ {
+                if nqp::istype($node, RakuAST::ImplicitDeclarations)
+                  && !self.IMPL-DECLARES-IMPLICIT-STATE($node) {
+                    for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
+                        nqp::push(@decls, $decl)
+                          if nqp::istype($decl, RakuAST::VarDeclaration::Implicit::State)
+                          && $decl.is-simple-lexical-declaration;
+                    }
+                }
+                if nqp::istype($node, RakuAST::VarDeclaration::Simple) && $node.is-simple-lexical-declaration {
+                    my int $anonymous := nqp::istype($node, RakuAST::VarDeclaration::Anonymous);
+                    nqp::push(@decls, $node)
+                      if $anonymous ?? $node.scope eq 'state' !! !$alone;
+                }
+            }
+        };
+        $collect($!formed-expression);
+        my @todo := [$!formed-expression];
+        while @todo {
+            @todo.shift.visit-children: -> $node {
+                $collect($node);
+                @todo.push($node) unless nqp::istype($node, RakuAST::LexicalScope);
+            }
+        }
+        @decls
+    }
+
     # Called to produce the QAST::Block for the thunk, which should be pushed
     # into the passed `$target`. If there is a next thunk in `$!next` then it
     # should be compiled recursively and the expression passed along; otherwise,
     # the expression itself should be compiled and used as the body.
-    # An expression that is itself a code node, as `try` of a bare
-    # statement is, has the thunk body take a closure of it, and the
-    # scope enclosing the thunk is what declares its block. A thunk
-    # compiled on its own, as a constant's value is, has that
-    # compilation's wrapper declare the block instead.
-    method IMPL-EXTRA-BEGIN-TIME-DECLS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::istype($!formed-expression, RakuAST::Code) ?? [$!formed-expression] !! []
-    }
-
     method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
             RakuAST::Expression $expression) {
 
@@ -5829,11 +5887,13 @@ class RakuAST::BlockThunk
         self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'), :expression($!expression));
     }
 
+    method IMPL-EXPRESSION() { $!expression }
+
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $code := nqp::create(self.IMPL-THUNK-OBJECT-TYPE);
         my $param := nqp::create(Parameter);
         nqp::bindattr_s($param, Parameter, '$!variable_name', '$_');
-        nqp::bindattr_i($param, Parameter, '$!flags', 2048 + 16384); # Optional + default from outer
+        nqp::bindattr_i($param, Parameter, '$!flags', 1024 + 2048 + 16384); # Raw, optional + default from outer
         my $sig := nqp::create(Signature);
         nqp::bindattr($sig, Signature, '@!params', [$param]);
         nqp::bindattr_i($sig, Signature, '$!arity', 0);
@@ -5842,6 +5902,38 @@ class RakuAST::BlockThunk
         nqp::bindattr($sig, Signature, '$!code', $code);
         self.IMPL-THUNK-META-OBJECT-PRODUCED($code);
         $code
+    }
+}
+
+# The thunk a where constraint that is smartmatched rather than called
+# compiles to. The value checked is its topic.
+class RakuAST::WhereThunk
+  is RakuAST::BlockThunk
+{
+    method thunk-kind() {
+        'Where thunk'
+    }
+
+    method IMPL-REBUILD-ELIGIBLE() { 1 }
+
+    # Its stub compiles it around the expression it has had from the start, so
+    # nothing forms it before a use at BEGIN time, when the expression is whole.
+    method IMPL-QAST-BLOCK-AHEAD-OF-UNIT(RakuAST::Resolver $resolver,
+            RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        nqp::findmethod(RakuAST::BlockThunk, 'IMPL-QAST-BLOCK-AHEAD-OF-UNIT')(self,
+          $resolver, $context, :$blocktype, :expression($expression // self.IMPL-EXPRESSION))
+    }
+
+    # The constraint is the closure itself, not a value to call it for.
+    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-CLOSURE-QAST($context)
+    }
+
+    method IMPL-THUNK-TWEAK-EXPRESSION(RakuAST::IMPL::QASTContext $context, Mu $qast) {
+        QAST::Op.new(:op<callmethod>, :name<Bool>,
+          QAST::Op.new(:op<callmethod>, :name<ACCEPTS>, $qast,
+            QAST::Var.new(:name<$_>, :scope<lexical>)))
     }
 }
 

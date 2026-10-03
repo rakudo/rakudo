@@ -120,6 +120,30 @@ class RakuAST::Expression
         False
     }
 
+    # The thunk a where constraint calls, which is the WhateverCode of a primed
+    # expression or the thunk smartmatching against any other expression.
+    method IMPL-WHERE-THUNK() {
+        my $cur-thunk := $!thunks;
+        while $cur-thunk {
+            return $cur-thunk
+              if nqp::istype($cur-thunk, RakuAST::PrimeThunk) || nqp::istype($cur-thunk, RakuAST::WhereThunk);
+            $cur-thunk := $cur-thunk.next;
+        }
+        False
+    }
+
+    # A where constraint that is not code to call is smartmatched, which a
+    # thunk taking the value checked as its topic does where it is written.
+    method IMPL-THUNK-WHERE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if (!nqp::istype(self, RakuAST::Code) || nqp::istype(self, RakuAST::RegexThunk))
+          && !self.IMPL-WHERE-THUNK {
+            my $thunk := RakuAST::WhereThunk.new(:expression(self));
+            $thunk.to-begin-time($resolver, $context);
+            self.wrap-with-thunk($thunk);
+        }
+        Nil
+    }
+
     method IMPL-UNPRIME() {
         my $prev-thunk;
         my $cur-thunk := $!thunks;
@@ -164,8 +188,7 @@ class RakuAST::Expression
 
     # Strip grouping parens from around a single primed expression, so
     # `where (* > 0)` is used as the WhateverCode it is, like `where * > 0`.
-    # Otherwise a caller wraps it in an ACCEPTS block whose body re-primes and
-    # trips the double-closure check.
+    # Otherwise a caller smartmatches against it rather than calling it.
     method IMPL-UNWRAP-WHERE-PARENS() {
         nqp::istype(self, RakuAST::Circumfix::Parentheses)
           && (my $primed := self.IMPL-SINGULAR-PRIMED-EXPRESSION)

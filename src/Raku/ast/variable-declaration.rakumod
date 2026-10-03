@@ -249,71 +249,7 @@ role RakuAST::ContainerCreator {
         my $default := Any;
         my $bind-constraint := Mu;
         my $explicit-base := self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE;
-        if !self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
-            if $sigil eq '@' {
-                $bind-constraint := self.IMPL-SIGIL-TYPE;
-                $container-base-type := nqp::objprimspec($of) ?? array !! Array;
-                if self.type {
-                    {
-                        $container-type := $container-base-type.HOW.parameterize($container-base-type, $of);
-                        CATCH {
-                            if $*COMPILING_CORE_SETTING == 1 {
-                                $container-type := $container-base-type
-                            }
-                            else {
-                                nqp::die($_);
-                            }
-                        }
-                    }
-                    $bind-constraint := $bind-constraint.HOW.parameterize($bind-constraint, $of);
-                }
-                else {
-                    $container-type := Array;
-                }
-            }
-            elsif $sigil eq '%' {
-                $container-base-type := Hash;
-                $bind-constraint := self.IMPL-SIGIL-TYPE;
-                if $key-type =:= NQPMu {
-                    if self.type {
-                        $container-type := Hash.HOW.parameterize(Hash, $of);
-                        $bind-constraint := $bind-constraint.HOW.parameterize($bind-constraint, $of);
-                    }
-                    else {
-                        $container-type := Hash;
-                    }
-                }
-                else {
-                    if self.type {
-                        $container-type := Hash.HOW.parameterize(Hash, $of, $key-type);
-                        $bind-constraint := $bind-constraint.HOW.parameterize(
-                            $bind-constraint, $of, $key-type);
-                    }
-                    else {
-                        my $value-default := self.IMPL-UNTYPED-HASH-VALUE-TYPE;
-                        $container-type := Hash.HOW.parameterize(
-                            Hash, $value-default, $key-type);
-                        $bind-constraint := $bind-constraint.HOW.parameterize(
-                            $bind-constraint, $value-default, $key-type);
-                    }
-                }
-            }
-            elsif $sigil eq '&' {
-                $container-base-type := Scalar;
-                my $Callable := self.IMPL-SIGIL-TYPE;
-                $container-type := self.type
-                    ?? $Callable.HOW.parameterize($Callable, $of)
-                    !! $Callable;
-                $default := $Callable;
-                $bind-constraint := $container-type;
-            }
-            else {
-                $container-base-type := Scalar;
-                $container-type := Scalar;
-                $bind-constraint := $of;
-            }
-        }
-        else {
+        if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
             # $explicit-base is already the base type of any `is Type:D`.
             if $key-type =:= NQPMu {
                 $container-type := self.type
@@ -334,6 +270,68 @@ role RakuAST::ContainerCreator {
             if $sigil eq '@' || $sigil eq '%' {
                 $bind-constraint := $container-type;
             }
+        }
+        elsif $sigil eq '@' {
+            $bind-constraint := self.IMPL-SIGIL-TYPE;
+            $container-base-type := nqp::objprimspec($of) ?? array !! Array;
+            if self.type {
+                {
+                    $container-type := $container-base-type.HOW.parameterize($container-base-type, $of);
+                    CATCH {
+                        if $*COMPILING_CORE_SETTING == 1 {
+                            $container-type := $container-base-type
+                        }
+                        else {
+                            nqp::die($_);
+                        }
+                    }
+                }
+                $bind-constraint := $bind-constraint.HOW.parameterize($bind-constraint, $of);
+            }
+            else {
+                $container-type := Array;
+            }
+        }
+        elsif $sigil eq '%' {
+            $container-base-type := Hash;
+            $bind-constraint := self.IMPL-SIGIL-TYPE;
+            if $key-type =:= NQPMu {
+                if self.type {
+                    $container-type := Hash.HOW.parameterize(Hash, $of);
+                    $bind-constraint := $bind-constraint.HOW.parameterize($bind-constraint, $of);
+                }
+                else {
+                    $container-type := Hash;
+                }
+            }
+            else {
+                if self.type {
+                    $container-type := Hash.HOW.parameterize(Hash, $of, $key-type);
+                    $bind-constraint := $bind-constraint.HOW.parameterize(
+                        $bind-constraint, $of, $key-type);
+                }
+                else {
+                    my $value-default := self.IMPL-UNTYPED-HASH-VALUE-TYPE;
+                    $container-type := Hash.HOW.parameterize(
+                        Hash, $value-default, $key-type);
+                    $bind-constraint := $bind-constraint.HOW.parameterize(
+                        $bind-constraint, $value-default, $key-type);
+                }
+            }
+        }
+        elsif $sigil eq '&' {
+            $container-base-type := Scalar;
+            my $Callable := self.IMPL-SIGIL-TYPE;
+            $container-type := self.type
+                ?? $Callable.HOW.parameterize($Callable, $of)
+                !! $Callable;
+            $default := $Callable;
+            $bind-constraint := $container-type;
+        }
+        else {
+            $container-base-type := Scalar;
+            $container-type := Scalar;
+            $bind-constraint := $of;
         }
 
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!initialized', True);
@@ -384,7 +382,10 @@ role RakuAST::ContainerCreator {
         my $container-type := self.container-type;
         # Form the container.
         my str $sigil := self.sigil;
-        if !self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+        if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+            self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE
+        }
+        else {
             if $sigil ne '@' && $sigil ne '%' {
                 if nqp::objprimspec($of) {
                     nqp::die("Natively typed state variables not yet implemented") if self.scope eq 'state';
@@ -399,9 +400,6 @@ role RakuAST::ContainerCreator {
                 nqp::bindattr($container, $!container-base-type, '$!value', $cont-desc.default);
             }
             $container
-        }
-        else {
-            self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE
         }
     }
 

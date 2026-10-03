@@ -2143,7 +2143,7 @@ role RakuAST::PackageInstaller {
                 my $check := self.IMPL-UNWRAP-LIST($resolved);
                 my $check-target := $check[0];
                 my $check-remaining := self.IMPL-UNWRAP-LIST($check[1]);
-                if !nqp::elems($check-remaining) {
+                unless nqp::elems($check-remaining) {
                     my %check-stash := $resolver.IMPL-STASH-HASH($check-target);
                     if nqp::existskey(%check-stash, $final)
                       && %check-stash{$final} =:= $current-package {

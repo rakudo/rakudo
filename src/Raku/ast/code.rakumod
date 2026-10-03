@@ -759,7 +759,7 @@ role RakuAST::Code
                 if nqp::istype($visit, QAST::Op) {
                     my $op := $visit.op;
                     if ($op eq 'call' || $op eq 'callstatic' || $op eq 'chain' || $op eq 'chainstatic') && $visit.name {
-                        if ! $declared-in-cu($visit.name) {
+                        unless $declared-in-cu($visit.name) {
                             my $routine := $parse-time-resolver.resolve-lexical-constant($visit.name);
                             if $routine {
                                 my $value := $routine.compile-time-value;

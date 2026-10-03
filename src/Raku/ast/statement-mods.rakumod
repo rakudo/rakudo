@@ -412,7 +412,7 @@ class RakuAST::StatementModifier::For
                     $context, $source, $statement-qast, $Nil);
             }
 
-            if !nqp::isconcrete($for-qast) {
+            unless nqp::isconcrete($for-qast) {
                 $for-qast := self.IMPL-TO-QAST-STATEMENT(
                     $context,
                     $source-qast,

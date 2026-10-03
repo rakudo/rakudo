@@ -4,25 +4,27 @@ class RakuAST::Type
 {
     # Checks if the type is statically known to be some particular type
     # (provided as the type object, not as another RakuAST node).
-    method is-known-to-be(Mu $type) {
-        nqp::die('Expected a type object') if nqp::isconcrete($type);
-        if nqp::istype(self, RakuAST::Lookup) && self.is-resolved {
-            my $resolution := self.resolution;
-            if nqp::istype($resolution, RakuAST::CompileTimeValue) {
-                return nqp::istype($resolution.compile-time-value, $type) ?? True !! False;
-            }
-        }
-        False
+    method is-known-to-be(Mu $type --> Bool) {
+        nqp::isconcrete($type)
+          ?? nqp::die('Expected a type object')
+          !! nqp::istype(self,RakuAST::Lookup)
+               && self.is-resolved
+               && nqp::istype(
+                    (my $resolution := self.resolution),
+                    RakuAST::CompileTimeValue
+                  )
+               && nqp::istype($resolution.compile-time-value,$type)
     }
-    method is-known-to-be-exactly(Mu $type) {
-        nqp::die('Expected a type object') if nqp::isconcrete($type);
-        if nqp::istype(self, RakuAST::Lookup) && self.is-resolved {
-            my $resolution := self.resolution;
-            if nqp::istype($resolution, RakuAST::CompileTimeValue) {
-                return $resolution.compile-time-value =:= $type ?? True !! False;
-            }
-        }
-        False
+    method is-known-to-be-exactly(Mu $type --> Bool) {
+        nqp::isconcrete($type)
+          ?? nqp::die('Expected a type object')
+          !! nqp::istype(self,RakuAST::Lookup)
+               && self.is-resolved
+               && nqp::istype(
+                    (my $resolution := self.resolution),
+                    RakuAST::CompileTimeValue
+                  )
+               && nqp::eqaddr($resolution.compile-time-value,$type)
     }
 
     method dba() { 'type' }

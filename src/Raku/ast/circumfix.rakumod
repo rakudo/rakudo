@@ -70,14 +70,10 @@ class RakuAST::Circumfix::Parentheses
     }
 
     method IMPL-IS-CONSTANT() {
-        my $statements := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements);
-        for $statements {
-            if nqp::istype($_, RakuAST::Statement::Expression) {
-                return False unless $_.expression.IMPL-IS-CONSTANT;
-            }
-            else {
-                return False;
-            }
+        my $expressions := self.IMPL-PLAIN-EXPRESSIONS;
+        return False if nqp::isnull($expressions);
+        for $expressions {
+            return False unless $_.IMPL-IS-CONSTANT;
         }
         True
     }

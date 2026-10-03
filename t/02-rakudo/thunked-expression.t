@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 223;
+plan 233;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -387,6 +387,26 @@ is (try EVAL(q[sub f($x = (0 || (my enum F <a b>))) { $x }; f().^name])), 'Map',
     is-deeply (try C.new.left-of-xx).map(*.^name).List, ('C', 'C'),
         'self on the left of xx in a method of a Callable class gives the invocant for each repetition';
 }
+is-deeply (try EVAL(q[$_ = 1; my $r = 5 ~~ (my $y = $_); ($r, $y)])), (True, 5),
+    'a declaration as the right side of a smartmatch sees the topic the smartmatch gives';
+is (try EVAL(q[$_ = 1; 5 ~~ (try $_)])), True,
+    'a try as the right side of a smartmatch sees the topic the smartmatch gives';
+is (try EVAL(q[$_ = 1; 5 ~~ -> $a { $_ == 5 }])), True,
+    'a block as the right side of a smartmatch sees the topic the smartmatch gives';
+is (try EVAL(q[$_ = 1; 5 ~~ (5 if $_ == 5)])), True,
+    'parenthesized statements with an if modifier as the right side of a smartmatch see the topic the smartmatch gives';
+is (try EVAL(q[$_ = 1; (5, 5) ~~ (5 for ^$_.elems)])), True,
+    'parenthesized statements with a for modifier as the right side of a smartmatch see the topic the smartmatch gives';
+is (try EVAL(q[$_ = 1; 5 ~~ ((my $y = $_), 5); $y])), 5,
+    'a list holding a declaration as the right side of a smartmatch sees the topic the smartmatch gives';
+is (try EVAL(q[$_ = 1; my $seen; 5 ~~ my class C { $seen = $_ }; $seen])), 5,
+    'a class declared as the right side of a smartmatch runs with the topic the smartmatch gives';
+is-deeply (try EVAL(q[$_ = 1; 5 ~~ (my @a = $_); @a])), [5],
+    'an array declaration as the right side of a smartmatch sees the topic the smartmatch gives';
+is (try EVAL(q[$_ = 1; 5 ~~ (my %h = a => $_); %h<a>])), 5,
+    'a hash declaration as the right side of a smartmatch sees the topic the smartmatch gives';
+is-deeply (try EVAL(q[$_ = 1; my $r = 5 !~~ (my $y = $_); ($r, $y)])), (False, 5),
+    'a declaration as the right side of a negated smartmatch sees the topic the smartmatch gives';
 # These hold without the thunk too, and guard what it keeps.
 todo 'binds in the frame of the thunk on the legacy frontend', 2 unless $rakuast;
 is (try EVAL(q[1 andthen my ($a, $b) := (1, 2); $a + $b])), 3,

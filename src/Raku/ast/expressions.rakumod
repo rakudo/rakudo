@@ -92,11 +92,9 @@ class RakuAST::Expression
         nqp::die('Missing IMPL-EXPR-QAST method on ' ~ self.HOW.name(self))
     }
 
+    # Whether the expression is a value that does not depend on the topic.
     method IMPL-IS-CONSTANT() {
-        if nqp::istype(self, RakuAST::CompileTimeValue) {
-            return True;
-        }
-        False
+        nqp::isnull(self.IMPL-LITERAL-VALUE(self)) ?? False !! True
     }
 
     # Whether the expression is code a thunk around it declares. Code its scope

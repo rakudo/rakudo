@@ -4278,13 +4278,11 @@ class RakuAST::Node {
     }
 
     # The compile-time value a node claims, or null when an optimization
-    # may not use it in place of evaluating the node. Removing the node must
-    # be safe, and a container's content can change before the node runs.
+    # may not use it in place of evaluating the node, which must give it and
+    # be safe to remove. A container's content can change, so it never counts.
     method IMPL-TRUSTED-COMPILE-TIME-VALUE(Mu $node) {
-        return nqp::null() unless $node.has-compile-time-value;
-        my $value := $node.maybe-compile-time-value;
-        nqp::iscont($value) || !self.IMPL-DROPPABLE($node)
-            ?? nqp::null() !! $value
+        my $value := self.IMPL-EVALUATED-VALUE($node);
+        nqp::isnull($value) || !self.IMPL-DROPPABLE($node) ?? nqp::null() !! $value
     }
 
     # Whether a value is of a core value type, a core enum value, or a

@@ -4,7 +4,7 @@ use Test;
 use experimental :rakuast;
 
 plan :skip-all('these tests observe the optimize phase') unless optimizer-enabled;
-plan 59;
+plan 65;
 
 # Constant folding rewrites a pure operator on constant operands into the
 # literal result. The helper deparses a source after optimizing it, so
@@ -56,6 +56,28 @@ ok optimized-deparse(Q[my $y = (42 andthen True ?? $_ + 1 !! 0)]).contains('(42 
     'a ternary with a constant condition right of andthen collapses inside the topic thunk';
 ok optimized-deparse(Q[my @a; sub f($c = @a[0, 1]) { }]).contains('@a.AT-POS(0), @a.AT-POS(1)'),
     'a slice as a parameter default unrolls inside the default thunk';
+ok optimized-deparse(Q[constant F = &uc; say (0 || F for 1..2)]).contains('(F for'),
+    'a constant || giving code collapses inside the thunk of a for modifier statement';
+
+# A folded constant keeps a thunk its user runs as code, and stands without
+# one whose user takes a value in its place.
+my sub folded-thunked(Str $source, Int $value) {
+    my $cu := $source.AST(:compunit);
+    $cu.optimize($cu.resolver);
+    $cu.find-nodes(RakuAST::IntLiteral, :condition({ .value == $value }))
+       .map({ .outer-most-thunk.so }).List
+}
+is-deeply folded-thunked(Q[say (2 + 3 for 1..2)], 5), (True,),
+    'a folded constant keeps the thunk of a for modifier statement';
+# These hold without the rewrite keeping the thunk too, and guard what it keeps.
+ok optimized-deparse(Q[s[\d] += 2 + 3]).contains('+= 5'),
+    'a constant folds inside the thunk of a substitution replacement';
+is-deeply folded-thunked(Q[say (42 andthen 2 + 3)], 5), (False,),
+    'a folded constant right of andthen stands without its thunk';
+is-deeply folded-thunked(Q[say (2 + 3) xx 2], 5), (False,),
+    'a folded constant on the left of xx stands without its thunk';
+is-deeply folded-thunked(Q[sub f($c = 2 + 3) { }], 5), (False,),
+    'a folded constant parameter default stands without its thunk';
 
 # Folding declines where the rewrite would not preserve the program.
 ok optimized-deparse(Q[my $a = 5; my $y = $a + 3]).contains('$a + 3'),

@@ -2954,6 +2954,9 @@ class RakuAST::ParameterDefaultThunk
         ''
     }
 
+    # The parameter binds a compile time value in place of its default's thunk.
+    method IMPL-USER-TAKES-VALUE() { 1 }
+
     method IMPL-REBUILD-ELIGIBLE() { 1 }
 
     # Its stub compiles it around the default it holds.

@@ -303,28 +303,22 @@ class RakuAST::Node {
         Nil
     }
 
-    # A thunk around an expression evaluates it when and where the code around
-    # it needs, so a rewrite takes the thunk over. A compile time value stands
-    # without one, unless it is callable, which the thunk's user may call.
+    # A rewrite takes the thunks over, unless its value can stand in for them
+    # and they can give way to it. The original stays when the rewrite cannot
+    # take them, or when a thunk is already compiled around the original.
     method IMPL-REPLACE-THUNKED(RakuAST::Resolver $resolver, Mu $expr, Mu $result) {
         return $result
           unless nqp::istype($expr, RakuAST::Expression) && $expr.outer-most-thunk;
         # A where keeps its thunk, which the declarations it constrains hold on to.
         return $expr if $expr.IMPL-WHERE-THUNK;
-        if $result.has-compile-time-value {
-            my $Callable := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Callable');
-            nqp::isnull($Callable)
-              || nqp::istype($result.maybe-compile-time-value, $Callable)
-              ?? $expr
-              !! $result
-        }
-        elsif nqp::istype($result, RakuAST::Expression) && !$result.outer-most-thunk {
-            $result.IMPL-TAKE-THUNKS($expr);
-            $result
-        }
-        else {
-            $expr
-        }
+        return $expr if $expr.IMPL-THUNK-COMPILED;
+        return $result
+          if $expr.IMPL-THUNKS-GIVE-WAY-TO-VALUE
+          && self.IMPL-VALUE-STANDS-FOR-THUNK($resolver, $result);
+        return $expr
+          unless nqp::istype($result, RakuAST::Expression) && !$result.outer-most-thunk;
+        $result.IMPL-TAKE-THUNKS($expr);
+        $result
     }
 
     # Whether a node's compile time value can stand in for a thunk whose user

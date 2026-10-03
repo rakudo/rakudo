@@ -133,6 +133,28 @@ class RakuAST::Expression
         $!thunks
     }
 
+    # Whether a thunk of the expression is compiled, as one in a role body, a
+    # subset's where or other code compiled ahead of the unit may already be.
+    method IMPL-THUNK-COMPILED() {
+        my $cur-thunk := $!thunks;
+        while $cur-thunk {
+            return True if $cur-thunk.IMPL-HAS-QAST-BLOCK;
+            $cur-thunk := $cur-thunk.next;
+        }
+        False
+    }
+
+    # Whether the thunks can give way to a value, as each one's user takes a
+    # value in its place.
+    method IMPL-THUNKS-GIVE-WAY-TO-VALUE() {
+        my $cur-thunk := $!thunks;
+        while $cur-thunk {
+            return False unless $cur-thunk.IMPL-USER-TAKES-VALUE;
+            $cur-thunk := $cur-thunk.next;
+        }
+        True
+    }
+
     method IMPL-PRIMED() {
         my $cur-thunk := $!thunks;
         while $cur-thunk {
@@ -343,18 +365,19 @@ class RakuAST::Infixish
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
         return Nil if self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $expression);
-        if $type eq 'b' && !self.IMPL-CALLS-OPERAND($expression) {
-            my $thunk := RakuAST::BlockThunk.new;
-            $thunk.to-begin-time($resolver, $context);
-            $expression.wrap-with-thunk($thunk);
-        }
-        elsif $type eq 't' {
-            my $thunk := RakuAST::ExpressionThunk.new;
-            $thunk.to-begin-time($resolver, $context);
-            $expression.wrap-with-thunk($thunk);
-        }
         # 'b', 't' and the no-thunk '.' the caller skips are the entire
         # thunky vocabulary of OperatorProperties.
+        my $thunk;
+        if $type eq 'b' && !self.IMPL-CALLS-OPERAND($expression) {
+            $thunk := RakuAST::BlockThunk.new;
+        }
+        elsif $type eq 't' {
+            $thunk := RakuAST::ExpressionThunk.new;
+        }
+        return Nil unless $thunk;
+        $thunk.IMPL-SET-USER-TAKES-VALUE;
+        $thunk.to-begin-time($resolver, $context);
+        $expression.wrap-with-thunk($thunk);
     }
 
     # %primed == 0 means do not prime

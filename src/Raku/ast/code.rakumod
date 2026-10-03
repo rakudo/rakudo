@@ -1157,6 +1157,17 @@ class RakuAST::ExpressionThunk
 
     method IMPL-COMPILED-ALONE() { $!compiled-alone ?? True !! False }
 
+    # Set when the thunk's user takes a value in the thunk's place, as a
+    # thunky operator does with its operands.
+    has int $!user-takes-value;
+
+    method IMPL-SET-USER-TAKES-VALUE() {
+        nqp::bindattr_i(self, RakuAST::ExpressionThunk, '$!user-takes-value', 1);
+        Nil
+    }
+
+    method IMPL-USER-TAKES-VALUE() { $!user-takes-value }
+
     # Whether the thunk declares the implicit state of a node of its
     # expression. A state guard, and a `once` outside a curry, which is code of
     # its own, belong to the frame around, unless a thunk is compiled alone.

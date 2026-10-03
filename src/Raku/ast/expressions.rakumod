@@ -72,6 +72,8 @@ class RakuAST::Expression
         }
     }
 
+    # An expression compiles in IMPL-EXPR-QAST, and this wraps that in the
+    # thunks around it, which a subclass overriding this would skip.
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, *%opts) {
         if $!thunks {
             # Ensure thunk gets the expression even with BEGIN time execution. If we don't do it here
@@ -4941,7 +4943,7 @@ class RakuAST::Statement::For
         ]
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # Figure out the execution mode modifiers to apply.
         my str $mode := $!mode;
         my str $after-mode := '';

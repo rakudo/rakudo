@@ -1192,6 +1192,10 @@ class RakuAST::ExpressionThunk
         }
         $stmts := QAST::Stmts.new();
         my $evaluates-expression := self.IMPL-EVALUATES-EXPRESSION;
+        # A signature literal's block declares the code in its signature, so
+        # a thunk evaluating one declares that block and nothing inside it.
+        my $signature-literal := $evaluates-expression
+          && nqp::istype($expression, RakuAST::FakeSignature) ?? 1 !! 0;
         if nqp::istype(self, RakuAST::ImplicitDeclarations) {
             for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations()) -> $decl {
                 if $decl.is-simple-lexical-declaration {
@@ -1217,7 +1221,7 @@ class RakuAST::ExpressionThunk
         if $evaluates-expression && $anon-decl($expression) {
             nqp::push($stmts, $expression.IMPL-QAST-DECL($context));
         }
-        my @code-todo := $evaluates-expression ?? [$expression] !! [];
+        my @code-todo := $evaluates-expression && !$signature-literal ?? [$expression] !! [];
         while @code-todo {
             my $visit := @code-todo.shift;
             $visit.visit-children: -> $node {
@@ -1245,7 +1249,10 @@ class RakuAST::ExpressionThunk
             }
         }
 
-        if $evaluates-expression {
+        if $signature-literal {
+            $stmts.push($expression.block.IMPL-QAST-DECL-CODE($context));
+        }
+        elsif $evaluates-expression {
             my $nested-blocks := $expression.IMPL-QAST-NESTED-BLOCK-DECLS($context);
             $stmts.push($nested-blocks) if nqp::elems($nested-blocks.list);
         }

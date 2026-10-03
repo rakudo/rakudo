@@ -100,7 +100,9 @@ role RakuAST::LexicalScope
         while @code-todo {
             my $visit := @code-todo.shift;
             $visit.visit-children: -> $node {
-                if nqp::istype($node, RakuAST::FakeSignature) {
+                # A thunked signature literal leaves its block for the thunk
+                # to declare.
+                if nqp::istype($node, RakuAST::FakeSignature) && !$node.outer-most-thunk {
                     $stmts.push($node.block.IMPL-QAST-DECL-CODE($context));
                 }
                 if nqp::istype($node, RakuAST::LexicalScope) {

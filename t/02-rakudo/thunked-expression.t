@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 28;
+plan 40;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -62,6 +62,45 @@ is (try EVAL(q[try { !!! { 42 } }; $!.message.^name])), 'Block',
     'a stub given a block as its message keeps it';
 is (try EVAL(q[my $x = 5; try { !!! "m $x" }; $!.message])), 'm 5',
     'a stub message using a variable of an outer block is built';
+is-deeply (try EVAL(q[(:($a) for 1..2)]).map(*.^name).List), ('Signature', 'Signature'),
+    'a signature literal as a for modifier statement gives the signature each iteration';
+ok (try EVAL(q[my @s = (:($a, $b) for 1..2); \(1, 2) ~~ @s[0]])),
+    'a signature literal as a for modifier statement gives a signature that binds';
+is-deeply (try EVAL(q[my $n = 5; (:($a = $n) for 1..2).map({ .params[0].default.() }).List])), (5, 5),
+    'a signature literal as a for modifier statement gives a default that evaluates';
+lives-ok { EVAL(q[(Nil andthen !!!)]) },
+    'a stub right of andthen is not evaluated for an undefined left side';
+throws-like q[42 andthen !!!], X::StubCode,
+    'a stub right of andthen is evaluated for a defined left side';
+lives-ok { EVAL(q[(... for ^0)]) },
+    'a stub as a for modifier statement over nothing is not evaluated';
+throws-like q[my @r = (... for 1..2)], X::StubCode,
+    'a stub as a for modifier statement is evaluated';
+is (try EVAL(q[my $ran = 0; my $r = (Nil andthen race for 1..2 { $ran++ }); $ran])), 0,
+    'a race for loop right of andthen is not run for an undefined left side';
+is (try EVAL(q[my $ran = 0; my $r = (42 andthen race for 1..2 { $ran++ }); $ran])), 2,
+    'a race for loop right of andthen runs for a defined left side';
+is (try EVAL(q[try { 42 andthen !!! "got $_" }; $!.message])), 'got 42',
+    'a stub message right of andthen sees the topic andthen gives';
+isa-ok (try EVAL(q[sub f { 42 andthen ... }; f().exception])), X::StubCode,
+    'a fail stub right of andthen in a routine returns its Failure';
+{
+    use experimental :rakuast;
+    my $ast := RakuAST::Circumfix::Parentheses.new(RakuAST::SemiList.new(
+      RakuAST::Statement::Expression.new(
+        expression    => RakuAST::Signature.new(parameters => (
+          RakuAST::Parameter.new(target => RakuAST::ParameterTarget::Var.new(name => '$a')),
+        )),
+        loop-modifier => RakuAST::StatementModifier::For.new(RakuAST::ApplyInfix.new(
+          left  => RakuAST::IntLiteral.new(1),
+          infix => RakuAST::Infix.new('..'),
+          right => RakuAST::IntLiteral.new(2)
+        ))
+      )
+    ));
+    is-deeply (try EVAL($ast).map(*.^name).List), ('Signature', 'Signature'),
+        'a signature built through the RakuAST API as a for modifier statement gives the signature each iteration';
+}
 # These hold without the thunk too, and guard what it keeps.
 todo 'binds in the frame of the thunk on the legacy frontend', 2 unless $rakuast;
 is (try EVAL(q[1 andthen my ($a, $b) := (1, 2); $a + $b])), 3,

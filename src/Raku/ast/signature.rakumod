@@ -337,7 +337,7 @@ class RakuAST::Signature
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $signature := self.meta-object;
         $context.ensure-sc($signature);
         QAST::WVal.new(:value($signature))
@@ -569,7 +569,7 @@ class RakuAST::FakeSignature
         $!block.to-begin-time($resolver, $context);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.meta-object;
         $!signature.IMPL-TO-QAST($context)
     }

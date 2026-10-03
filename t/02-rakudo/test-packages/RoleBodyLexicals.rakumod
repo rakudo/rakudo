@@ -42,3 +42,11 @@ our sub class-trait() { $r12.new.m }
 
 my %h13 = { a => (role { method m { $v } }) };
 our sub hash-composer() { %h13<a>.new.m }
+
+Nil andthen my role R14 { method m { $v } };
+my class C14 does R14 { }
+our sub right-of-andthen-not-run() { C14.new.m }
+
+42 orelse my role R15 { method m { $v } };
+my class C15 does R15 { }
+our sub right-of-orelse-not-run() { C15.new.m }

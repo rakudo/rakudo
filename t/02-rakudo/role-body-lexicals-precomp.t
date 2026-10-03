@@ -3,7 +3,7 @@ use Test;
 use nqp;
 use RoleBodyLexicals;
 
-plan 13;
+plan 15;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -12,7 +12,7 @@ my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 is RoleBodyLexicals::hash-composer(), 7,
     'a role declared in a hash composer in a precompiled module sees the lexicals around it';
-todo 'gives a wrong value on the legacy frontend', 12 unless $rakuast;
+todo 'gives a wrong value on the legacy frontend', 14 unless $rakuast;
 is RoleBodyLexicals::for-modifier(), 7,
     'a role declared as a for modifier statement in a precompiled module sees the lexicals around it';
 is RoleBodyLexicals::for-modifier-over-nothing(), 7,
@@ -37,3 +37,8 @@ is RoleBodyLexicals::under-once(), 7,
     'a role declared under once in a precompiled module sees the lexicals around it';
 is RoleBodyLexicals::class-trait(), 7,
     'a role declared in a trait argument of a class in a precompiled module sees the lexicals around it';
+# These hold without the thunk too, and guard what it keeps.
+is RoleBodyLexicals::right-of-andthen-not-run(), 7,
+    'a role declared right of andthen that does not run in a precompiled module sees the lexicals around it';
+is RoleBodyLexicals::right-of-orelse-not-run(), 7,
+    'a role declared right of orelse that does not run in a precompiled module sees the lexicals around it';

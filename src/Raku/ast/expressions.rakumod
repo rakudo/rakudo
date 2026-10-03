@@ -320,11 +320,31 @@ class RakuAST::Infixish
           || $expr.IMPL-PRIMED ?? True !! False
     }
 
+    # Whether an operand goes to the operator as it is. A value that can stand
+    # in for its thunk does, and so do a list literal and the parenthesized
+    # statements of such operands.
+    method IMPL-OPERAND-NEEDS-NO-THUNK(RakuAST::Resolver $resolver, Mu $operand) {
+        return 1 if self.IMPL-VALUE-STANDS-FOR-THUNK($resolver, $operand);
+        my $operands;
+        if nqp::istype($operand, RakuAST::Circumfix::Parentheses) {
+            $operands := $operand.IMPL-PLAIN-EXPRESSIONS;
+            return 0 if nqp::isnull($operands);
+        }
+        elsif nqp::istype($operand, RakuAST::ApplyListInfix) && $operand.IMPL-IS-LIST-LITERAL {
+            $operands := self.IMPL-UNWRAP-LIST($operand.operands);
+        }
+        else {
+            return 0;
+        }
+        for $operands {
+            return 0 unless self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $_);
+        }
+        1
+    }
+
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
-        if $expression.IMPL-IS-CONSTANT && !nqp::istype($expression, RakuAST::Code) {
-            return; # No need to thunk constants.
-        }
+        return Nil if self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $expression);
         if $type eq 'b' && !self.IMPL-CALLS-OPERAND($expression) {
             my $thunk := RakuAST::BlockThunk.new;
             $thunk.to-begin-time($resolver, $context);

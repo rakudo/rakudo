@@ -54,6 +54,21 @@ class RakuAST::Circumfix::Parentheses
         $visitor($!semilist);
     }
 
+    # The expressions of the statements when each is an expression statement
+    # without a modifier, or null.
+    method IMPL-PLAIN-EXPRESSIONS() {
+        return nqp::null() unless nqp::istype($!semilist, RakuAST::SemiList);
+        my @expressions;
+        for self.IMPL-UNWRAP-LIST($!semilist.statements) {
+            return nqp::null()
+              unless nqp::istype($_, RakuAST::Statement::Expression)
+              && !nqp::isconcrete($_.condition-modifier)
+              && !nqp::isconcrete($_.loop-modifier);
+            nqp::push(@expressions, $_.expression);
+        }
+        @expressions
+    }
+
     method IMPL-IS-CONSTANT() {
         my $statements := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements);
         for $statements {

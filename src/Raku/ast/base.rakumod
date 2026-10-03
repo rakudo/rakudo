@@ -327,6 +327,26 @@ class RakuAST::Node {
         }
     }
 
+    # Whether a node's compile time value can stand in for a thunk whose user
+    # takes a value in its place. Code in the node needs the thunk as its outer,
+    # a user calls a Callable value, and xx flattens a Slip only from a thunk.
+    method IMPL-VALUE-STANDS-FOR-THUNK(RakuAST::Resolver $resolver, Mu $node) {
+        my $value := self.IMPL-LITERAL-VALUE($node);
+        return 0 if nqp::isnull($value);
+        for <Callable Slip> {
+            my $type := self.IMPL-SETTING-TYPE($resolver, $_);
+            return 0 if nqp::isnull($type) || nqp::istype($value, $type);
+        }
+        1
+    }
+
+    # A type of the setting, which a lexical of the same name does not
+    # shadow, or null during early bootstrap.
+    method IMPL-SETTING-TYPE(RakuAST::Resolver $resolver, str $name) {
+        my $decl := $resolver.resolve-lexical-constant-in-setting($name);
+        nqp::isconcrete($decl) ?? $decl.compile-time-value !! nqp::null
+    }
+
     # The anonymous state and the state guards in the node, its own included,
     # which a compilation of the node on its own declares, as a scope around it
     # would.
@@ -4201,6 +4221,55 @@ class RakuAST::Node {
             $droppable := 0 unless self.IMPL-DROPPABLE($child);
         });
         $droppable
+    }
+
+    # The compile time value of a node, which evaluating the node gives or
+    # clones, or null when it has none or may give something else, as a
+    # container declaration, an enum declaration and a statement prefix do.
+    method IMPL-EVALUATED-VALUE(Mu $node) {
+        return nqp::null()
+          unless $node.has-compile-time-value && self.IMPL-GIVES-COMPILE-TIME-VALUE($node);
+        my $value := $node.maybe-compile-time-value;
+        nqp::iscont($value) ?? nqp::null() !! $value
+    }
+
+    # Whether what the node holds outside its scopes is known to give its
+    # compile time value. Of the declarations only a scope or a constant is,
+    # and a statement prefix, which runs its code, is not.
+    method IMPL-GIVES-COMPILE-TIME-VALUE(Mu $node) {
+        return 1 unless nqp::isconcrete($node);
+        return 0 if nqp::istype($node, RakuAST::StatementPrefix);
+        return 0 unless $node.IMPL-EVALUATES-TO-COMPILE-TIME-VALUE;
+        return 1 if nqp::istype($node, RakuAST::LexicalScope)
+          || nqp::istype($node, RakuAST::VarDeclaration::Constant);
+        return 0 if nqp::istype($node, RakuAST::Declaration);
+        my int $gives := 1;
+        $node.visit-children(-> $child {
+            $gives := 0 if $gives && !self.IMPL-GIVES-COMPILE-TIME-VALUE($child);
+        });
+        $gives
+    }
+
+    # Whether evaluating the node itself gives its compile time value, as a
+    # parameterization with an argument known only at runtime does not.
+    method IMPL-EVALUATES-TO-COMPILE-TIME-VALUE() { True }
+
+    # The compile time value of a node that gives it each time it is
+    # evaluated and holds no code, or null.
+    method IMPL-LITERAL-VALUE(Mu $node) {
+        my $value := self.IMPL-EVALUATED-VALUE($node);
+        nqp::isnull($value) || !self.IMPL-NO-CODE($node) ?? nqp::null() !! $value
+    }
+
+    # Whether the node holds no code at all, formed or not.
+    method IMPL-NO-CODE(Mu $node) {
+        return 1 unless nqp::isconcrete($node);
+        return 0 if nqp::istype($node, RakuAST::Code);
+        my int $none := 1;
+        $node.visit-children(-> $child {
+            $none := 0 if $none && !self.IMPL-NO-CODE($child);
+        });
+        $none
     }
 
     # Whether no code in the node has formed its block yet.

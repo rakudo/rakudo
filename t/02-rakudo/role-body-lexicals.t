@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 29;
+plan 34;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -65,3 +65,14 @@ is-deeply (try EVAL(q[my $got; multi trait_mod:<is>(Mu:U $c, :$tagged!) { $got =
     'a role declared in a trait argument of a class in a routine sees the lexicals of each call';
 is (try EVAL(q[my $v = 7; my ($a, $b = my role R { method m { $v } }) := \(1); $b.m])), 7,
     'a role declared as a signature binding default sees the lexicals around it';
+# These hold without the thunk too, and guard what it keeps.
+is (try EVAL(q[my $v = 7; 42 andthen my role R { method m { $v } }; R.m])), 7,
+    'a role declared right of andthen sees the lexicals around it';
+is-deeply (try EVAL(q[my $v = 7; ((my role R { method m { $v } }) xx 2).map(*.m).List])), (7, 7),
+    'a role declared on the left of xx sees the lexicals around it';
+is-deeply (try EVAL(q[sub o($w) { Nil andthen my role R { method m { $w } }; R.m }; (o(8), o(9))])), (8, 9),
+    'a role declared right of andthen with an undefined left side sees the lexicals of each call';
+is-deeply (try EVAL(q[sub o($w) { 42 orelse my role R { method m { $w } }; my class C does R { }; C.new.m }; (o(8), o(9))])), (8, 9),
+    'a role declared right of orelse with a defined left side sees the lexicals of each call';
+is-deeply (try EVAL(q[sub o($w) { my @a = (my role R { method m { $w } }) xx 0; my class C does R { }; C.new.m }; (o(8), o(9))])), (8, 9),
+    'a role declared on the left of xx 0 sees the lexicals of each call';

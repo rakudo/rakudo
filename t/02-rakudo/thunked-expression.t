@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 168;
+plan 223;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -249,6 +249,144 @@ is-deeply (try EVAL(q[sub f($y, $x = (my sub g { $y })()) { g() }; (f(1), f(2, 0
     'a sub declared in a parameter default is called in the body of a later call not evaluating the default';
 is-deeply (try EVAL(q[sub g($i) { my ($a where (my sub w($v) { $v == $i })($_)) := \($i); w($i) }; (g(1), g(2))])), (True, True),
     'a sub declared in the where of a signature declaration closes over each call of its routine';
+is (try EVAL(q[my $ran = 0; Nil andthen my class C { $ran++ }; $ran])), 0,
+    'a class declared right of andthen is not run for an undefined left side';
+is (try EVAL(q[my $seen; 42 andthen my class C { $seen = $_ }; $seen])), 42,
+    'a class declared right of andthen runs in the topic block';
+is (try EVAL(q[my $i = 0; my @a = (my class C { $i++ }) xx 3; $i])), 3,
+    'a class declared on the left of xx runs for each repetition';
+todo 'the where clause misses the topic on the legacy frontend' unless $rakuast;
+ok (try EVAL(q[$_ = 7; my $s = (42 andthen :($x where * == $_)); \(42) ~~ $s])),
+    'a signature literal right of andthen has a where clause that sees the topic';
+given 100 {
+    is (42 andthen my $y = $_ + 1), 43,
+        'a declaration right of andthen is evaluated in the topic block';
+    is (42 andthen (my $z = $_ + 1)), 43,
+        'a parenthesized declaration right of andthen is evaluated in the topic block';
+    is ([andthen] 42, (my $x = $_ + 1)), 43,
+        'a declaration in a reduce with andthen is evaluated in the topic block';
+    is-deeply ((42,) Zandthen ((my $w = $_ + 1),)).List, (43,),
+        'a declaration in a list under Zandthen is evaluated in the topic block';
+    is-deeply (42 andthen my @a = $_ + 1), [43],
+        'an array declaration right of andthen is evaluated in the topic block';
+    is (42 andthen (try $_ + 1)), 43,
+        'a parenthesized try right of andthen sees the topic andthen gives';
+    is-deeply (42 andthen (gather take $_ + 1)).List, (43,),
+        'a parenthesized gather right of andthen sees the topic andthen gives';
+}
+{
+    my $i = 0;
+    is-deeply ((my $x = ++$i) xx 3).List, (1, 2, 3),
+        'a declaration on the left of xx is evaluated for each repetition';
+}
+{
+    my $i = 0;
+    is-deeply (((my $x = ++$i), 5) xx 2).map(*.List).List, ((2, 5), (2, 5)),
+        'a list holding a declaration on the left of xx is evaluated for each repetition';
+}
+is (try (42 andthen Block)), Block,
+    'a Callable type object right of andthen gives the type object';
+if $rakuast {
+    is-deeply (try (Block xx 2).List), (Block, Block),
+        'a Callable type object on the left of xx gives the type object for each repetition';
+}
+else {
+    skip 'dies on the legacy frontend', 1;
+}
+lives-ok { Nil andthen my $v = die "evaluated" },
+    'a declaration right of andthen is not evaluated for an undefined left side';
+{
+    my ($a, $b = my $y = 5) := \(1);
+    is $b, 5, 'a declaration as a signature binding default is initialized';
+}
+is (try EVAL(q[$_ = 100; (42 andthen my $x = $_ + 1)])), 43,
+    'a declaration right of andthen at unit scope is initialized in the topic block';
+is (try EVAL(q[sub f(Int $c = my $x = 5) { $c }; f()])), 5,
+    'a declaration as a typed parameter default gives its value';
+is (try EVAL(q[sub f(int $c = my $x = 5) { $c }; f()])), 5,
+    'a declaration as a native parameter default gives its value';
+throws-like q[sub f(Str $c = my $x = 5) { $c }; f()], X::TypeCheck::Binding::Parameter,
+    'a declaration as a typed parameter default is type checked when it is evaluated';
+is (try ([||] 1, (my $z = die "evaluated"))), 1,
+    'a declaration in a reduce with || is not evaluated after a true operand';
+{
+    my $i = 0;
+    is-deeply ([xx] (my $x = ++$i), 3).List, (1, 2, 3),
+        'a declaration in a reduce with xx is evaluated for each repetition';
+}
+is (try ([andthen] 42, Block)), Block,
+    'a Callable type object in a reduce with andthen gives the type object';
+lives-ok { 5 orelse my $x = die "evaluated" },
+    'a declaration right of orelse is not evaluated for a defined left side';
+is (try (Any orelse Block)), Block,
+    'a Callable type object right of orelse gives the type object';
+is (try EVAL(q[sub f([$a, $b = my $y = 5]) { $b }; f([1])])), 5,
+    'a declaration as a sub-signature parameter default is initialized';
+is (try EVAL(q[sub f(Map $x = (my enum E <a b>)) { $x }; f().^name])), 'Map',
+    'an enum declared as a parameter default gives its Map';
+is (try EVAL(q[(42 andthen my class C does Callable { }).^name])), 'C',
+    'a Callable class declared right of andthen gives the class';
+is (try EVAL(q[sub f(Int $x = try 42) { $x }; f()])), 42,
+    'a try as a typed parameter default gives the value of its statement';
+is (try EVAL(q[sub f(Int $x = BEGIN 42) { $x }; f()])), 42,
+    'a BEGIN as a typed parameter default gives the value of its statement';
+{
+    my ($a, $b = try 42) := \(1);
+    is $b, 42, 'a try as a signature binding default gives the value of its statement';
+}
+{
+    sub f([$a, $b = BEGIN 42]) { $b }
+    is f([1]), 42, 'a BEGIN as a sub-signature parameter default gives the value of its statement';
+}
+{
+    sub f($x = try 42) { $x }
+    is &f.signature.params[0].default.(), 42,
+        'a try as a parameter default introspects as code giving the value of its statement';
+}
+{
+    my $n = 0;
+    sub f($c = (0 || (my $x = ++$n))) { $c }
+    is-deeply (f(), f()), (1, 2),
+        'a constant || giving a declaration as a parameter default is evaluated on each call';
+}
+is-deeply (try EVAL(q[sub g($y) { my ($a, $b = (0 || { $y })) := \(1); $b() }; (g(1), g(2))])), (1, 2),
+    'a constant || giving a block as a signature binding default gives a block for each bind';
+is (try EVAL(q[sub f($x = (0 || (my enum F <a b>))) { $x }; f().^name])), 'Map',
+    'a constant || giving an enum declaration as a parameter default gives its Map';
+{
+    my $i = 0;
+    my @r = (5 if $i++ < 1) xx 3;
+    is $i, 3, 'parenthesized statements with an if modifier on the left of xx are evaluated for each repetition';
+}
+{
+    my $i = 0;
+    my @r = (5 for ++$i) xx 3;
+    is $i, 3, 'parenthesized statements with a for modifier on the left of xx are evaluated for each repetition';
+}
+{
+    my $i = 0;
+    Nil andthen (5 if $i++ < 1);
+    is $i, 0, 'parenthesized statements with an if modifier right of andthen are not evaluated for an undefined left side';
+}
+{
+    my $i = 0;
+    is-deeply ((try ++$i) xx 3).List, (1, 2, 3),
+        'a parenthesized try on the left of xx is evaluated for each repetition';
+}
+{
+    my class C does Callable {
+        method CALL-ME(|) { 'called' }
+        method right-of-andthen() { 42 andthen self }
+        method right-of-orelse() { Nil orelse self }
+        method left-of-xx() { (self xx 2).List }
+    }
+    is (try C.new.right-of-andthen).^name, 'C',
+        'self right of andthen in a method of a Callable class gives the invocant';
+    is (try C.new.right-of-orelse).^name, 'C',
+        'self right of orelse in a method of a Callable class gives the invocant';
+    is-deeply (try C.new.left-of-xx).map(*.^name).List, ('C', 'C'),
+        'self on the left of xx in a method of a Callable class gives the invocant for each repetition';
+}
 # These hold without the thunk too, and guard what it keeps.
 todo 'binds in the frame of the thunk on the legacy frontend', 2 unless $rakuast;
 is (try EVAL(q[1 andthen my ($a, $b) := (1, 2); $a + $b])), 3,
@@ -259,6 +397,34 @@ is (try EVAL(q[1 orelse (my ($a, $b) := die "boom"); "end"])), 'end',
     'a parenthesized signature declaration that binds right of orelse is not evaluated for a defined left side';
 is (try EVAL(q[my $n = 0; (my ($a, $b) := do { $n++; (1, 2) }) xx 0; $n])), 0,
     'a signature declaration that binds on the left of xx 0 is not evaluated';
+{
+    my \l = (1, 2) xx 2;
+    ok l[0] =:= l[1], 'a list of constants on the left of xx is the same list for each repetition';
+    my \e = () xx 2;
+    ok e[0] =:= e[1], 'an empty list on the left of xx is the same list for each repetition';
+    my \s = (1; 2) xx 2;
+    ok s[0] =:= s[1], 'parenthesized statements of constants on the left of xx are the same list for each repetition';
+}
+{
+    my class Callable { }
+    constant F = &uc;
+    ok (42 andthen F) === &uc, 'a lexical Callable does not change what andthen gives for code';
+}
+todo 'binds in the frame of the thunk on the legacy frontend' unless $rakuast;
+is (try EVAL(q[1 andthen (my ($a, $b) := (1, 2)); $a + $b])), 3,
+    'a parenthesized signature declaration that binds right of andthen binds its variables';
+is (try (5 andthen :a{ $_ }).value.()), 5,
+    'a pair holding a block right of andthen gives a block that sees the topic';
+is-deeply ((:a{ $++ }) xx 3).map({ .value.() }).List, (0, 0, 0),
+    'a pair holding a block on the left of xx gives a new block for each repetition';
+is ((Empty) xx 3).elems, 0,
+    'a parenthesized Slip on the left of xx is slipped for each repetition';
+throws-like q[sub foo(Bool $b = sub { False }) { }], X::Parameter::Default::TypeCheck,
+    'an anonymous sub as a parameter default of another type fails to compile';
+throws-like q[sub f(Str $x = constant C = 5) { }], X::Parameter::Default::TypeCheck,
+    'a constant declared as a parameter default of another type fails to compile';
+is-deeply (try EVAL(q[my @r; for (int, num) -> $T { @r.push: array[$T] ~~ Positional[$T] }; @r])), [True, True],
+    'a smartmatch against a parameterization with a loop variable is checked at runtime';
 # These hold whichever block declares the code, and guard what it keeps.
 ok (try EVAL(q[my @s = ((try :($a, $b)) for 1..2); \(1, 2) ~~ @s[0]])),
     'a signature literal under try in a for modifier statement gives a signature that binds';

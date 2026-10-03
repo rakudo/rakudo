@@ -924,10 +924,20 @@ class RakuAST::Parameter
         $!optional // ($!default || $!names ?? True !! False)
     }
 
-    # The meta-object binds a default with a compile time value as a literal,
-    # even when BEGIN time saw no value and gave it the thunk instead.
+    # Whether the default binds as its compile time value. BEGIN time thunks
+    # one that evaluates to something else, and a thunked one may come to have
+    # such a value, from a heredoc body or the optimizer, if it holds no code.
+    method IMPL-DEFAULT-IS-LITERAL() {
+        return False unless $!default;
+        $!default.outer-most-thunk
+          ?? !nqp::isnull(self.IMPL-LITERAL-VALUE($!default))
+          !! $!default.has-compile-time-value
+    }
+
+    # The meta-object binds a literal default as a literal, even when BEGIN
+    # time gave the default a thunk.
     method IMPL-BIND-DEFAULT-AS-LITERAL() {
-        return Nil unless $!default && $!default.has-compile-time-value;
+        return Nil unless self.IMPL-DEFAULT-IS-LITERAL;
         my $parameter := self.meta-object;
         my int $flags := nqp::getattr_i($parameter, Parameter, '$!flags');
         unless $flags +& nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL {
@@ -1134,12 +1144,8 @@ class RakuAST::Parameter
         if nqp::elems(@post_constraints) {
             nqp::bindattr($parameter, Parameter, '@!post_constraints', @post_constraints);
         }
-        if $!default {
-            if $!default.has-compile-time-value {
-                nqp::bindattr($parameter, Parameter, '$!default_value', $!default.maybe-compile-time-value);
-            }
-            else {
-            }
+        if self.IMPL-DEFAULT-IS-LITERAL {
+            nqp::bindattr($parameter, Parameter, '$!default_value', $!default.maybe-compile-time-value);
         }
         if $!sub-signature {
             nqp::bindattr($parameter, Parameter, '$!sub_signature', $!sub-signature.meta-object);
@@ -1225,10 +1231,8 @@ class RakuAST::Parameter
                 $flags := $flags +| nqp::const::SIG_ELEM_NATIVE_UINT_VALUE;
             }
         }
-        if $!default {
-            if $!default.has-compile-time-value {
-                $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
-            }
+        if self.IMPL-DEFAULT-IS-LITERAL {
+            $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
         }
         $flags := $flags +| $!slurpy.IMPL-FLAGS($sigil);
         $flags
@@ -1310,15 +1314,14 @@ class RakuAST::Parameter
             nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $block);
         }
 
-        if $!default {
-            # If it doesn't have a compile-time value, we'll need to thunk it.
-            unless $!default.has-compile-time-value {
-                $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
-                my $default-thunk := $!default.outer-most-thunk;
-                $default-thunk.IMPL-SET-PRELUDE-PRODUCER(
-                  -> $context { self.IMPL-QAST-ENTRY-CLOSURES($context, $default-thunk) });
-                $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
-            }
+        # A default that evaluates to anything but its compile time value is
+        # evaluated by a thunk on each call.
+        if $!default && nqp::isnull(self.IMPL-EVALUATED-VALUE($!default)) {
+            $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
+            my $default-thunk := $!default.outer-most-thunk;
+            $default-thunk.IMPL-SET-PRELUDE-PRODUCER(
+              -> $context { self.IMPL-QAST-ENTRY-CLOSURES($context, $default-thunk) });
+            $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
         }
 
         CATCH {
@@ -1494,8 +1497,8 @@ class RakuAST::Parameter
                     how => 'required', parameter => $!target.lexical-name;
             }
 
-            if nqp::isconcrete($!type) && $!default.has-compile-time-value {
-                my $value := $!default.maybe-compile-time-value;
+            my $value := self.IMPL-EVALUATED-VALUE($!default);
+            if nqp::isconcrete($!type) && !nqp::isnull($value) {
                 my $type := self.IMPL-NOMINAL-TYPE;
                 if nqp::objprimspec($type) {
                     $type := $type.HOW.mro($type)[1];
@@ -1899,7 +1902,7 @@ class RakuAST::Parameter
 
         # If it's optional, do any default handling.
         if self.is-optional {
-            if $!default.has-compile-time-value {
+            if self.IMPL-DEFAULT-IS-LITERAL {
                 # Literal default value, so just insert it. A default thunked
                 # at BEGIN time may have one by now, from a heredoc body or the
                 # optimizer, so its thunk goes unused.

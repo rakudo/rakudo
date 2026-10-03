@@ -762,16 +762,20 @@ class RakuAST::Type::Parameterized
         }
     }
 
+    # A parameterization of arguments known at compile time is the one formed
+    # then, unless it is generic, which is instantiated where it is reached.
+    method IMPL-EVALUATES-TO-COMPILE-TIME-VALUE() {
+        !$!args.args || $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES
+          && !RakuAST::IMPL::Archetypes.generic(self.meta-object) ?? True !! False
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         if !$!args.args {
             my $value := self.base-type.compile-time-value;
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )
         }
-        # A generic parameterization is not folded, so where it is reached it
-        # gets the instantiated type arguments.
-        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES
-          && !RakuAST::IMPL::Archetypes.generic(self.meta-object) {
+        elsif self.IMPL-EVALUATES-TO-COMPILE-TIME-VALUE {
             my $value := self.meta-object;
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )

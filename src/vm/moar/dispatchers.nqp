@@ -1055,14 +1055,17 @@ nqp::register('raku-call', -> $capture {
     if nqp::istype_nd($callee, Method)
       && (my str $meth-name := $callee.name)
       && (my $inv_param := try { $callee.signature.params.AT-POS(0) }) {
-        nqp::guard('literal', $Tcallee);
+        # The closures taken of a method share its signature, which gives the
+        # invocant type, so they share this program. Deferral takes the name
+        # from the callee, as a clone may be named apart from the method.
+        nqp::guard('literal', nqp::track('attr', $Tcallee, Code, '$!signature'));
 
-        # Add the type and method name to capture as expected
-        $capture := nqp::syscall('dispatcher-insert-arg-literal-str',
+        # Add the type and the callee to capture as expected
+        $capture := nqp::syscall('dispatcher-insert-arg',
           nqp::syscall('dispatcher-insert-arg-literal-obj',
             $capture, 1, $inv_param.type
           ),
-          2, $meth-name
+          2, $Tcallee
         );
 
         $delegate := 'raku-meth-call-resolved';
@@ -1450,8 +1453,8 @@ sub nil-or-callwith-propagation-terminal($capture) {
 
 # Resolved method call dispatcher. This is used to call a method, once we have
 # already resolved it to a callee. Its first arg is the callee, the second and
-# third are the type and name (used in deferral), and the rest are the args to
-# the method.
+# third are the type and name, or the callee to take the name from (used in
+# deferral), and the rest are the args to the method.
 nqp::register('raku-meth-call-resolved',
 
     # Initial dispatch
@@ -1542,9 +1545,12 @@ nqp::register('raku-meth-call-resolved',
             my $Tname := nqp::track('arg', $init, 1);
             nqp::guard('literal', $Tname);
 
-            # Build up the list of methods to defer through.
+            # Build up the list of methods to defer through. A call of a method
+            # already resolved carries the method in place of its name.
             my $start_type := nqp::captureposarg($init, 0);
-            my str $name := nqp::captureposarg_s($init, 1);
+            my str $name := nqp::captureposprimspec($init, 1) == nqp::const::BIND_VAL_STR
+              ?? nqp::captureposarg_s($init, 1)
+              !! nqp::captureposarg($init, 1).name;
             my $start_type_how := nqp::how_nd($start_type);
             my @mro := nqp::can($start_type_how, 'mro_unhidden')
               ?? $start_type_how.mro_unhidden($start_type)

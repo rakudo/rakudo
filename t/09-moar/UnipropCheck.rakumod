@@ -9,7 +9,7 @@ my %prop-data =
 my %expected-loses =
     "extracted/DerivedGeneralCategory.txt" => {
         General_Category => {
-            Cn => 34,
+            Cn => 0,
         },
     },
     # Many codepoints return XX instead of ID. These codepoints are undefined, but unicode

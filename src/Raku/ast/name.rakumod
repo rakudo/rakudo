@@ -10,15 +10,22 @@ class RakuAST::Name
     method new(*@parts, List :$colonpairs) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Name, '$!parts', @parts);
-        nqp::bindattr($obj, RakuAST::Name, '$!colonpairs', []);
+
         if $colonpairs {
-            $obj.add-colonpair($_) for self.IMPL-UNWRAP-LIST($colonpairs);
+            for self.IMPL-UNWRAP-LIST($colonpairs) {
+                $obj.add-colonpair($_)
+            }
         }
+
         $obj
     }
 
     method from-identifier(Str $identifier) {
-        self.new(RakuAST::Name::Part::Simple.new($identifier))
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Name, '$!parts',
+          nqp::list(RakuAST::Name::Part::Simple.new($identifier))
+        );
+        $obj
     }
 
     method from-identifier-parts(*@identifiers) {
@@ -28,11 +35,15 @@ class RakuAST::Name
               ?? @parts.push(RakuAST::Name::Part::Simple.new($_))
               !! nqp::die('Expected identifier parts to be Str, but got ' ~ $_.HOW.name($_));
         }
-        self.new(|@parts)
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Name, '$!parts', @parts);
+        $obj
     }
 
     method add-colonpair(RakuAST::ColonPairish $pair) {
-        $!colonpairs.push: $pair;
+        nqp::bindattr(self, RakuAST::Name, '$!colonpairs', [])
+          unless $!colonpairs;
+        nqp::push($!colonpairs, $pair);
     }
 
     method set-colonpairs(@pairs) {
@@ -40,7 +51,7 @@ class RakuAST::Name
     }
 
     method colonpairs() {
-        self.IMPL-WRAP-LIST($!colonpairs)
+        $!colonpairs ?? self.IMPL-WRAP-LIST($!colonpairs) !! nqp::create(List)
     }
 
     method parts() {
@@ -146,29 +157,35 @@ class RakuAST::Name
         nqp::atpos($!parts,nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
     }
 
-    method has-colonpairs(--> Bool) {
-        nqp::elems($!colonpairs)
-    }
+    method has-colonpairs(--> Bool) { nqp::istrue($!colonpairs) }
 
     method has-colonpair($key) {
-        for $!colonpairs {
-            return True if $_.key eq $key;
+        if $!colonpairs {
+            for $!colonpairs {
+                return True if $_.key eq $key;
+            }
         }
         False
     }
 
     method first-colonpair($key) {
-        for $!colonpairs {
-            return $_ if $_.key eq $key;
+        if $!colonpairs {
+            for $!colonpairs {
+                return $_ if $_.key eq $key;
+            }
         }
         Nil
     }
 
     method without-colonpair($key) {
+
         my @parts := nqp::clone($!parts);
         my $name  := RakuAST::Name.new(|@parts);
-        for $!colonpairs {
-            $name.add-colonpair($_) if !nqp::istype($_, RakuAST::ColonPair) || $_.key ne $key;
+        if $!colonpairs {
+            for $!colonpairs {
+                $name.add-colonpair($_)
+                  if !nqp::istype($_, RakuAST::ColonPair) || $_.key ne $key;
+            }
         }
         $name
     }
@@ -176,9 +193,11 @@ class RakuAST::Name
     method without-colonpairs() {
         my @parts := nqp::clone($!parts);
         my $name  := RakuAST::Name.new(|@parts);
-        for $!colonpairs {
-            $name.add-colonpair($_)
-              unless nqp::istype($_, RakuAST::ColonPair);
+        if $!colonpairs {
+            for $!colonpairs {
+                $name.add-colonpair($_)
+                  unless nqp::istype($_, RakuAST::ColonPair);
+            }
         }
         $name
     }
@@ -187,7 +206,7 @@ class RakuAST::Name
         my @parts := nqp::clone($!parts);
         @parts.shift;
         my $name := RakuAST::Name.new(|@parts);
-        $name.set-colonpairs(nqp::clone($!colonpairs));
+        $name.set-colonpairs(nqp::clone($!colonpairs)) if $!colonpairs;
         $name
     }
 
@@ -196,13 +215,16 @@ class RakuAST::Name
             for $!parts {
                 $_.visit-children($visitor);
             }
-            for $!colonpairs {
-                $visitor($_);
+            if $!colonpairs {
+                for $!colonpairs {
+                    $visitor($_);
+                }
             }
         }
     }
 
     method colonpair-suffix() {
+        return '' unless $!colonpairs;
         my $name := '';
         for $!colonpairs -> $cp {
             if nqp::istype($cp, RakuAST::ColonPairish) {
@@ -334,7 +356,7 @@ class RakuAST::Name
     method IMPL-LOOKUP-PARTS() {
         my @parts := nqp::clone($!parts);
         nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::EmptyEdge);
-        if nqp::elems(@parts) && nqp::elems($!colonpairs) {
+        if nqp::elems(@parts) && $!colonpairs {
             my $final := nqp::pop(@parts);
             $final := RakuAST::Name.from-identifier($final.name);
             $final.set-colonpairs($!colonpairs);

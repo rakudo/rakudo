@@ -108,11 +108,11 @@ class RakuAST::Origin::Source {
         nqp::bindattr_s($obj, RakuAST::Origin::Source, '$!orig', $orig);
 
         my $file := %*COMPILING<%?OPTIONS><source-name>;
-        if !nqp::isconcrete($file) {
-            if nqp::isnull($file := nqp::getlexdyn('$?FILES')) {
-                $file := '<unknown file>';
-            }
-        }
+        $file := nqp::ifnull(
+          nqp::getlexdyn('$?FILES'),
+          '<unknown file>'
+        ) unless nqp::isconcrete($file);
+
         nqp::bindattr($obj, RakuAST::Origin::Source, '$!line-file', nqp::list(nqp::list(0, 0, $file)));
 
         my $line-ends := nqp::list;

@@ -2878,7 +2878,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
             }
             else {
+                # A bare name of a lexical from the outer context of an EVAL
+                # or REPL line is looked up at run time like any lexical. Type
+                # syntax needs the type object it holds while compiling.
+                my $type-syntax := $<arglist> || $<accept> || $<accept_any>
+                  || $name.has-colonpairs;
                 self.attach: $/, $*IS-TYPE
+                  && ($type-syntax || !$*R.is-name-outer-lexical($name))
                   ?? self.type-for-name($/, $name)
                   !! Nodify('Term::Name').new($name)
             }

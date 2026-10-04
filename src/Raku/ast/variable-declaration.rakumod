@@ -1154,8 +1154,8 @@ class RakuAST::VarDeclaration::Simple
         )));
 
         my $expression := $statement.expression;
-        # Inside an EVAL, C:D naming a type from outside is a plain name, and
-        # its lookup drops the :D.
+        # A Term::Name whose name has a smiley never evaluates to a type
+        # with that smiley.
         return NQPMu if nqp::istype($expression, RakuAST::Term::Name)
           && $expression.name.has-colonpairs;
         my $key-type := NQPMu;

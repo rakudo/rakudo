@@ -678,13 +678,16 @@ class RakuAST::CompUnit
         if !$!precompilation-mode
             && !$*INSIDE-EVAL
             && +(@*MODULES // []) == 0
-            && (my $main := self.find-lexical('&MAIN'))
+            && self.find-lexical('&MAIN')
         {
+            # Run the mainline before looking up &MAIN, since &MAIN only holds
+            # a sub bound or assigned to it once the mainline has run.
+            my $mainline-result := QAST::Node.unique('mainline_result');
             my $run-main := QAST::Op.new(
               :op('call'),
               :name('&RUN-MAIN'),
-              QAST::WVal.new(:value($main.meta-object)),
-              QAST::Stmts.new(|$top-level.list) # run the mainline and get its result
+              QAST::Var.new(:name('&MAIN'), :scope('lexical')),
+              QAST::Var.new(:name($mainline-result), :scope('local'))
             );
             unless $!language-revision.Int < 2 {
                 $run-main.push(
@@ -694,7 +697,14 @@ class RakuAST::CompUnit
                   )
                 );
             }
-            $top-level.set_children([$run-main]);
+            $top-level.set_children([
+                QAST::Op.new(
+                  :op('bind'),
+                  QAST::Var.new(:name($mainline-result), :scope('local'), :decl('var')),
+                  QAST::Stmts.new(|$top-level.list) # run the mainline and get its result
+                ),
+                $run-main
+            ]);
         }
 
         # Nested EVAL: wrap the inner mainline in an anonymous QAST::Block.

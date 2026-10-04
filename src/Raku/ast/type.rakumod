@@ -556,10 +556,15 @@ class RakuAST::Type::Capture
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Capture, '$!name', $name);
         my str $written := $smiley // '';
+        my constant SMILEYS := nqp::hash("D", 1, "U", 1, "_", 1, "", 1);
         nqp::die("A type capture smiley is D, U or _, not '$written'")
-          unless $written eq '' || $written eq 'D' || $written eq 'U' || $written eq '_';
+          unless nqp::existskey(SMILEYS,$written);
         nqp::bindattr_s($obj, RakuAST::Type::Capture, '$!smiley', $written);
         $obj
+    }
+
+    method from-identifier(Str $identifier, str :$smiley) {
+        self.new(RakuAST::Name.from-identifier($identifier), :$smiley)
     }
 
     # The definedness the smiley asks for, Bool when neither :D nor :U
@@ -628,8 +633,6 @@ class RakuAST::Type::Parameterized
     has RakuAST::ArgList $.args;
 
     method new(RakuAST::Type :$base-type!, RakuAST::ArgList :$args) {
-        nqp::die('need a base-type, not ' ~ $base-type.dump)
-          unless nqp::istype($base-type, RakuAST::Type);
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
         nqp::bindattr($obj, RakuAST::Type::Parameterized, '$!args',

@@ -251,9 +251,7 @@ subtest 'creating a parameterized role with a type capture' => {
         parameters => (
           RakuAST::Parameter.new(
             type-captures => (
-              RakuAST::Type::Capture.new(
-                RakuAST::Name.from-identifier("T")
-              ),
+              RakuAST::Type::Capture.from-identifier("T"),
             ),
             default       => RakuAST::Type::Simple.from-identifier("Str")
           ),
@@ -536,9 +534,7 @@ subtest 'A parameterized role whose version needs evaluation' => {
         parameters => (
           RakuAST::Parameter.new(
             type-captures => (
-              RakuAST::Type::Capture.new(
-                RakuAST::Name.from-identifier('T')
-              ),
+              RakuAST::Type::Capture.from-identifier('T'),
             )
           ),
         )
@@ -882,9 +878,7 @@ subtest 'A parameterized role declarator a module added resolves in a tree' => {
             parameters => (
               RakuAST::Parameter.new(
                 type-captures => (
-                  RakuAST::Type::Capture.new(
-                    RakuAST::Name.from-identifier('T')
-                  ),
+                  RakuAST::Type::Capture.from-identifier('T'),
                 )
               ),
             )

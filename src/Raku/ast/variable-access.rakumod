@@ -794,7 +794,9 @@ class RakuAST::Var::Compiler::Resources
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('Distribution', 'Resources')),
+          RakuAST::Type::Setting.from-identifier-parts(
+            'Distribution', 'Resources'
+          ),
         ]
     }
 
@@ -829,7 +831,9 @@ class RakuAST::Var::Compiler::Distribution
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'Repository', 'Distribution')),
+          RakuAST::Type::Setting.from-identifier-parts(
+            'CompUnit', 'Repository', 'Distribution'
+          ),
         ]
     }
 
@@ -935,8 +939,8 @@ class RakuAST::Var::PositionalCapture
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Var::Lexical.new('&postcircumfix:<[ ]>'),
-            RakuAST::Var::Lexical.new('$/'),
+          RakuAST::Var::Lexical.new('&postcircumfix:<[ ]>'),
+          RakuAST::Var::Lexical.new('$/'),
         ]
     }
 
@@ -1006,8 +1010,8 @@ class RakuAST::Var::NamedCapture
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Var::Lexical.new('&postcircumfix:<{ }>'),
-            RakuAST::Var::Lexical.new('$/'),
+          RakuAST::Var::Lexical.new('&postcircumfix:<{ }>'),
+          RakuAST::Var::Lexical.new('$/'),
         ]
     }
 
@@ -1179,9 +1183,7 @@ class RakuAST::Var::Slang
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Slang')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('Slang') ]
     }
 
     method sigil()  { '$' }

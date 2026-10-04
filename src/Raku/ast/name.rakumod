@@ -352,8 +352,8 @@ class RakuAST::Name
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&INDIRECT_NAME_LOOKUP')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
+          RakuAST::Type::Setting.from-identifier('&INDIRECT_NAME_LOOKUP'),
+          RakuAST::Type::Setting.from-identifier('PseudoStash'),
         ]
     }
 

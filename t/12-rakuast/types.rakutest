@@ -110,9 +110,7 @@ subtest 'parameterized type with type' => {
 
 subtest 'Single-part type from the setting' => {
     # SETTING::<Date>
-    ast RakuAST::Type::Setting.new(
-      RakuAST::Name.from-identifier("Date")
-    );
+    ast RakuAST::Type::Setting.from-identifier("Date");
     is-deeply $deparsed, 'SETTING::<Date>', 'deparse';
 
     my \SETTING-Date := Date;
@@ -125,9 +123,7 @@ subtest 'Single-part type from the setting' => {
 
 subtest 'Multi-part type from the setting' => {
     # SETTING::<IO>.WHO<Path>.WHO<Parts>
-    ast RakuAST::Type::Setting.new(
-      RakuAST::Name.from-identifier-parts("IO","Path","Parts")
-    );
+    ast RakuAST::Type::Setting.from-identifier-parts("IO","Path","Parts");
     is-deeply $deparsed, 'SETTING::<IO>.WHO<Path>.WHO<Parts>', 'deparse';
 
     my \SETTING-Parts := IO::Path::Parts;

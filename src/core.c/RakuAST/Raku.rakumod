@@ -1339,10 +1339,6 @@ augment class RakuAST::Node {
         self!nameds: <base-type args>
     }
 
-    multi method raku(RakuAST::Type::Setting:D: --> Str:D) {
-        self!positional(self.name)
-    }
-
     multi method raku(RakuAST::Type::Simple:D: --> Str:D) {
         my $name := self.name;
         my @parts = $name.parts;

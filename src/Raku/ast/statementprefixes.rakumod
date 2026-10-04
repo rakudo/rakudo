@@ -307,9 +307,9 @@ class RakuAST::StatementPrefix::Try
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-            RakuAST::Var::Lexical.new('$!'),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Failure')),
+          RakuAST::Type::Setting.from-identifier('Nil'),
+          RakuAST::Var::Lexical.new('$!'),
+          RakuAST::Type::Setting.from-identifier('Failure'),
         ]
     }
 
@@ -512,8 +512,8 @@ class RakuAST::StatementPrefix::Start
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Promise')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('True')),
+          RakuAST::Type::Setting.from-identifier('Promise'),
+          RakuAST::Type::Setting.from-identifier('True'),
         ]
     }
 
@@ -671,9 +671,7 @@ class RakuAST::StatementPrefix::Phaser::Sinky
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('Nil') ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

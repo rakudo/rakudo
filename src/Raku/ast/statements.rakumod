@@ -32,9 +32,7 @@ class RakuAST::Label
     method lexical-name() { $!name }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Label')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('Label') ]
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
@@ -734,8 +732,8 @@ class RakuAST::StatementList
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Blob')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+          RakuAST::Type::Setting.from-identifier('Blob'),
+          RakuAST::Type::Setting.from-identifier('Nil'),
         ]
     }
 
@@ -887,9 +885,7 @@ class RakuAST::SemiList
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Var::Lexical.new('&infix:<,>'),
-        ]
+        [ RakuAST::Var::Lexical.new('&infix:<,>') ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -939,9 +935,7 @@ class RakuAST::StatementSequence
   does RakuAST::Contextualizable
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Var::Lexical.new('&infix:<,>'),
-        ]
+        [ RakuAST::Var::Lexical.new('&infix:<,>') ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1002,9 +996,7 @@ role RakuAST::ProducesNil
   does RakuAST::ImplicitLookups
 {
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('Nil') ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1430,8 +1422,8 @@ class RakuAST::Statement::IfWith
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         $!else
-            ?? []
-            !! [RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty'))]
+          ?? []
+          !! [RakuAST::Type::Setting.from-identifier('Empty')]
     }
 
     method IMPL-BRANCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $body) {
@@ -1594,9 +1586,7 @@ class RakuAST::Statement::Unless
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('Empty') ]
     }
 
     # Set by the optimize pass, allowing a native-int condition to be
@@ -1662,9 +1652,7 @@ class RakuAST::Statement::Without
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('Empty') ]
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1756,8 +1744,8 @@ class RakuAST::Statement::Loop
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Seq'))
+          RakuAST::Type::Setting.from-identifier('Nil'),
+          RakuAST::Type::Setting.from-identifier('Seq'),
         ]
     }
 
@@ -2220,9 +2208,7 @@ class RakuAST::Statement::When
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Var::Lexical.new('$_'),
-        ]
+        [ RakuAST::Var::Lexical.new('$_') ]
     }
 
     # Set by the optimize pass when the matcher reduces to a type check:
@@ -2938,9 +2924,7 @@ class RakuAST::Statement::Import
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'Handle')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier-parts('CompUnit', 'Handle') ]
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2997,10 +2981,10 @@ class RakuAST::Statement::Require
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups;
-        nqp::push(@lookups, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')));
-        nqp::push(@lookups, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')));
-        @lookups
+        [
+          RakuAST::Type::Setting.from-identifier-parts('CompUnit', 'DependencySpecification'),
+          RakuAST::Type::Setting.from-identifier-parts('CompUnit', 'RepositoryRegistry'),
+        ]
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

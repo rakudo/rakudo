@@ -325,9 +325,7 @@ class RakuAST::Type::Coercion
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
         nqp::bindattr($obj, RakuAST::Type::Coercion, '$!constraint',
-          $constraint // RakuAST::Type::Setting.new(
-            RakuAST::Name.from-identifier("Any")
-          )
+          $constraint // RakuAST::Type::Setting.from-identifier("Any")
         );
         $obj
     }
@@ -924,9 +922,9 @@ class RakuAST::Type::Enum
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Stringy')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Numeric'))
+          RakuAST::Type::Setting.from-identifier('Pair'),
+          RakuAST::Type::Setting.from-identifier('Stringy'),
+          RakuAST::Type::Setting.from-identifier('Numeric'),
         ]
     }
 

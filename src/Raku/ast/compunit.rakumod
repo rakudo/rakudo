@@ -485,14 +485,14 @@ class RakuAST::CompUnit
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
-                'CompUnit', 'RepositoryRegistry',
-            )),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
-                'X', 'Comp', 'BeginTime'
-            )),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&COMP_EXCEPTION')),
+          RakuAST::Type::Setting.from-identifier-parts(
+            'CompUnit', 'RepositoryRegistry',
+          ),
+          RakuAST::Type::Setting.from-identifier('&FATALIZE'),
+          RakuAST::Type::Setting.from-identifier-parts(
+            'X', 'Comp', 'BeginTime'
+          ),
+          RakuAST::Type::Setting.from-identifier('&COMP_EXCEPTION'),
         ]
     }
 

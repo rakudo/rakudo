@@ -225,7 +225,7 @@ role RakuAST::ContainerCreator {
         );
 
         (my str $name := nqp::atkey(SIGIL-LOOKUP,self.sigil))
-          ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($name))
+          ?? RakuAST::Type::Setting.from-identifier($name)
           !! nqp::null
     }
 
@@ -465,9 +465,7 @@ class RakuAST::TraitTarget::Variable
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Variable')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('Variable') ]
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -534,16 +532,15 @@ class RakuAST::VarDeclaration::Constant
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            self.sigil eq '@'
-                ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Positional'))
-                !! self.sigil eq '%'
-                    ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Associative'))
-                    !! self.sigil eq '&'
-                        ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
-                        !! $!type
-                            ?? $!type
-                            !! nqp::null,
-
+          self.sigil eq '@'
+            ?? RakuAST::Type::Setting.from-identifier('Positional')
+            !! self.sigil eq '%'
+              ?? RakuAST::Type::Setting.from-identifier('Associative')
+              !! self.sigil eq '&'
+                ?? RakuAST::Type::Setting.from-identifier('Callable')
+                !! $!type
+                  ?? $!type
+                  !! nqp::null
         ]
     }
 
@@ -1717,7 +1714,7 @@ class RakuAST::VarDeclaration::Simple
 
         # If we're has/HAS scope, we need Nil to evaluate to.
         @lookups.push($scope eq 'has' || $scope eq 'HAS'
-          ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
+          ?? RakuAST::Type::Setting.from-identifier('Nil')
           !! nqp::null
         );
 
@@ -2681,7 +2678,7 @@ class RakuAST::VarDeclaration::Signature
         }
         # If we're has/HAS scope, we need Nil to evaluate to.
         if $scope eq 'has' || $scope eq 'HAS' {
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')));
+            @lookups.push(RakuAST::Type::Setting.from-identifier('Nil'));
         }
         @lookups
     }
@@ -4002,9 +3999,9 @@ class RakuAST::VarDeclaration::Implicit::State
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        $!init-to-zero ?? [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Int'))
-        ] !! [];
+        $!init-to-zero
+          ?? [RakuAST::Type::Setting.from-identifier('Int')]
+          !! []
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

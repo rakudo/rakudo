@@ -392,12 +392,10 @@ class RakuAST::Infix
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups := [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Match')),
-        ];
-        nqp::push(@lookups,
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')))
-            if self.IMPL-SHORT-CIRCUIT-KIND eq 'xor';
+        my @lookups;
+        nqp::push(@lookups,RakuAST::Type::Setting.from-identifier('Match'));
+        nqp::push(@lookups,RakuAST::Type::Setting.from-identifier('Nil'))
+          if self.IMPL-SHORT-CIRCUIT-KIND eq 'xor';
         @lookups
     }
 
@@ -1371,11 +1369,11 @@ class RakuAST::FlipFlop
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('True')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('False')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Int')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Whatever'))
+          RakuAST::Type::Setting.from-identifier('Nil'),
+          RakuAST::Type::Setting.from-identifier('True'),
+          RakuAST::Type::Setting.from-identifier('False'),
+          RakuAST::Type::Setting.from-identifier('Int'),
+          RakuAST::Type::Setting.from-identifier('Whatever'),
         ]
     }
 
@@ -1861,9 +1859,7 @@ class RakuAST::MetaInfix::Assign
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier(self.IMPL-OPERATOR-NAME(1))),
-        ]
+        [ RakuAST::Type::Setting.from-identifier(self.IMPL-OPERATOR-NAME(1)) ]
     }
 
     method IMPL-OPERATOR() {
@@ -2164,9 +2160,7 @@ class RakuAST::MetaInfix::Negate
     method reducer-name() { $!infix.reducer-name }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_NEGATE')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('&METAOP_NEGATE') ]
     }
 
     method IMPL-OPERATOR() {
@@ -2248,9 +2242,7 @@ class RakuAST::MetaInfix::Reverse
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_REVERSE')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('&METAOP_REVERSE') ]
     }
 
     method IMPL-OPERATOR() {
@@ -2341,9 +2333,7 @@ class RakuAST::MetaInfix::Sequence
         $visitor($!infix);
     }
 
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        []
-    }
+    method PRODUCE-IMPLICIT-LOOKUPS() { [] }
 
     method IMPL-OPERATOR() {
         self.infix.IMPL-OPERATOR
@@ -2433,8 +2423,8 @@ class RakuAST::MetaInfix::Cross
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_CROSS')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
+          RakuAST::Type::Setting.from-identifier('&METAOP_CROSS'),
+          RakuAST::Type::Setting.from-identifier($!infix.reducer-name),
         ]
     }
 
@@ -2536,8 +2526,8 @@ class RakuAST::MetaInfix::Zip
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_ZIP')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
+          RakuAST::Type::Setting.from-identifier('&METAOP_ZIP'),
+          RakuAST::Type::Setting.from-identifier($!infix.reducer-name),
         ]
     }
 
@@ -2633,9 +2623,7 @@ class RakuAST::MetaInfix::Hyper
     method reducer-name() { $!infix.reducer-name }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_HYPER')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('&METAOP_HYPER') ]
     }
 
     method IMPL-OPERATOR() {
@@ -3721,9 +3709,7 @@ class RakuAST::MetaPrefix::Hyper
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_HYPER_PREFIX')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('&METAOP_HYPER_PREFIX') ]
     }
 
     method IMPL-HOP-INFIX() {
@@ -4630,9 +4616,7 @@ class RakuAST::MetaPostfix::Hyper
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_HYPER_POSTFIX')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('&METAOP_HYPER_POSTFIX') ]
     }
 
     method IMPL-PRIMES { $!postfix.IMPL-PRIMES }
@@ -4935,9 +4919,10 @@ class RakuAST::Statement::For
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Var::Lexical::Setting.new(
-                :desigilname(RakuAST::Name.from-identifier('IterationEnd'))),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+          RakuAST::Var::Lexical::Setting.new(
+            :desigilname(RakuAST::Name.from-identifier('IterationEnd'))
+          ),
+          RakuAST::Type::Setting.from-identifier('Nil'),
         ]
     }
 

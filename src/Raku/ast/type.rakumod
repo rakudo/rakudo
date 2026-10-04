@@ -762,16 +762,20 @@ class RakuAST::Type::Parameterized
         }
     }
 
+    # A parameterization of arguments known at compile time is the one formed
+    # then, unless it is generic, which is instantiated where it is reached.
+    method IMPL-EVALUATES-TO-COMPILE-TIME-VALUE() {
+        !$!args.args || $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES
+          && !RakuAST::IMPL::Archetypes.generic(self.meta-object) ?? True !! False
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         if !$!args.args {
             my $value := self.base-type.compile-time-value;
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )
         }
-        # A generic parameterization is not folded, so where it is reached it
-        # gets the instantiated type arguments.
-        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES
-          && !RakuAST::IMPL::Archetypes.generic(self.meta-object) {
+        elsif self.IMPL-EVALUATES-TO-COMPILE-TIME-VALUE {
             my $value := self.meta-object;
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )
@@ -1300,38 +1304,7 @@ class RakuAST::Type::Subset
             $block := $block.IMPL-UNWRAP-WHERE-PARENS;
             nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
         }
-        if $block
-          && !$block.IMPL-PRIMED
-          && (!nqp::istype($block, RakuAST::Code)
-               || nqp::istype($block, RakuAST::RegexThunk
-             )
-        ) {
-            $block := RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            expression => RakuAST::ApplyPostfix.new(
-                                operand => RakuAST::ApplyPostfix.new(
-                                    operand => $!block,
-                                    postfix => RakuAST::Call::Method.new(
-                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
-                                        args => RakuAST::ArgList.new(
-                                            RakuAST::Var::Lexical.new('$_'),
-                                        ),
-                                    ),
-                                ),
-                                postfix => RakuAST::Call::Method.new(
-                                    name => RakuAST::Name.from-identifier('Bool'),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            );
-            nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
-            # Check time reaches the block through visit-children.
-            $block.IMPL-BEGIN($resolver, $context);
-        }
+        $block.IMPL-THUNK-WHERE($resolver, $context) if $block;
 
         # set up the meta object
         my $package := $!current-package;
@@ -1388,8 +1361,8 @@ class RakuAST::Type::Subset
         my $block := $!block;
 
         $type.HOW.set_of($type, $!of.meta-object) if $!of;
-        $type.HOW.set_where($type, $block.IMPL-PRIMED
-            ?? $block.IMPL-PRIMED.meta-object
+        $type.HOW.set_where($type, $block.IMPL-WHERE-THUNK
+            ?? $block.IMPL-WHERE-THUNK.meta-object
             !! $block.compile-time-value
         ) if $block;
 

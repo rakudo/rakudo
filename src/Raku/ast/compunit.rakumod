@@ -866,7 +866,7 @@ class RakuAST::CompUnit
             QAST::Op.new(:op('null'))
         }
         else {
-            RakuAST::CtxSave.IMPL-TO-QAST($context)
+            RakuAST::CtxSave.IMPL-EXPR-QAST($context)
         }
     }
 
@@ -912,7 +912,7 @@ class RakuAST::CtxSave
         $resolver.find-attach-target('compunit').set-explicit-ctxsave;
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Stmts.new(
             QAST::Op.new(
                 :op('bind'),

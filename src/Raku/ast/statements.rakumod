@@ -1712,6 +1712,11 @@ class RakuAST::Statement::Loop
         nqp::bindattr_i(self, RakuAST::Statement::Loop, '$!native-condition', 1)
     }
 
+    # Set at BEGIN time for a loop without an increment whose condition is
+    # a constant that always runs the body, so its from-loop call need not
+    # test it.
+    has int $!unconditional;
+
     # The setup expression for the loop.
     has RakuAST::Expression $.setup;
 
@@ -1796,7 +1801,12 @@ class RakuAST::Statement::Loop
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # See IMPL-UNTHUNK for important information
         my $while := !self.negate;
-        unless (!$!increment && $!condition && $!condition.has-compile-time-value && nqp::istrue($!condition.maybe-compile-time-value) == $while) {
+        my $value := $!condition && !$!increment
+          ?? self.IMPL-TRUSTED-COMPILE-TIME-VALUE($!condition)
+          !! nqp::null;
+        my int $unconditional := !nqp::isnull($value) && nqp::istrue($value) == $while ?? 1 !! 0;
+        nqp::bindattr_i(self, RakuAST::Statement::Loop, '$!unconditional', $unconditional);
+        unless $unconditional {
             if ($!condition) {
                 if self.negate {
                     nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', RakuAST::ApplyPostfix.new(
@@ -1963,9 +1973,7 @@ class RakuAST::Statement::Loop
         }
         elsif ($!condition || $!increment) {
             my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
-            my $while := !self.negate;
-            if (!$!increment && $!condition.has-compile-time-value && $!condition.maybe-compile-time-value == $while) {
-                my $qast := QAST::Stmts.new;
+            if $!unconditional {
                 my $loop-qast := QAST::Op.new(:op('callmethod'), :name('from-loop'),
                     $Seq,
                     $!body.IMPL-TO-QAST($context),
@@ -1984,15 +1992,15 @@ class RakuAST::Statement::Loop
                 # Have the iterator run the body's LAST phaser at exhaustion.
                 $loop-qast.push(QAST::IVal.new(:value(1), :named('fire-last')))
                   if @last-phasers;
-                $qast.push: $loop-qast;
-                $qast
+                self.IMPL-VALUE-LOOP-QAST($context, $loop-qast)
             }
             else {
-                my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
                 my $qast := QAST::Op.new(:op<callmethod>, :name('from-loop'),
                     $Seq,
                     $!body.IMPL-TO-QAST($context),
-                    $!condition.IMPL-TO-QAST($context),
+                    $!condition
+                      ?? $!condition.IMPL-TO-QAST($context)
+                      !! QAST::WVal.new(:value(Code)),
                 );
                 $qast.push: $!increment.IMPL-TO-QAST($context) if $!increment;
                 # A plain while or until has no increment or condition thunk to
@@ -2012,18 +2020,7 @@ class RakuAST::Statement::Loop
                 # runs the body's LAST phaser at exhaustion (only if the body ran).
                 $qast.push(QAST::IVal.new(:value(1), :named('fire-last')))
                   if @last-phasers;
-                if self.IMPL-DISCARD-RESULT { # In case we're here because of UNDO phasers
-                    $qast := QAST::Op.new(:op('p6sink'), $qast);
-                }
-                if $!setup {
-                    QAST::Stmt.new(
-                        $!setup.IMPL-TO-QAST($context),
-                        $qast
-                    );
-                }
-                else {
-                    $qast
-                }
+                self.IMPL-VALUE-LOOP-QAST($context, $qast)
             }
         }
         else {
@@ -2048,8 +2045,17 @@ class RakuAST::Statement::Loop
             # runs the body's LAST phaser at exhaustion (only if the body ran).
             $qast.push(QAST::IVal.new(:value(1), :named('fire-last')))
               if @last-phasers;
-            $qast
+            self.IMPL-VALUE-LOOP-QAST($context, $qast)
         }
+    }
+
+    # A loop compiled to a from-loop call runs its setup first, and is sunk
+    # when it discards its value, which only one with UNDO phasers does here.
+    method IMPL-VALUE-LOOP-QAST(RakuAST::IMPL::QASTContext $context, Mu $qast) {
+        $qast := QAST::Op.new(:op('p6sink'), $qast) if self.IMPL-DISCARD-RESULT;
+        $!setup
+          ?? QAST::Stmt.new($!setup.IMPL-TO-QAST($context), $qast)
+          !! $qast
     }
 
     method propagate-sink(Bool $is-sunk) {

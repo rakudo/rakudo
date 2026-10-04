@@ -741,12 +741,13 @@ class RakuAST::Var::Compiler::Block
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        # Resolve to the innermost enclosing real block's `&?BLOCK` lexical.
-        # Falling back to the running frame's code object covers the case where
-        # no such block was found (for example at compilation-unit top level).
+        # Resolve to the innermost enclosing real block's `&?BLOCK` lexical, or to
+        # the running frame's code object where there is no such block, or where a
+        # parameter default or where runs before the block binds its lexical.
+        my $running := QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) );
         $!lexical
-          ?? QAST::Var.new( :name<&?BLOCK>, :scope<lexical> )
-          !! QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+          ?? QAST::Op.new( :op('ifnull'), QAST::Var.new( :name<&?BLOCK>, :scope<lexical> ), $running )
+          !! $running
     }
 }
 

@@ -72,6 +72,8 @@ class RakuAST::Expression
         }
     }
 
+    # An expression compiles in IMPL-EXPR-QAST, and this wraps that in the
+    # thunks around it, which a subclass overriding this would skip.
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, *%opts) {
         if $!thunks {
             # Ensure thunk gets the expression even with BEGIN time execution. If we don't do it here
@@ -90,9 +92,31 @@ class RakuAST::Expression
         nqp::die('Missing IMPL-EXPR-QAST method on ' ~ self.HOW.name(self))
     }
 
+    # Whether the expression is a value that does not depend on the topic.
     method IMPL-IS-CONSTANT() {
-        if nqp::istype(self, RakuAST::CompileTimeValue) {
-            return True;
+        nqp::isnull(self.IMPL-LITERAL-VALUE(self)) ?? False !! True
+    }
+
+    # Whether the expression is code a thunk around it declares. Code its scope
+    # declares, as a named routine or a phaser, is left to that scope.
+    method IMPL-CODE-DECLARED-BY-THUNK() {
+        return False
+          unless nqp::istype(self, RakuAST::Code) && !self.IMPL-DECLARED-BY-ITS-SCOPE;
+        my $thunk := $!thunks;
+        while $thunk {
+            return True if $thunk.IMPL-DECLARES-EVALUATED-CODE;
+            $thunk := $thunk.next;
+        }
+        False
+    }
+
+    # Whether a thunk around the expression is compiled on its own, and so
+    # declares the state guards in it.
+    method IMPL-THUNK-COMPILED-ALONE() {
+        my $thunk := $!thunks;
+        while $thunk {
+            return True if $thunk.IMPL-COMPILED-ALONE;
+            $thunk := $thunk.next;
         }
         False
     }
@@ -109,6 +133,28 @@ class RakuAST::Expression
         $!thunks
     }
 
+    # Whether a thunk of the expression is compiled, as one in a role body, a
+    # subset's where or other code compiled ahead of the unit may already be.
+    method IMPL-THUNK-COMPILED() {
+        my $cur-thunk := $!thunks;
+        while $cur-thunk {
+            return True if $cur-thunk.IMPL-HAS-QAST-BLOCK;
+            $cur-thunk := $cur-thunk.next;
+        }
+        False
+    }
+
+    # Whether the thunks can give way to a value, as each one's user takes a
+    # value in its place.
+    method IMPL-THUNKS-GIVE-WAY-TO-VALUE() {
+        my $cur-thunk := $!thunks;
+        while $cur-thunk {
+            return False unless $cur-thunk.IMPL-USER-TAKES-VALUE;
+            $cur-thunk := $cur-thunk.next;
+        }
+        True
+    }
+
     method IMPL-PRIMED() {
         my $cur-thunk := $!thunks;
         while $cur-thunk {
@@ -116,6 +162,30 @@ class RakuAST::Expression
             $cur-thunk := $cur-thunk.next;
         }
         False
+    }
+
+    # The thunk a where constraint calls, which is the WhateverCode of a primed
+    # expression or the thunk smartmatching against any other expression.
+    method IMPL-WHERE-THUNK() {
+        my $cur-thunk := $!thunks;
+        while $cur-thunk {
+            return $cur-thunk
+              if nqp::istype($cur-thunk, RakuAST::PrimeThunk) || nqp::istype($cur-thunk, RakuAST::WhereThunk);
+            $cur-thunk := $cur-thunk.next;
+        }
+        False
+    }
+
+    # A where constraint that is not code to call is smartmatched, which a
+    # thunk taking the value checked as its topic does where it is written.
+    method IMPL-THUNK-WHERE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if (!nqp::istype(self, RakuAST::Code) || nqp::istype(self, RakuAST::RegexThunk))
+          && !self.IMPL-WHERE-THUNK {
+            my $thunk := RakuAST::WhereThunk.new(:expression(self));
+            $thunk.to-begin-time($resolver, $context);
+            self.wrap-with-thunk($thunk);
+        }
+        Nil
     }
 
     method IMPL-UNPRIME() {
@@ -162,8 +232,7 @@ class RakuAST::Expression
 
     # Strip grouping parens from around a single primed expression, so
     # `where (* > 0)` is used as the WhateverCode it is, like `where * > 0`.
-    # Otherwise a caller wraps it in an ACCEPTS block whose body re-primes and
-    # trips the double-closure check.
+    # Otherwise a caller smartmatches against it rather than calling it.
     method IMPL-UNWRAP-WHERE-PARENS() {
         nqp::istype(self, RakuAST::Circumfix::Parentheses)
           && (my $primed := self.IMPL-SINGULAR-PRIMED-EXPRESSION)
@@ -271,23 +340,44 @@ class RakuAST::Infixish
           || $expr.IMPL-PRIMED ?? True !! False
     }
 
+    # Whether an operand goes to the operator as it is. A value that can stand
+    # in for its thunk does, and so do a list literal and the parenthesized
+    # statements of such operands.
+    method IMPL-OPERAND-NEEDS-NO-THUNK(RakuAST::Resolver $resolver, Mu $operand) {
+        return 1 if self.IMPL-VALUE-STANDS-FOR-THUNK($resolver, $operand);
+        my $operands;
+        if nqp::istype($operand, RakuAST::Circumfix::Parentheses) {
+            $operands := $operand.IMPL-PLAIN-EXPRESSIONS;
+            return 0 if nqp::isnull($operands);
+        }
+        elsif nqp::istype($operand, RakuAST::ApplyListInfix) && $operand.IMPL-IS-LIST-LITERAL {
+            $operands := self.IMPL-UNWRAP-LIST($operand.operands);
+        }
+        else {
+            return 0;
+        }
+        for $operands {
+            return 0 unless self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $_);
+        }
+        1
+    }
+
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
-        if $expression.IMPL-IS-CONSTANT && !nqp::istype($expression, RakuAST::Code) {
-            return; # No need to thunk constants.
-        }
-        if $type eq 'b' && !self.IMPL-CALLS-OPERAND($expression) {
-            my $thunk := RakuAST::BlockThunk.new;
-            $thunk.to-begin-time($resolver, $context);
-            $expression.wrap-with-thunk($thunk);
-        }
-        elsif $type eq 't' {
-            my $thunk := RakuAST::ExpressionThunk.new;
-            $thunk.to-begin-time($resolver, $context);
-            $expression.wrap-with-thunk($thunk);
-        }
+        return Nil if self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $expression);
         # 'b', 't' and the no-thunk '.' the caller skips are the entire
         # thunky vocabulary of OperatorProperties.
+        my $thunk;
+        if $type eq 'b' && !self.IMPL-CALLS-OPERAND($expression) {
+            $thunk := RakuAST::BlockThunk.new;
+        }
+        elsif $type eq 't' {
+            $thunk := RakuAST::ExpressionThunk.new;
+        }
+        return Nil unless $thunk;
+        $thunk.IMPL-SET-USER-TAKES-VALUE;
+        $thunk.to-begin-time($resolver, $context);
+        $expression.wrap-with-thunk($thunk);
     }
 
     # %primed == 0 means do not prime
@@ -4941,7 +5031,7 @@ class RakuAST::Statement::For
         ]
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # Figure out the execution mode modifiers to apply.
         my str $mode := $!mode;
         my str $after-mode := '';

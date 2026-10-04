@@ -5,7 +5,7 @@ use nqp;
 
 my $rakuast = nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
-plan 17;
+plan 19;
 
 # Under -n/-p the program runs once per input line, but its lexical
 # declarations live in the compunit mainline, so they persist across lines and
@@ -110,6 +110,18 @@ if $rakuast {
 }
 else {
     skip '-n loop phasers need the RakuAST frontend', 7;
+}
+
+# These hold whichever block declares the code, and guard that a sub
+# declared in the program closes over the line the loop is on.
+if $rakuast {
+    is-run 'sub up { OUTER::<$_>.uc }; say up()', 'a sub declared under -n sees the line of the loop',
+        :compiler-args['-n'], :in($in), :out("A B\nC D E\n");
+    is-run 'sub up { OUTER::<$_>.uc }; $_ = up()', 'a sub declared under -p sees the line of the loop',
+        :compiler-args['-p'], :in($in), :out("A B\nC D E\n");
+}
+else {
+    skip 'a sub declared under -n or -p sees the mainline on the legacy frontend', 2;
 }
 
 # vim: expandtab shiftwidth=4

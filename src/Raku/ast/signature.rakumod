@@ -337,7 +337,7 @@ class RakuAST::Signature
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $signature := self.meta-object;
         $context.ensure-sc($signature);
         QAST::WVal.new(:value($signature))
@@ -566,10 +566,17 @@ class RakuAST::FakeSignature
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # The binder evaluates the defaults and wheres of the literal without
+        # entering its block, so no entry takes the closures of their routines.
+        my @parameters;
+        $!signature.IMPL-COLLECT-PARAMETERS(@parameters);
+        for @parameters {
+            $_.IMPL-SET-DECLARED-BY-EVALUATING-CODE for $_.IMPL-ROUTINES-BOUND-WITH;
+        }
         $!block.to-begin-time($resolver, $context);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.meta-object;
         $!signature.IMPL-TO-QAST($context)
     }
@@ -619,9 +626,6 @@ class RakuAST::Parameter
     has RakuAST::Parameter::Slurpy $.slurpy;
     has RakuAST::Expression        $.default;
     has RakuAST::Expression        $.where;
-    # The block BEGIN time wraps around a where constraint that is
-    # smartmatched rather than called, so the constraint stays as written
-    has RakuAST::Block             $!where-thunk;
     # Set by the optimize pass when the where constraint is a junction of
     # type objects: the types the argument is checked against inline, and
     # whether it must be all of them rather than any.
@@ -815,11 +819,18 @@ class RakuAST::Parameter
 
     method set-where(RakuAST::Expression $where) {
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $where);
-        nqp::bindattr(self, RakuAST::Parameter, '$!where-thunk', RakuAST::Block);
         nqp::bindattr(self, RakuAST::Parameter, '$!where-junction-types', Mu);
         nqp::bindattr_i(self, RakuAST::Parameter, '$!where-junction-all', 0);
         self.IMPL-CLEAR-META-OBJECT;
         Nil
+    }
+
+    # The variable a parameter of a declaration declares carries the where in the
+    # subset made for its type, which is then the where's one parent.
+    method IMPL-WHERE-IN-TARGET-TYPE() {
+        nqp::istype($!target, RakuAST::ParameterTarget::Var)
+          && nqp::isconcrete($!target.declaration)
+          && $!target.declaration.IMPL-WHERE-IN-TYPE ?? True !! False
     }
 
     method IMPL-SET-WHERE-JUNCTION(Mu @types, int $all) {
@@ -913,10 +924,17 @@ class RakuAST::Parameter
         $!optional // ($!default || $!names ?? True !! False)
     }
 
-    # The meta-object binds a default with a compile time value as a literal,
-    # even when BEGIN time saw no value and gave it the thunk instead.
+    # Whether the default binds as a literal, which needs it to give its compile
+    # time value and hold no code. BEGIN time thunks any other default, and a
+    # heredoc body or the optimizer can give a thunked one such a value.
+    method IMPL-DEFAULT-IS-LITERAL() {
+        $!default && !nqp::isnull(self.IMPL-LITERAL-VALUE($!default)) ?? True !! False
+    }
+
+    # The meta-object binds a literal default as a literal, even when BEGIN
+    # time gave the default a thunk.
     method IMPL-BIND-DEFAULT-AS-LITERAL() {
-        return Nil unless $!default && $!default.has-compile-time-value;
+        return Nil unless self.IMPL-DEFAULT-IS-LITERAL;
         my $parameter := self.meta-object;
         my int $flags := nqp::getattr_i($parameter, Parameter, '$!flags');
         unless $flags +& nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL {
@@ -978,12 +996,7 @@ class RakuAST::Parameter
         $visitor($!type)          if $!type;
         $visitor($!target)        if $!target;
         $visitor($!default)       if $!default;
-        if $!where-thunk {
-            $visitor($!where-thunk);
-        }
-        elsif $!where {
-            $visitor($!where);
-        }
+        $visitor($!where)         if $!where && !self.IMPL-WHERE-IN-TARGET-TYPE;
         $visitor($!array-shape)   if $!array-shape;
         $visitor($!sub-signature) if $!sub-signature;
         $visitor(self.WHY)        if self.WHY;
@@ -1118,11 +1131,9 @@ class RakuAST::Parameter
                 }
             }
         }
-        if $!where-thunk {
-            nqp::push(@post_constraints, $!where-thunk.meta-object);
-        }
-        elsif $!where {
-            nqp::push(@post_constraints, $!where.IMPL-PRIMED ?? $!where.IMPL-PRIMED.meta-object !! $!where.meta-object);
+        if $!where {
+            my $thunk := $!where.IMPL-WHERE-THUNK;
+            nqp::push(@post_constraints, $thunk ?? $thunk.meta-object !! $!where.meta-object);
         }
         if $!array-shape {
             nqp::push(@post_constraints, $!array-shape.meta-object);
@@ -1130,12 +1141,8 @@ class RakuAST::Parameter
         if nqp::elems(@post_constraints) {
             nqp::bindattr($parameter, Parameter, '@!post_constraints', @post_constraints);
         }
-        if $!default {
-            if $!default.has-compile-time-value {
-                nqp::bindattr($parameter, Parameter, '$!default_value', $!default.maybe-compile-time-value);
-            }
-            else {
-            }
+        if self.IMPL-DEFAULT-IS-LITERAL {
+            nqp::bindattr($parameter, Parameter, '$!default_value', $!default.maybe-compile-time-value);
         }
         if $!sub-signature {
             nqp::bindattr($parameter, Parameter, '$!sub_signature', $!sub-signature.meta-object);
@@ -1221,10 +1228,8 @@ class RakuAST::Parameter
                 $flags := $flags +| nqp::const::SIG_ELEM_NATIVE_UINT_VALUE;
             }
         }
-        if $!default {
-            if $!default.has-compile-time-value {
-                $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
-            }
+        if self.IMPL-DEFAULT-IS-LITERAL {
+            $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
         }
         $flags := $flags +| $!slurpy.IMPL-FLAGS($sigil);
         $flags
@@ -1306,12 +1311,12 @@ class RakuAST::Parameter
             nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $block);
         }
 
-        if $!default {
-            # If it doesn't have a compile-time value, we'll need to thunk it.
-            unless $!default.has-compile-time-value {
-                $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
-                $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
-            }
+        if $!default && !self.IMPL-DEFAULT-IS-LITERAL {
+            $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
+            my $default-thunk := $!default.outer-most-thunk;
+            $default-thunk.IMPL-SET-PRELUDE-PRODUCER(
+              -> $context { self.IMPL-QAST-ENTRY-CLOSURES($context, $default-thunk) });
+            $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
         }
 
         CATCH {
@@ -1357,47 +1362,72 @@ class RakuAST::Parameter
         Nil
     }
 
-    # The BEGIN time of the where constraint: the parentheses it was
-    # written in come off, a double closure is a sorry, and a where that
-    # is smartmatched rather than called is wrapped in a block. A where
-    # that has its block keeps it.
+    # At BEGIN time a where constraint loses the parentheses it was written in,
+    # a double closure in it is a sorry, and one smartmatched rather than called
+    # is thunked, once.
     method IMPL-BEGIN-WHERE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $!where.IMPL-UNWRAP-WHERE-PARENS)
             if $!where;
 
-        # Catch a double closure in the user's own where block, before it is
-        # wrapped in the synthetic ACCEPTS block below. A bare `where *` is not a
-        # block, so it is left alone and its wrapper is not mistaken for one.
+        # Catch a double closure in the user's own where block. A bare
+        # `where *` is not a block, so it is left alone.
         self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!where, $resolver, $context, :tested)
           if $!where;
 
-        if $!where && !$!where-thunk && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-PRIMED {
-            my $block := RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            expression => RakuAST::ApplyPostfix.new(
-                                operand => RakuAST::ApplyPostfix.new(
-                                    operand => $!where,
-                                    postfix => RakuAST::Call::Method.new(
-                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
-                                        args => RakuAST::ArgList.new(
-                                            RakuAST::Var::Lexical.new('$_'),
-                                        ),
-                                    ),
-                                ),
-                                postfix => RakuAST::Call::Method.new(
-                                    name => RakuAST::Name.from-identifier('Bool'),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            );
-            $block.IMPL-BEGIN($resolver, $context);
-            $block.IMPL-CHECK($resolver, $context);
-            nqp::bindattr(self, RakuAST::Parameter, '$!where-thunk', $block);
+        $!where.IMPL-THUNK-WHERE($resolver, $context) if $!where;
+        my $where-thunk := $!where ?? $!where.IMPL-WHERE-THUNK !! Nil;
+        $where-thunk.IMPL-SET-PRELUDE-PRODUCER(-> $context { self.IMPL-QAST-ENTRY-CLOSURES($context, $where-thunk) })
+          if $where-thunk;
+    }
+
+    # The routines declared in the default and where, which code evaluates as
+    # the signature binds. Those under a phaser run at its time instead.
+    method IMPL-ROUTINES-BOUND-WITH() {
+        my @routines;
+        my @todo;
+        @todo.push($!default) if $!default;
+        @todo.push($!where) if $!where;
+        while @todo {
+            my $node := @todo.shift;
+            if nqp::istype($node, RakuAST::Routine) {
+                @routines.push($node);
+            }
+            elsif !nqp::istype($node, RakuAST::LexicalScope)
+              && !nqp::istype($node, RakuAST::StatementPrefix::Phaser) {
+                $node.visit-children(-> $child { @todo.push($child) });
+            }
         }
+        @routines
+    }
+
+    # The closures of the routines in the default and where. The scope declaring
+    # them takes them on entry after the signature binds, and a trial bind not at
+    # all, so evaluating the default or where takes them over the frame bound.
+    method IMPL-QAST-ENTRY-CLOSURES(RakuAST::IMPL::QASTContext $context, Mu $thunk?) {
+        my @routines;
+        for self.IMPL-ROUTINES-BOUND-WITH {
+            @routines.push($_) if $_.IMPL-TAKES-ENTRY-CLOSURE;
+        }
+        return Nil unless @routines;
+        # A thunk compiled on its own at BEGIN time binds no frame, and its
+        # compilation holds no block of the routines. The unit forms it again.
+        if nqp::isconcrete($thunk)
+          && nqp::eqaddr(nqp::getlexdyn('$*IMPL-DYNAMIC-ROOT'), $thunk) {
+            $*IMPL-FORM-AGAIN := 1
+              unless nqp::isnull(nqp::getlexdyn('$*IMPL-FORM-AGAIN'));
+            return Nil;
+        }
+        my $stmts := QAST::Stmts.new;
+        $stmts.push($_.IMPL-QAST-ENTRY-CLOSURE($context, :callers)) for @routines;
+        $stmts
+    }
+
+    # A where that is code to call is the routine itself, not a thunk taking
+    # its closure, so the binding does.
+    method IMPL-WHERE-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := $!where.IMPL-TO-QAST($context);
+        my $closures := $!where.IMPL-WHERE-THUNK ?? Nil !! self.IMPL-QAST-ENTRY-CLOSURES($context);
+        nqp::isconcrete($closures) ?? QAST::Stmts.new($closures, $qast) !! $qast
     }
 
     # Type captures are the only generic parameter types the lowered
@@ -1462,8 +1492,11 @@ class RakuAST::Parameter
                     how => 'required', parameter => $!target.lexical-name;
             }
 
-            if nqp::isconcrete($!type) && $!default.has-compile-time-value {
-                my $value := $!default.maybe-compile-time-value;
+            # A default holding code gives a value of its compile time value's
+            # type on each call, a new closure for a block or the type object
+            # for a package, so the check covers it too.
+            my $value := self.IMPL-EVALUATED-VALUE($!default);
+            if nqp::isconcrete($!type) && !nqp::isnull($value) {
                 my $type := self.IMPL-NOMINAL-TYPE;
                 if nqp::objprimspec($type) {
                     $type := $type.HOW.mro($type)[1];
@@ -1867,7 +1900,7 @@ class RakuAST::Parameter
 
         # If it's optional, do any default handling.
         if self.is-optional {
-            if $!default.has-compile-time-value {
+            if self.IMPL-DEFAULT-IS-LITERAL {
                 # Literal default value, so just insert it. A default thunked
                 # at BEGIN time may have one by now, from a heredoc body or the
                 # optimizer, so its thunk goes unused.
@@ -2161,7 +2194,7 @@ class RakuAST::Parameter
                             :op<istrue>,
                             QAST::Op.new(
                                 :op('callmethod'), :name('ACCEPTS'),
-                                ($!where-thunk || $!where).IMPL-TO-QAST($context),
+                                self.IMPL-WHERE-QAST($context),
                                 $temp-qast-var
                             )
                         )
@@ -2917,6 +2950,19 @@ class RakuAST::ParameterDefaultThunk
 
     method thunk-details() {
         ''
+    }
+
+    # The parameter binds a compile time value in place of its default's thunk.
+    method IMPL-USER-TAKES-VALUE() { 1 }
+
+    method IMPL-REBUILD-ELIGIBLE() { 1 }
+
+    # Its stub compiles it around the default it holds.
+    method IMPL-QAST-BLOCK-AHEAD-OF-UNIT(RakuAST::Resolver $resolver,
+            RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        nqp::findmethod(RakuAST::ExpressionThunk, 'IMPL-QAST-BLOCK-AHEAD-OF-UNIT')(self,
+          $resolver, $context, :$blocktype, :expression($expression // $!parameter.default))
     }
 
     method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {

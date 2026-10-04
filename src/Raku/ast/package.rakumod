@@ -411,8 +411,10 @@ class RakuAST::Package
         self.IMPL-CHECK-DECLARATIONS($resolver, $context);
     }
 
+    # A role declared in a trait of the package declares its lexical fixup in
+    # the package's scope, which generates no code, so the package hands it on.
     method install-extra-declarations(RakuAST::Resolver $resolver) {
-        Nil
+        self.IMPL-HAND-OVER-FIXUPS($resolver.current-scope);
     }
 
     # Need to install the package somewhere
@@ -598,6 +600,15 @@ class RakuAST::Package
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
+        QAST::Stmts.new(
+            self.IMPL-QAST-BODY($context),
+            QAST::WVal.new( :value($type-object) )
+        )
+    }
+
+    # A package other than a role runs its body as an immediate block where it
+    # is evaluated, while a role's body is a routine its lexical fixup declares.
+    method IMPL-QAST-BODY(RakuAST::IMPL::QASTContext $context) {
         my $body := $!body.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
         # Splice in any accessor QAST captured by PRODUCE-META-OBJECT;
         # absent on the degraded compose path. The body's cached block
@@ -608,11 +619,7 @@ class RakuAST::Package
             $body.annotate('accessor-qast-added', 1);
             $body[0].push($!accessor-qast);
         }
-        my $result := QAST::Stmts.new(
-            $body,
-            QAST::WVal.new( :value($type-object) )
-        );
-        $result
+        $body
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -805,6 +812,14 @@ class RakuAST::Role
     method default-how() { Metamodel::ParametricRoleHOW }
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also', 'generics-pad']) }
 
+    # The lexical fixup declares the body in the scope the role is declared
+    # in, so evaluating the role gives just its type object.
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $type-object := self.meta-object;
+        $context.ensure-sc($type-object);
+        QAST::WVal.new( :value($type-object) )
+    }
+
     # Called twice: once from Package.new with no real body, then again
     # from package-def with the parsed body.
     method replace-body(RakuAST::Code $role-body, RakuAST::Signature $signature) {
@@ -812,7 +827,7 @@ class RakuAST::Role
         # of the role as the signature.  This allows a role to be selected
         # using ordinary dispatch semantics.  The statement list gets a return
         # value added, so that the role's meta-object and lexpad are returned.
-        nqp::bindattr(self, RakuAST::Role, '$!fixup', RakuAST::LexicalFixup.new) unless $!fixup;
+        nqp::bindattr(self, RakuAST::Role, '$!fixup', RakuAST::LexicalFixup.new(self)) unless $!fixup;
         unless nqp::defined($!instantiation-lexicals) {
             nqp::bindattr(self, RakuAST::Role, '$!instantiation-lexicals', []);
         }
@@ -828,6 +843,11 @@ class RakuAST::Role
         if $role-body {
             for $signature.IMPL-UNWRAP-LIST($signature.parameters) {
                 $_.set-owner($role-body);
+            }
+            my @parameters;
+            $signature.IMPL-COLLECT-PARAMETERS(@parameters);
+            for @parameters {
+                $_.IMPL-SET-OUTER($role-body) for $_.IMPL-ROUTINES-BOUND-WITH;
             }
 
             my $body := $role-body.body;

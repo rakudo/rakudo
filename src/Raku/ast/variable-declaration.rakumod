@@ -723,24 +723,6 @@ class RakuAST::VarDeclaration::Constant
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-LOOKUP-QAST($context)
     }
-
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-LOOKUP-QAST($context)
-    }
-}
-
-class RakuAST::Expression::QAST
-  is RakuAST::Expression
-{
-    has QAST::Node $!qast;
-    method new(QAST::Node $qast) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Expression::QAST, '$!qast', $qast);
-        $obj
-    }
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!qast;
-    }
 }
 
 # A basic variable declaration of the form `my SomeType $foo = 42` or
@@ -771,6 +753,8 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Method      $!accessor;
     has RakuAST::Type        $!conflicting-type;
     has RakuAST::Expression  $.where;
+    # Set once the where is the constraint of the subset made for the type.
+    has int $!where-in-type;
     has RakuAST::Type        $.original-type;
     has Bool                 $!is-parameter;
     # Set on a variable of a declaration list, which no signature binding
@@ -1037,7 +1021,10 @@ class RakuAST::VarDeclaration::Simple
 
     method set-where(RakuAST::Expression $where) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!where', $where);
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!where-in-type', 0);
     }
+
+    method IMPL-WHERE-IN-TYPE() { $!where-in-type ?? True !! False }
 
     method add-colonpair(RakuAST::ColonPair $pair) {
         nqp::die("Cannot add colonpair to variable declaration without initializer")
@@ -1080,7 +1067,8 @@ class RakuAST::VarDeclaration::Simple
         }
         $visitor($!shape)       if nqp::isconcrete($!shape);
         $visitor($!accessor)    if nqp::isconcrete($!accessor);
-        $visitor($!where)       if nqp::isconcrete($!where);
+        # The subset made of a where carries it, so the where has one parent.
+        $visitor($!where)       if nqp::isconcrete($!where) && !$!where-in-type;
         $visitor($!original-type) if nqp::isconcrete($!original-type) && !($!original-type =:= $!type);
         self.visit-traits($visitor);
         $visitor(self.WHY) if self.WHY;
@@ -1340,6 +1328,7 @@ class RakuAST::VarDeclaration::Simple
             $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($type || RakuAST::Type), :$where;
             $subset.to-begin-time($resolver, $context);
             self.set-type($subset, :replace);
+            nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!where-in-type', 1);
         }
 
         self.IMPL-RESOLVE-CONTAINER-VIVIFY-MODE($resolver)
@@ -2283,7 +2272,7 @@ class RakuAST::VarDeclaration::Simple
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my str $name := self.name;
@@ -2454,15 +2443,7 @@ class RakuAST::VarDeclaration::Simple
         else {
             nqp::die("Don't know how to compile initialization for scope $scope");
         }
-
-        my $thunks := self.outer-most-thunk;
-        if $thunks {
-            $thunks.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'), :expression(RakuAST::Expression::QAST.new($qast)));
-            $thunks.IMPL-THUNK-VALUE-QAST($context)
-        }
-        else {
-            $qast
-        }
+        $qast
     }
 
     method IMPL-ATTRIBUTE-NAME() {
@@ -2556,10 +2537,6 @@ class RakuAST::VarDeclaration::Simple
             }
         }
         self.IMPL-BIND-QAST($context, $source-qast)
-    }
-
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-LOOKUP-QAST($context)
     }
 
     method needs-sink-call() { False }
@@ -2978,7 +2955,7 @@ class RakuAST::VarDeclaration::Signature
         $value-list
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
         my @terms;
         my @groups;
@@ -3068,10 +3045,6 @@ class RakuAST::VarDeclaration::Signature
             )
         }
         $perform-init-qast
-    }
-
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-TO-QAST($context)
     }
 
     method needs-sink-call() { False }
@@ -3339,7 +3312,7 @@ class RakuAST::VarDeclaration::Term
         )
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $invocant := nqp::defined($!type)
             ?? $!type.meta-object
             !! Mu;
@@ -3366,10 +3339,6 @@ class RakuAST::VarDeclaration::Term
         $local-name
             ?? QAST::Var.new( :name($local-name), :scope('local') )
             !! QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
-    }
-
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-LOOKUP-QAST($context)
     }
 
     method default-scope() { 'my' }
@@ -4306,10 +4275,6 @@ class RakuAST::VarDeclaration::Placeholder
             }
         }
         nqp::null()
-    }
-
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-LOOKUP-QAST($context)
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

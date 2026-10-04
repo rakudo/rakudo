@@ -303,26 +303,69 @@ class RakuAST::Node {
         Nil
     }
 
-    # A thunk around an expression evaluates it when and where the code around
-    # it needs, so a rewrite takes the thunk over. A compile time value stands
-    # without one, unless it is callable, which the thunk's user may call.
+    # A rewrite takes the thunks over, unless its value can stand in for them
+    # and they can give way to it. The original stays when the rewrite cannot
+    # take them, or when a thunk is already compiled around the original.
     method IMPL-REPLACE-THUNKED(RakuAST::Resolver $resolver, Mu $expr, Mu $result) {
         return $result
           unless nqp::istype($expr, RakuAST::Expression) && $expr.outer-most-thunk;
-        if $result.has-compile-time-value {
-            my $Callable := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Callable');
-            nqp::isnull($Callable)
-              || nqp::istype($result.maybe-compile-time-value, $Callable)
-              ?? $expr
-              !! $result
+        # A where keeps its thunk, which the declarations it constrains hold on to.
+        return $expr if $expr.IMPL-WHERE-THUNK;
+        return $expr if $expr.IMPL-THUNK-COMPILED;
+        return $result
+          if $expr.IMPL-THUNKS-GIVE-WAY-TO-VALUE
+          && self.IMPL-VALUE-STANDS-FOR-THUNK($resolver, $result);
+        return $expr
+          unless nqp::istype($result, RakuAST::Expression) && !$result.outer-most-thunk;
+        $result.IMPL-TAKE-THUNKS($expr);
+        $result
+    }
+
+    # Whether a node's compile time value can stand in for a thunk whose user
+    # takes a value in its place. Code in the node needs the thunk as its outer,
+    # a user calls a Callable value, and xx flattens a Slip only from a thunk.
+    method IMPL-VALUE-STANDS-FOR-THUNK(RakuAST::Resolver $resolver, Mu $node) {
+        my $value := self.IMPL-LITERAL-VALUE($node);
+        return 0 if nqp::isnull($value);
+        for <Callable Slip> {
+            my $type := self.IMPL-SETTING-TYPE($resolver, $_);
+            return 0 if nqp::isnull($type) || nqp::istype($value, $type);
         }
-        elsif nqp::istype($result, RakuAST::Expression) && !$result.outer-most-thunk {
-            $result.IMPL-TAKE-THUNKS($expr);
-            $result
+        1
+    }
+
+    # A type of the setting, which a lexical of the same name does not
+    # shadow, or null during early bootstrap.
+    method IMPL-SETTING-TYPE(RakuAST::Resolver $resolver, str $name) {
+        my $decl := $resolver.resolve-lexical-constant-in-setting($name);
+        nqp::isconcrete($decl) ?? $decl.compile-time-value !! nqp::null
+    }
+
+    # The anonymous state and the state guards in the node, its own included,
+    # which a compilation of the node on its own declares, as a scope around it
+    # would.
+    method IMPL-STATE-WITHIN() {
+        my @decls;
+        my $collect := -> $node {
+            nqp::push(@decls, $node)
+              if nqp::istype($node, RakuAST::VarDeclaration::Anonymous) && $node.scope eq 'state';
+            if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+                for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) {
+                    nqp::push(@decls, $_)
+                      if nqp::istype($_, RakuAST::VarDeclaration::Implicit::State)
+                      && $_.is-simple-lexical-declaration;
+                }
+            }
+        };
+        $collect(self);
+        my @todo := [self];
+        while @todo {
+            @todo.shift.visit-children: -> $node {
+                $collect($node);
+                @todo.push($node) unless nqp::istype($node, RakuAST::LexicalScope);
+            }
         }
-        else {
-            $expr
-        }
+        @decls
     }
 
     # Replace a directly held child node with another node, locating the slot
@@ -362,10 +405,18 @@ class RakuAST::Node {
 
     method IMPL-QAST-NESTED-BLOCK-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new;
+        # A scope declares the code it binds the lexical of or fires, wherever
+        # that code sits below it.
+        if nqp::istype(self, RakuAST::LexicalScope) {
+            for self.IMPL-OWNED-CODE -> $code {
+                $stmts.push($code.IMPL-QAST-DECL-CODE($context));
+            }
+        }
         my @code-todo := [self];
         while @code-todo {
             my $visit := @code-todo.shift;
             $visit.visit-children: -> $node {
+                my int $owned := self.IMPL-OWNED-BY-SCOPE($node);
                 if nqp::istype($node, RakuAST::Code) {
                     if nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) &&
                             $visit.IMPL-IMMEDIATELY-USES($node) {
@@ -380,10 +431,21 @@ class RakuAST::Node {
                         # Its declaration already lives in the containing
                         # regex's own block.
                     }
+                    elsif $owned {
+                        # The scope that binds its lexical or fires it declares it.
+                    }
+                    elsif nqp::istype($node, RakuAST::Expression) && $node.IMPL-CODE-DECLARED-BY-THUNK {
+                        # The thunk that evaluates it declares it.
+                    }
                     else {
                         my $code := $node.IMPL-QAST-DECL-CODE($context);
                         $stmts.push($code);
                     }
+                }
+                elsif nqp::istype($node, RakuAST::FakeSignature) && !$node.outer-most-thunk {
+                    # A signature literal binds under the code of its block, which a
+                    # thunked literal leaves to its thunk to declare.
+                    $stmts.push($node.block.IMPL-QAST-DECL-CODE($context));
                 }
                 if nqp::istype($node, RakuAST::Expression) {
                     $node.IMPL-QAST-ADD-THUNK-DECL-CODE($context, $stmts);
@@ -399,9 +461,17 @@ class RakuAST::Node {
                     # its traits' blocks do belong here.
                     if nqp::istype($node, RakuAST::TraitTarget) && !nqp::istype($node, RakuAST::Code) {
                         $node.visit-traits(-> $trait { @code-todo.push($trait) });
+                        # So does the code the package would declare.
+                        for $node.IMPL-OWNED-CODE -> $code {
+                            $stmts.push($code.IMPL-QAST-DECL-CODE($context));
+                        }
                     }
                 }
+                elsif $owned {
+                    # It declares what it holds when its scope declares it.
+                }
                 elsif nqp::istype($node, RakuAST::MayCreateBlock) && $node.creates-block {
+                    # A thunk or statement prefix declares the code in it.
                 }
                 else {
                     @code-todo.push($node);
@@ -409,6 +479,37 @@ class RakuAST::Node {
             }
         }
         $stmts
+    }
+
+    # Whether a scope around the node declares it, as for a routine whose
+    # lexical it binds, a phaser it fires and the block of a will trait.
+    method IMPL-OWNED-BY-SCOPE(Mu $node) {
+        nqp::istype($node, RakuAST::Code) && $node.IMPL-DECLARED-BY-ITS-SCOPE ?? 1 !! 0
+    }
+
+    # The code node to declare for code a scope declares, which for a phaser
+    # with a block is that block.
+    method IMPL-OWNED-CARRIER(Mu $node) {
+        nqp::istype($node, RakuAST::StatementPrefix) && nqp::istype($node.blorst, RakuAST::Block)
+          ?? $node.blorst !! $node
+    }
+
+    # The code in the node that a scope around it declares, which a compilation
+    # of the node on its own has to declare as well.
+    method IMPL-SCOPE-OWNED-CODE-WITHIN() {
+        my @code;
+        my @todo := [self];
+        while @todo {
+            @todo.shift.visit-children: -> $node {
+                if self.IMPL-OWNED-BY-SCOPE($node) {
+                    nqp::push(@code, self.IMPL-OWNED-CARRIER($node));
+                }
+                elsif !nqp::istype($node, RakuAST::LexicalScope) {
+                    nqp::push(@todo, $node);
+                }
+            }
+        }
+        @code
     }
 
     # Recursively walks the tree finding nodes of the specified type that are
@@ -4116,6 +4217,55 @@ class RakuAST::Node {
         $droppable
     }
 
+    # The compile time value of a node, which evaluating the node gives or
+    # clones, or null when it has none or may give something else, as a
+    # container declaration, an enum declaration and a statement prefix do.
+    method IMPL-EVALUATED-VALUE(Mu $node) {
+        return nqp::null()
+          unless $node.has-compile-time-value && self.IMPL-GIVES-COMPILE-TIME-VALUE($node);
+        my $value := $node.maybe-compile-time-value;
+        nqp::iscont($value) ?? nqp::null() !! $value
+    }
+
+    # Whether what the node holds outside its scopes is known to give its
+    # compile time value. Of the declarations only a scope or a constant is,
+    # and a statement prefix, which runs its code, is not.
+    method IMPL-GIVES-COMPILE-TIME-VALUE(Mu $node) {
+        return 1 unless nqp::isconcrete($node);
+        return 0 if nqp::istype($node, RakuAST::StatementPrefix);
+        return 0 unless $node.IMPL-EVALUATES-TO-COMPILE-TIME-VALUE;
+        return 1 if nqp::istype($node, RakuAST::LexicalScope)
+          || nqp::istype($node, RakuAST::VarDeclaration::Constant);
+        return 0 if nqp::istype($node, RakuAST::Declaration);
+        my int $gives := 1;
+        $node.visit-children(-> $child {
+            $gives := 0 if $gives && !self.IMPL-GIVES-COMPILE-TIME-VALUE($child);
+        });
+        $gives
+    }
+
+    # Whether evaluating the node itself gives its compile time value, as a
+    # parameterization with an argument known only at runtime does not.
+    method IMPL-EVALUATES-TO-COMPILE-TIME-VALUE() { True }
+
+    # The compile time value of a node that gives it each time it is
+    # evaluated and holds no code, or null.
+    method IMPL-LITERAL-VALUE(Mu $node) {
+        my $value := self.IMPL-EVALUATED-VALUE($node);
+        nqp::isnull($value) || !self.IMPL-NO-CODE($node) ?? nqp::null() !! $value
+    }
+
+    # Whether the node holds no code at all, formed or not.
+    method IMPL-NO-CODE(Mu $node) {
+        return 1 unless nqp::isconcrete($node);
+        return 0 if nqp::istype($node, RakuAST::Code);
+        my int $none := 1;
+        $node.visit-children(-> $child {
+            $none := 0 if $none && !self.IMPL-NO-CODE($child);
+        });
+        $none
+    }
+
     # Whether no code in the node has formed its block yet.
     method IMPL-NO-FORMED-CODE(Mu $node) {
         return 1 unless nqp::isconcrete($node);
@@ -4128,13 +4278,11 @@ class RakuAST::Node {
     }
 
     # The compile-time value a node claims, or null when an optimization
-    # may not use it in place of evaluating the node. Removing the node must
-    # be safe, and a container's content can change before the node runs.
+    # may not use it in place of evaluating the node, which must give it and
+    # be safe to remove. A container's content can change, so it never counts.
     method IMPL-TRUSTED-COMPILE-TIME-VALUE(Mu $node) {
-        return nqp::null() unless $node.has-compile-time-value;
-        my $value := $node.maybe-compile-time-value;
-        nqp::iscont($value) || !self.IMPL-DROPPABLE($node)
-            ?? nqp::null() !! $value
+        my $value := self.IMPL-EVALUATED-VALUE($node);
+        nqp::isnull($value) || !self.IMPL-DROPPABLE($node) ?? nqp::null() !! $value
     }
 
     # Whether a value is of a core value type, a core enum value, or a
@@ -4480,6 +4628,7 @@ class RakuAST::Node {
                            Bool :$compile
     ) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
+        my $*IMPL-DYNAMIC-COMPILATION := nqp::list();
         my $*BEGIN-TIME-LOOKUP :=
           self.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
 
@@ -4781,6 +4930,7 @@ class RakuAST::Node {
                    RakuAST::Node :$locus
     ) {
         my $*IMPL-COMPILE-DYNAMICALLY := 1;
+        my $*IMPL-DYNAMIC-COMPILATION := nqp::list();
         my $*BEGIN-TIME-LOOKUP :=
           self.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
 

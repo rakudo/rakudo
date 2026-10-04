@@ -93,29 +93,6 @@ role RakuAST::LexicalScope
             %seen-decl{nqp::objectid($_)} := 1;
         }
 
-        # Visit code objects that need to make a declaration entry. We don't
-        # visit any code objects immediately under an ImmediateBlockUser (but
-        # should visit their other nodes).
-        my @code-todo := [self];
-        while @code-todo {
-            my $visit := @code-todo.shift;
-            $visit.visit-children: -> $node {
-                if nqp::istype($node, RakuAST::FakeSignature) {
-                    $stmts.push($node.block.IMPL-QAST-DECL-CODE($context));
-                }
-                if nqp::istype($node, RakuAST::LexicalScope) {
-                    if nqp::istype($node, RakuAST::TraitTarget) {
-                        $node.visit-traits(-> $trait { @code-todo.push($trait) });
-                    }
-                }
-                else {
-                    unless nqp::istype($node, RakuAST::MayCreateBlock) && $node.creates-block {
-                        @code-todo.push($node);
-                    }
-                }
-            }
-        }
-
         my $nested-blocks := self.IMPL-QAST-NESTED-BLOCK-DECLS($context);
         $stmts.push($nested-blocks) if nqp::elems($nested-blocks.list);
 
@@ -285,6 +262,70 @@ role RakuAST::LexicalScope
     # produced thanks to BEGIN-time side-effects.
     method generated-lexical-declarations() {
         self.IMPL-WRAP-LIST($!generated-lexical-declarations // [])
+    }
+
+    # The code the scope declares wherever it sits below it, as the routines it
+    # binds the lexicals of, the phasers it fires and the will traits' blocks.
+    method IMPL-OWNED-CODE() {
+        my @code;
+        my %seen;
+        my $add := -> $code {
+            unless nqp::existskey(%seen, nqp::objectid($code)) {
+                %seen{nqp::objectid($code)} := 1;
+                nqp::push(@code, $code);
+            }
+        };
+        my $add-will-blocks := -> $target {
+            $target.visit-traits(-> $trait {
+                $add($trait.block) if nqp::istype($trait, RakuAST::Trait::Will);
+            });
+        };
+        for [self.ast-lexical-declarations, self.generated-lexical-declarations] -> $decls {
+            for self.IMPL-UNWRAP-LIST($decls) -> $decl {
+                unless $decl =:= self {
+                    $add($decl)
+                      if nqp::istype($decl, RakuAST::Routine) && $decl.IMPL-DECLARED-BY-ITS-SCOPE;
+                    $add-will-blocks($decl) if nqp::istype($decl, RakuAST::TraitTarget);
+                }
+            }
+        }
+        # A multi candidate is not among the lexical declarations, so the walk
+        # finds it. Code without a lexical, a package and an enum carry their will
+        # traits themselves. A declaration hoisted to another scope is that scope's.
+        my @todo := [self];
+        while @todo {
+            @todo.shift.visit-children: -> $node {
+                if nqp::istype($node, RakuAST::Routine) && $node.multiness eq 'multi'
+                  && $node.IMPL-DECLARED-BY-ITS-SCOPE {
+                    $add($node);
+                    $add-will-blocks($node);
+                }
+                $add-will-blocks($node)
+                  if nqp::istype($node, RakuAST::TraitTarget)
+                  && !(nqp::istype($node, RakuAST::Code) && $node.IMPL-DECLARED-BY-ITS-SCOPE)
+                  && !(nqp::istype($node, RakuAST::Declaration) && $node.is-hoisted-to-outer);
+                @todo.push($node) unless nqp::istype($node, RakuAST::LexicalScope);
+            }
+        }
+        # A phaser only added to the scope, outside the tree, has its code
+        # object from elsewhere.
+        if nqp::istype(self, RakuAST::ScopePhaser) {
+            for self.IMPL-FIRED-PHASERS -> $phaser {
+                $add(self.IMPL-OWNED-CARRIER($phaser))
+                  unless nqp::istype($phaser, RakuAST::Code) && !$phaser.IMPL-STUBBED;
+            }
+        }
+        @code
+    }
+
+    # A scope that generates no code of its own hands the lexical fixups of the
+    # roles declared in it to the scope around it, which then points the
+    # role bodies at its frame.
+    method IMPL-HAND-OVER-FIXUPS(RakuAST::LexicalScope $to) {
+        for $!generated-lexical-declarations // [] {
+            $to.add-generated-lexical-declaration($_) if nqp::istype($_, RakuAST::LexicalFixup);
+        }
+        Nil
     }
 
     method lexical-declarations() {
@@ -783,13 +824,19 @@ role RakuAST::Declaration {
     # the scope holding it in the tree. -n and -p hoist to the compunit
     # mainline, FIRST and POST to the scope the phaser is attached to.
     has RakuAST::LexicalScope $!hoisted-to;
+    has int $!hoisted-by-phaser;
 
-    method set-hoisted-to(RakuAST::LexicalScope $scope) {
+    method set-hoisted-to(RakuAST::LexicalScope $scope, :$by-phaser) {
         nqp::bindattr(self, RakuAST::Declaration, '$!hoisted-to', $scope);
+        nqp::bindattr_i(self, RakuAST::Declaration, '$!hoisted-by-phaser', $by-phaser ?? 1 !! 0);
         Nil
     }
 
     method hoisted-to() { $!hoisted-to }
+
+    # Whether a FIRST or POST phaser moved the declaration out of the block it
+    # makes of its statement.
+    method IMPL-HOISTED-BY-PHASER() { $!hoisted-by-phaser ?? True !! False }
 
     method is-hoisted-to-outer(--> Bool) { nqp::isconcrete($!hoisted-to) ?? True !! False }
 

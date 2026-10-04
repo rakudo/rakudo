@@ -1707,6 +1707,10 @@ class RakuAST::Stub
         $obj
     }
 
+    method visit-children(Code $visitor) {
+        $visitor($!args) if $!args;
+    }
+
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # A stub in the setting mentions X::StubCode before that class is
         # declared, so the begin time resolution of the implicit lookup
@@ -1726,7 +1730,7 @@ class RakuAST::Stub
         ]
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
           :op<callmethod>, :name<new>,
           self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
@@ -1734,7 +1738,7 @@ class RakuAST::Stub
         if $!args {
             my @args := self.IMPL-UNWRAP-LIST($!args.args);
             if nqp::elems(@args) {
-                my $value := @args[0].IMPL-EXPR-QAST($context);
+                my $value := @args[0].IMPL-TO-QAST($context);
                 $value.named("message");
                 nqp::push($qast, $value);
             }

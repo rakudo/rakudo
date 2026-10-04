@@ -155,6 +155,24 @@ role RakuAST::StatementPrefix::Thunky
         nqp::istype(self.blorst, RakuAST::Block) ?? False !! True;
     }
 
+    # A phaser that the block around it fires belongs to that block, which
+    # declares it.
+    method IMPL-DECLARED-BY-ITS-SCOPE() {
+        nqp::istype(self, RakuAST::StatementPrefix::Phaser::Block)
+          || nqp::istype(self, RakuAST::StatementPrefix::Phaser::Enter) ?? True !! False
+    }
+
+    # A compilation of the prefix on its own declares the code and the state in
+    # it that a scope around it declares too.
+    method IMPL-EXTRA-BEGIN-TIME-DECLS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my @decls := self.IMPL-SCOPE-OWNED-CODE-WITHIN;
+        nqp::push(@decls, $_) for self.IMPL-STATE-FOR-SCOPE-AROUND;
+        @decls
+    }
+
+    # The state in the prefix, which the scope around it declares.
+    method IMPL-STATE-FOR-SCOPE-AROUND() { self.IMPL-STATE-WITHIN }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
         Nil
@@ -724,7 +742,23 @@ class RakuAST::StatementPrefix::Phaser::Begin
             []
         }
         else {
-            self.IMPL-UNWRAP-LIST($resolver.current-scope.generated-lexical-declarations);
+            # The scope's own declarations go in as what they hold, so the code
+            # of a proto among them stays with the scope declaring it.
+            my @decls;
+            for self.IMPL-UNWRAP-LIST($resolver.current-scope.generated-lexical-declarations) {
+                if nqp::istype($_, RakuAST::Code) && nqp::istype($_, RakuAST::CompileTimeValue) {
+                    my $value := $_.compile-time-value;
+                    $context.ensure-sc($value);
+                    nqp::push(@decls, QAST::Var.new(:name($_.lexical-name), :scope<lexical>,
+                      :decl<static>, :$value));
+                }
+                else {
+                    nqp::push(@decls, $_);
+                }
+            }
+            nqp::push(@decls, $_) for self.IMPL-SCOPE-OWNED-CODE-WITHIN;
+            nqp::push(@decls, $_) for self.IMPL-STATE-WITHIN;
+            @decls
         }
     }
 
@@ -901,6 +935,7 @@ class RakuAST::StatementPrefix::Phaser::Quit
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('block').add-phaser("QUIT", self);
 
+        self.blorst.IMPL-SET-FIRED-BY-ITS-SCOPE;
         self.blorst.set-needs-result(True);
         self.blorst.set-nil-on-succeed();
         self.blorst.set-topic-on-fallthrough();
@@ -955,7 +990,7 @@ role RakuAST::StatementPrefix::Phaser::HoistsStatement {
     method IMPL-ATTACHED(RakuAST::LexicalScope $target) {
         my $statement := self.IMPL-HOISTED-STATEMENT;
         if nqp::isconcrete($statement) {
-            $_.set-hoisted-to($target) for $statement.IMPL-HOISTABLE-DECLARATIONS;
+            $_.set-hoisted-to($target, :by-phaser) for $statement.IMPL-HOISTABLE-DECLARATIONS;
             $target.IMPL-DROP-DECLARATION-CACHES;
             my $blorst := self.blorst;
             $blorst.IMPL-DROP-DECLARATION-CACHES

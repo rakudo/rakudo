@@ -683,9 +683,10 @@ class RakuAST::VarDeclaration::Constant
     method compile-time-value() { $!value }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
-        nqp::isnull(my $native := self.IMPL-NATIVE-VALUE-QAST)
-          ?? QAST::Var.new(:name($!name), :scope<lexical>)
-          !! $native
+        nqp::ifnull(
+          self.IMPL-NATIVE-VALUE-QAST,
+          QAST::Var.new(:name($!name), :scope<lexical>)
+        )
     }
 
     # A native-typed constant references a compile-time-known value, so emit
@@ -2409,14 +2410,15 @@ class RakuAST::VarDeclaration::Simple
                                 my $lowered := $!lowered-array-init
                                     ?? self.IMPL-ARRAY-INIT-QAST($invocant, $init-qast)
                                     !! nqp::null();
-                                $perform-init-qast := nqp::isnull($lowered)
-                                    ?? QAST::Op.new(
-                                         :op('callmethod'), :name('STORE'),
-                                         $invocant,
-                                         $init-qast,
-                                         QAST::WVal.new( :named('INITIALIZE'), :value(True) )
-                                       )
-                                    !! $lowered;
+                                $perform-init-qast := nqp::ifnull(
+                                  $lowered,
+                                  QAST::Op.new(:op<callmethod>,
+                                    :name<STORE>,
+                                    $invocant,
+                                    $init-qast,
+                                    QAST::WVal.new(:named<INITIALIZE>, :value(True))
+                                  )
+                                )
                             }
                         }
                         else {

@@ -1991,9 +1991,7 @@ role RakuAST::ImplicitLookups {
     # that it needs. This is called once per instance of a node and then
     # remains constant. Nodes that may be mutated must instead implement
     # get-implicit-lookups and handle the caching themselves.
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        []
-    }
+    method PRODUCE-IMPLICIT-LOOKUPS() { [] }
 
     # Get a list of the implicit lookups.
     method get-implicit-lookups() {

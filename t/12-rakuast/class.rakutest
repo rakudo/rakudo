@@ -143,9 +143,7 @@ subtest 'Check lexically resolving of a class' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        expression => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier-parts('LexicalTestClass')
-        )
+        expression => RakuAST::Type::Simple.from-identifier-parts('LexicalTestClass')
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
@@ -180,9 +178,7 @@ subtest 'Check globally resolving of a class' => {
             )
           ),
           RakuAST::Statement::Expression.new(
-            expression => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier-parts($class)
-            )
+            expression => RakuAST::Type::Simple.from-identifier-parts($class)
           )
         );
         is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
@@ -220,9 +216,7 @@ module Enclosing {
                 )
               ),
               RakuAST::Statement::Expression.new(
-                expression => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier-parts($class)
-                )
+                expression => RakuAST::Type::Simple.from-identifier-parts($class)
               )
             );
             is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
@@ -313,9 +307,7 @@ subtest 'class with attribute and accessor' => {
                 sigil => '$',
                 twigil => '.',
                 desigilname => RakuAST::Name.from-identifier('foo'),
-                type  => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier('Int')
-                )
+                type  => RakuAST::Type::Simple.from-identifier('Int')
               )
             )
           )
@@ -372,9 +364,7 @@ subtest 'class with accessor usage' => {
                 sigil => '$',
                 twigil => '.',
                 desigilname => RakuAST::Name.from-identifier('bar'),
-                type  => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier('Int')
-                )
+                type  => RakuAST::Type::Simple.from-identifier('Int')
               )
             ),
             RakuAST::Statement::Expression.new(
@@ -534,9 +524,7 @@ subtest 'class with does trait really does the role' => {
       name   => RakuAST::Name.from-identifier('TestRoleTarget'),
       traits => [
         RakuAST::Trait::Does.new(
-          RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('TestRole')
-          )
+          RakuAST::Type::Simple.from-identifier('TestRole')
         )
       ]
     );
@@ -595,9 +583,7 @@ subtest 'class that hides Any' => {
       name   => RakuAST::Name.from-identifier("HidesAny"),
       traits => (
         RakuAST::Trait::Hides.new(
-          RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier("Any")
-          )
+          RakuAST::Type::Simple.from-identifier("Any")
         ),
       ),
       body       => RakuAST::Block.new(
@@ -754,9 +740,7 @@ subtest 'class inheriting through a type trait' => {
           name   => RakuAST::Name.from-identifier-parts('X', 'Foo'),
           traits => (
             RakuAST::Trait::Is.new-from-type(
-              type => RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Exception')
-              )
+              type => RakuAST::Type::Simple.from-identifier('Exception')
             ),
           ),
           body   => RakuAST::Block.new(
@@ -769,17 +753,13 @@ subtest 'class inheriting through a type trait' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyInfix.new(
           left  => RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier-parts('X', 'Foo')
-            ),
+            operand => RakuAST::Type::Simple.from-identifier-parts('X', 'Foo'),
             postfix => RakuAST::Call::Method.new(
               name => RakuAST::Name.from-identifier('new')
             )
           ),
           infix => RakuAST::Infix.new('~~'),
-          right => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Exception')
-          )
+          right => RakuAST::Type::Simple.from-identifier('Exception')
         )
       )
     );
@@ -806,9 +786,7 @@ subtest 'class with a representation' => {
                 RakuAST::Statement::Expression.new(
                   expression => RakuAST::VarDeclaration::Simple.new(
                     scope       => 'has',
-                    type        => RakuAST::Type::Simple.new(
-                      RakuAST::Name.from-identifier('int')
-                    ),
+                    type        => RakuAST::Type::Simple.from-identifier('int'),
                     sigil       => '$',
                     twigil      => '.',
                     desigilname => RakuAST::Name.from-identifier('x')
@@ -821,9 +799,7 @@ subtest 'class with a representation' => {
       ),
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyPostfix.new(
-          operand => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Foo')
-          ),
+          operand => RakuAST::Type::Simple.from-identifier('Foo'),
           postfix => RakuAST::Call::Method.new(
             name => RakuAST::Name.from-identifier('REPR')
           )
@@ -853,7 +829,7 @@ subtest 'native type with a representation' => {
           repr   => 'P6int',
           traits => (
             RakuAST::Trait::Is.new-from-type(
-              type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+              type => RakuAST::Type::Simple.from-identifier('Int')
             ),
             RakuAST::Trait::Is.new(
               name     => RakuAST::Name.from-identifier('nativesize'),
@@ -873,7 +849,7 @@ subtest 'native type with a representation' => {
       ),
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
-          type        => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('myint')),
+          type        => RakuAST::Type::Simple.from-identifier('myint'),
           sigil       => '$',
           desigilname => RakuAST::Name.from-identifier('x'),
           initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(5))
@@ -938,9 +914,7 @@ subtest 'stubbed class' => {
       ),
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyPostfix.new(
-          operand => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('B')
-          ),
+          operand => RakuAST::Type::Simple.from-identifier('B'),
           postfix => RakuAST::Call::Method.new(
             name => RakuAST::Name.from-identifier('m')
           )
@@ -979,9 +953,7 @@ subtest 'class with a multi submethod' => {
             signature => RakuAST::Signature.new(
               parameters => (
                 RakuAST::Parameter.new(
-                  type   => RakuAST::Type::Simple.new(
-                    RakuAST::Name.from-identifier($type)
-                  ),
+                  type   => RakuAST::Type::Simple.from-identifier($type),
                   target => RakuAST::ParameterTarget::Var.new(:name<$x>)
                 ),
               )
@@ -1017,7 +989,7 @@ subtest 'class with a multi submethod' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyInfix.new(
           left  => RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('C')),
+            operand => RakuAST::Type::Simple.from-identifier('C'),
             postfix => RakuAST::Call::Method.new(
               name => RakuAST::Name.from-identifier('m'),
               args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(42))
@@ -1025,7 +997,7 @@ subtest 'class with a multi submethod' => {
           ),
           infix => RakuAST::Infix.new('+'),
           right => RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('C')),
+            operand => RakuAST::Type::Simple.from-identifier('C'),
             postfix => RakuAST::Call::Method.new(
               name => RakuAST::Name.from-identifier('m'),
               args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('abc'))
@@ -1087,7 +1059,7 @@ subtest 'attribute with a computed default' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyPostfix.new(
           operand => RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('D')),
+            operand => RakuAST::Type::Simple.from-identifier('D'),
             postfix => RakuAST::Call::Method.new(
               name => RakuAST::Name.from-identifier('new')
             )
@@ -1167,7 +1139,7 @@ subtest 'class with a private submethod' => {
       ),
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyPostfix.new(
-          operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('E')),
+          operand => RakuAST::Type::Simple.from-identifier('E'),
           postfix => RakuAST::Call::Method.new(
             name => RakuAST::Name.from-identifier('n')
           )
@@ -1256,9 +1228,7 @@ subtest 'An attribute declared without a twigil keeps its bare name' => {
           desigilname => RakuAST::Name.from-identifier('o'),
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::ApplyPostfix.new(
-              operand => RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('WithAlias')
-              ),
+              operand => RakuAST::Type::Simple.from-identifier('WithAlias'),
               postfix => RakuAST::Call::Method.new(
                 name => RakuAST::Name.from-identifier('new')
               )
@@ -1322,9 +1292,7 @@ subtest 'A trusts trait deparses' => {
           name   => RakuAST::Name.from-identifier('TrustsMe'),
           traits => [
             RakuAST::Trait::Trusts.new(
-              type => RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('TrustsBase')
-              )
+              type => RakuAST::Type::Simple.from-identifier('TrustsBase')
             )
           ]
         )
@@ -1447,9 +1415,7 @@ subtest 'class with an also statement' => {
             RakuAST::Statement::Also.new(
               traits => (
                 RakuAST::Trait::Does.new(
-                  RakuAST::Type::Simple.new(
-                    RakuAST::Name.from-identifier('TestAlsoRole')
-                  )
+                  RakuAST::Type::Simple.from-identifier('TestAlsoRole')
                 ),
               )
             )
@@ -1706,9 +1672,7 @@ subtest 'A hand built trusts statement' => {
             body => RakuAST::Blockoid.new(
               RakuAST::StatementList.new(
                 RakuAST::Statement::Trusts.new(
-                  type => RakuAST::Type::Simple.new(
-                    RakuAST::Name.from-identifier('TrustsBase')
-                  )
+                  type => RakuAST::Type::Simple.from-identifier('TrustsBase')
                 )
               )
             )
@@ -1733,7 +1697,7 @@ CODE
 subtest 'A trusts statement outside a package' => {
     # trusts Int
     ast RakuAST::Statement::Trusts.new(
-      type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+      type => RakuAST::Type::Simple.from-identifier('Int')
     );
     is-deeply $deparsed, 'trusts Int', 'deparse';
     isa-ok $ast.trait, RakuAST::Trait::Trusts, 'the statement holds its trait';

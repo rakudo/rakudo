@@ -23,9 +23,7 @@ class TestTarget {
 subtest 'Can make a call on a method without arguments' => {
     # TestTarget.route
     ast RakuAST::ApplyPostfix.new(
-      operand => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('TestTarget')
-      ),
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
       postfix => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('route')
       )
@@ -38,9 +36,7 @@ subtest 'Can make a call on a method without arguments' => {
 subtest 'Can make a call on a submethod without arguments' => {
     # TestTarget.subby
     ast RakuAST::ApplyPostfix.new(
-      operand => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('TestTarget')
-      ),
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
       postfix => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('subby')
       )
@@ -53,9 +49,7 @@ subtest 'Can make a call on a submethod without arguments' => {
 subtest 'Can make a call on a method with positional arguments' => {
     # TestTarget.subtract(14, 6)
     ast RakuAST::ApplyPostfix.new(
-      operand => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('TestTarget')
-      ),
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
       postfix => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('subtract'),
         args => RakuAST::ArgList.new(
@@ -137,9 +131,7 @@ subtest 'Method call REPR compiles into MOP primitive' => {
 subtest 'Can make a quoted call on a method without arguments' => {
     # TestTarget."route"()
     ast RakuAST::ApplyPostfix.new(
-      operand => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('TestTarget')
-      ),
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
       postfix => RakuAST::Call::QuotedMethod.new(
         name => RakuAST::QuotedString.new(
           :segments[RakuAST::StrLiteral.new('route')]
@@ -154,9 +146,7 @@ subtest 'Can make a quoted call on a method without arguments' => {
 subtest 'Can make a quoted call on a method with positional arguments' => {
     # TestTarget."subtract"(14, 6)
     ast RakuAST::ApplyPostfix.new(
-      operand => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('TestTarget')
-      ),
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
       postfix => RakuAST::Call::QuotedMethod.new(
         name => RakuAST::QuotedString.new(
           :segments[RakuAST::StrLiteral.new('subtract')]
@@ -186,9 +176,7 @@ subtest 'Can make a meta-method call' => {
 subtest 'Can make a method call if the method exists' => {
     # TestTarget.?subtract(50,8)
     ast RakuAST::ApplyPostfix.new(
-      operand => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('TestTarget')
-      ),
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
       postfix => RakuAST::Call::Method.new(
         name     => RakuAST::Name.from-identifier('subtract'),
         dispatch => '.?',
@@ -206,9 +194,7 @@ subtest 'Can make a method call if the method exists' => {
 subtest 'Can make a method call if the method does not exist' => {
     # TestTarget.?dunno
     ast RakuAST::ApplyPostfix.new(
-      operand => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('TestTarget')
-      ),
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
       postfix => RakuAST::Call::Method.new(
         name     => RakuAST::Name.from-identifier('dunno'),
         dispatch => '.?'
@@ -225,9 +211,7 @@ subtest 'Can make a private method call' => {
 
         # A!private
         ast RakuAST::ApplyPostfix.new(
-          operand => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('A')
-          ),
+          operand => RakuAST::Type::Simple.from-identifier('A'),
           postfix => RakuAST::Call::PrivateMethod.new(
             name => RakuAST::Name.from-identifier('private')
           )

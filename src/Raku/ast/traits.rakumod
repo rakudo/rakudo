@@ -126,7 +126,9 @@ class RakuAST::Trait
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Var::Lexical::Constant.new('&trait_mod:<' ~ self.IMPL-TRAIT-NAME() ~ '>')
+          RakuAST::Var::Lexical::Constant.new(
+            '&trait_mod:<' ~ self.IMPL-TRAIT-NAME() ~ '>'
+          ),
         ]
     }
 

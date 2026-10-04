@@ -57,9 +57,7 @@ subtest 'Type constraint is enforced on Scalar' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            type => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            ),
+            type => RakuAST::Type::Simple.from-identifier('Int'),
             target => RakuAST::ParameterTarget::Var.new(:name<$x>),
           ),
         )
@@ -88,9 +86,7 @@ subtest 'Anonymous parameter still enforces type constraint' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            type => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            )
+            type => RakuAST::Type::Simple.from-identifier('Int')
           ),
         )
       )
@@ -118,9 +114,7 @@ subtest 'Optional Scalar parameter defaults to type object' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            type => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            ),
+            type => RakuAST::Type::Simple.from-identifier('Int'),
             target => RakuAST::ParameterTarget::Var.new(:name<$x>),
             optional => True,
           ),
@@ -477,9 +471,7 @@ subtest 'Sigilless parameter' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            type => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            ),
+            type => RakuAST::Type::Simple.from-identifier('Int'),
             target => RakuAST::ParameterTarget::Term.new(RakuAST::Name.from-identifier('trm')),
           ),
         )
@@ -694,9 +686,7 @@ subtest 'Invocant parameter with a following parameter' => {
         expression => RakuAST::ApplyPostfix.new(
           operand => RakuAST::ApplyPostfix.new(
             operand => RakuAST::ApplyPostfix.new(
-              operand => RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('A')
-              ),
+              operand => RakuAST::Type::Simple.from-identifier('A'),
               postfix => RakuAST::Call::Method.new(
                 name => RakuAST::Name.from-identifier('new')
               )
@@ -745,9 +735,7 @@ subtest 'Type capture with a target' => {
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                expression => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier('T')
-                )
+                expression => RakuAST::Type::Simple.from-identifier('T')
               )
             )
           )
@@ -889,9 +877,7 @@ subtest 'Parameter that is only the type Any' => {
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
-                type => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier('Any')
-                )
+                type => RakuAST::Type::Simple.from-identifier('Any')
               ),
               RakuAST::Parameter.new(
                 target => RakuAST::ParameterTarget::Var.new(:name<$x>)
@@ -937,9 +923,7 @@ subtest 'Type capture with a type and a target' => {
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
-                type          => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier('Int')
-                ),
+                type          => RakuAST::Type::Simple.from-identifier('Int'),
                 type-captures => (
                   RakuAST::Type::Capture.new(
                     RakuAST::Name.from-identifier('T')
@@ -952,9 +936,7 @@ subtest 'Type capture with a type and a target' => {
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                expression => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier('T')
-                )
+                expression => RakuAST::Type::Simple.from-identifier('T')
               )
             )
           )
@@ -1032,13 +1014,9 @@ subtest 'Where constraint of a parameter stays as written' => {
               RakuAST::Parameter.new(
                 target => RakuAST::ParameterTarget::Var.new(:name<$x>),
                 where  => RakuAST::ApplyInfix.new(
-                  left  => RakuAST::Type::Simple.new(
-                    RakuAST::Name.from-identifier('Int')
-                  ),
+                  left  => RakuAST::Type::Simple.from-identifier('Int'),
                   infix => RakuAST::Infix.new('|'),
-                  right => RakuAST::Type::Simple.new(
-                    RakuAST::Name.from-identifier('Str')
-                  )
+                  right => RakuAST::Type::Simple.from-identifier('Str')
                 )
               ),
             )
@@ -1282,12 +1260,12 @@ subtest 'A named parameter without a variable keeps its name around its sub-sign
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            type  => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Pair')),
+            type  => RakuAST::Type::Simple.from-identifier('Pair'),
             names => ['value'],
             sub-signature => RakuAST::Signature.new(
               parameters => (
                 RakuAST::Parameter.new(
-                  type   => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str')),
+                  type   => RakuAST::Type::Simple.from-identifier('Str'),
                   target => RakuAST::ParameterTarget::Var.new(:name<$k>),
                   names  => ['key']
                 ),
@@ -1469,9 +1447,7 @@ subtest 'Type capture with a definedness smiley' => {
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                expression => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier('T')
-                )
+                expression => RakuAST::Type::Simple.from-identifier('T')
               )
             )
           )
@@ -1564,7 +1540,7 @@ subtest 'An invocant marker before the first parameter is reported' => {
 subtest 'Term parameter named in a signature sorry' => {
     # sub f (Int \foo) { }
     my $parameter := RakuAST::Parameter.new(
-      type   => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
+      type   => RakuAST::Type::Simple.from-identifier('Int'),
       target => RakuAST::ParameterTarget::Term.new(
         RakuAST::Name.from-identifier('foo')
       )
@@ -1576,7 +1552,7 @@ subtest 'Term parameter named in a signature sorry' => {
     );
     is-deeply $deparsed, 'sub f (Int \foo) { }', 'deparse';
     $parameter.set-type(
-      RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+      RakuAST::Type::Simple.from-identifier('Str')
     );
     throws-like { EVAL $ast }, X::Parameter::MultipleTypeConstraints,
       parameter => 'foo',
@@ -1661,7 +1637,7 @@ subtest 'A parameter mutated after its BEGIN time' => {
         )
     }
     my sub type(Str $name) {
-        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($name))
+        RakuAST::Type::Simple.from-identifier($name)
     }
 
     # sub f ($x where * < 1) {

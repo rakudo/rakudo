@@ -265,9 +265,7 @@ class RakuAST::Term::TopicCall
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Var::Lexical.new('$_'),
-        ]
+        [ RakuAST::Var::Lexical.new('$_') ]
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -593,8 +591,8 @@ class RakuAST::Term::Reduce
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Var::Lexical.new('&infix:<,>'),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
+          RakuAST::Var::Lexical.new('&infix:<,>'),
+          RakuAST::Type::Setting.from-identifier($!infix.reducer-name),
         ]
     }
 

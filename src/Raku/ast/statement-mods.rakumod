@@ -37,9 +37,7 @@ class RakuAST::StatementModifier::Condition
     method IMPL-NATIVE-CONDITION() { $!native-condition }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty'))
-        ]
+        [ RakuAST::Type::Setting.from-identifier('Empty') ]
     }
 
     method IMPL-EMPTY(RakuAST::IMPL::QASTContext $context) {
@@ -275,8 +273,8 @@ class RakuAST::StatementModifier::WhileUntil
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Seq'))
+          RakuAST::Type::Setting.from-identifier('Nil'),
+          RakuAST::Type::Setting.from-identifier('Seq'),
         ]
     }
 
@@ -379,9 +377,10 @@ class RakuAST::StatementModifier::For
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Var::Lexical::Setting.new(
-                :desigilname(RakuAST::Name.from-identifier('IterationEnd'))),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+          RakuAST::Var::Lexical::Setting.new(
+            :desigilname(RakuAST::Name.from-identifier('IterationEnd'))
+          ),
+          RakuAST::Type::Setting.from-identifier('Nil'),
         ]
     }
 

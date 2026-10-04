@@ -2528,8 +2528,8 @@ class RakuAST::Block
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Code')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
+          RakuAST::Type::Setting.from-identifier('Code'),
+          RakuAST::Type::Setting.from-identifier('&FATALIZE'),
         ]
     }
 
@@ -2916,8 +2916,8 @@ class RakuAST::PointyBlock
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
+          RakuAST::Type::Setting.from-identifier('Callable'),
+          RakuAST::Type::Setting.from-identifier('&FATALIZE'),
         ]
     }
 
@@ -3094,8 +3094,8 @@ class RakuAST::Routine
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
+          RakuAST::Type::Setting.from-identifier('Callable'),
+          RakuAST::Type::Setting.from-identifier('&FATALIZE'),
         ]
     }
 
@@ -3198,8 +3198,8 @@ class RakuAST::Routine
         if $!signature {
             $!signature.set-parameters-initialized;
             $!signature.set-default-type(
-                RakuAST::Type::Setting.new(
-                    RakuAST::Name.from-identifier('Any'),
+                RakuAST::Type::Setting.from-identifier(
+                  'Any'
                 ).to-begin-time($resolver, $context)
             ) unless nqp::istype(self, RakuAST::RoleBody);
             $!signature.PERFORM-PARSE($resolver, $context);
@@ -4409,9 +4409,9 @@ class RakuAST::Methodish
         if $signature {
             $signature.set-parameters-initialized;
             $signature.set-default-type(
-                RakuAST::Type::Setting.new(
-                    RakuAST::Name.from-identifier('Any'),
-                ).to-begin-time($resolver, $context)
+              RakuAST::Type::Setting.from-identifier(
+                'Any'
+              ).to-begin-time($resolver, $context)
             );
             $signature.set-is-on-method(True);
             $signature.set-is-on-named-method(True) if self.name;
@@ -5500,11 +5500,11 @@ class RakuAST::QuotedRegex
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Var::Lexical.new('$_'),
-            RakuAST::Var::Lexical.new('$/'),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
-                'Rakudo', 'Internals', 'RegexBoolification6cMarker'
-            ))
+          RakuAST::Var::Lexical.new('$_'),
+          RakuAST::Var::Lexical.new('$/'),
+          RakuAST::Type::Setting.from-identifier-parts(
+            'Rakudo', 'Internals', 'RegexBoolification6cMarker'
+          )
         ]
     }
 
@@ -5647,9 +5647,9 @@ class RakuAST::Substitution
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Var::Lexical.new('$_'),
-            RakuAST::Var::Lexical.new('$/'),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Positional')),
+          RakuAST::Var::Lexical.new('$_'),
+          RakuAST::Var::Lexical.new('$/'),
+          RakuAST::Type::Setting.from-identifier('Positional'),
         ]
     }
 
@@ -5912,8 +5912,8 @@ class RakuAST::Transliteration
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('StrDistance')),
+          RakuAST::Type::Setting.from-identifier('Pair'),
+          RakuAST::Type::Setting.from-identifier('StrDistance'),
         ]
     }
 
@@ -6046,9 +6046,7 @@ class RakuAST::PrimeThunk
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('WhateverCode'))
-        ]
+        [ RakuAST::Type::Setting.from-identifier('WhateverCode') ]
     }
 
     method IMPL-NUM-PARAMS() {

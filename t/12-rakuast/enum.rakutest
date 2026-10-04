@@ -243,7 +243,7 @@ subtest 'Enum with a type for its values' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Type::Enum.new(
           scope => 'my',
-          of    => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str')),
+          of    => RakuAST::Type::Simple.from-identifier('Str'),
           name  => RakuAST::Name.from-identifier('foo'),
           term  => RakuAST::Circumfix::Parentheses.new(
             RakuAST::SemiList.new(
@@ -278,7 +278,7 @@ subtest 'Enum with a type for its values and the default scope' => {
     # our Str enum bar (a => "x")
     ast RakuAST::Type::Enum.new(
       scope => 'our',
-      of    => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str')),
+      of    => RakuAST::Type::Simple.from-identifier('Str'),
       name  => RakuAST::Name.from-identifier('bar'),
       term  => RakuAST::Circumfix::Parentheses.new(
         RakuAST::SemiList.new(
@@ -318,9 +318,7 @@ subtest 'An enum declarator a module superseded resolves in a tree' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        expression => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('Superseded')
-        )
+        expression => RakuAST::Type::Simple.from-identifier('Superseded')
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';

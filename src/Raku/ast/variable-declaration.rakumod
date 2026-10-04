@@ -225,7 +225,7 @@ role RakuAST::ContainerCreator {
         );
 
         (my str $name := nqp::atkey(SIGIL-LOOKUP,self.sigil))
-          ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($name))
+          ?? RakuAST::Type::Setting.from-identifier($name)
           !! nqp::null
     }
 
@@ -465,9 +465,7 @@ class RakuAST::TraitTarget::Variable
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Variable')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('Variable') ]
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -534,16 +532,15 @@ class RakuAST::VarDeclaration::Constant
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            self.sigil eq '@'
-                ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Positional'))
-                !! self.sigil eq '%'
-                    ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Associative'))
-                    !! self.sigil eq '&'
-                        ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
-                        !! $!type
-                            ?? $!type
-                            !! nqp::null,
-
+          self.sigil eq '@'
+            ?? RakuAST::Type::Setting.from-identifier('Positional')
+            !! self.sigil eq '%'
+              ?? RakuAST::Type::Setting.from-identifier('Associative')
+              !! self.sigil eq '&'
+                ?? RakuAST::Type::Setting.from-identifier('Callable')
+                !! $!type
+                  ?? $!type
+                  !! nqp::null
         ]
     }
 
@@ -1203,8 +1200,7 @@ class RakuAST::VarDeclaration::Simple
             # outside Any (e.g. a Junction) can bind. Resolve to the Mu type
             # object directly, since the name is not resolvable this early
             # during CORE setting compilation.
-            my $topic-type := RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Mu'));
+            my $topic-type := RakuAST::Type::Simple.from-identifier('Mu');
             $topic-type.set-resolution(
               RakuAST::Declaration::ResolvedConstant.new(:compile-time-value(Mu)));
             my $method := RakuAST::Method::Initializer.new(
@@ -1707,7 +1703,7 @@ class RakuAST::VarDeclaration::Simple
 
         # If we're has/HAS scope, we need Nil to evaluate to.
         @lookups.push($scope eq 'has' || $scope eq 'HAS'
-          ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
+          ?? RakuAST::Type::Setting.from-identifier('Nil')
           !! nqp::null
         );
 
@@ -1745,8 +1741,8 @@ class RakuAST::VarDeclaration::Simple
         #
         # shape => RakuAST::SemiList.new(
         #   RakuAST::Statement::Expression.new(
-        #     expression => RakuAST::Type::Simple.new(   <-- shape type
-        #       RakuAST::Name.from-identifier("Any")
+        #     expression => RakuAST::Type::Simple.from-identifier(
+        #       "Any"   <-- shape type
         #     )
         #   )
         # )
@@ -2659,7 +2655,7 @@ class RakuAST::VarDeclaration::Signature
         }
         # If we're has/HAS scope, we need Nil to evaluate to.
         if $scope eq 'has' || $scope eq 'HAS' {
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')));
+            @lookups.push(RakuAST::Type::Setting.from-identifier('Nil'));
         }
         @lookups
     }
@@ -2819,7 +2815,7 @@ class RakuAST::VarDeclaration::Signature
                 my $value := $param.value;
                 my $type := $value.WHAT;
                 my $type-name := $value.HOW.name($value);
-                my $type-ast := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($type-name));
+                my $type-ast := RakuAST::Type::Simple.from-identifier($type-name);
                 $type-ast.set-resolution(RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $type));
                 my $where := RakuAST::Term::Declaration.new(RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $value));
                 my $target := RakuAST::ParameterTarget::Var.new(:name('$'), :var-declaration);
@@ -3972,9 +3968,9 @@ class RakuAST::VarDeclaration::Implicit::State
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        $!init-to-zero ?? [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Int'))
-        ] !! [];
+        $!init-to-zero
+          ?? [RakuAST::Type::Setting.from-identifier('Int')]
+          !! []
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

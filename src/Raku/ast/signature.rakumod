@@ -170,9 +170,7 @@ class RakuAST::Signature
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Var::Compiler::Lookup.new('$?CLASS')
-        ]
+        [ RakuAST::Var::Compiler::Lookup.new('$?CLASS') ]
     }
 
     method IMPL-HAS-PARAMETER(Str $name) {
@@ -199,7 +197,7 @@ class RakuAST::Signature
                     if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) && $!method-package.can-have-methods {
                         my $Class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
                         if $!is-on-role-method && $Class.is-resolved {
-                            $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));
+                            $type := RakuAST::Type::Simple.from-identifier('$?CLASS');
                             $type.set-resolution($Class.resolution);
                         } elsif $!method-package.declarator eq 'role' {
                             # An anon or my method in a role is not a role method
@@ -209,7 +207,7 @@ class RakuAST::Signature
                         } else {
                             my $package := $!method-package.stubbed-meta-object;
                             my $package-name := $package.HOW.name($package);
-                            $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($package-name));
+                            $type := RakuAST::Type::Simple.from-identifier($package-name);
                             $type.set-resolution(RakuAST::VarDeclaration::Implicit::Constant.new(
                                 :name($package-name), :value($package), :scope<lexical>));
                         }
@@ -1022,7 +1020,7 @@ class RakuAST::Parameter
 
         my @types;
         for @lookups {
-            nqp::push(@types, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($_)));
+            nqp::push(@types, RakuAST::Type::Setting.from-identifier($_));
         }
         @types
     }

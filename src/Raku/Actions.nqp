@@ -3505,9 +3505,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                   && !$is-base                            # not :_
                   && ($value eq 'D' || $value eq 'U') {   # want :D or :U
                     $type := $definedness.new(            # wrap existing or new
-                      :base-type($type // Nodify('Type::Simple').new(
-                        Nodify('Name').from-identifier('Any')
-                      )), :definite($value eq 'D'), :through-pragma
+                      :base-type(
+                        $type // Nodify('Type::Simple').from-identifier('Any')
+                      ),
+                      :definite($value eq 'D'),
+                      :through-pragma
                     );
                 }
             }

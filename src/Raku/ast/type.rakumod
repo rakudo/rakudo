@@ -99,6 +99,18 @@ class RakuAST::Type::Simple
         $obj
     }
 
+    method from-identifier(Str $identifier) {
+        self.new(RakuAST::Name.from-identifier($identifier))
+    }
+
+    method from-identifier-parts(*@identifiers) {
+        self.new(RakuAST::Name.from-identifier-list(@identifiers))
+    }
+
+    method from-identifier-list(@identifiers) {
+        self.new(RakuAST::Name.from-identifier-list(@identifiers))
+    }
+
     method build-bind-exception(RakuAST::Resolver $resolver) {
         $resolver.build-exception: 'X::Bind::Rebind',
             :target(self.meta-object.raku), :is-type(1)
@@ -313,9 +325,7 @@ class RakuAST::Type::Coercion
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
         nqp::bindattr($obj, RakuAST::Type::Coercion, '$!constraint',
-          $constraint // RakuAST::Type::Setting.new(
-            RakuAST::Name.from-identifier("Any")
-          )
+          $constraint // RakuAST::Type::Setting.from-identifier("Any")
         );
         $obj
     }
@@ -916,9 +926,9 @@ class RakuAST::Type::Enum
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Stringy')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Numeric'))
+          RakuAST::Type::Setting.from-identifier('Pair'),
+          RakuAST::Type::Setting.from-identifier('Stringy'),
+          RakuAST::Type::Setting.from-identifier('Numeric'),
         ]
     }
 
@@ -1047,14 +1057,14 @@ class RakuAST::Type::Enum
             $enumeration-kind := 'StringyEnumeration';
         }
         self.add-trait(RakuAST::Trait::Does.new(
-            RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Enumeration')
-            ).to-begin-time($resolver, $context)
+          RakuAST::Type::Simple.from-identifier(
+            'Enumeration'
+          ).to-begin-time($resolver, $context)
         ).to-begin-time($resolver, $context));
         if $enumeration-kind {
             self.add-trait(RakuAST::Trait::Does.new(
-                RakuAST::Type::Simple.new(
-                    RakuAST::Name.from-identifier($enumeration-kind)
+                RakuAST::Type::Simple.from-identifier(
+                  $enumeration-kind
                 ).to-begin-time($resolver, $context)
             ).to-begin-time($resolver, $context));
         }

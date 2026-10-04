@@ -1349,7 +1349,7 @@ class RakuAST::Regex::Interpolation
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
+          RakuAST::Type::Setting.from-identifier('PseudoStash'),
         ]
     }
 
@@ -1496,16 +1496,16 @@ class RakuAST::Regex::Assertion::Named
         if $!capturing && $!name.is-identifier {
             [RakuAST::Var::Lexical.new('&' ~ $!name.canonicalize)]
         }
+        elsif $!name.is-identifier || $!name.is-indirect-lookup && !$!name.is-multi-part {
+            []
+        }
         else {
-            if $!name.is-identifier || $!name.is-indirect-lookup && !$!name.is-multi-part {
-                []
-            }
-            else {
-                my @parts := $!name.IMPL-UNWRAP-LIST($!name.parts);
-                my @package-parts := nqp::slice(@parts, 0, nqp::elems(@parts) - 2);
-                my $package-name := RakuAST::Name.new(|@package-parts);
-                [RakuAST::Type::Simple.new($package-name)]
-            }
+            my @parts := $!name.IMPL-UNWRAP-LIST($!name.parts);
+            [
+              RakuAST::Type::Simple.new(RakuAST::Name.new(
+                |nqp::slice(@parts, 0, nqp::elems(@parts) - 2)
+              ))
+            ]
         }
     }
 
@@ -1800,9 +1800,7 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('PseudoStash') ]
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
@@ -1840,9 +1838,7 @@ class RakuAST::Regex::Assertion::InterpolatedVar
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
-        ]
+        [ RakuAST::Type::Setting.from-identifier('PseudoStash') ]
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

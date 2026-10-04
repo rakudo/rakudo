@@ -1362,9 +1362,7 @@ class RakuAST::Call::PrivateMethod
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Var::Lexical::Constant.new('::?CLASS'),
-        ]
+        [ RakuAST::Var::Lexical::Constant.new('::?CLASS') ]
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
@@ -1723,11 +1721,7 @@ class RakuAST::Stub
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier-parts('X','StubCode')
-            )
-        ]
+        [ RakuAST::Type::Simple.from-identifier-parts('X','StubCode') ]
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

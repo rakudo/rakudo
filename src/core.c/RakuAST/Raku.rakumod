@@ -1305,13 +1305,22 @@ augment class RakuAST::Node {
 #- Type ------------------------------------------------------------------------
 
     multi method raku(RakuAST::Type::Capture:D: --> Str:D) {
-        indent;
-        my str $name = $*INDENT ~ self.name.raku;
-        dedent;
-        my str $nameds = self!nameds: <smiley>;
-        $nameds.ends-with('.new')
-          ?? self.^name ~ ".new(\n$name\n$*INDENT)"
-          !! $nameds.subst(".new(\n", ".new(\n$name,\n")
+        my $Name := self.name;
+        my @parts = $Name.parts;
+        if @parts == 1
+          && nqp::istype(@parts.head, RakuAST::Name::Part::Simple)
+          && !$Name.colonpairs {
+            self.^name ~ ".from-identifier(@parts.head.name.raku())"
+        }
+        else {
+            indent;
+            my str $name = $*INDENT ~ $Name.raku;
+            dedent;
+            my str $nameds = self!nameds: <smiley>;
+            $nameds.ends-with('.new')
+              ?? self.^name ~ ".new(\n$name\n$*INDENT)"
+              !! $nameds.subst(".new(\n", ".new(\n$name,\n")
+        }
     }
 
     multi method raku(RakuAST::Type::Coercion:D: --> Str:D) {
@@ -1352,7 +1361,7 @@ augment class RakuAST::Node {
             )
         }
         else {
-            self!positional(self.name)
+            self!positional($name)
         }
     }
 

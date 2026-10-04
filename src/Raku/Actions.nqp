@@ -479,6 +479,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $is-EVAL {
             $RESOLVER := $RESOLVER.clone;
             $*R := $RESOLVER;
+            $RESOLVER.IMPL-WALK-PAST-BEGIN-TIME
+              if nqp::isconcrete($*OUTER-CU);
         }
 
         # Helper sub to configure the resolver with selected language revision
@@ -3032,8 +3034,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 # block, shadowing the outer one. See:
                 #   https://github.com/Raku/roast/commit/0b8c717e6
                 #   https://github.com/Raku/old-issue-tracker/issues/1488
-                if $*LANGUAGE-REVISION < 3
-                  && $*R.resolve-lexical($name) {
+                #
+                # Before 6.e only an enclosing routine of the code being
+                # compiled counts, not one in the context an EVAL is
+                # compiled in.
+                my $routine-slurpy := $*R.resolve-lexical($name);
+                if $*LANGUAGE-REVISION < 3 && $routine-slurpy
+                  && !nqp::istype($routine-slurpy, Nodify('Declaration::External')) {
                     $ast := Nodify('Var::Lexical').new(:$sigil, :$desigilname);
                 }
                 else {

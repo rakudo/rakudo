@@ -3,7 +3,7 @@ use Test;
 use Test::Helpers;
 use nqp;
 
-plan 51;
+plan 52;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -369,5 +369,9 @@ subtest 'check that trying to run a REPL that expects a TTY fails without a TTY'
 is-run-repl ('role R[::T] { method type { T } }', 'say R[Int].type =:= Int'),
     :out{.lines.tail eq 'True'}, :err(''),
     'a parametric role declared on an earlier line can be parameterized';
+
+is-run-repl ('my class Bar { }', 'BEGIN say EVAL(q{Bar}).^name'),
+    :out{.lines.tail eq 'Bar'}, :err(''),
+    'an EVAL at BEGIN time of a line sees a class declared on an earlier line';
 
 # vim: expandtab shiftwidth=4

@@ -1239,7 +1239,7 @@ class RakuAST::Var::Slang
             QAST::Var.new( :name<Slang>, :scope<lexical> ));
         my $g := $!grammar;
         my $a := $!actions;
-        if !nqp::isnull($g) {
+        unless nqp::isnull($g) {
             $context.ensure-sc($g);
             my $wval := QAST::WVal.new( :value($g) );
             $wval.named('grammar');

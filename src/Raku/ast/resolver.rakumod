@@ -1180,7 +1180,7 @@ class RakuAST::Resolver {
         self.walk-scopes(%seen, &inner-evaluator);
 
         self.levenshtein_candidate_heuristic(@candidates, @suggestions);
-        if !$with_sigil {
+        unless $with_sigil {
             my @no_sigils;  # can't do in-place $_ alteration
             for @suggestions {
                 nqp::push( @no_sigils, nqp::substr($_,1,nqp::chars($_) - 1) );
@@ -1206,7 +1206,7 @@ class RakuAST::Resolver {
             @suggestions.push: 'proceed';
             @suggestions.push: 'succeed';
         }
-        return @suggestions;
+        @suggestions
     }
 
     method suggest-typename(Str $name) {
@@ -1253,11 +1253,12 @@ class RakuAST::Resolver {
     # compile-time scopes extend this with those scopes' declarations.
     method walk-scopes(Hash $seen, Code $inner-evaluator) {
         my $ctx := $!outer;
-        while !nqp::isnull($ctx) {
+        until nqp::isnull($ctx) {
             for $ctx -> $name {
-                next if nqp::existskey($seen, $name);
-                $seen{$name} := 1;
-                $inner-evaluator($name);
+                unless nqp::existskey($seen, $name) {
+                    $seen{$name} := 1;
+                    $inner-evaluator($name);
+                }
             }
             $ctx := nqp::ctxouter($ctx);
         }

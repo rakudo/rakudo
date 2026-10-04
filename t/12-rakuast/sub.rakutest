@@ -170,9 +170,7 @@ subtest 'A sub node with a trait evaluates to a Sub' => {
         name   => RakuAST::Name.from-identifier("foo"),
         traits => [
           RakuAST::Trait::Returns.new(
-            RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            )
+            RakuAST::Type::Simple.from-identifier('Int')
           )
         ],
         body => RakuAST::Blockoid.new(
@@ -220,9 +218,7 @@ subtest 'Return type constraint' => {
         name   => RakuAST::Name.from-identifier("foo"),
         traits => [
           RakuAST::Trait::Returns.new(
-            RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            )
+            RakuAST::Type::Simple.from-identifier('Int')
           )
         ],
         body   => RakuAST::Blockoid.new(
@@ -259,9 +255,7 @@ subtest 'Using return with acceptable type works' => {
         name   => RakuAST::Name.from-identifier("foo"),
         traits => [
           RakuAST::Trait::Returns.new(
-            RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            )
+            RakuAST::Type::Simple.from-identifier('Int')
           )
         ],
         body => RakuAST::Blockoid.new(

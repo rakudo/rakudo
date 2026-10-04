@@ -1502,9 +1502,9 @@ class RakuAST::Regex::Assertion::Named
             }
             else {
                 my @parts := $!name.IMPL-UNWRAP-LIST($!name.parts);
-                my @package-parts := nqp::slice(@parts, 0, nqp::elems(@parts) - 2);
-                my $package-name := RakuAST::Name.new(|@package-parts);
-                [RakuAST::Type::Simple.new($package-name)]
+                [RakuAST::Type::Simple.new(RakuAST::Name.new(
+                  |nqp::slice(@parts, 0, nqp::elems(@parts) - 2)
+                ))]
             }
         }
     }

@@ -165,9 +165,7 @@ subtest 'a class that fails to compose reports only its own error' => {
       name   => RakuAST::Name.from-identifier('HandBuiltClass'),
       traits => [
         RakuAST::Trait::Does.new(
-          RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('NeedsMethod')
-          )
+          RakuAST::Type::Simple.from-identifier('NeedsMethod')
         )
       ]
     );
@@ -184,14 +182,10 @@ subtest 'a class that fails to compose reports only its own error' => {
           name   => RakuAST::Name.from-identifier('HandBuiltDocClass'),
           traits => [
             RakuAST::Trait::Does.new(
-              RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('DocMethodRoleA')
-              )
+              RakuAST::Type::Simple.from-identifier('DocMethodRoleA')
             ),
             RakuAST::Trait::Does.new(
-              RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('DocMethodRoleB')
-              )
+              RakuAST::Type::Simple.from-identifier('DocMethodRoleB')
             )
           ]
         ).declarator-docs(leading => ("leading doc\n",))
@@ -202,9 +196,7 @@ subtest 'a class that fails to compose reports only its own error' => {
       name   => RakuAST::Name.from-identifier('HandBuiltBodyErrorClass'),
       traits => [
         RakuAST::Trait::Does.new(
-          RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('NeedsMethod')
-          )
+          RakuAST::Type::Simple.from-identifier('NeedsMethod')
         )
       ],
       body   => RakuAST::Block.new(

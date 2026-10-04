@@ -43,9 +43,7 @@ subtest 'creating an empty role' => {
           name   => RakuAST::Name.from-identifier('Zippo'),
           traits => (
             RakuAST::Trait::Does.new(
-              RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Frobnicator')
-              )
+              RakuAST::Type::Simple.from-identifier('Frobnicator')
             ),
           )
         )
@@ -112,9 +110,7 @@ subtest 'creating a role that does another role' => {
       name   => RakuAST::Name.from-identifier('B'),
       traits => (
         RakuAST::Trait::Does.new(
-          RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier("Positional")
-          )
+          RakuAST::Type::Simple.from-identifier("Positional")
         ),
       )
     );
@@ -138,16 +134,10 @@ subtest 'creating a role that does a parameterized role' => {
       traits => (
         RakuAST::Trait::Does.new(
           RakuAST::Type::Parameterized.new(
-            base-type => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier("Rational")
-            ),
+            base-type => RakuAST::Type::Simple.from-identifier("Rational"),
             args      => RakuAST::ArgList.new(
-              RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier("Int")
-              ),
-              RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier("Int")
-              )
+              RakuAST::Type::Simple.from-identifier("Int"),
+              RakuAST::Type::Simple.from-identifier("Int")
             )
           )
         ),
@@ -238,9 +228,7 @@ subtest 'creating a parameterized role with a type capture' => {
                   parameters => (
                     RakuAST::Parameter.new(
                       type => RakuAST::Type::Definedness.new(
-                        base-type => RakuAST::Type::Simple.new(
-                          RakuAST::Name.from-identifier("T")
-                        ),
+                        base-type => RakuAST::Type::Simple.from-identifier("T"),
                         definite  => True
                       ),
                       target => RakuAST::ParameterTarget::Var.new(:name<$a>)
@@ -267,9 +255,7 @@ subtest 'creating a parameterized role with a type capture' => {
                 RakuAST::Name.from-identifier("T")
               ),
             ),
-            default       => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier("Str")
-            )
+            default       => RakuAST::Type::Simple.from-identifier("Str")
           ),
         )
       )
@@ -537,9 +523,7 @@ subtest 'A parameterized role whose version needs evaluation' => {
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                      expression => RakuAST::Type::Simple.new(
-                        RakuAST::Name.from-identifier('T')
-                      )
+                      expression => RakuAST::Type::Simple.from-identifier('T')
                     )
                   )
                 )
@@ -885,9 +869,7 @@ subtest 'A parameterized role declarator a module added resolves in a tree' => {
                     body => RakuAST::Blockoid.new(
                       RakuAST::StatementList.new(
                         RakuAST::Statement::Expression.new(
-                          expression => RakuAST::Type::Simple.new(
-                            RakuAST::Name.from-identifier('T')
-                          )
+                          expression => RakuAST::Type::Simple.from-identifier('T')
                         )
                       )
                     )
@@ -910,9 +892,7 @@ subtest 'A parameterized role declarator a module added resolves in a tree' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        expression => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('CustomTypedRole')
-        )
+        expression => RakuAST::Type::Simple.from-identifier('CustomTypedRole')
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';

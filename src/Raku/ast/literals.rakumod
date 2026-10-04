@@ -53,12 +53,11 @@ class RakuAST::Literal
     }
 
     method ast-type {
-        my $type := RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier(
-            nqp::ifnull(
-              $!typename,
-              nqp::bindattr(self,RakuAST::Literal,'$!typename',
-                $!value.HOW.name($!value))
+        my $type := RakuAST::Type::Simple.from-identifier(
+          nqp::ifnull(
+            $!typename,
+            nqp::bindattr(self,RakuAST::Literal,'$!typename',
+              $!value.HOW.name($!value)
             )
           )
         );
@@ -294,7 +293,7 @@ class RakuAST::QuotedString
         }
         else {
             # Always a string if no processors.
-            my $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'));
+            my $type := RakuAST::Type::Simple.from-identifier('Str');
             $type.set-resolution:
                 RakuAST::Declaration::ResolvedConstant.new(
                     compile-time-value => Str

@@ -234,9 +234,7 @@ subtest 'Typed variable my|state declaration (type matches in assignment)' => {
               scope => $scope,
               sigil => '$',
               desigilname => RakuAST::Name.from-identifier('foo'),
-              type  => RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Int')
-              )
+              type  => RakuAST::Type::Simple.from-identifier('Int')
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -266,13 +264,11 @@ subtest 'Typed variable my|state declaration (type mismatch throws)' => {
         # my|state Int $foo; $foo = 1e5; $foo
         ast RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            expression => RakuAST::VarDeclaration::Simple.new(
-              scope => $scope,
-              sigil => '$',
+            expression    => RakuAST::VarDeclaration::Simple.new(
+              scope       => $scope,
+              sigil       => '$',
               desigilname => RakuAST::Name.from-identifier('foo'),
-              type  => RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Int')
-              )
+              type        => RakuAST::Type::Simple.from-identifier('Int')
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -614,9 +610,7 @@ subtest '@ sigil my|state var with Int type is an Array' => {
               scope => $scope,
               sigil => '@',
               desigilname => RakuAST::Name.from-identifier('arr'),
-              type  => RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Int')
-              )
+              type  => RakuAST::Type::Simple.from-identifier('Int')
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -660,9 +654,7 @@ subtest '% sigil my|state var with Int type is a Hash' => {
               scope => $scope,
               sigil => '%',
               desigilname => RakuAST::Name.from-identifier('hash'),
-              type  => RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Int')
-              )
+              type  => RakuAST::Type::Simple.from-identifier('Int')
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -737,9 +729,7 @@ subtest 'int declaration creates a native int container' => {
         expression => RakuAST::VarDeclaration::Simple.new(
           sigil => '$',
           desigilname => RakuAST::Name.from-identifier('native-int'),
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('int')
-          )
+          type => RakuAST::Type::Simple.from-identifier('int')
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -773,9 +763,7 @@ subtest 'num declaration creates a native num container' => {
         expression => RakuAST::VarDeclaration::Simple.new(
           sigil => '$',
           desigilname => RakuAST::Name.from-identifier('native-num'),
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('num')
-          )
+          type => RakuAST::Type::Simple.from-identifier('num')
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -809,9 +797,7 @@ subtest 'str declaration creates a native str container' => {
         expression => RakuAST::VarDeclaration::Simple.new(
           sigil => '$',
           desigilname => RakuAST::Name.from-identifier('native-str'),
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('str')
-          )
+          type => RakuAST::Type::Simple.from-identifier('str')
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -845,9 +831,7 @@ subtest 'Native int assign initializer works' => {
         expression => RakuAST::VarDeclaration::Simple.new(
           sigil => '$',
           desigilname => RakuAST::Name.from-identifier('native-int'),
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('int')
-          ),
+          type => RakuAST::Type::Simple.from-identifier('int'),
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::IntLiteral.new(963)
           )
@@ -873,9 +857,7 @@ subtest 'Native num assign initializer works' => {
         expression => RakuAST::VarDeclaration::Simple.new(
           sigil => '$',
           desigilname => RakuAST::Name.from-identifier('native-num'),
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('num')
-          ),
+          type => RakuAST::Type::Simple.from-identifier('num'),
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::NumLiteral.new(96e3)
           )
@@ -901,9 +883,7 @@ subtest 'Native str assign initializer works' => {
         expression => RakuAST::VarDeclaration::Simple.new(
           sigil => '$',
           desigilname => RakuAST::Name.from-identifier('native-str'),
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('str')
-          ),
+          type => RakuAST::Type::Simple.from-identifier('str'),
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::StrLiteral.new('nine six three')
           )
@@ -1147,9 +1127,7 @@ subtest 'Typed our constant' => {
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::VarDeclaration::Constant.new(
         scope       => "our",
-        type        => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier("Int")
-        ),
+        type        => RakuAST::Type::Simple.from-identifier("Int"),
         name        => "foo",
         initializer => RakuAST::Initializer::Assign.new(
           RakuAST::IntLiteral.new(42)
@@ -1388,9 +1366,7 @@ subtest 'Typed signature declaration' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Signature.new(
           scope => 'my',
-          type  => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          ),
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
@@ -1402,9 +1378,7 @@ subtest 'Typed signature declaration' => {
                 :!optional
               ),
             ),
-            returns => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            )
+            returns => RakuAST::Type::Simple.from-identifier('Int')
           ),
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::ApplyListInfix.new(
@@ -1432,9 +1406,7 @@ subtest 'Typed signature declaration with binding' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Signature.new(
           scope => 'my',
-          type  => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          ),
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
@@ -1446,9 +1418,7 @@ subtest 'Typed signature declaration with binding' => {
                 :!optional
               ),
             ),
-            returns => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            )
+            returns => RakuAST::Type::Simple.from-identifier('Int')
           ),
           initializer => RakuAST::Initializer::Bind.new(
             RakuAST::ApplyListInfix.new(
@@ -1476,9 +1446,7 @@ subtest 'Typed signature declaration keeps its type' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Signature.new(
           scope => 'my',
-          type  => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          ),
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
@@ -1490,9 +1458,7 @@ subtest 'Typed signature declaration keeps its type' => {
                 :!optional
               ),
             ),
-            returns => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            )
+            returns => RakuAST::Type::Simple.from-identifier('Int')
           )
         )
       ),
@@ -1522,9 +1488,7 @@ subtest 'Untyped signature declaration with a return type' => {
                 :!optional
               ),
             ),
-            returns => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            )
+            returns => RakuAST::Type::Simple.from-identifier('Int')
           ),
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::IntLiteral.new(3)
@@ -1546,9 +1510,7 @@ subtest 'Lexical variable with a coercion type' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           type        => RakuAST::Type::Coercion.new(
-            base-type => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Int')
-            )
+            base-type => RakuAST::Type::Simple.from-identifier('Int')
           ),
           sigil       => '$',
           desigilname => RakuAST::Name.from-identifier('x'),
@@ -1672,9 +1634,7 @@ subtest 'Shaped hash declaration' => {
           desigilname => RakuAST::Name.from-identifier('h'),
           shape       => RakuAST::SemiList.new(
             RakuAST::Statement::Expression.new(
-              expression => RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Str')
-              )
+              expression => RakuAST::Type::Simple.from-identifier('Str')
             )
           )
         )
@@ -1852,7 +1812,7 @@ subtest 'An anonymous variable declaration ends its statement' => {
         expression => RakuAST::VarDeclaration::Anonymous.new(
           scope => 'state',
           sigil => '$',
-          type  => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+          type  => RakuAST::Type::Simple.from-identifier('Int')
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -2123,9 +2083,7 @@ subtest 'Typed signature declaration with a sub-signature' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Signature.new(
           scope => 'my',
-          type  => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          ),
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
@@ -2388,9 +2346,7 @@ subtest 'Typed signature declaration with a term' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Signature.new(
           scope => 'my',
-          type  => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          ),
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
@@ -2428,9 +2384,7 @@ CODE
     # my Int ($p, \foo) = 1, "x"
     ast RakuAST::VarDeclaration::Signature.new(
       scope => 'my',
-      type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('Int')
-      ),
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -2464,9 +2418,7 @@ CODE
     # my Int ($p, \foo where * > 1) := 1, 0
     ast RakuAST::VarDeclaration::Signature.new(
       scope => 'my',
-      type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('Int')
-      ),
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -2505,15 +2457,11 @@ CODE
     # my Int (Str \foo) := "x"
     ast RakuAST::VarDeclaration::Signature.new(
       scope => 'my',
-      type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('Int')
-      ),
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            type   => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier('Str')
-            ),
+            type   => RakuAST::Type::Simple.from-identifier('Str'),
             target => RakuAST::ParameterTarget::Term.new(
               RakuAST::Name.from-identifier('foo')
             )
@@ -2580,9 +2528,7 @@ subtest 'Typed signature declaration binding checks the type' => {
     # my Int ($p, $q) := 1, "x"
     ast RakuAST::VarDeclaration::Signature.new(
       scope => 'my',
-      type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('Int')
-      ),
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -2618,9 +2564,7 @@ subtest 'Typed signature declaration binding checks the type' => {
     # my Int ($p, @q) := 1, [1, 2]
     ast RakuAST::VarDeclaration::Signature.new(
       scope => 'my',
-      type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('Int')
-      ),
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -2668,9 +2612,7 @@ subtest 'Typed signature declaration binding checks the type' => {
     ast RakuAST::VarDeclaration::Signature.new(
       scope => 'my',
       type  => RakuAST::Type::Definedness.new(
-        base-type => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('Int')
-        ),
+        base-type => RakuAST::Type::Simple.from-identifier('Int'),
         definite  => True
       ),
       signature => RakuAST::Signature.new(
@@ -2688,7 +2630,7 @@ subtest 'Typed signature declaration binding checks the type' => {
           infix    => RakuAST::Infix.new(','),
           operands => (
             RakuAST::IntLiteral.new(1),
-            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+            RakuAST::Type::Simple.from-identifier('Int')
           )
         )
       )
@@ -2704,9 +2646,7 @@ subtest 'Typed signature declaration binding checks the type' => {
     # my Int ($p, ($q, $r)) := 1, (2, "x")
     ast RakuAST::VarDeclaration::Signature.new(
       scope => 'my',
-      type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('Int')
-      ),
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -2759,9 +2699,7 @@ subtest 'Typed signature declaration binding checks the type' => {
     # my UInt ($p, $q) := 1, -1
     ast RakuAST::VarDeclaration::Signature.new(
       scope => 'my',
-      type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('UInt')
-      ),
+      type  => RakuAST::Type::Simple.from-identifier('UInt'),
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -2795,9 +2733,7 @@ subtest 'Typed signature declaration binding checks the type' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Signature.new(
           scope => 'my',
-          type  => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          ),
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
@@ -3024,9 +2960,7 @@ CODE
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Signature.new(
           scope => 'my',
-          type  => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          ),
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
@@ -3193,9 +3127,7 @@ CODE
     # my Int ($p, ($q, $r)) = 1, (2, "x")
     ast RakuAST::VarDeclaration::Signature.new(
       scope => 'my',
-      type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier('Int')
-      ),
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(

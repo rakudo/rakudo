@@ -1720,9 +1720,7 @@ class RakuAST::Stub
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier-parts('X','StubCode')
-            )
+            RakuAST::Type::Simple.from-identifier-parts('X','StubCode')
         ]
     }
 

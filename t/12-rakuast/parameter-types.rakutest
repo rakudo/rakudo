@@ -387,12 +387,12 @@ subtest 'Node predicates return a Bool' => {
       'a parameter is not declared required by default';
     is-deeply RakuAST::ParameterTarget::Var.new(name => '$x').can-be-resolved, True,
       'a parameter variable can be resolved';
-    is-deeply RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int')).is-native, True,
+    is-deeply RakuAST::Type::Simple.from-identifier('int').is-native, True,
       'int is a native type';
     is-deeply RakuAST::Postcircumfix::ArrayIndex.new(
       index => RakuAST::SemiList.new
     ).is-multislice, False, 'an empty index is not a multislice';
-    is-deeply RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')).is-known-to-be(Int),
+    is-deeply RakuAST::Type::Simple.from-identifier('Int').is-known-to-be(Int),
       False, 'an unresolved type is not known to be a type';
     is-deeply RakuAST::ArgList.new(RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(2)).has-args,
       True, 'an argument list of two arguments has arguments';
@@ -431,7 +431,7 @@ subtest 'Node predicates return a Bool' => {
     is-deeply RakuAST::Declaration::External::Package.new(
       lexical-name => 'Int', compile-time-value => Int
     ).can-have-methods, True, 'a class declaration can have methods';
-    my $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'));
+    my $type := RakuAST::Type::Simple.from-identifier('Int');
     $type.set-resolution($int);
     is-deeply $type.is-known-to-be(Int), True, 'Int is known to be an Int';
     is-deeply $type.is-known-to-be(Str), False, 'Int is not known to be a Str';

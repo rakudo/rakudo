@@ -142,9 +142,7 @@ subtest 'CONTROL phaser catching a warning' => {
                   name => RakuAST::Name.from-identifier("isa-ok"),
                   args => RakuAST::ArgList.new(
                     RakuAST::Var::Lexical.new('$_'),
-                    RakuAST::Type::Simple.new(
-                      RakuAST::Name.from-identifier-parts('CX', 'Warn')
-                    )
+                    RakuAST::Type::Simple.from-identifier-parts('CX', 'Warn')
                   )
                 )
               ),
@@ -203,9 +201,7 @@ subtest 'CATCH phaser catching an exception' => {
                   name => RakuAST::Name.from-identifier("isa-ok"),
                   args => RakuAST::ArgList.new(
                     RakuAST::Var::Lexical.new('$_'),
-                    RakuAST::Type::Simple.new(
-                      RakuAST::Name.from-identifier-parts('X', 'AdHoc')
-                    )
+                    RakuAST::Type::Simple.from-identifier-parts('X', 'AdHoc')
                   )
                 )
               ),
@@ -717,9 +713,7 @@ subtest 'KEEP / UNDO phaser thunk UNsuccessful exit' => {
             )
           ),
           RakuAST::Statement::Expression.new(
-            expression => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier("Int")
-            )
+            expression => RakuAST::Type::Simple.from-identifier("Int")
           )
         )
       )
@@ -792,9 +786,7 @@ subtest 'KEEP / UNDO phaser block UNsuccessful exit' => {
             )
           ),
           RakuAST::Statement::Expression.new(
-            expression => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier("Int")
-            )
+            expression => RakuAST::Type::Simple.from-identifier("Int")
           )
         )
       )

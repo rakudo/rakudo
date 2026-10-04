@@ -101,9 +101,7 @@ subtest 'The postfix "with" statement works with a type object' => {
         right => RakuAST::IntLiteral.new(2)
       ),
       condition-modifier => RakuAST::StatementModifier::With.new(
-        RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('Int')
-        )
+        RakuAST::Type::Simple.from-identifier('Int')
       )
     );
 
@@ -161,9 +159,7 @@ subtest 'The postfix "without" statement works with a type object' => {
         )
       ),
       condition-modifier => RakuAST::StatementModifier::Without.new(
-        RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('Int')
-        )
+        RakuAST::Type::Simple.from-identifier('Int')
       )
     );
 
@@ -185,9 +181,7 @@ subtest 'The postfix "without" statement runs a zero-parameter block' => {
         )
       ),
       condition-modifier => RakuAST::StatementModifier::Without.new(
-        RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('Any')
-        )
+        RakuAST::Type::Simple.from-identifier('Any')
       )
     );
 
@@ -221,9 +215,7 @@ subtest 'The postfix "without" statement passes the tested value to a block para
         )
       ),
       condition-modifier => RakuAST::StatementModifier::Without.new(
-        RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('Int')
-        )
+        RakuAST::Type::Simple.from-identifier('Int')
       )
     );
 
@@ -294,9 +286,7 @@ subtest 'A zero-parameter block keeps the topic of its outer scope' => {
           )
         ),
         condition-modifier => RakuAST::StatementModifier::Without.new(
-          RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Any')
-          )
+          RakuAST::Type::Simple.from-identifier('Any')
         )
       )
     );
@@ -333,9 +323,7 @@ subtest 'A bare block topicalizes the tested value' => {
           )
         ),
         condition-modifier => RakuAST::StatementModifier::Without.new(
-          RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Any')
-          )
+          RakuAST::Type::Simple.from-identifier('Any')
         )
       )
     );
@@ -365,9 +353,7 @@ subtest 'A placeholder block receives the tested value' => {
         )
       ),
       condition-modifier => RakuAST::StatementModifier::Without.new(
-        RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('Int')
-        )
+        RakuAST::Type::Simple.from-identifier('Int')
       )
     );
 
@@ -418,9 +404,7 @@ subtest 'The postfix "given" statement works with a type object' => {
         )
       ),
       loop-modifier => RakuAST::StatementModifier::Given.new(
-        RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('Int')
-        )
+        RakuAST::Type::Simple.from-identifier('Int')
       )
     );
 

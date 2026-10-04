@@ -1123,10 +1123,8 @@ class RakuAST::StatementPrefix::Phaser::Pre
           RakuAST::Statement::Expression.new(
             expression => RakuAST::ApplyPostfix.new(
               operand => RakuAST::ApplyPostfix.new(
-                operand => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier-parts(
-                    'X','Phaser','PrePost'
-                  )
+                operand => RakuAST::Type::Simple.from-identifier-parts(
+                  'X','Phaser','PrePost'
                 ),
                 postfix => RakuAST::Call::Method.new(
                   name => RakuAST::Name.from-identifier('new'),
@@ -1198,10 +1196,8 @@ class RakuAST::StatementPrefix::Phaser::Post
                 RakuAST::Statement::Expression.new(
                   expression => RakuAST::ApplyPostfix.new(
                     operand => RakuAST::ApplyPostfix.new(
-                      operand => RakuAST::Type::Simple.new(
-                        RakuAST::Name.from-identifier-parts(
-                          'X','Phaser','PrePost'
-                        )
+                      operand => RakuAST::Type::Simple.from-identifier-parts(
+                        'X','Phaser','PrePost'
                       ),
                       postfix => RakuAST::Call::Method.new(
                         name => RakuAST::Name.from-identifier('new'),

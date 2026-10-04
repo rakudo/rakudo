@@ -15,9 +15,7 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 }
 
 subtest 'look up an existing type' => {
-    ast RakuAST::Type::Simple.new(
-      RakuAST::Name.from-identifier-parts('Proc', 'Async')
-    );
+    ast RakuAST::Type::Simple.from-identifier-parts('Proc', 'Async');
     is-deeply $deparsed, 'Proc::Async', 'deparse';
 
     is-deeply $_, Proc::Async, @type[$++]
@@ -27,9 +25,7 @@ subtest 'look up an existing type' => {
 subtest 'type with definedness constraint' => {
     # Int:D
     ast RakuAST::Type::Definedness.new(
-      base-type => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Int")
-      ),
+      base-type => RakuAST::Type::Simple.from-identifier("Int"),
       definite  => True
     );
     is-deeply $deparsed, 'Int:D', 'deparse';
@@ -41,9 +37,7 @@ subtest 'type with definedness constraint' => {
 subtest 'type with undefinedness constraint' => {
     # Int:U
     ast RakuAST::Type::Definedness.new(
-      base-type => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Int")
-      ),
+      base-type => RakuAST::Type::Simple.from-identifier("Int"),
       definite  => False
     );
     is-deeply $deparsed, 'Int:U', 'deparse';
@@ -55,9 +49,7 @@ subtest 'type with undefinedness constraint' => {
 subtest 'type with unspecified coercion' => {
     # Int()
     ast RakuAST::Type::Coercion.new(
-      base-type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Int")
-      ),
+      base-type  => RakuAST::Type::Simple.from-identifier("Int")
     );
     is-deeply $deparsed, 'Int()', 'deparse';
 
@@ -68,12 +60,8 @@ subtest 'type with unspecified coercion' => {
 subtest 'type with specific coercion' => {
     # Int(Str)
     ast RakuAST::Type::Coercion.new(
-      base-type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Int")
-      ),
-      constraint => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Str")
-      )
+      base-type  => RakuAST::Type::Simple.from-identifier("Int"),
+      constraint => RakuAST::Type::Simple.from-identifier("Str")
     );
     is-deeply $deparsed, 'Int(Str)', 'deparse';
 
@@ -84,13 +72,9 @@ subtest 'type with specific coercion' => {
 subtest 'type with chained coercion' => {
     # Int(Str())
     ast RakuAST::Type::Coercion.new(
-      base-type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Int")
-      ),
+      base-type  => RakuAST::Type::Simple.from-identifier("Int"),
       constraint => RakuAST::Type::Coercion.new(
-        base-type => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier("Str")
-        )
+        base-type => RakuAST::Type::Simple.from-identifier("Str")
       )
     );
     is-deeply $deparsed, 'Int(Str())', 'deparse';
@@ -102,9 +86,7 @@ subtest 'type with chained coercion' => {
 subtest 'parameterized type without type' => {
     # Rational[]
     ast RakuAST::Type::Parameterized.new(
-      base-type => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Rational")
-      )
+      base-type => RakuAST::Type::Simple.from-identifier("Rational")
     );
     is-deeply $deparsed, 'Rational', 'deparse';
 
@@ -115,13 +97,9 @@ subtest 'parameterized type without type' => {
 subtest 'parameterized type with type' => {
     # Rational[Int]
     ast RakuAST::Type::Parameterized.new(
-      base-type => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Rational")
-      ),
+      base-type => RakuAST::Type::Simple.from-identifier("Rational"),
       args      => RakuAST::ArgList.new(
-        RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier("Int")
-        )
+        RakuAST::Type::Simple.from-identifier("Int")
       )
     );
     is-deeply $deparsed, 'Rational[Int]', 'deparse';
@@ -172,13 +150,9 @@ subtest 'Definedness of a parameterized type' => {
               RakuAST::Parameter.new(
                 type => RakuAST::Type::Definedness.new(
                   base-type => RakuAST::Type::Parameterized.new(
-                    base-type => RakuAST::Type::Simple.new(
-                      RakuAST::Name.from-identifier('Positional')
-                    ),
+                    base-type => RakuAST::Type::Simple.from-identifier('Positional'),
                     args => RakuAST::ArgList.new(
-                      RakuAST::Type::Simple.new(
-                        RakuAST::Name.from-identifier('Int')
-                      )
+                      RakuAST::Type::Simple.from-identifier('Int')
                     )
                   ),
                   definite => True
@@ -207,13 +181,9 @@ subtest 'Definedness of a parameterized type' => {
           args => RakuAST::ArgList.new(
             RakuAST::ApplyPostfix.new(
               operand => RakuAST::Type::Parameterized.new(
-                base-type => RakuAST::Type::Simple.new(
-                  RakuAST::Name.from-identifier('Array')
-                ),
+                base-type => RakuAST::Type::Simple.from-identifier('Array'),
                 args => RakuAST::ArgList.new(
-                  RakuAST::Type::Simple.new(
-                    RakuAST::Name.from-identifier('Int')
-                  )
+                  RakuAST::Type::Simple.from-identifier('Int')
                 )
               ),
               postfix => RakuAST::Call::Method.new(
@@ -246,9 +216,9 @@ subtest 'Declaration with the definedness of a parameterized type' => {
         expression => RakuAST::VarDeclaration::Simple.new(
           type        => RakuAST::Type::Definedness.new(
             base-type => RakuAST::Type::Parameterized.new(
-              base-type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Hash')),
+              base-type => RakuAST::Type::Simple.from-identifier('Hash'),
               args      => RakuAST::ArgList.new(
-                RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+                RakuAST::Type::Simple.from-identifier('Str')
               )
             ),
             definite  => True
@@ -275,12 +245,8 @@ CODE
 subtest 'type with a written Any coercion' => {
     # Int(Any)
     ast RakuAST::Type::Coercion.new(
-      base-type  => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Int")
-      ),
-      constraint => RakuAST::Type::Simple.new(
-        RakuAST::Name.from-identifier("Any")
-      )
+      base-type  => RakuAST::Type::Simple.from-identifier("Int"),
+      constraint => RakuAST::Type::Simple.from-identifier("Any")
     );
     is-deeply $deparsed, 'Int(Any)', 'deparse';
 
@@ -296,7 +262,7 @@ subtest 'The :_ smiley stays on a type' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           type        => RakuAST::Type::AnyDefinedness.new(
-            base-type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+            base-type => RakuAST::Type::Simple.from-identifier('Int')
           ),
           sigil       => '$',
           desigilname => RakuAST::Name.from-identifier('a')

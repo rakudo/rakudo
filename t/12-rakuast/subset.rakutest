@@ -46,9 +46,7 @@ subtest 'Simple subset Foo of Int' => {
     ast RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier("Foo"),
-      of    => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier("Int")
-        )
+      of    => RakuAST::Type::Simple.from-identifier("Int")
     );
 
     is-deeply $deparsed, 'my subset Foo of Int', 'deparse';
@@ -73,9 +71,7 @@ subtest 'Subset with a where block' => {
     ast RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier("Foo"),
-      of    => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier("Int")
-      ),
+      of    => RakuAST::Type::Simple.from-identifier("Int"),
       where => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
@@ -118,9 +114,7 @@ subtest 'Subset with a where pointy block' => {
     ast RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier("Foo"),
-      of    => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier("Int")
-      ),
+      of    => RakuAST::Type::Simple.from-identifier("Int"),
       where => RakuAST::PointyBlock.new(
         signature => RakuAST::Signature.new(
           parameters => (
@@ -170,11 +164,9 @@ subtest 'Subset with a where whatevercode' => {
     ast RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.from-identifier("Foo"),
-      of    => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier("Int")
-      ),
+      of    => RakuAST::Type::Simple.from-identifier("Int"),
       where => RakuAST::ApplyInfix.new(
-        left => RakuAST::Term::Whatever.new,
+        left  => RakuAST::Term::Whatever.new,
         infix => RakuAST::Infix.new('%%'),
         right => RakuAST::IntLiteral.new(2)
       )
@@ -233,9 +225,7 @@ subtest 'Anonymous subset (subset ::)' => {
         RakuAST::Name::Part::EmptyEdge.new,
         RakuAST::Name::Part::EmptyEdge.new,
       ),
-      of    => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier("Str")
-        ),
+      of    => RakuAST::Type::Simple.from-identifier("Str"),
       where => RakuAST::QuotedRegex.new(
         body => RakuAST::Regex::Literal.new('42')
       )
@@ -251,9 +241,7 @@ subtest 'Anonymous subset (subset ::)' => {
     my $single := EVAL RakuAST::Type::Subset.new(
       scope => 'my',
       name  => RakuAST::Name.new(RakuAST::Name::Part::EmptyEdge.new),
-      of    => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier("Int")
-        ),
+      of    => RakuAST::Type::Simple.from-identifier("Int"),
     );
     is $single.^name, '<anon>', 'AST single-Empty: anonymous name';
 
@@ -325,7 +313,7 @@ subtest 'An of trait stays where it was written' => {
           name => RakuAST::Name.from-identifier('export')
         ),
         RakuAST::Trait::Of.new(
-          RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+          RakuAST::Type::Simple.from-identifier('Int')
         ),
       )
     );
@@ -345,7 +333,7 @@ subtest 'An of trait stays where it was written' => {
           name => RakuAST::Name.from-identifier('DEPRECATED')
         ),
         RakuAST::Trait::Of.new(
-          RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+          RakuAST::Type::Simple.from-identifier('Int')
         ),
       )
     );
@@ -365,21 +353,19 @@ subtest 'An of trait stays where it was written' => {
           name   => RakuAST::Name.from-identifier('OfTwice'),
           traits => (
             RakuAST::Trait::Of.new(
-              RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+              RakuAST::Type::Simple.from-identifier('Int')
             ),
-            RakuAST::Trait::Of.new(
-              RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
-            ),
+            RakuAST::Trait::Of.from-identifier('Str'),
           )
         )
     }, 'a second of trait is refused';
     dies-ok {
         RakuAST::Type::Subset.new(
           name   => RakuAST::Name.from-identifier('OfBoth'),
-          of     => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
+          of     => RakuAST::Type::Simple.from-identifier('Int'),
           traits => (
             RakuAST::Trait::Of.new(
-              RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
+              RakuAST::Type::Simple.from-identifier('Str')
             ),
           )
         )
@@ -405,15 +391,11 @@ subtest 'A subset declarator a module superseded resolves in a tree' => {
         expression => RakuAST::Type::Subset.new(
           scope => 'my',
           name  => RakuAST::Name.from-identifier('Superseded'),
-          of    => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          )
+          of    => RakuAST::Type::Simple.from-identifier('Int')
         )
       ),
       RakuAST::Statement::Expression.new(
-        expression => RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier('Superseded')
-        )
+        expression => RakuAST::Type::Simple.from-identifier('Superseded')
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';

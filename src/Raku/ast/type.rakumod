@@ -99,6 +99,18 @@ class RakuAST::Type::Simple
         $obj
     }
 
+    method from-identifier(Str $identifier) {
+        self.new(RakuAST::Name.from-identifier($identifier))
+    }
+
+    method from-identifier-parts(*@identifiers) {
+        self.new(RakuAST::Name.from-identifier-list(@identifiers))
+    }
+
+    method from-identifier-list(@identifiers) {
+        self.new(RakuAST::Name.from-identifier-list(@identifiers))
+    }
+
     method build-bind-exception(RakuAST::Resolver $resolver) {
         $resolver.build-exception: 'X::Bind::Rebind',
             :target(self.meta-object.raku), :is-type(1)
@@ -1043,14 +1055,14 @@ class RakuAST::Type::Enum
             $enumeration-kind := 'StringyEnumeration';
         }
         self.add-trait(RakuAST::Trait::Does.new(
-            RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Enumeration')
-            ).to-begin-time($resolver, $context)
+          RakuAST::Type::Simple.from-identifier(
+            'Enumeration'
+          ).to-begin-time($resolver, $context)
         ).to-begin-time($resolver, $context));
         if $enumeration-kind {
             self.add-trait(RakuAST::Trait::Does.new(
-                RakuAST::Type::Simple.new(
-                    RakuAST::Name.from-identifier($enumeration-kind)
+                RakuAST::Type::Simple.from-identifier(
+                  $enumeration-kind
                 ).to-begin-time($resolver, $context)
             ).to-begin-time($resolver, $context));
         }

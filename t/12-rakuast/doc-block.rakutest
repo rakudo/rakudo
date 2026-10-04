@@ -321,9 +321,7 @@ subtest 'pod block inside a class body' => {
       ),
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyPostfix.new(
-          operand => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('A')
-          ),
+          operand => RakuAST::Type::Simple.from-identifier('A'),
           postfix => RakuAST::Call::Method.new(
             name => RakuAST::Name.from-identifier('x')
           )

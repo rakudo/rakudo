@@ -3009,7 +3009,7 @@ class RakuAST::Statement::Require
 
         if @arglist {
             for @arglist {
-                my $declarand := RakuAST::Type::Capture.new: RakuAST::Name.from-identifier($_.Str);
+                my $declarand := RakuAST::Type::Capture.from-identifier($_.Str);
                 $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
             }
         }

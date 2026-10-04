@@ -1439,9 +1439,7 @@ our class Formatter {
                     my $type := RakuAST::Type;
                     if @*COERCIONS[$_] -> $coercion {
                         $type := RakuAST::Type::Coercion.new(
-                          base-type => RakuAST::Type::Simple.new(
-                            RakuAST::Name.from-identifier($coercion)
-                          )
+                          base-type => RakuAST::Type::Simple.from-identifier($coercion)
                         )
                     }
 

@@ -881,7 +881,7 @@ class RakuAST::Role
 
         for '$?CLASS', '::?CLASS' {
             $resolver.declare-lexical(
-              RakuAST::Type::Capture.new(RakuAST::Name.from-identifier($_)).to-begin-time($resolver, $context)
+              RakuAST::Type::Capture.from-identifier($_).to-begin-time($resolver, $context)
             );
         }
     }

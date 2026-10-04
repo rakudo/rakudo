@@ -251,14 +251,10 @@ class RakuAST::Signature
             unless @param-asts && @param-asts[0].invocant {
                 my $invocant := RakuAST::Parameter.new();
                 $invocant.add-type-capture(
-                    RakuAST::Type::Capture.new(
-                        RakuAST::Name.from-identifier('$?CLASS')
-                    )
+                  RakuAST::Type::Capture.from-identifier('$?CLASS')
                 );
                 $invocant.add-type-capture(
-                    RakuAST::Type::Capture.new(
-                        RakuAST::Name.from-identifier('::?CLASS')
-                    )
+                  RakuAST::Type::Capture.from-identifier('::?CLASS')
                 );
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant', $invocant);
                 nqp::push(@generated, $_) for self.IMPL-UNWRAP-LIST($invocant.type-captures);

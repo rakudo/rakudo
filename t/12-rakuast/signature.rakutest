@@ -724,9 +724,7 @@ subtest 'Type capture with a target' => {
             parameters => (
               RakuAST::Parameter.new(
                 type-captures => (
-                  RakuAST::Type::Capture.new(
-                    RakuAST::Name.from-identifier('T')
-                  ),
+                  RakuAST::Type::Capture.from-identifier('T'),
                 ),
                 target => RakuAST::ParameterTarget::Var.new(:name<$x>)
               ),
@@ -925,9 +923,7 @@ subtest 'Type capture with a type and a target' => {
               RakuAST::Parameter.new(
                 type          => RakuAST::Type::Simple.from-identifier('Int'),
                 type-captures => (
-                  RakuAST::Type::Capture.new(
-                    RakuAST::Name.from-identifier('T')
-                  ),
+                  RakuAST::Type::Capture.from-identifier('T'),
                 ),
                 target => RakuAST::ParameterTarget::Var.new(:name<$x>)
               ),
@@ -1435,10 +1431,7 @@ subtest 'Type capture with a definedness smiley' => {
             parameters => (
               RakuAST::Parameter.new(
                 type-captures => (
-                  RakuAST::Type::Capture.new(
-                    RakuAST::Name.from-identifier('T'),
-                    smiley => 'D'
-                  ),
+                  RakuAST::Type::Capture.from-identifier('T', :smiley<D>),
                 ),
                 target => RakuAST::ParameterTarget::Var.new(:name<$x>)
               ),

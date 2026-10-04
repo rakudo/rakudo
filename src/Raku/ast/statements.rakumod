@@ -778,10 +778,7 @@ class RakuAST::StatementList
             }
             $stmts.push($qast);
         }
-        if !nqp::elems(@statements) {
-            $stmts.push($Nil.IMPL-TO-QAST($context));
-        }
-        else {
+        if nqp::elems(@statements) {
             my $last-stmt := @statements[nqp::elems(@statements) - 1];
             if $!is-sunk || $last-stmt.IMPL-DISCARD-RESULT {
                 $stmts.push($Nil.IMPL-TO-QAST($context));
@@ -791,6 +788,9 @@ class RakuAST::StatementList
                 $last.final(1);
                 $stmts.returns($last.returns);
             }
+        }
+        else {
+            $stmts.push($Nil.IMPL-TO-QAST($context));
         }
         $stmts
     }
@@ -1259,7 +1259,7 @@ class RakuAST::Statement::Expression
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-thunk', RakuAST::ExpressionThunk);
             }
 
-            if !nqp::istype($!expression, RakuAST::Block) {
+            unless nqp::istype($!expression, RakuAST::Block) {
                 nqp::die('expr thunk not defined') unless nqp::defined($!expression-thunk);
                 $!expression.IMPL-REMOVE-THUNK($!expression-thunk);
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression-thunk', RakuAST::ExpressionThunk);
@@ -1312,7 +1312,7 @@ class RakuAST::Statement::Expression
                 $loop-thunk.ensure-begin-performed($resolver, $context);
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-thunk', $loop-thunk);
 
-                if !nqp::istype($!expression, RakuAST::Block) {
+                unless nqp::istype($!expression, RakuAST::Block) {
                     if $!condition-modifier {
                         my $thunk := $!condition-modifier.expression-thunk;
                         $!expression.wrap-with-thunk($thunk);
@@ -3147,7 +3147,7 @@ class RakuAST::Statement::Require
                 $lexical-stub := QAST::SVal.new(:value($top));
             }
 
-            if !nqp::isnull($current) {
+            unless nqp::isnull($current) {
                 for @components -> $component-part {
                     my $component := $component-part.name;
                     if nqp::existskey($current,$component) {

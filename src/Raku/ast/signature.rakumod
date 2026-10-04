@@ -472,7 +472,7 @@ class RakuAST::Signature
                 $i := $i + 1;
             }
         }
-        if !$found {
+        unless $found {
             for $!parameters {
                 if $_ =:= $param {
                     $found := 1;
@@ -1469,7 +1469,7 @@ class RakuAST::Parameter
                     $type := $type.HOW.mro($type)[1];
                 }
 
-                if !nqp::istype($value, $type) {
+                unless nqp::istype($value, $type) {
                     my $got_comp := nqp::can($value.HOW, "is_composed") && $value.HOW.is_composed($value);
                     my $exp_comp := nqp::can($type.HOW, "is_composed") && $type.HOW.is_composed($type);
                     if $got_comp && $exp_comp {
@@ -1686,7 +1686,7 @@ class RakuAST::Parameter
                 )));
             }
             elsif !($param-type =:= Mu) {
-                if !$ptype-archetypes.generic {
+                unless $ptype-archetypes.generic {
                     my $implicit-lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
                     if $param-type =:= $implicit-lookups[0].resolution.compile-time-value {
                         my $PositionalBindFailover := $implicit-lookups[1].resolution.compile-time-value;
@@ -1991,14 +1991,15 @@ class RakuAST::Parameter
                 my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
                 unless $wrap {
                     my $Iterable := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].resolution.compile-time-value;
-                    if !$is-coercive {
-                        $wrap := nqp::istype($nominal-type, $Iterable) || nqp::istype($Iterable, $nominal-type);
-                    }
-                    else {
+                    if $is-coercive {
                         my $coercion_type := $param-type.HOW.wrappee($param-type, :coercion);
                         my $coerce_nom := $coercion_type.HOW.nominal_target($coercion_type);
                         $wrap := nqp::istype($coerce_nom, $Iterable) || nqp::istype($Iterable, $coerce_nom);
                     }
+                    else {
+                        $wrap := nqp::istype($nominal-type, $Iterable) || nqp::istype($Iterable, $nominal-type);
+                    }
+
                 }
 
                 if $wrap {

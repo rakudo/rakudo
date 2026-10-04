@@ -618,7 +618,8 @@ class RakuAST::Type::Parameterized
     has RakuAST::ArgList $.args;
 
     method new(RakuAST::Type :$base-type!, RakuAST::ArgList :$args) {
-        nqp::die('need a base-type, not ' ~ $base-type.dump) if !nqp::istype($base-type, RakuAST::Type);
+        nqp::die('need a base-type, not ' ~ $base-type.dump)
+          unless nqp::istype($base-type, RakuAST::Type);
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
         nqp::bindattr($obj, RakuAST::Type::Parameterized, '$!args',
@@ -998,23 +999,25 @@ class RakuAST::Type::Enum
                     for @items {
                         if nqp::istype($_, $Pair) {
                             $cur-val := $_.value;
-                            if !$has-base-type {
-                                $base-type := $cur-val.WHAT;
-                                $has-base-type := True;
-                            } else {
+                            if $has-base-type {
                                 # Should be a panic or a throw, right?
                                 unless nqp::istype($cur-val, $!base-type) {
                                     nqp::die("Incorrect value type provided. Expected '" ~ $!base-type.raku ~ "' but got '" ~ $cur-val.WHAT.raku ~ "'");
                                 }
                             }
+                            else {
+                                $base-type := $cur-val.WHAT;
+                                $has-base-type := True;
+                            }
                             nqp::push(@values, [$_.key, $_.value]);
-                        } elsif nqp::istype($_, Str) {
+                        }
+                        elsif nqp::istype($_, Str) {
                             # A bare key without a declared base type makes
                             # this an Int enum counting from 0, like the
                             # legacy frontend. With a declared base type the
                             # keys still take the incrementing values, and
                             # conformance is the composition's problem.
-                            if !$has-base-type {
+                            unless $has-base-type {
                                 $base-type := Int;
                                 $has-base-type := True;
                             }

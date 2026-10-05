@@ -3794,8 +3794,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
 
         # a where block is parsed before the subset, so leading doc meant
-        # for the subset lands on the block and is taken back from it
-        $where && nqp::can($where, 'WHY') && $where.WHY
+        # for the subset lands on the block and is taken back from it. Mu.WHY
+        # of any other node parameterizes a role on it, which precomp serializes
+        $where && nqp::istype($where, Nodify('Doc::DeclaratorTarget')) && $where.WHY
           ?? self.steal-declarand($/, $decl, $where)
           !! self.set-declarand($/, $decl);
         # the block ends the declaration, so a trailing doc is accepted

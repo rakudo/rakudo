@@ -217,7 +217,13 @@ my class Rakudo::Internals is implementation-detail {
     method EXPORT_SYMBOL(Str:D $name, @tags, Mu \sym) {
         $export-symbol-lock.protect: {
             my @export_packages = $*EXPORT;
-            for $*R ?? $*R.packages.map({$_.stubbed-meta-object}) !! nqp::hllize(@*PACKAGES).list {
+            # A package an EVAL takes from its context is not exported into,
+            # as with the legacy frontend.
+            for $*R
+              ?? $*R.packages.grep({
+                     nqp::not_i(nqp::istype($_, RakuAST::Declaration::External::Package))
+                   }).map({$_.stubbed-meta-object})
+              !! nqp::hllize(@*PACKAGES).list {
                 # PRODUCE-STUBBED-META-OBJECT returns Nil for augmented
                 # roles (the real X::Augment::Illegal sorry fires later);
                 # skip them so we don't blow up on Nil.WHO first.

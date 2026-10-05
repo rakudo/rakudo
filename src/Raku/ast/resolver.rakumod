@@ -1714,7 +1714,10 @@ class RakuAST::Resolver::Compile
         if $resolver {
             my $package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
             nqp::bindattr($obj, RakuAST::Resolver, '$!packages', $package
-                ?? [$package]
+                ?? [RakuAST::Declaration::External::Package.new(
+                      lexical-name => '$?PACKAGE',
+                      compile-time-value => $package.compile-time-value
+                    )]
                 !! nqp::clone(nqp::getattr($resolver, RakuAST::Resolver, '$!packages')));
         }
         $obj

@@ -686,6 +686,13 @@ class RakuAST::Type::Parameterized
             my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
             $ptype.HOW.parameterize($ptype, |@pos, |%named)
         }
+        elsif nqp::isconcrete(self.IMPL-ARG-VALUES-NOW) {
+            my $values := self.IMPL-ARG-VALUES-NOW;
+            my @pos    := $values[0];
+            my %named  := $values[1];
+            my $ptype  := self.IMPL-BASE-TYPE.compile-time-value;
+            $ptype.HOW.parameterize($ptype, |@pos, |%named)
+        }
         elsif nqp::isconcrete($resolver) && nqp::isconcrete($context)
           && ($*COMPILING_CORE_SETTING // 0) != 1
           && nqp::can(self.IMPL-BASE-TYPE.compile-time-value.HOW, 'parameterize') {
@@ -773,6 +780,42 @@ class RakuAST::Type::Parameterized
                 nqp::die('Cannot do compile time parameterization with these args');
             }
         }
+    }
+
+    # The values of the arguments while compiling, or null when one has none.
+    # An argument naming a lexical from the outer context of an EVAL or REPL
+    # line takes the value it holds, as other type syntax does.
+    method IMPL-ARG-VALUES-NOW() {
+        my @pos;
+        my %named;
+        for $!args.IMPL-UNWRAP-LIST($!args.args) -> $arg {
+            my $expr := $!args.IMPL-ARG-COMPILE-TIME-SOURCE($arg);
+            my $value;
+            if $expr.has-compile-time-value {
+                $value := $expr.maybe-compile-time-value;
+            }
+            elsif nqp::istype($expr, RakuAST::Term::Name) && $expr.is-resolved
+              && nqp::istype($expr.resolution, RakuAST::Declaration::External) {
+                $value := $expr.resolution.maybe-compile-time-value;
+                return nqp::null() if nqp::isnull($value);
+                $value := nqp::who($value) if $expr.name.is-package-lookup;
+            }
+            elsif nqp::istype($expr, RakuAST::Type::Parameterized) {
+                my $inner := $expr.IMPL-ARG-VALUES-NOW;
+                return nqp::null() if nqp::isnull($inner);
+                my @inner-pos   := $inner[0];
+                my %inner-named := $inner[1];
+                my $ptype := $expr.IMPL-BASE-TYPE.compile-time-value;
+                $value := $ptype.HOW.parameterize($ptype, |@inner-pos, |%inner-named);
+            }
+            else {
+                return nqp::null();
+            }
+            nqp::istype($arg, RakuAST::NamedArg)
+              ?? (%named{$arg.named-arg-name} := $value)
+              !! nqp::push(@pos, $value);
+        }
+        [@pos, %named]
     }
 
     # A parameterization of arguments known at compile time is the one formed

@@ -569,10 +569,13 @@ class RakuAST::Resolver {
             # found it!
             if nqp::existskey($context,$name) {
                 my $prim-spec := nqp::lexprimspec($context,$name);
+                # A native holds no object. A null value says so, where an
+                # unset one would read as the NQPMu type object.
                 if $prim-spec {
                     return RakuAST::Declaration::External.new(
                       :lexical-name($name),
-                      :native-type(PRIMSPEC-TO-TYPE[$prim-spec])
+                      :native-type(PRIMSPEC-TO-TYPE[$prim-spec]),
+                      :maybe-compile-time-value(nqp::null())
                     );
                 }
 
@@ -696,17 +699,33 @@ class RakuAST::Resolver {
         return False if $Rname.is-indirect-lookup;
 
         my $constant := self.resolve-name($Rname);
+        my $meta-object;
         if nqp::istype($constant, RakuAST::CompileTimeValue) {
-            # Name resolves, but is it an instance or a type object?
-            my $meta-object := $constant.compile-time-value;
-            nqp::isnull($meta-object) || nqp::isconcrete_nd($meta-object)
-                ?? False
-                !! True
+            $meta-object := $constant.compile-time-value;
+        }
+        # A lexical from the outer context of an EVAL or REPL line is not
+        # assumed constant, so check the value it holds now.
+        elsif nqp::istype($constant, RakuAST::Declaration::External) {
+            $meta-object := $constant.maybe-compile-time-value;
         }
         else {
-             # Name doesn't resolve to a constant at all, so can't be a type.
-            False
+            # Name doesn't resolve to a constant or an outer lexical, so
+            # can't be a type.
+            return False;
         }
+
+        # Name resolves, but is it an instance or a type object?
+        nqp::isnull($meta-object) || nqp::isconcrete_nd($meta-object)
+            ?? False
+            !! True
+    }
+
+    # Check if a name resolves to a lexical from the outer context of an
+    # EVAL or REPL line, which is not assumed constant.
+    method is-name-outer-lexical(RakuAST::Name $Rname) {
+        my $found := self.resolve-name($Rname);
+        nqp::istype($found, RakuAST::Declaration::External)
+          && !nqp::istype($found, RakuAST::CompileTimeValue)
     }
 
     # Check if an identifier is known (declared) at all.

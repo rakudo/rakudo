@@ -4,7 +4,7 @@ use Test;
 # compile time. A declaration takes at most one shape. Only an array
 # takes [] and only a hash takes {}.
 
-plan 46;
+plan 47;
 
 use MONKEY-SEE-NO-EVAL;
 
@@ -115,6 +115,8 @@ is (try EVAL 'my %h{HashShapeOuter}; %h.keyof.^name'), 'HashShapeOuter',
     'a hash shape of a type declared outside the EVAL keys by that type';
 nok (try EVAL 'my %h{HashShapeOurOuter:D}; %h.keyof') =:= HashShapeOurOuter,
     'a definite type from outside the EVAL never keys by its plain type';
+is (try EVAL 'my %h{HashShapeOurOuter:D}; %h.keyof.^name'), 'HashShapeOurOuter:D',
+    'a definite type from outside the EVAL keys by that definite type';
 
 throws-like { EVAL 'my %h{Str}{Int}' }, X::Comp::AdHoc,
     message => 'Multiple shapes not yet understood',

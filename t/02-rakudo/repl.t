@@ -3,7 +3,7 @@ use Test;
 use Test::Helpers;
 use nqp;
 
-plan 50;
+plan 51;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -364,5 +364,10 @@ subtest 'check that trying to run a REPL that expects a TTY fails without a TTY'
     ok $p.err.slurp(:close).contains('Invalid REPL environment'), "Cannot start a REPL that wants a TTY without a TTY";
     is $p.exitcode, 1, 'Exit code (1) reflects expected failure';
 }
+
+# https://github.com/rakudo/rakudo/issues/6777
+is-run-repl ('role R[::T] { method type { T } }', 'say R[Int].type =:= Int'),
+    :out{.lines.tail eq 'True'}, :err(''),
+    'a parametric role declared on an earlier line can be parameterized';
 
 # vim: expandtab shiftwidth=4

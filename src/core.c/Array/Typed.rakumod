@@ -48,6 +48,10 @@ my role Array::Typed[::TValue]
         list
     }
 
+    method ELEMENT-DESCRIPTOR() is implementation-detail {
+        ContainerDescriptor.new(:of(TValue), :default(TValue))
+    }
+
     method !out-of-range(int $got) {
         X::OutOfRange.new(:what($*INDEX // 'Index'),:$got,:range<0..^Inf>).Failure
     }

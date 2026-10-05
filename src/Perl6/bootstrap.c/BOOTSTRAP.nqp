@@ -1813,24 +1813,61 @@ sub nominal_type($type) {
 class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
     has $!target;
     has int $!pos;
+    has $!type;
+    has int $!typed;
 
+    # A typed array type object vivifies its own type, whose element
+    # descriptor gives the element its type and default
     method new($target, int $pos) {
         my $self := nqp::create(self);
         nqp::bindattr($self, ContainerDescriptor::VivifyArray,
             '$!target', $target);
         nqp::bindattr_i($self, ContainerDescriptor::VivifyArray,
             '$!pos', $pos);
+        my $type := nqp::decont($target);
+        $self.set-type($type)
+          if nqp::istype($type, Array) && nqp::not_i(nqp::eqaddr($type, Array));
         $self
+    }
+    method set-type($type) {
+        $!type  := $type;
+        $!typed := 1;
+        my $descriptor := $type.ELEMENT-DESCRIPTOR;
+        nqp::bindattr(self, ContainerDescriptor::VivifyArray,
+            '$!next-descriptor', $descriptor) if nqp::isconcrete($descriptor);
     }
 
     method name() { self.next.name ~ '[' ~ $!pos ~ ']' }
     method assigned($scalar) {
         my $target := $!target;
 
-        (nqp::isconcrete($target)
-          ?? $target
-          !! nqp::assign($target, Array.new)
-        ).BIND-POS($!pos, $scalar)
+        if nqp::isconcrete($target) {
+            my $result := $target.BIND-POS($!pos, $scalar);
+            $result.throw
+              if nqp::istype_nd($result, nqp::gethllsym('Raku', 'Failure'))
+              && nqp::not_i(nqp::eqaddr($result, nqp::decont($scalar)));
+        }
+        elsif nqp::not_i($!typed) && nqp::isge_i($!pos, 0) {
+            nqp::assign($target, Array.new).BIND-POS($!pos, $scalar)
+        }
+        else {
+            self.vivify($target, $scalar);
+        }
+    }
+
+    # The element is stored before the array is, so a refused index or value
+    # leaves no array
+    method vivify($target, $scalar) {
+        my $Failure := nqp::gethllsym('Raku', 'Failure');
+        my int $pos := $!pos;
+        my $array   := $!typed ?? nominal_type($!type).new !! Array.new;
+        my $slot    := nqp::islt_i($pos, 0) ?? nqp::null !! $array.AT-POS($pos);
+        $slot.throw if nqp::istype_nd($slot, $Failure);
+        my $result  := bind_into_slot($slot, $scalar);
+        $result := $array.BIND-POS($pos, $scalar) if nqp::isnull($result);
+        $result.throw
+          if nqp::istype_nd($result, $Failure) && nqp::not_i($array.elems);
+        nqp::assign($target, $array);
     }
 }
 

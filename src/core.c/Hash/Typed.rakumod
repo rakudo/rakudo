@@ -8,28 +8,38 @@ my role Hash::Typed[::TValue, ::TKey, ::TDefault = TValue] does Associative[TVal
         )
     }
 
-    method ASSIGN-KEY(::?CLASS:D: Mu \key, Mu \assignval) is raw {
-        my \storage  := nqp::getattr(self, Map, '$!storage');
-        my \which    := key.Str;
-        my \existing := nqp::atkey(storage,which);
+    method ELEMENT-DESCRIPTOR() is implementation-detail {
+        ContainerDescriptor.new(:of(TValue), :default(TDefault))
+    }
+
+    method ASSIGN-KEY(\SELF: Mu \key, Mu \assignval) is raw {
         nqp::if(
-          nqp::isnull(existing),
-          nqp::stmts(
-            ((my \scalar := nqp::p6scalarfromdesc(    # assign before
-              nqp::getattr(self,Hash,'$!descriptor')  # binding to get
-            )) = assignval),                          # type check
-            nqp::bindkey(storage,which,scalar)
+          nqp::isconcrete(SELF),
+          nqp::if(
+            nqp::isnull(my \existing := nqp::atkey(
+              (my \storage := nqp::getattr(self, Map, '$!storage')),
+              (my \which := key.Str)
+            )),
+            nqp::stmts(
+              ((my \scalar := nqp::p6scalarfromdesc(    # assign before
+                nqp::getattr(self,Hash,'$!descriptor')  # binding to get
+              )) = assignval),                          # type check
+              nqp::bindkey(storage,which,scalar)
+            ),
+            (existing = assignval)
           ),
-          (existing = assignval)
+          nqp::findmethod(Hash,'ASSIGN-KEY')(SELF, key, assignval)
         )
     }
 
-    method BIND-KEY(Mu \key, TValue \value) is raw {
-        nqp::bindkey(
-          nqp::getattr(self,Map,'$!storage'),
-          key.Str,
-          value
-        )
+    method BIND-KEY(\SELF: Mu \key, TValue \value) is raw {
+        nqp::isconcrete(SELF)
+          ?? nqp::bindkey(
+               nqp::getattr(self,Map,'$!storage'),
+               key.Str,
+               value
+             )
+          !! nqp::findmethod(Hash,'BIND-KEY')(SELF, key, value)
     }
 
     method is-generic {

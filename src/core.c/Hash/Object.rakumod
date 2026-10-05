@@ -9,17 +9,29 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
         )
     }
     method keyof () { TKey }
-    method AT-KEY(::?CLASS:D: TKey \key) is raw {
-        my \storage := nqp::getattr(self, Map, '$!storage');
-        my str $which = nqp::unbox_s(key.WHICH);
-        nqp::existskey(storage,$which)
-          ?? nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value')
-          !! nqp::p6scalarfromdesc(
-               ContainerDescriptor::BindObjHashKey.new(
-                 nqp::getattr(self,Hash,'$!descriptor'),
-                 self, key, $which, Pair
-               )
-             )
+    method ELEMENT-DESCRIPTOR() is implementation-detail {
+        ContainerDescriptor.new(:of(TValue), :default(TDefault))
+    }
+    method AT-KEY(\SELF: TKey \key) is raw {
+        nqp::if(
+          nqp::isconcrete(SELF),
+          nqp::if(
+            nqp::existskey(
+              (my \storage := nqp::getattr(self, Map, '$!storage')),
+              (my str $which = nqp::unbox_s(key.WHICH))
+            ),
+            nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value'),
+            nqp::p6scalarfromdesc(
+              ContainerDescriptor::BindObjHashKey.new(
+                nqp::getattr(self,Hash,'$!descriptor'),
+                self, key, $which, Pair
+              )
+            )
+          ),
+          nqp::p6scalarfromcertaindesc(
+            ContainerDescriptor::VivifyHash.new(SELF, key)
+          )
+        )
     }
 
     method STORE_AT_KEY(::?CLASS:D: TKey \key, Mu \value --> Nil) {
@@ -50,44 +62,51 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
         );
     }
 
-    method ASSIGN-KEY(::?CLASS:D: TKey \key, Mu \assignval) is raw {
+    method ASSIGN-KEY(\SELF: TKey \key, Mu \assignval) is raw {
         key.throw if nqp::istype(key,Failure);
 
-        my \storage  := nqp::getattr(self, Map, '$!storage');
-        my \WHICH    := key.WHICH;
-        my \existing := nqp::atkey(storage,WHICH);
         nqp::if(
-          nqp::isnull(existing),
-          nqp::stmts(
-            ((my \scalar := nqp::p6scalarfromdesc(    # assign before
-              nqp::getattr(self,Hash,'$!descriptor')  # binding to get
-            )) = assignval),                          # type check
-            nqp::bindkey(storage,WHICH,Pair.new(key,scalar)),
-            scalar
+          nqp::isconcrete(SELF),
+          nqp::if(
+            nqp::isnull(my \existing := nqp::atkey(
+              (my \storage := nqp::getattr(self, Map, '$!storage')),
+              (my \WHICH := key.WHICH)
+            )),
+            nqp::stmts(
+              ((my \scalar := nqp::p6scalarfromdesc(    # assign before
+                nqp::getattr(self,Hash,'$!descriptor')  # binding to get
+              )) = assignval),                          # type check
+              nqp::bindkey(storage,WHICH,Pair.new(key,scalar)),
+              scalar
+            ),
+            (nqp::getattr(existing,Pair,'$!value') = assignval)
           ),
-          (nqp::getattr(existing,Pair,'$!value') = assignval)
+          nqp::findmethod(Hash,'VIVIFY-ASSIGN-KEY')(SELF, key, assignval)
         )
     }
 
-    method BIND-KEY(TKey \key, TValue \value) is raw {
+    method BIND-KEY(\SELF: TKey \key, TValue \value) is raw {
         nqp::istype(key,Failure)
           ?? key.throw
-          !! nqp::getattr(
-               nqp::bindkey(
-                 nqp::getattr(self,Map,'$!storage'),
-                 key.WHICH,
-                 Pair.new(key,value)
-               ),
-               Pair,
-               '$!value'
-             )
+          !! nqp::isconcrete(SELF)
+            ?? nqp::getattr(
+                 nqp::bindkey(
+                   nqp::getattr(self,Map,'$!storage'),
+                   key.WHICH,
+                   Pair.new(key,value)
+                 ),
+                 Pair,
+                 '$!value'
+               )
+            !! nqp::findmethod(Hash,'VIVIFY-BIND-KEY')(SELF, key, value)
     }
 
     method EXISTS-KEY(TKey \key) {
         nqp::istype(key,Failure)
           ?? key.throw
           !! nqp::hllbool(
-               nqp::existskey(nqp::getattr(self,Map,'$!storage'),key.WHICH)
+               nqp::isconcrete(self)
+                 && nqp::existskey(nqp::getattr(self,Map,'$!storage'),key.WHICH)
              )
     }
 
@@ -95,15 +114,19 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
         key.throw if nqp::istype(key,Failure);
 
         nqp::if(
-          nqp::isnull(my \value := nqp::atkey(
-            nqp::getattr(self,Map,'$!storage'),
-            (my str $WHICH = key.WHICH)
-          )),
-          nqp::getattr(self, Hash, '$!descriptor').default,
-          nqp::stmts(
-            nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$WHICH),
-            nqp::getattr(value,Pair,'$!value')
-          )
+          nqp::isconcrete(self),
+          nqp::if(
+            nqp::isnull(my \value := nqp::atkey(
+              nqp::getattr(self,Map,'$!storage'),
+              (my str $WHICH = key.WHICH)
+            )),
+            nqp::getattr(self, Hash, '$!descriptor').default,
+            nqp::stmts(
+              nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$WHICH),
+              nqp::getattr(value,Pair,'$!value')
+            )
+          ),
+          Nil
         )
     }
 
@@ -208,7 +231,9 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
               !! IterationEnd
          }
     }
-    method keys() { Seq.new(Keys.new(self)) }
+    method keys() {
+        nqp::isconcrete(self) ?? Seq.new(Keys.new(self)) !! ()
+    }
 
     my class Values does Rakudo::Iterator::Mappy {
         method pull-one() is raw {
@@ -217,12 +242,20 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
               !! IterationEnd
          }
     }
-    method values() { Seq.new(Values.new(self)) }
+    method values() {
+        nqp::isconcrete(self) ?? Seq.new(Values.new(self)) !! ()
+    }
 
     method kv() {
-        Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs(self))
+        nqp::isconcrete(self)
+          ?? Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs(self))
+          !! ()
     }
-    method iterator() { Rakudo::Iterator.Mappy-values(self) }
+    method iterator() {
+        nqp::isconcrete(self)
+          ?? Rakudo::Iterator.Mappy-values(self)
+          !! Rakudo::Iterator.OneValue(self)
+    }
 
     my class AntiPairs does Rakudo::Iterator::Mappy {
         method pull-one() {
@@ -231,7 +264,9 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
               !! IterationEnd
          }
     }
-    method antipairs() { Seq.new(AntiPairs.new(self)) }
+    method antipairs() {
+        nqp::isconcrete(self) ?? Seq.new(AntiPairs.new(self)) !! ()
+    }
 
     multi method roll(::?CLASS:D:) {
         my \storage := nqp::getattr(self, Map, '$!storage');

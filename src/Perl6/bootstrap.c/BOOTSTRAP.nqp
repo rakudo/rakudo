@@ -1788,6 +1788,25 @@ class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
     }
 }
 
+# Binds the assigned scalar in place of a slot of a new container through the
+# slot's own descriptor, as assigning the slot would, without checking the
+# value again. Yields null for any other slot.
+sub bind_into_slot($slot, $scalar) {
+    nqp::istype_nd($slot, Scalar)
+      && nqp::can(nqp::getattr($slot, Scalar, '$!descriptor'), 'assigned')
+      ?? nqp::stmts(
+           nqp::getattr($slot, Scalar, '$!descriptor').assigned($scalar),
+           $scalar)
+      !! nqp::null
+}
+
+# The type that a subset, definite or coercion type of a container vivifies
+sub nominal_type($type) {
+    $type.HOW.archetypes($type).nominalizable
+      ?? $type.HOW.nominalize($type)
+      !! $type
+}
+
 #- ContainerDescriptor::VivifyArray --------------------------------------------
 # Container descriptor that will bind to position in an array to be vivified
 # on first assignment
@@ -1821,24 +1840,64 @@ class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
 class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
     has $!target;
     has $!key;
+    has $!type;
+    has int $!typed;
 
+    # A typed hash type object vivifies its own type, whose element
+    # descriptor gives the element its type and default
     method new($target, $key) {
         my $self := nqp::create(self);
         nqp::bindattr($self, ContainerDescriptor::VivifyHash,
             '$!target', $target);
         nqp::bindattr($self, ContainerDescriptor::VivifyHash,
-            '$!key', $key);
+            '$!key', nqp::decont($key));
+        my $type := nqp::decont($target);
+        $self.set-type($type)
+          if nqp::istype($type, Hash) && nqp::not_i(nqp::eqaddr($type, Hash));
         $self
+    }
+    method set-type($type) {
+        $!type  := $type;
+        $!typed := 1;
+        my $descriptor := $type.ELEMENT-DESCRIPTOR;
+        nqp::bindattr(self, ContainerDescriptor::VivifyHash,
+            '$!next-descriptor', $descriptor) if nqp::isconcrete($descriptor);
     }
 
     method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
     method assigned($scalar) {
         my $target := $!target;
 
-        (nqp::isconcrete($target)
-          ?? $target
-          !! nqp::assign($target, Hash.new)
-        ).BIND-KEY($!key, $scalar)
+        if nqp::isconcrete($target) {
+            my $result := $target.BIND-KEY($!key, $scalar);
+            $result.throw
+              if nqp::istype_nd($result, nqp::gethllsym('Raku', 'Failure'))
+              && nqp::not_i(nqp::eqaddr($result, nqp::decont($scalar)));
+        }
+        elsif nqp::not_i($!typed) && nqp::iscont($target) {
+            nqp::assign($target, Hash.new).BIND-KEY($!key, $scalar)
+        }
+        else {
+            self.vivify($target, $scalar);
+        }
+    }
+
+    # The element is stored before the hash is, so a refused key or value
+    # leaves no hash
+    method vivify($target, $scalar) {
+        Perl6::Metamodel::Configuration.throw_or_die('X::Assignment::RO',
+          'Cannot modify an immutable value', :value($target)
+        ) unless nqp::iscont($target);
+        my $Failure := nqp::gethllsym('Raku', 'Failure');
+        my $key     := $!key;
+        my $hash    := $!typed ?? nominal_type($!type).new !! Hash.new;
+        my $slot    := $hash.AT-KEY($key);
+        $slot.throw if nqp::istype_nd($slot, $Failure);
+        my $result  := bind_into_slot($slot, $scalar);
+        $result := $hash.BIND-KEY($key, $scalar) if nqp::isnull($result);
+        $result.throw
+          if nqp::istype_nd($result, $Failure) && nqp::not_i($hash.elems);
+        nqp::assign($target, $hash);
     }
 }
 

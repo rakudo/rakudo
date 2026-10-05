@@ -13,34 +13,45 @@ my class Hash::Ordered is Hash {
         self.Hash::STORE_AT_KEY($key, value);
     }
 
-    method AT-KEY(Hash::Ordered:D: Str() $key) is raw {
-        nqp::ifnull(
-          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
-          nqp::stmts(
-            nqp::push_s(@!keys,$key),
-            nextsame;
-          )
-        )
+    method AT-KEY(\SELF: Str() $key) is raw {
+        nqp::isconcrete(SELF)
+          ?? nqp::ifnull(
+               nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
+               nqp::stmts(
+                 nqp::push_s(@!keys,$key),
+                 self.Hash::AT-KEY($key)
+               )
+             )
+          !! nqp::p6scalarfromcertaindesc(
+               ContainerDescriptor::VivifyHash.new(SELF, $key)
+             )
     }
 
-    method ASSIGN-KEY(Hash::Ordered:D: Str() $key, Mu \value) is raw {
-        nqp::ifnull(
-          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
-          nqp::stmts(
-            nqp::push_s(@!keys,$key),
-            self.Hash::AT-KEY($key)
-          )
-        ) = value
+    method ASSIGN-KEY(\SELF: Str() $key, Mu \value) is raw {
+        nqp::isconcrete(SELF)
+          ?? (nqp::ifnull(
+               nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
+               nqp::stmts(
+                 nqp::push_s(@!keys,$key),
+                 self.Hash::AT-KEY($key)
+               )
+             ) = value)
+          !! nqp::findmethod(Hash,'ASSIGN-KEY')(SELF, $key, value)
     }
 
-    method BIND-KEY(Hash::Ordered:D: Str() $key, Mu \value) is raw {
-        nqp::push_s(@!keys,$key)
-          unless nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key);
-
-        self.Hash::BIND-KEY($key, value)
+    method BIND-KEY(\SELF: Str() $key, Mu \value) is raw {
+        nqp::isconcrete(SELF)
+          ?? nqp::stmts(
+               nqp::unless(
+                 nqp::existskey(nqp::getattr(self,Map,'$!storage'),$key),
+                 nqp::push_s(@!keys,$key)
+               ),
+               self.Hash::BIND-KEY($key, value)
+             )
+          !! nqp::findmethod(Hash,'BIND-KEY')(SELF, $key, value)
     }
 
-    method keys(Hash::Ordered:D:) {
+    multi method keys(Hash::Ordered:D:) {
         my $storage := nqp::getattr(self,Map,'$!storage');
         my $old     := @!keys;
 
@@ -74,14 +85,14 @@ my class Hash::Ordered is Hash {
     }
 
 
-    method values(Hash::Ordered:D:) { self{self.keys}    }
-    method pairs( Hash::Ordered:D:) { self{self.keys}:p  }
-    method kv(    Hash::Ordered:D:) { self{self.keys}:kv }
+    multi method values(Hash::Ordered:D:) { self{self.keys}    }
+    multi method pairs( Hash::Ordered:D:) { self{self.keys}:p  }
+    multi method kv(    Hash::Ordered:D:) { self{self.keys}:kv }
 
-    method iterator(Hash::Ordered:D:) {
+    multi method iterator(Hash::Ordered:D:) {
         self.pairs.iterator
     }
-    method antipairs(Hash::Ordered:D:) {
+    multi method antipairs(Hash::Ordered:D:) {
         self.pairs.map(*.antipair)
     }
 

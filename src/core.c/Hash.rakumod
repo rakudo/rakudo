@@ -59,6 +59,8 @@ my class Hash { # declared in BOOTSTRAP
           self!AT_KEY_CONTAINER(key.Str)
         )
     }
+    # The descriptor the elements of a new instance take, or Mu for the default
+    method ELEMENT-DESCRIPTOR(Hash:U:) is implementation-detail { Mu }
 
     proto method STORE_AT_KEY(|) is implementation-detail {*}
     multi method STORE_AT_KEY(Str:D $key, Mu \value --> Nil) {
@@ -125,6 +127,13 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
+    # The type a subset, definite or coercion type of a hash vivifies
+    my sub NOMINAL(Mu \type) is raw {
+        type.HOW.archetypes(type).nominalizable
+          ?? type.HOW.nominalize(type)
+          !! type
+    }
+
     multi method ASSIGN-KEY(Hash:D: Str:D $key, Mu \assignval) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::if(
@@ -132,6 +141,23 @@ my class Hash { # declared in BOOTSTRAP
           nqp::bindkey(storage, $key,
             nqp::p6scalarwithvalue($!descriptor, assignval)),
           nqp::p6assign(existing, assignval))
+    }
+    # A Hash type object vivifies an instance of its nominal type
+    multi method ASSIGN-KEY(Hash:U \SELF: \key, Mu \assignval) is raw {
+        SELF.VIVIFY-ASSIGN-KEY(key, assignval)
+    }
+    # Object hashes call the VIVIFY methods directly, as the candidates for a
+    # type object refuse a Mu key and autothread a junction
+    method VIVIFY-ASSIGN-KEY(
+      Hash:U \SELF:
+      Mu \key,
+      Mu \assignval
+    ) is raw is implementation-detail {
+        X::Assignment::RO.new(:value(SELF)).throw unless nqp::iscont(SELF);
+        my \hash  := NOMINAL(SELF.WHAT).new;
+        my \value := hash.ASSIGN-KEY(key, assignval);
+        SELF = hash unless nqp::istype_nd(value, Failure) && nqp::not_i(hash.elems);
+        value
     }
     multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) is raw {
         my str $key = key.Str;
@@ -149,6 +175,20 @@ my class Hash { # declared in BOOTSTRAP
     }
     multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
         nqp::bindkey(nqp::getattr(self,Map,'$!storage'),key.Str,bindval)
+    }
+    multi method BIND-KEY(Hash:U \SELF: \key, Mu \bindval) is raw {
+        SELF.VIVIFY-BIND-KEY(key, bindval)
+    }
+    method VIVIFY-BIND-KEY(
+      Hash:U \SELF:
+      Mu \key,
+      Mu \bindval
+    ) is raw is implementation-detail {
+        X::Assignment::RO.new(:value(SELF)).throw unless nqp::iscont(SELF);
+        my \hash  := NOMINAL(SELF.WHAT).new;
+        my \bound := hash.BIND-KEY(key, bindval);
+        SELF = hash unless nqp::istype_nd(bound, Failure) && nqp::not_i(hash.elems);
+        bound
     }
 
     multi method DELETE-KEY(Hash:U: --> Nil) { }

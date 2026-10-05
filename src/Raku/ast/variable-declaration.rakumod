@@ -1557,6 +1557,12 @@ class RakuAST::VarDeclaration::Simple
                    :payload('Invalid hash shape; type expected'));
         }
 
+        self.add-sorry(
+          $resolver.build-exception: 'X::Comp::NYI',
+            :feature('native value types for hashes')
+        ) if self.sigil eq '%' && (!$!is-parameter || $!list-declared)
+          && nqp::objprimspec(self.IMPL-OF-TYPE);
+
         if (self.initializer) {
             my @found := self.IMPL-UNWRAP-LIST(self.find-nodes(
                 RakuAST::Var::Lexical,

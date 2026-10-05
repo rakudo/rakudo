@@ -344,13 +344,17 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
         nqp::hllbool(
             callsame()
             || TValue.^archetypes.generic
-            || TKey.^archetypes.generic )
+            || TKey.^archetypes.generic
+            || TDefault.^archetypes.generic )
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment --> Associative) is raw {
         self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize:
             type-environment.instantiate(TValue),
-            type-environment.instantiate(TKey)
+            type-environment.instantiate(TKey),
+            TDefault.^archetypes.generic
+              ?? type-environment.instantiate(TDefault)
+              !! TDefault
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {

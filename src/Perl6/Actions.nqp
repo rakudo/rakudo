@@ -4019,6 +4019,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
+    # An `is default` on a hash with more than one dimension would have to
+    # apply to the values of its innermost hashes.
+    sub refuse_nested_hash_default(%cont_info, @traits) {
+        if nqp::existskey(%cont_info, 'dimensions') && %cont_info<dimensions> > 1 {
+            for @traits {
+                $_.typed_sorry('X::Comp::NYI',
+                    feature => 'is default on a multidimensional shaped hash')
+                  if $_.ast.mod eq '&trait_mod:<is>'
+                    && ~$_.ast.match<longname> eq 'default';
+            }
+        }
+    }
+
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?, :@post) {
         my $world := $*W;
         my $name  := $sigil ~ $twigil ~ $desigilname;
@@ -4120,6 +4133,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 nqp::isnull($of_type) ?? [] !! [$of_type],
                 nqp::isnull($is_type) ?? [] !! [$is_type],
                 $shape, :@post);
+            refuse_nested_hash_default(%cont_info, @late_traits);
             my $descriptor := $world.create_container_descriptor(
               %cont_info<value_type>, $attrname, %cont_info<default_value>);
 
@@ -4201,6 +4215,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 nqp::isnull($of_type) ?? [] !! [$of_type],
                 nqp::isnull($is_type) ?? [] !! [$is_type],
                 $shape, :@post);
+            refuse_nested_hash_default(%cont_info, @late_traits);
             my $descriptor := $world.create_container_descriptor(
               %cont_info<value_type>, $varname || $name, %cont_info<default_value>);
 

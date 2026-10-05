@@ -2097,23 +2097,26 @@ class Perl6::World is HLL::World {
                 %info<container_base>  := self.find_single_symbol_in_setting('Hash');
                 %info<bind_constraint> := self.find_single_symbol_in_setting('Associative');
             }
+            my @key_types;
             if $shape {
                 @value_type[0] := self.find_single_symbol_in_setting(
                     $*LANGUAGE-REVISION >= 3 ?? 'Mu' !! 'Any'
                 ) unless +@value_type;
                 my @statements := $shape[0]<statement> || [];
-                my $key_ast := nqp::elems(@statements) == 1
-                  && @statements[0]<EXPR> && @statements[0].ast;
-                if nqp::elems(@statements) > 1 {
-                    $/.typed_sorry('X::Comp::NYI',
-                        feature => "multidimensional shaped hashes");
+                for @statements -> $statement {
+                    my $key_ast := $statement<EXPR> && $statement.ast;
+                    if $key_ast && $key_ast.has_compile_time_value
+                      && !nqp::isconcrete($key_ast.compile_time_value)
+                      && !nqp::eqaddr($key_ast.compile_time_value, NQPMu) {
+                        nqp::push(@key_types, $key_ast.compile_time_value);
+                    }
                 }
-                elsif $key_ast && $key_ast.has_compile_time_value
-                  && !nqp::isconcrete($key_ast.compile_time_value)
-                  && !nqp::eqaddr($key_ast.compile_time_value, NQPMu) {
-                    @value_type[1] := $key_ast.compile_time_value;
+                if @key_types && nqp::elems(@key_types) == nqp::elems(@statements) {
+                    @value_type[1] := @key_types[0];
+                    %info<dimensions> := nqp::elems(@key_types);
                 }
                 else {
+                    @key_types := [];
                     $/.typed_sorry('X::Comp::AdHoc',
                         payload => "Invalid hash shape; type expected");
                 }
@@ -2122,6 +2125,20 @@ class Perl6::World is HLL::World {
                 if nqp::objprimspec(@value_type[0]) {
                     self.throw($/, 'X::Comp::NYI',
                       feature => "native value types for hashes");
+                }
+                # Each dimension past the first coerces from Any to a hash of
+                # the same base type keyed by the type of that dimension. Its
+                # values default as a declaration of their type would.
+                my int $dimension := nqp::elems(@key_types);
+                while $dimension > 1 {
+                    $dimension := $dimension - 1;
+                    @value_type[0] := self.create_coercion_type($/,
+                        self.parameterize_type_with_args($/,
+                            %info<container_base>,
+                            [@value_type[0], @key_types[$dimension],
+                             self.maybe-nominalize(@value_type[0])],
+                            nqp::hash()),
+                        self.find_single_symbol_in_setting('Any'));
                 }
                 %info<container_type>  := self.parameterize_type_with_args($/,
                     %info<container_base>, @value_type, nqp::hash());

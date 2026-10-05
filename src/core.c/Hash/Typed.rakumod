@@ -43,11 +43,18 @@ my role Hash::Typed[::TValue, ::TKey, ::TDefault = TValue] does Associative[TVal
     }
 
     method is-generic {
-        nqp::hllbool(callsame() || nqp::istrue(TValue.^archetypes.generic))
+        nqp::hllbool(callsame()
+          || nqp::istrue(TValue.^archetypes.generic)
+          || nqp::istrue(TDefault.^archetypes.generic))
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment --> Associative) is raw {
-        self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize: type-environment.instantiate(TValue)
+        self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize:
+            type-environment.instantiate(TValue),
+            TKey,
+            TDefault.^archetypes.generic
+              ?? type-environment.instantiate(TDefault)
+              !! TDefault
     }
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
         # Dispatch to the :U candidate via .WHAT - calling

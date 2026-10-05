@@ -229,13 +229,45 @@ role RakuAST::ContainerCreator {
           !! nqp::null
     }
 
-    # The key type of the hash a container creator makes, or NQPMu for a
-    # hash keyed by Str.
-    method IMPL-CONTAINER-KEY-TYPE() { NQPMu }
+    # The key types of the hash a container creator makes, one per dimension
+    # starting with the outermost, or NQPMu for a hash keyed by Str.
+    method IMPL-CONTAINER-KEY-TYPES() { NQPMu }
+
+    method IMPL-CONTAINER-KEY-TYPE() {
+        my $key-types := self.IMPL-CONTAINER-KEY-TYPES;
+        nqp::islist($key-types) ?? $key-types[0] !! NQPMu
+    }
 
     # The value type of a hash declared with a key type but no value type.
     method IMPL-UNTYPED-HASH-VALUE-TYPE() {
         self.IMPL-LANGUAGE-REVISION >= 3 ?? Mu !! Any
+    }
+
+    # The value type of a hash with more than one dimension, given the declared
+    # type of its innermost values. Each dimension past the first coerces from
+    # Any to a hash of the same base type keyed by the type of that dimension.
+    method IMPL-NESTED-HASH-TYPE(Mu $of) {
+        my $key-types := self.IMPL-CONTAINER-KEY-TYPES;
+        my $base := self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE
+            ?? self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE
+            !! Hash;
+        my $value-type := self.type ?? $of !! self.IMPL-UNTYPED-HASH-VALUE-TYPE;
+        # Each dimension's values default as a declaration of their type would
+        my $default := RakuAST::Type.IMPL-NOMINALIZE-FOR-DEFAULT($value-type);
+        my int $dimension := nqp::elems($key-types);
+        while --$dimension {
+            $value-type := Perl6::Metamodel::CoercionHOW.new_type(
+              $base.HOW.parameterize($base, $value-type, $key-types[$dimension],
+                $default),
+              Any);
+            $default := RakuAST::Type.IMPL-NOMINALIZE-FOR-DEFAULT($value-type);
+        }
+        $value-type
+    }
+
+    method IMPL-IS-NESTED-HASH() {
+        my $key-types := self.IMPL-CONTAINER-KEY-TYPES;
+        nqp::islist($key-types) && nqp::elems($key-types) > 1
     }
 
     method IMPL-CALCULATE-TYPES(Mu $of) {
@@ -244,6 +276,11 @@ role RakuAST::ContainerCreator {
         # Form the container type.
         my str $sigil := self.sigil;
         my $key-type := self.IMPL-CONTAINER-KEY-TYPE;
+        my int $typed := self.type ?? 1 !! 0;
+        if self.IMPL-IS-NESTED-HASH {
+            $of := self.IMPL-NESTED-HASH-TYPE($of);
+            $typed := 1;
+        }
         my $container-base-type;
         my $container-type;
         my $default := Any;
@@ -252,12 +289,12 @@ role RakuAST::ContainerCreator {
         if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
             # $explicit-base is already the base type of any `is Type:D`.
             if $key-type =:= NQPMu {
-                $container-type := self.type
+                $container-type := $typed
                     ?? $explicit-base.HOW.parameterize($explicit-base, $of)
                     !! $explicit-base;
             }
             else {
-                my $value-type := self.type
+                my $value-type := $typed
                     ?? $of
                     !! self.IMPL-UNTYPED-HASH-VALUE-TYPE;
                 $container-type := $explicit-base.HOW.parameterize(
@@ -305,7 +342,7 @@ role RakuAST::ContainerCreator {
                 }
             }
             else {
-                my $value-type := self.type ?? $of !! self.IMPL-UNTYPED-HASH-VALUE-TYPE;
+                my $value-type := $typed ?? $of !! self.IMPL-UNTYPED-HASH-VALUE-TYPE;
                 $container-type := Hash.HOW.parameterize(Hash, $value-type, $key-type);
                 # A coercive role argument matches any type its coercion
                 # accepts, so a keyed hash whose value or key type coerces
@@ -345,7 +382,7 @@ role RakuAST::ContainerCreator {
         # coercive type, the default is the coercion's nominal target so that
         # an uninitialized `my Coerced(Source) $v` does not store the coercion
         # type itself as a value.
-        $default := RakuAST::Type.IMPL-NOMINALIZE-FOR-DEFAULT($of) if self.type;
+        $default := RakuAST::Type.IMPL-NOMINALIZE-FOR-DEFAULT($of) if $typed;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
         my int $isolated-match := self.lexical-name eq '$/'
             && self.IMPL-LANGUAGE-REVISION >= 3;
@@ -1121,14 +1158,23 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-BIND-CONSTRAINT(self.IMPL-OF-TYPE)
     }
 
-    # Yields NQPMu for check time to report unless the shape is one
-    # expression statement without modifiers whose value is a type object
+    # Yields NQPMu for check time to report unless the shape is one or more
+    # expression statements without modifiers whose values are type objects
     # known at compile time.
-    method IMPL-CONTAINER-KEY-TYPE() {
+    method IMPL-CONTAINER-KEY-TYPES() {
         return NQPMu unless $!shape && self.sigil eq '%';
         my @statements := $!shape.code-statements;
-        return NQPMu unless nqp::elems(@statements) == 1;
-        my $statement := @statements[0];
+        return NQPMu unless nqp::elems(@statements);
+        my @key-types;
+        for @statements {
+            my $key-type := self.IMPL-SHAPE-KEY-TYPE($_);
+            return NQPMu if $key-type =:= NQPMu;
+            nqp::push(@key-types, $key-type);
+        }
+        @key-types
+    }
+
+    method IMPL-SHAPE-KEY-TYPE(RakuAST::Statement $statement) {
         return NQPMu unless nqp::istype($statement, RakuAST::Statement::Expression)
           && !$statement.condition-modifier && !$statement.loop-modifier
           && !nqp::elems(self.IMPL-UNWRAP-LIST($statement.labels));
@@ -1548,20 +1594,28 @@ class RakuAST::VarDeclaration::Simple
         ) if $!shape && self.sigil eq '@'
           && $!initializer && $!initializer.is-binding;
 
-        if $!shape && self.sigil eq '%'
-          && nqp::eqaddr(self.IMPL-CONTAINER-KEY-TYPE, NQPMu) {
-            self.add-sorry: nqp::elems($!shape.code-statements) > 1
-              ?? $resolver.build-exception('X::Comp::NYI',
-                   :feature('multidimensional shaped hashes'))
-              !! $resolver.build-exception('X::Comp::AdHoc',
-                   :payload('Invalid hash shape; type expected'));
-        }
+        self.add-sorry(
+          $resolver.build-exception: 'X::Comp::AdHoc',
+            :payload('Invalid hash shape; type expected')
+        ) if $!shape && self.sigil eq '%'
+          && nqp::eqaddr(self.IMPL-CONTAINER-KEY-TYPES, NQPMu);
 
         self.add-sorry(
           $resolver.build-exception: 'X::Comp::NYI',
             :feature('native value types for hashes')
         ) if self.sigil eq '%' && (!$!is-parameter || $!list-declared)
           && nqp::objprimspec(self.IMPL-OF-TYPE);
+
+        # An `is default` on a hash with more than one dimension would have to
+        # apply to the values of its innermost hashes.
+        if self.IMPL-IS-NESTED-HASH {
+            for self.IMPL-UNWRAP-LIST(self.traits) {
+                self.add-sorry($resolver.build-exception('X::Comp::NYI',
+                  :feature('is default on a multidimensional shaped hash')))
+                  if nqp::istype($_, RakuAST::Trait::Is) && $_.name
+                    && $_.name.canonicalize eq 'default';
+            }
+        }
 
         if (self.initializer) {
             my @found := self.IMPL-UNWRAP-LIST(self.find-nodes(
@@ -1938,7 +1992,9 @@ class RakuAST::VarDeclaration::Simple
             QAST::Op.new( :op('how'), self.IMPL-CONTAINER-BASE-TYPE-QAST($context) ),
             self.IMPL-CONTAINER-BASE-TYPE-QAST($context),
             self.IMPL-INSTANTIATE-TYPE-QAST($context,
-                self.type ?? $of !! self.IMPL-UNTYPED-HASH-VALUE-TYPE) );
+                self.IMPL-IS-NESTED-HASH
+                    ?? self.IMPL-NESTED-HASH-TYPE($of)
+                    !! self.type ?? $of !! self.IMPL-UNTYPED-HASH-VALUE-TYPE) );
         $qast.push(self.IMPL-INSTANTIATE-TYPE-QAST($context, $key-type))
             unless $key-type =:= NQPMu;
         $qast

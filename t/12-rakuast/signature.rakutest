@@ -1431,7 +1431,7 @@ subtest 'Type capture with a definedness smiley' => {
             parameters => (
               RakuAST::Parameter.new(
                 type-captures => (
-                  RakuAST::Type::Capture.from-identifier('T', :smiley<D>),
+                  RakuAST::Type::Capture.from-identifier('T', 'D'),
                 ),
                 target => RakuAST::ParameterTarget::Var.new(:name<$x>)
               ),

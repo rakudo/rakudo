@@ -563,7 +563,7 @@ class RakuAST::Type::Capture
         $obj
     }
 
-    method from-identifier(Str $identifier, str :$smiley) {
+    method from-identifier(Str $identifier, str $smiley?) {
         self.new(RakuAST::Name.from-identifier($identifier), :$smiley)
     }
 

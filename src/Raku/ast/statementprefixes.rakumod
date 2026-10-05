@@ -250,8 +250,7 @@ role RakuAST::StatementPrefix::Thunky
             # Declare that state here. Left in the enclosing scope, its
             # p6stateinit never fires for the thunk call and `once` is skipped.
             if self.IMPL-THUNK-RUNS-ONCE {
-                my @state-decls := nqp::list();
-                self.IMPL-COLLECT-THUNK-STATE-DECLS(self.blorst, @state-decls);
+                self.IMPL-COLLECT-THUNK-STATE-DECLS(self.blorst, my @state-decls);
                 for @state-decls -> $decl {
                     nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
                 }

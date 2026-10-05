@@ -1001,7 +1001,7 @@ class RakuAST::Type::Enum
             $base-type := $!of.compile-time-value;
             $has-base-type := True;
         }
-        my @values := nqp::list;
+        my @values;
         my $cur-val := nqp::box_i(-1, Int); # Boxed to support .succ
         if $*COMPILING_CORE_SETTING
             && $!term.semilist.IMPL-IS-SINGLE-EXPRESSION

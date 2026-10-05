@@ -1,5 +1,8 @@
+# Associative[TValue] meets a constraint naming just the value type, such as
+# that of a `TValue %h` parameter
 my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
-  does Associative[TValue] {
+  does Associative[TValue]
+  does Associative[TValue, TKey] {
 
     # make sure we get the right descriptor
     multi method new(::?CLASS:) {
@@ -8,6 +11,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
           ContainerDescriptor.new(:of(TValue), :default(TDefault))
         )
     }
+    method of() { TValue }
     method keyof () { TKey }
     method ELEMENT-DESCRIPTOR() is implementation-detail {
         ContainerDescriptor.new(:of(TValue), :default(TDefault))

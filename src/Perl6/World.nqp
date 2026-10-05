@@ -2125,8 +2125,15 @@ class Perl6::World is HLL::World {
                 }
                 %info<container_type>  := self.parameterize_type_with_args($/,
                     %info<container_base>, @value_type, nqp::hash());
-                %info<bind_constraint> := self.parameterize_type_with_args($/,
-                    %info<bind_constraint>, @value_type, nqp::hash());
+                # A coercive role argument matches any type its coercion
+                # accepts, so a keyed hash whose value or key type coerces
+                # binds only a hash of its own type.
+                %info<bind_constraint> := nqp::elems(@value_type) > 1
+                  && (@value_type[0].HOW.archetypes(@value_type[0]).coercive
+                      || @value_type[1].HOW.archetypes(@value_type[1]).coercive)
+                    ?? %info<container_type>
+                    !! self.parameterize_type_with_args($/,
+                         %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
                 %info<default_value>
                     := self.maybe-nominalize: @value_type[0];

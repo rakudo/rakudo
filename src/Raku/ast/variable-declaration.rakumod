@@ -305,18 +305,17 @@ role RakuAST::ContainerCreator {
                 }
             }
             else {
-                if self.type {
-                    $container-type := Hash.HOW.parameterize(Hash, $of, $key-type);
-                    $bind-constraint := $bind-constraint.HOW.parameterize(
-                        $bind-constraint, $of, $key-type);
-                }
-                else {
-                    my $value-default := self.IMPL-UNTYPED-HASH-VALUE-TYPE;
-                    $container-type := Hash.HOW.parameterize(
-                        Hash, $value-default, $key-type);
-                    $bind-constraint := $bind-constraint.HOW.parameterize(
-                        $bind-constraint, $value-default, $key-type);
-                }
+                my $value-type := self.type ?? $of !! self.IMPL-UNTYPED-HASH-VALUE-TYPE;
+                $container-type := Hash.HOW.parameterize(Hash, $value-type, $key-type);
+                # A coercive role argument matches any type its coercion
+                # accepts, so a keyed hash whose value or key type coerces
+                # binds only a hash of its own type.
+                $bind-constraint :=
+                    $value-type.HOW.archetypes($value-type).coercive
+                      || $key-type.HOW.archetypes($key-type).coercive
+                    ?? $container-type
+                    !! $bind-constraint.HOW.parameterize(
+                         $bind-constraint, $value-type, $key-type);
             }
         }
         elsif $sigil eq '&' {

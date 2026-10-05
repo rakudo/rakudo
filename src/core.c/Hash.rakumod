@@ -509,6 +509,13 @@ my class Hash { # declared in BOOTSTRAP
       Mu \keyof = Str(Any),
       Mu \default = of
     ) {
+        # a coercive value type defaults to its nominal target
+        my \of-default := nqp::not_i(nqp::isconcrete(of))
+          && of.HOW.archetypes(of).coercive
+          ?? of.HOW.nominalize(of)
+          !! of;
+        my \value-default := nqp::eqaddr(default,of) ?? of-default !! default;
+
         # fast path
         if nqp::eqaddr(of,Mu)
           && nqp::eqaddr(keyof,Str(Any))
@@ -523,11 +530,11 @@ my class Hash { # declared in BOOTSTRAP
 
         # only constraint on type
         elsif nqp::eqaddr(keyof,Str(Any)) {
-            my $what := hash.^mixin(Hash::Typed[of, Str(Any), default]);
+            my $what := hash.^mixin(Hash::Typed[of, Str(Any), value-default]);
              # needs to be done in COMPOSE phaser when that works
             my $name = hash.^name ~ '[' ~ of.^name;
-            $name ~= (',Str(Any),' ~ default.^name)
-              unless nqp::eqaddr(default,of);
+            $name ~= (',Str(Any),' ~ value-default.^name)
+              unless nqp::eqaddr(value-default,of-default);
             $what.^set_name: "$name]";
             $what
         }
@@ -546,10 +553,11 @@ my class Hash { # declared in BOOTSTRAP
 
         # a true object hash
         else {
-            my $what := hash.^mixin(Hash::Object[of, keyof, default]);
+            my $what := hash.^mixin(Hash::Object[of, keyof, value-default]);
             # needs to be done in COMPOSE phaser when that works
             my $name = hash.^name ~ '[' ~ of.^name ~ ',' ~ keyof.^name;
-            $name ~= (',' ~ default.^name) unless nqp::eqaddr(default,of);
+            $name ~= (',' ~ value-default.^name)
+              unless nqp::eqaddr(value-default,of-default);
             $what.^set_name: "$name]";
             $what
         }

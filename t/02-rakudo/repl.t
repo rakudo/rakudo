@@ -3,7 +3,7 @@ use Test;
 use Test::Helpers;
 use nqp;
 
-plan 52;
+plan 53;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -373,5 +373,9 @@ is-run-repl ('role R[::T] { method type { T } }', 'say R[Int].type =:= Int'),
 is-run-repl ('my class Bar { }', 'BEGIN say EVAL(q{Bar}).^name'),
     :out{.lines.tail eq 'Bar'}, :err(''),
     'an EVAL at BEGIN time of a line sees a class declared on an earlier line';
+
+is-run-repl ('sub repl-export is export { }', 'say EXPORT::DEFAULT::<&repl-export>.name'),
+    :out{.lines.tail eq 'repl-export'}, :err(''),
+    'a sub exported on an earlier line is in the EXPORT package of a later line';
 
 # vim: expandtab shiftwidth=4

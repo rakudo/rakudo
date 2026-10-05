@@ -30,6 +30,9 @@ class RakuAST::Resolver {
     # The current comp unit's EXPORT package.
     has Mu $!export-package;
 
+    # The EXPORT package of an enclosing compilation, for a nested EVAL.
+    has Mu $!enclosing-export-package;
+
     # Set while the optimize walk runs over a code object ahead of the
     # unit's optimize phase. The scopes enclosing the code object are
     # still being parsed then, so a rewrite, which cannot be undone,
@@ -249,6 +252,11 @@ class RakuAST::Resolver {
         self.pop-package() while nqp::elems($!packages) > $depth;
         Nil
     }
+
+    method export-package() { $!export-package }
+
+    # The EXPORT package of the compilation an EVAL is nested in, if any.
+    method enclosing-export-package() { $!enclosing-export-package }
 
     # Set the EXPORT package when we're starting a fresh compilation unit.
     method set-export-package(Mu $package) {
@@ -1581,6 +1589,18 @@ class RakuAST::Resolver::EVAL
         self.IMPL-BEGIN-TIME-CONSTANT-IN-OUTER($name)
     }
 
+    # Resolves a name to the lexical declared in the compilation unit's
+    # scopes, of any kind. The outer context is not consulted.
+    method resolve-lexical-in-scopes(Str $name) {
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return $found if nqp::isconcrete($found);
+        }
+        Nil
+    }
+
     # Resolves a name to the lexical constant declared in the
     # compilation unit's own scopes. The outer context and setting are
     # not consulted.
@@ -1708,6 +1728,8 @@ class RakuAST::Resolver::Compile
             :scopes($resolver ?? nqp::clone(nqp::getattr($resolver, RakuAST::Resolver::Compile, '$!scopes')) !! Mu),
             :attach-targets($resolver ?? $resolver.IMPL-CLONE-ATTACH-TARGETS !! Mu),
         );
+        nqp::bindattr($obj, RakuAST::Resolver, '$!enclosing-export-package',
+          $resolver.export-package) if $resolver;
         # The EVAL is in the package its context declares, and otherwise in
         # the package of the enclosing compilation, which a setting context
         # cannot name.
@@ -2214,6 +2236,18 @@ class RakuAST::Resolver::Compile
             }
         }
         self.IMPL-BEGIN-TIME-CONSTANT-IN-OUTER($name)
+    }
+
+    # Resolves a name to the lexical declared in the compilation unit's
+    # scopes, of any kind. The outer context is not consulted.
+    method resolve-lexical-in-scopes(Str $name) {
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return $found if nqp::isconcrete($found);
+        }
+        Nil
     }
 
     # Resolves a name to the lexical constant declared in the

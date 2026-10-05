@@ -926,6 +926,22 @@ role RakuAST::Code
                 :name('$?PACKAGE'), :scope('lexical'),
                 :decl('static'), :value($package)
             ));
+            # An EVAL run here exports into the EXPORT package of the unit,
+            # unless the code sees an EXPORT declared by the user, which an
+            # enclosing unit's implicit one holds once a package reuses it.
+            my $export  := $resolver.export-package;
+            my $visible := $resolver.resolve-lexical-in-scopes('EXPORT');
+            unless nqp::eqaddr($export, Mu)
+              || nqp::isconcrete($visible)
+                 && (!nqp::istype($visible, RakuAST::VarDeclaration::Implicit::Constant)
+                     || !nqp::eqaddr($visible.compile-time-value,
+                          $resolver.enclosing-export-package)) {
+                $context.ensure-sc($export);
+                $wrapper[0].push(QAST::Var.new(
+                    :name('EXPORT'), :scope('lexical'),
+                    :decl('static'), :value($export)
+                ));
+            }
         }
 
         # Mark the frame as code of the unit being compiled, so a begin-time

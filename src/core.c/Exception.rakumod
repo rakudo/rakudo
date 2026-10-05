@@ -3108,7 +3108,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method operation { 'assignment' }
     method message {
         my $symbol := $!symbol // $!desc.name;
-        my $location = !$symbol.defined || $symbol eq '$'
+        my $location = !$symbol || $symbol eq '$'
             ?? "in assignment"
             !! $symbol.starts-with("@" | "%")
                 ?? "for an element of $symbol"

@@ -1637,7 +1637,10 @@ class ContainerDescriptor::BindArrayPos does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { self.next.name ~ '[' ~ $!pos ~ ']' }
+    method name() {
+        my str $name := self.next.name;
+        $name ?? $name ~ '[' ~ $!pos ~ ']' !! $name
+    }
     method assigned($scalar) {
         nqp::bindpos($!target, $!pos, $scalar);
     }
@@ -1722,7 +1725,10 @@ class ContainerDescriptor::BindArrayPosND does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { 'element of ' ~ self.next.name }  # XXX show indexes
+    method name() {  # XXX show indexes
+        my str $name := self.next.name;
+        $name ?? 'element of ' ~ $name !! $name
+    }
     method assigned($scalar) {
         nqp::bindposnd($!target, $!idxs, $scalar);
     }
@@ -1746,7 +1752,10 @@ class ContainerDescriptor::BindHashKey does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
+    method name() {
+        my str $name := self.next.name;
+        $name ?? $name ~ "\{'" ~ $!key ~ "'\}" !! $name
+    }
     method assigned($scalar) {
         my $hash := nqp::getattr($!target, Map, '$!storage');
         $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
@@ -1779,7 +1788,10 @@ class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { 'element of ' ~ self.next.name }  # XXX correct key
+    method name() {  # XXX correct key
+        my str $name := self.next.name;
+        $name ?? 'element of ' ~ $name !! $name
+    }
     method assigned($scalar) {
         my $hash := nqp::getattr($!target, Map, '$!storage');
         $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
@@ -1837,7 +1849,10 @@ class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
             '$!next-descriptor', $descriptor) if nqp::isconcrete($descriptor);
     }
 
-    method name() { self.next.name ~ '[' ~ $!pos ~ ']' }
+    method name() {
+        my str $name := self.next.name;
+        $name ?? $name ~ '[' ~ $!pos ~ ']' !! $name
+    }
     method assigned($scalar) {
         my $target := $!target;
 
@@ -1901,7 +1916,10 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
             '$!next-descriptor', $descriptor) if nqp::isconcrete($descriptor);
     }
 
-    method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
+    method name() {
+        my str $name := self.next.name;
+        $name ?? $name ~ "\{'" ~ $!key ~ "'\}" !! $name
+    }
     method assigned($scalar) {
         my $target := $!target;
 

@@ -3,7 +3,7 @@ use Test;
 use nqp;
 use Test::Helpers;
 
-plan 31;
+plan 43;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -327,6 +327,62 @@ $a xx 2 :foo｣,
     else {
         skip 'the source split is placed by the RakuAST frontend', 10;
     }
+}
+
+{
+    my $h = Hash[Int].new;
+    throws-like { $h<a> = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no container that has no name';
+    my $object-element := Hash[Int,Str].new<a>;
+    throws-like { cas $object-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element of an object hash that has no name';
+    my $hash-element := Hash[Int].new<a>;
+    throws-like { cas $hash-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element of a hash that has no name';
+    my $array-element := Array[Int].new[0];
+    throws-like { cas $array-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element of an array that has no name';
+    my $shaped-element := Array[Int].new(:shape(2,2,2,2))[0;0;0;0];
+    throws-like { cas $shaped-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element of a shaped array that has no name';
+    my Int %named-hash;
+    my $named-hash-element := %named-hash<a>;
+    throws-like { cas $named-hash-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ "Type check failed for an element of %named-hash\{'a'\}; "/,
+        'an assignment type check failure names an element of a named hash';
+    my Int @named-array;
+    my $named-array-element := @named-array[5];
+    throws-like { cas $named-array-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed for an element of @named-array[5]; '/,
+        'an assignment type check failure names an element of a named array';
+    my Int %named-object{Str};
+    my $named-object-element := %named-object<a>;
+    throws-like { cas $named-object-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment to element of %named-object; '/,
+        'an assignment type check failure names an element of a named object hash';
+    my Hash[Int] $taken-hash;
+    my $taken-hash-element := $taken-hash<a>;
+    throws-like { $taken-hash-element = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element taken from a hash type object';
+    my Array[Int] $taken-array;
+    my $taken-array-element := $taken-array[0];
+    throws-like { $taken-array-element = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element taken from an array type object';
+    my Hash[Int] $hash;
+    throws-like { $hash<a> = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element a hash type object vivifies';
+    my Array[Int] $array;
+    throws-like { $array[0] = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element an array type object vivifies';
 }
 
 # vim: expandtab shiftwidth=4

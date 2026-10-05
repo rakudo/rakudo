@@ -4745,6 +4745,10 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
     # on NQP/Raku language boundary. Therefore we use a truncated local
     # version of it.
     my sub method-cando($method, *@pos) {
+        # A method that a FALLBACK provides is a plain closure, so like a
+        # method call it takes whatever it is given
+        return nqp::list($method) unless nqp::istype($method, Routine);
+
         my $disp;
         if $method.is_dispatcher {
             $disp := $method;
@@ -4754,6 +4758,16 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
             nqp::bindattr($disp, Routine, '@!dispatchees', nqp::list($method));
         }
         -> *@_ { $disp.find_best_dispatchee( nqp::usecapture(), 1) }(|@pos)
+    }
+
+    # A lookup site that has gone megamorphic skips fallbacks, so ask the
+    # type for one itself when the lookup finds nothing
+    my sub value-method($value, str $name) {
+        my $method := nqp::tryfindmethod($value, $name);
+        my $how    := nqp::how_nd($value);
+        nqp::defined($method) || nqp::not_i(nqp::can($how, 'find_method_fallback'))
+          ?? $method
+          !! $how.find_method_fallback($value, $name)
     }
 
     # Make sure none of the coercion method candidates uses run-time
@@ -4819,7 +4833,7 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
 
     # There is .TargetType method on the value, use it.
     elsif nqp::defined(
-      $method := nqp::tryfindmethod(
+      $method := value-method(
         $value.WHAT,
         nqp::how_nd($nominal_target).name($nominal_target)
       )

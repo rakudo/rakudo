@@ -17,6 +17,8 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
         ContainerDescriptor.new(:of(TValue), :default(TDefault))
     }
     method AT-KEY(\SELF: TKey \key) is raw {
+        key.throw if nqp::istype(key,Failure) && nqp::isconcrete(key);
+
         nqp::if(
           nqp::isconcrete(SELF),
           nqp::if(
@@ -39,7 +41,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
     }
 
     method STORE_AT_KEY(::?CLASS:D: TKey \key, Mu \value --> Nil) {
-        nqp::istype(key,Failure)
+        nqp::istype(key,Failure) && nqp::isconcrete(key)
           ?? key.throw
           !! nqp::bindkey(
                nqp::getattr(self,Map,'$!storage'),
@@ -67,7 +69,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
     }
 
     method ASSIGN-KEY(\SELF: TKey \key, Mu \assignval) is raw {
-        key.throw if nqp::istype(key,Failure);
+        key.throw if nqp::istype(key,Failure) && nqp::isconcrete(key);
 
         nqp::if(
           nqp::isconcrete(SELF),
@@ -90,7 +92,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
     }
 
     method BIND-KEY(\SELF: TKey \key, TValue \value) is raw {
-        nqp::istype(key,Failure)
+        nqp::istype(key,Failure) && nqp::isconcrete(key)
           ?? key.throw
           !! nqp::isconcrete(SELF)
             ?? nqp::getattr(
@@ -106,7 +108,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
     }
 
     method EXISTS-KEY(TKey \key) {
-        nqp::istype(key,Failure)
+        nqp::istype(key,Failure) && nqp::isconcrete(key)
           ?? key.throw
           !! nqp::hllbool(
                nqp::isconcrete(self)
@@ -115,7 +117,7 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
     }
 
     method DELETE-KEY(TKey \key) {
-        key.throw if nqp::istype(key,Failure);
+        key.throw if nqp::istype(key,Failure) && nqp::isconcrete(key);
 
         nqp::if(
           nqp::isconcrete(self),

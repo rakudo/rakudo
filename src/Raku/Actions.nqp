@@ -654,9 +654,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
 
-        my $package-how    := $LANG.how('package');
-        my $export-package := $package-how.new_type(name => 'EXPORT');
-        $export-package.HOW.compose($export-package);
+        # An EVAL exports into the EXPORT package of the code it is compiled
+        # in, when there is one. A string turned into an AST may be EVALed
+        # somewhere else, so it starts a package of its own.
+        my $package-how  := $LANG.how('package');
+        my $to-ast       := nqp::lc(nqp::atkey(%OPTIONS, 'target')) eq 'ast';
+        my $outer-export := $is-EVAL && !$to-ast
+          ?? $RESOLVER.resolve-lexical-in-outer('EXPORT')
+          !! Nil;
+        my $export-package;
+        if nqp::isconcrete($outer-export)
+          && !nqp::isnull($outer-export.maybe-compile-time-value) {
+            $export-package := $outer-export.maybe-compile-time-value;
+        }
+        else {
+            $export-package := $package-how.new_type(name => 'EXPORT');
+            $export-package.HOW.compose($export-package);
+        }
         $RESOLVER.set-export-package($export-package);
         $*EXPORT := $export-package;
 

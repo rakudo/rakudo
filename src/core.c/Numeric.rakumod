@@ -350,6 +350,8 @@ multi sub infix:«>=»(\a, \b) {
 }
 # U+2265 GREATER-THAN OR EQUAL TO
 my constant &infix:<≥> := &infix:«>=»;
+# U+2A7E GREATER-THAN OR SLANTED EQUAL TO
+my constant &infix:<⩾> := &infix:«>=»;
 
 ## bitwise operators
 

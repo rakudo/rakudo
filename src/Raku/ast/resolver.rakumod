@@ -6,6 +6,11 @@ class RakuAST::Resolver {
     # Our outer context. When not an EVAL, this is the same as $!setting.
     has Mu $!outer;
 
+    # For an EVAL run by begin-time effects of enclosing compilations, pairs
+    # of the token marking the frames of such a compilation and the context
+    # that compilation is compiled in.
+    has Mu $!begin-time-outers;
+
     # Our current idea of the global symbol table.
     has Mu $!global;
 
@@ -563,6 +568,7 @@ class RakuAST::Resolver {
         # Look through the contexts for the name.
         my $context := $!outer;
         my int $seen-setting;
+        my int $walked-past-begin-time;
         until nqp::isnull($context) {
             $seen-setting := 1 if nqp::existskey($context,'CORE-SETTING-REV');
 
@@ -572,6 +578,10 @@ class RakuAST::Resolver {
                 # A native holds no object. A null value says so, where an
                 # unset one would read as the NQPMu type object.
                 if $prim-spec {
+                    # Compiled code reaches a native only along its own outer
+                    # chain, which leads from the frame of a begin-time effect
+                    # to the setting rather than here.
+                    return Nil if $walked-past-begin-time;
                     return RakuAST::Declaration::External.new(
                       :lexical-name($name),
                       :native-type(PRIMSPEC-TO-TYPE[$prim-spec]),
@@ -600,7 +610,14 @@ class RakuAST::Resolver {
                 return Nil;
             }
 
-            $context := nqp::ctxouter($context);
+            my $jump := self.IMPL-BEGIN-TIME-JUMP($context);
+            if nqp::isnull($jump) {
+                $context := nqp::ctxouter($context);
+            }
+            else {
+                $walked-past-begin-time := 1;
+                $context := $jump;
+            }
         }
 
         # Nothing found.
@@ -624,15 +641,54 @@ class RakuAST::Resolver {
         until nqp::isnull($context) {
             nqp::existskey($context, $name)
               ?? (return self.external-constant($context, $name))
-              !! ($context := nqp::ctxouter($context));
+              !! ($context := self.IMPL-OUTER-OF($context));
         }
         Nil
+    }
+
+    # Past the frame a begin-time effect of an enclosing compilation runs in,
+    # a lexical lookup goes on in the context the compilation is compiled in
+    # rather than the setting. Null for any other frame.
+    method IMPL-BEGIN-TIME-JUMP(Mu $context) {
+        if nqp::isconcrete($!begin-time-outers)
+          && nqp::existskey($context, '!BEGIN_TIME_MARKER') {
+            my $marker := nqp::atkey($context, '!BEGIN_TIME_MARKER');
+            for $!begin-time-outers {
+                return nqp::atpos($_, 1) if nqp::eqaddr(nqp::atpos($_, 0), $marker);
+            }
+        }
+        nqp::null()
+    }
+
+    # The context to walk to from the given one when looking for a lexical.
+    method IMPL-OUTER-OF(Mu $context) {
+        nqp::ifnull(self.IMPL-BEGIN-TIME-JUMP($context), nqp::ctxouter($context))
+    }
+
+    method outer-context() { $!outer }
+
+    method IMPL-BEGIN-TIME-OUTERS() {
+        nqp::isconcrete($!begin-time-outers) ?? $!begin-time-outers !! []
     }
 
     # Resolves a lexical using the outer contexts. The declaration must have a
     # compile-time value.
     method resolve-lexical-constant-in-outer(Str $name) {
         self.resolve-lexical-constant-in-context($!outer, $name)
+    }
+
+    # Resolves a lexical of the outer contexts to a constant, for an indirect
+    # lookup at BEGIN time. A native holds no object and one not yet bound
+    # holds nothing, so neither is found.
+    method IMPL-BEGIN-TIME-CONSTANT-IN-OUTER(Str $name) {
+        my $found := self.resolve-lexical-in-outer($name);
+        nqp::istype($found, RakuAST::CompileTimeValue)
+          ?? $found
+          !! nqp::isconcrete($found) && !nqp::isnull($found.maybe-compile-time-value)
+            ?? RakuAST::Declaration::External::Constant.new(
+                 :lexical-name($name),
+                 :compile-time-value($found.maybe-compile-time-value))
+            !! Nil
     }
 
     # Resolves a lexical using the outer contexts. The declaration must have a
@@ -1279,7 +1335,7 @@ class RakuAST::Resolver {
                     $inner-evaluator($name);
                 }
             }
-            $ctx := nqp::ctxouter($ctx);
+            $ctx := self.IMPL-OUTER-OF($ctx);
         }
     }
 }
@@ -1510,6 +1566,21 @@ class RakuAST::Resolver::EVAL
           !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
     }
 
+    # Resolves a name for an indirect lookup at BEGIN time. The innermost
+    # declaration in the unit hides the context around it, and is found only
+    # with a compile-time value. The context is asked when the unit has none.
+    method IMPL-RESOLVE-BEGIN-TIME-CONSTANT(Str $name) {
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            if nqp::isconcrete($found) {
+                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+            }
+        }
+        self.IMPL-BEGIN-TIME-CONSTANT-IN-OUTER($name)
+    }
+
     # Resolves a name to the lexical constant declared in the
     # compilation unit's own scopes. The outer context and setting are
     # not consulted.
@@ -1647,6 +1718,21 @@ class RakuAST::Resolver::Compile
                 !! nqp::clone(nqp::getattr($resolver, RakuAST::Resolver, '$!packages')));
         }
         $obj
+    }
+
+    # An EVAL nested in a compilation running a begin-time effect walks out
+    # of the frames of that compilation into the context the compilation is
+    # compiled in. Only a nested EVAL binds what it finds there into its code.
+    method IMPL-WALK-PAST-BEGIN-TIME() {
+        my $state := nqp::getlexdyn('$*BEGIN-TIME-LOOKUP');
+        unless nqp::isnull($state) {
+            my $compiling := nqp::atpos($state, 0);
+            my @outers    := nqp::clone($compiling.IMPL-BEGIN-TIME-OUTERS);
+            nqp::unshift(@outers,
+              nqp::list(nqp::atpos($state, 1), $compiling.outer-context));
+            nqp::bindattr(self, RakuAST::Resolver, '$!begin-time-outers', @outers);
+        }
+        Nil
     }
 
     method clone() {
@@ -2110,6 +2196,21 @@ class RakuAST::Resolver::Compile
             }
         }
         self.resolve-lexical-constant-in-outer($name)
+    }
+
+    # Resolves a name for an indirect lookup at BEGIN time. The innermost
+    # declaration in the unit hides the context around it, and is found only
+    # with a compile-time value. The context is asked when the unit has none.
+    method IMPL-RESOLVE-BEGIN-TIME-CONSTANT(Str $name) {
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            if nqp::isconcrete($found) {
+                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+            }
+        }
+        self.IMPL-BEGIN-TIME-CONSTANT-IN-OUTER($name)
     }
 
     # Resolves a name to the lexical constant declared in the

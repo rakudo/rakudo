@@ -15,13 +15,13 @@ my class PseudoStash is Map {
 
     # Code the compiler runs at BEGIN time lives in a frame whose outer is
     # the setting, so a static-chain walk from it reaches setting symbols
-    # but not what the unit being compiled declares. While a begin-time
-    # effect runs the compiler leaves its resolver and that compilation's
-    # token in $*BEGIN-TIME-LOOKUP, and the frames it compiles dynamically
-    # for the unit see the token, so only the unit's own code is answered
-    # for. Consulted by stashes carrying BEGIN_TIME_FALLBACK and by
-    # INDIRECT_NAME_LOOKUP, in both cases once every other source of the
-    # name has missed.
+    # but not what the unit being compiled declares or what is around it.
+    # While a begin-time effect runs the compiler leaves its resolver and
+    # that compilation's token in $*BEGIN-TIME-LOOKUP, and the frames it
+    # compiles dynamically for the unit see the token, so only the unit's
+    # own code is answered for. Consulted by stashes carrying
+    # BEGIN_TIME_FALLBACK and by INDIRECT_NAME_LOOKUP, in both cases once
+    # every other source of the name has missed.
     method BEGIN-TIME-DECLARATION(str $key) is implementation-detail {
         my $state := nqp::getlexdyn('$*BEGIN-TIME-LOOKUP');
         nqp::isnull($state)
@@ -31,7 +31,7 @@ my class PseudoStash is Map {
                  nqp::getattr(self, PseudoStash, '$!ctx'),
                  '!BEGIN_TIME_MARKER')))
                && nqp::eqaddr($marker, nqp::atpos($state, 1))
-            ?? (nqp::atpos($state, 0).resolve-lexical-constant-in-scopes($key) || Nil)
+            ?? (nqp::atpos($state, 0).IMPL-RESOLVE-BEGIN-TIME-CONSTANT($key) || Nil)
             !! Nil
     }
 

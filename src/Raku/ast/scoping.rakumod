@@ -1360,6 +1360,8 @@ role RakuAST::Lookup {
         }
     }
 
+    method resolved-value() { self.resolution.compile-time-value }
+
     method set-resolution(RakuAST::Node $resolution) {
         nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $resolution)
           unless $!heredoc-refused;
@@ -1436,7 +1438,7 @@ role RakuAST::Lookup {
         return $call if $*COMPILING_CORE_SETTING || !$!value-args;
         return $call unless self.is-resolved
             && nqp::istype(self.resolution, RakuAST::CompileTimeValue);
-        my $routine := self.resolution.compile-time-value;
+        my $routine := self.resolved-value;
         return $call unless nqp::isconcrete($routine)
             && nqp::istype($routine, Code);
 

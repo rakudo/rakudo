@@ -229,9 +229,18 @@ role RakuAST::ContainerCreator {
           !! nqp::null
     }
 
-    # The key type of the hash a container creator makes, or NQPMu for a
-    # hash keyed by Str.
-    method IMPL-CONTAINER-KEY-TYPE() { NQPMu }
+    # The key types of the hash a container creator makes, one per dimension
+    # in the order of the shape, or NQPMu for a hash keyed by Str.
+    method IMPL-CONTAINER-KEY-TYPES() { NQPMu }
+
+    # The key type of the hash, or the list of key types for a hash of more
+    # than one dimension.
+    method IMPL-CONTAINER-KEY-TYPE() {
+        my $key-types := self.IMPL-CONTAINER-KEY-TYPES;
+        nqp::islist($key-types)
+          ?? nqp::elems($key-types) > 1 ?? $key-types !! $key-types[0]
+          !! NQPMu
+    }
 
     # The value type of a hash declared with a key type but no value type.
     method IMPL-UNTYPED-HASH-VALUE-TYPE() {
@@ -309,9 +318,10 @@ role RakuAST::ContainerCreator {
                 $container-type := Hash.HOW.parameterize(Hash, $value-type, $key-type);
                 # A coercive role argument matches any type its coercion
                 # accepts, so a keyed hash whose value or key type coerces
-                # binds only a hash of its own type.
+                # binds only a hash of its own type, as does a shaped hash.
                 $bind-constraint :=
-                    $value-type.HOW.archetypes($value-type).coercive
+                    nqp::islist($key-type)
+                      || $value-type.HOW.archetypes($value-type).coercive
                       || $key-type.HOW.archetypes($key-type).coercive
                     ?? $container-type
                     !! $bind-constraint.HOW.parameterize(
@@ -1121,14 +1131,23 @@ class RakuAST::VarDeclaration::Simple
         self.IMPL-BIND-CONSTRAINT(self.IMPL-OF-TYPE)
     }
 
-    # Yields NQPMu for check time to report unless the shape is one
-    # expression statement without modifiers whose value is a type object
+    # Yields NQPMu for check time to report unless the shape is one or more
+    # expression statements without modifiers whose values are type objects
     # known at compile time.
-    method IMPL-CONTAINER-KEY-TYPE() {
+    method IMPL-CONTAINER-KEY-TYPES() {
         return NQPMu unless $!shape && self.sigil eq '%';
         my @statements := $!shape.code-statements;
-        return NQPMu unless nqp::elems(@statements) == 1;
-        my $statement := @statements[0];
+        return NQPMu unless nqp::elems(@statements);
+        my @key-types;
+        for @statements {
+            my $key-type := self.IMPL-SHAPE-KEY-TYPE($_);
+            return NQPMu if $key-type =:= NQPMu;
+            nqp::push(@key-types, $key-type);
+        }
+        @key-types
+    }
+
+    method IMPL-SHAPE-KEY-TYPE(RakuAST::Statement $statement) {
         return NQPMu unless nqp::istype($statement, RakuAST::Statement::Expression)
           && !$statement.condition-modifier && !$statement.loop-modifier
           && !nqp::elems(self.IMPL-UNWRAP-LIST($statement.labels));
@@ -1548,14 +1567,11 @@ class RakuAST::VarDeclaration::Simple
         ) if $!shape && self.sigil eq '@'
           && $!initializer && $!initializer.is-binding;
 
-        if $!shape && self.sigil eq '%'
-          && nqp::eqaddr(self.IMPL-CONTAINER-KEY-TYPE, NQPMu) {
-            self.add-sorry: nqp::elems($!shape.code-statements) > 1
-              ?? $resolver.build-exception('X::Comp::NYI',
-                   :feature('multidimensional shaped hashes'))
-              !! $resolver.build-exception('X::Comp::AdHoc',
-                   :payload('Invalid hash shape; type expected'));
-        }
+        self.add-sorry(
+          $resolver.build-exception: 'X::Comp::AdHoc',
+            :payload('Invalid hash shape; type expected')
+        ) if $!shape && self.sigil eq '%'
+          && nqp::eqaddr(self.IMPL-CONTAINER-KEY-TYPES, NQPMu);
 
         self.add-sorry(
           $resolver.build-exception: 'X::Comp::NYI',
@@ -1939,8 +1955,15 @@ class RakuAST::VarDeclaration::Simple
             self.IMPL-CONTAINER-BASE-TYPE-QAST($context),
             self.IMPL-INSTANTIATE-TYPE-QAST($context,
                 self.type ?? $of !! self.IMPL-UNTYPED-HASH-VALUE-TYPE) );
-        $qast.push(self.IMPL-INSTANTIATE-TYPE-QAST($context, $key-type))
-            unless $key-type =:= NQPMu;
+        if nqp::islist($key-type) {
+            my $key-types := QAST::Op.new( :op('list') );
+            $key-types.push(self.IMPL-INSTANTIATE-TYPE-QAST($context, $_))
+                for $key-type;
+            $qast.push($key-types);
+        }
+        elsif !($key-type =:= NQPMu) {
+            $qast.push(self.IMPL-INSTANTIATE-TYPE-QAST($context, $key-type));
+        }
         $qast
     }
 

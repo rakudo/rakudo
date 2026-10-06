@@ -3938,8 +3938,9 @@ my class X::NotEnoughDimensions is Exception {
     has $.operation;
     has $.got-dimensions;
     has $.needed-dimensions;
+    has $.aggregate = 'array';
     method message() {
-        "Cannot $.operation a $.needed-dimensions dimension array with only $.got-dimensions dimensions"
+        "Cannot $.operation a $.needed-dimensions dimension $.aggregate with only $.got-dimensions dimensions"
     }
 }
 
@@ -3947,8 +3948,9 @@ my class X::TooManyDimensions is Exception {
     has $.operation;
     has $.got-dimensions;
     has $.needed-dimensions;
+    has $.aggregate = 'array';
     method message() {
-        "Cannot $.operation a $.needed-dimensions dimension array with $.got-dimensions dimensions"
+        "Cannot $.operation a $.needed-dimensions dimension $.aggregate with $.got-dimensions dimensions"
     }
 }
 

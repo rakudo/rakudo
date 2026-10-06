@@ -1042,7 +1042,8 @@ class RakuAST::Infix
         elsif nqp::istype($lhs_ast, QAST::Op) && ($lhs_ast.op eq 'call' || $lhs_ast.op eq 'callstatic') &&
               ((my $lhs_ast_name := $lhs_ast.name) eq '&postcircumfix:<[ ]>' ||
                $lhs_ast_name eq '&postcircumfix:<{ }>' ||
-               $lhs_ast_name eq '&postcircumfix:<[; ]>') &&
+               $lhs_ast_name eq '&postcircumfix:<[; ]>' ||
+               $lhs_ast_name eq '&postcircumfix:<{; }>') &&
                 +@($lhs_ast) == 2 { # no adverbs
             $lhs_ast.push($rhs_ast);
             $past := $lhs_ast;

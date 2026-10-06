@@ -2102,16 +2102,19 @@ class Perl6::World is HLL::World {
                     $*LANGUAGE-REVISION >= 3 ?? 'Mu' !! 'Any'
                 ) unless +@value_type;
                 my @statements := $shape[0]<statement> || [];
-                my $key_ast := nqp::elems(@statements) == 1
-                  && @statements[0]<EXPR> && @statements[0].ast;
-                if nqp::elems(@statements) > 1 {
-                    $/.typed_sorry('X::Comp::NYI',
-                        feature => "multidimensional shaped hashes");
+                my @key_types;
+                for @statements -> $statement {
+                    my $key_ast := $statement<EXPR> && $statement.ast;
+                    if $key_ast && $key_ast.has_compile_time_value
+                      && !nqp::isconcrete($key_ast.compile_time_value)
+                      && !nqp::eqaddr($key_ast.compile_time_value, NQPMu) {
+                        nqp::push(@key_types, $key_ast.compile_time_value);
+                    }
                 }
-                elsif $key_ast && $key_ast.has_compile_time_value
-                  && !nqp::isconcrete($key_ast.compile_time_value)
-                  && !nqp::eqaddr($key_ast.compile_time_value, NQPMu) {
-                    @value_type[1] := $key_ast.compile_time_value;
+                if @key_types && nqp::elems(@key_types) == nqp::elems(@statements) {
+                    @value_type[1] := nqp::elems(@key_types) > 1
+                      ?? @key_types
+                      !! @key_types[0];
                 }
                 else {
                     $/.typed_sorry('X::Comp::AdHoc',
@@ -2127,9 +2130,10 @@ class Perl6::World is HLL::World {
                     %info<container_base>, @value_type, nqp::hash());
                 # A coercive role argument matches any type its coercion
                 # accepts, so a keyed hash whose value or key type coerces
-                # binds only a hash of its own type.
+                # binds only a hash of its own type, as does a shaped hash.
                 %info<bind_constraint> := nqp::elems(@value_type) > 1
-                  && (@value_type[0].HOW.archetypes(@value_type[0]).coercive
+                  && (nqp::islist(@value_type[1])
+                      || @value_type[0].HOW.archetypes(@value_type[0]).coercive
                       || @value_type[1].HOW.archetypes(@value_type[1]).coercive)
                     ?? %info<container_type>
                     !! self.parameterize_type_with_args($/,

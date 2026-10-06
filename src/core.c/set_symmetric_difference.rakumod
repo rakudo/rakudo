@@ -34,8 +34,10 @@ multi sub infix:<(^)>(Map:D \a, Map:D \b) {
     nqp::if(
       nqp::elems((my \elems := Rakudo::QuantHash.COERCE-MAP-TO-SET(a))),
       nqp::if(                                    # $a has elems
-        (my \iter :=
-          nqp::iterator(nqp::getattr(nqp::decont(b),Map,'$!storage'))),
+        (my \iter := nqp::iterator(nqp::getattr(
+          nqp::istype(b,Hash::Shaped) ?? b.WHICH-KEYED !! nqp::decont(b),
+          Map,'$!storage'
+        ))),
         nqp::stmts(
           nqp::if(                                # both have elems
             nqp::istype(b,Hash::Object),

@@ -539,6 +539,34 @@ my class Hash { # declared in BOOTSTRAP
             $what
         }
 
+        # a list of key types keys the hash by a key for each of them
+        elsif nqp::islist(keyof)
+          || (nqp::isconcrete(keyof) && nqp::istype(keyof,List)) {
+            my \types := nqp::islist(keyof) ?? nqp::hllize(keyof) !! keyof.List;
+            for types -> \type {
+                die "Can not parameterize {hash.^name} with {type.raku}"
+                  if nqp::isconcrete(type);
+                die 'Parameterization of hashes with native '
+                  ~ type.raku
+                  ~ ' not yet implemented. Sorry.'
+                  if nqp::objprimspec(nqp::decont(type));
+            }
+            if types.elems < 2 {
+                die "Can not parameterize {hash.^name} with {keyof.raku}"
+                  unless types.elems;
+                hash.^parameterize(of, types[0], default)
+            }
+            else {
+                my $what := hash.^mixin(Hash::Shaped[of, value-default, |types]);
+                my $name = hash.^name ~ '[' ~ of.^name
+                  ~ ',(' ~ types.map({ .^name }).join(',') ~ ')';
+                $name ~= (',' ~ value-default.^name)
+                  unless nqp::eqaddr(value-default,of-default);
+                $what.^set_name: "$name]";
+                $what
+            }
+        }
+
         # error checking
         elsif nqp::isconcrete(keyof) {
             die "Can not parameterize {hash.^name} with {keyof.raku}"

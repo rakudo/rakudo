@@ -34,6 +34,7 @@ my role Enumeration { ... }
 my role PositionalBindFailover { ... }
 my role Hash::Typed { ... }
 my role Hash::Object { ... }
+my role Hash::Shaped { ... }
 
 # Make Iterable available for the code-gen.
 BEGIN nqp::bindhllsym('Raku', 'Iterable', Iterable);

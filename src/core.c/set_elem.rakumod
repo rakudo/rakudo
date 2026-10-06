@@ -24,7 +24,10 @@ multi sub infix:<(elem)>(Str:D $a, Map:D \b --> Bool:D) {
     )
 }
 multi sub infix:<(elem)>(Any \a, Map:D \b --> Bool:D) {
-    my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage');
+    my \storage := nqp::getattr(
+      nqp::istype(b,Hash::Shaped) ?? b.WHICH-KEYED !! nqp::decont(b),
+      Map,'$!storage'
+    );
 
     nqp::hllbool(
       nqp::elems(storage) && nqp::istrue(

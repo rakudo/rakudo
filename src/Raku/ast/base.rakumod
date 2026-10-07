@@ -184,7 +184,9 @@ class RakuAST::Node {
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;
-        self.visit-children(-> $child { $child.IMPL-BEGIN($resolver, $context) });
+        $is-scope
+          ?? self.IMPL-VISIT-CHILDREN-RESOLVING(-> $child { $child.IMPL-BEGIN($resolver, $context) })
+          !! self.visit-children(-> $child { $child.IMPL-BEGIN($resolver, $context) });
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 
@@ -212,7 +214,9 @@ class RakuAST::Node {
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;
-        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context) });
+        $is-scope
+          ?? self.IMPL-VISIT-CHILDREN-RESOLVING(-> $child { $child.IMPL-CHECK($resolver, $context) })
+          !! self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context) });
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 

@@ -3677,6 +3677,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
   does RakuAST::Declaration::Mergeable
 {
     has Mu $.value;
+    has int $!meta-object-of-package;
 
     method new(str :$name!, Mu :$value! is raw, str :$scope) {
         my $obj := nqp::create(self);
@@ -3697,6 +3698,28 @@ class RakuAST::VarDeclaration::Implicit::Constant
         QAST::Var.new( :decl('static'), :scope('lexical'), :name(self.name), :value($!value) )
     }
 
+    # A lookup of a package meta-object such as $?PACKAGE takes the value it
+    # resolved to, since a lookup by name from the header of a package would
+    # find that package's own.
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        if $!meta-object-of-package {
+            $context.ensure-sc($!value);
+            QAST::WVal.new( :value($!value) )
+        }
+        else {
+            nqp::findmethod(RakuAST::VarDeclaration::Implicit, 'IMPL-LOOKUP-QAST')(
+              self, $context, :$rvalue)
+        }
+    }
+
+    method IMPL-IS-META-OBJECT-OF-PACKAGE() { $!meta-object-of-package ?? True !! False }
+
+    method IMPL-SET-META-OBJECT-OF-PACKAGE() {
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Implicit::Constant,
+          '$!meta-object-of-package', 1);
+        self
+    }
+
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         self.compile-time-value
     }
@@ -3707,6 +3730,39 @@ class RakuAST::VarDeclaration::Implicit::Constant
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-trait-sorries;
+    }
+}
+
+# The copy the body of a package keeps of a compile-time variable from around
+# it, taken on each entry. Until then, or where nothing around it has the name,
+# it holds the value the name resolved to.
+class RakuAST::VarDeclaration::Implicit::HeaderValue
+  is RakuAST::VarDeclaration::Implicit::Constant
+{
+    has str $.looked-up;
+
+    method new(str :$name!, Mu :$value! is raw, str :$looked-up!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Constant, '$!value', $value);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit::HeaderValue,
+          '$!looked-up', $looked-up);
+        $obj.replace-scope('my');
+        $obj
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $value := self.value;
+        $context.ensure-sc($value);
+        QAST::Stmts.new(
+          QAST::Var.new(:name(self.name), :scope<lexical>, :decl<static>, :$value),
+          QAST::Op.new(:op<bind>,
+            QAST::Var.new(:name(self.name), :scope<lexical>),
+            QAST::Op.new(:op<ifnull>,
+              QAST::Op.new(:op<getlexrel>,
+                QAST::Op.new(:op<ctxouter>, QAST::Op.new(:op<ctx>)),
+                QAST::SVal.new(:value($!looked-up))),
+              QAST::Var.new(:name(self.name), :scope<lexical>))))
     }
 }
 

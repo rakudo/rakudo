@@ -1285,17 +1285,62 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # Action method when entering a scope (package, sub, phaser etc.)
     # Assume the $*BLOCK dynamic var is appropriately localized as it
-    # will set that with the RakuAST:: object being created.
+    # will set that with the RakuAST:: object of the block.
     method enter-block-scope($/) {
-        my $signature := $*PARAMETERIZATION;
-        my $block := $*MULTINESS
-          ?? Nodify($*SCOPE-KIND).new(:$signature, :multiness($*MULTINESS))
-          !! Nodify($*SCOPE-KIND).new(:$signature);
-        $*R.enter-scope($block);
+        my $block;
+        # The body of a package is entered ahead of its traits, so its block
+        # enters it again.
+        if nqp::isconcrete($*PACKAGE-BODY) {
+            $*R.re-enter-scope($*PACKAGE-BODY);
+            $block := $*PACKAGE-BODY.scope;
+        }
+        else {
+            my $signature := $*PARAMETERIZATION;
+            $block := $*MULTINESS
+              ?? Nodify($*SCOPE-KIND).new(:$signature, :multiness($*MULTINESS))
+              !! Nodify($*SCOPE-KIND).new(:$signature);
+            $*R.enter-scope($block);
+        }
         $*BLOCK := $block;
 
         self.set-declarand($/, $block)
           if nqp::istype($block,Nodify('Doc::DeclaratorTarget'));
+    }
+
+    # The body of a package holds what the traits of the package declare, as
+    # the frame of a routine holds what its traits declare, so it is entered
+    # ahead of them.
+    method enter-package-body($/) {
+        my $block := Nodify($*SCOPE-KIND).new(:signature($*PARAMETERIZATION));
+        $block.IMPL-SET-HEADER($*PACKAGE);
+        $*R.enter-scope($block);
+        $*BLOCK := $block;
+
+        # The parameters of a role are names of its body too, so a trait of the
+        # role sees them and declaring one again is a redeclaration.
+        if nqp::isconcrete($*PARAMETERIZATION) {
+            my @parameters;
+            $*PARAMETERIZATION.IMPL-COLLECT-PARAMETERS(@parameters);
+            for @parameters -> $parameter {
+                for $parameter.IMPL-UNWRAP-LIST($parameter.type-captures) {
+                    $*R.declare-lexical($_);
+                }
+                my $target := $parameter.target;
+                $*R.declare-lexical($target)
+                  if nqp::isconcrete($target) && nqp::can($target, 'lexical-name')
+                  && (!nqp::can($target, 'can-be-resolved') || $target.can-be-resolved);
+            }
+        }
+
+        # The declarations the traits generate start at this count.
+        $*PACKAGE-HEADER-GENERATED :=
+          nqp::elems($block.IMPL-UNWRAP-LIST($block.generated-lexical-declarations));
+    }
+
+    method leave-package-header($/) {
+        my $block := $*R.current-scope;
+        $*PACKAGE-HEADER-GENERATED-END :=
+          nqp::elems($block.IMPL-UNWRAP-LIST($block.generated-lexical-declarations));
     }
 
     # A doc after the opening brace of a routine or pointy block belongs
@@ -3289,6 +3334,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         if is-yada($body) {
             $ast.set-is-stub(True);
+            # The body a stub keeps declares what its header generated, such as
+            # the lexical fixup of a role declared there.
+            my @generated := $body.ast.IMPL-UNWRAP-LIST($body.ast.generated-lexical-declarations);
+            my int $i := $*PACKAGE-HEADER-GENERATED - 1;
+            $ast.body.add-generated-lexical-declaration(@generated[$i])
+              while ++$i < $*PACKAGE-HEADER-GENERATED-END;
         }
         else {
             $ast.replace-body(
@@ -3320,6 +3371,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<longname> && nqp::istype($ast.body, Nodify('RoleBody'))
           && nqp::isconcrete($ast.body.origin) {
             self.WIDEN-NODE-ORIGIN($ast.body, $<longname>.from, $ast.body.origin.to);
+        }
+        # The body of a package holds the traits written before it
+        elsif $<trait> && nqp::isconcrete($ast.body.origin) {
+            self.WIDEN-NODE-ORIGIN($ast.body, $<trait>[0].from, $ast.body.origin.to);
         }
     }
 
@@ -3410,7 +3465,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         $package.declare-lexicals($*R, $*CU.context);
 
+        # The traits are applied with the parsed body in scope, as it holds what
+        # they declare.
+        my $body := $*BODY-SCOPE;
+        $R.re-enter-scope($body) if nqp::isconcrete($body);
         $package.ensure-begin-performed($R, $*CU.context);
+        $R.leave-scope() if nqp::isconcrete($body);
 
         # Let the resolver know which package we're in.
         $R.push-package($package);

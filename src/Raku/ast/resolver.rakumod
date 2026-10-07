@@ -118,6 +118,24 @@ class RakuAST::Resolver {
             !! NQPMu
     }
 
+    # The outermost package body between the current scope and the one that
+    # declares the name, or among all active scopes when none does, leaving out
+    # the body of the declaring package. With $wrapped each entry wraps its scope.
+    method IMPL-PACKAGE-BODY-AROUND-IN(Mu $scopes, Str $name, int $wrapped) {
+        my @bodies;
+        my int $i := nqp::elems($scopes);
+        while $i-- {
+            my $scope := $wrapped ?? $scopes[$i].scope !! $scopes[$i];
+            if nqp::isconcrete($scopes[$i].find-lexical($name)) {
+                nqp::pop(@bodies) if nqp::elems(@bodies)
+                  && nqp::eqaddr(@bodies[nqp::elems(@bodies) - 1].IMPL-HEADER, $scope);
+                last;
+            }
+            nqp::push(@bodies, $scope) if nqp::isconcrete($scope.IMPL-HEADER);
+        }
+        nqp::elems(@bodies) ?? @bodies[nqp::elems(@bodies) - 1] !! Mu
+    }
+
     # Create a shallow clone, but deep clone attach targets and packages
     method clone() {
         my $clone := nqp::clone(self);
@@ -1390,6 +1408,10 @@ class RakuAST::Resolver::EVAL
         $clone
     }
 
+    method IMPL-PACKAGE-BODY-AROUND(Str $name) {
+        self.IMPL-PACKAGE-BODY-AROUND-IN($!scopes, $name, 0)
+    }
+
     method walk-scopes(Hash $seen, Code $inner-evaluator) {
         # Walk active scopes, most nested first.
         my @scopes := $!scopes;
@@ -1397,7 +1419,8 @@ class RakuAST::Resolver::EVAL
         while $i-- {
             for @scopes[$i].lexical-declarations {
                 my $name := $_.lexical-name;
-                next if nqp::existskey($seen, $name);
+                next if nqp::existskey($seen, $name)
+                  || @scopes[$i].IMPL-HIDES-META-NAME($name);
                 $seen{$name} := 1;
                 $inner-evaluator($name);
             }
@@ -1776,6 +1799,10 @@ class RakuAST::Resolver::Compile
         my $clone := nqp::findmethod(RakuAST::Resolver, 'clone')(self);
         nqp::bindattr($clone, RakuAST::Resolver::Compile, '$!scopes', nqp::clone($!scopes));
         $clone
+    }
+
+    method IMPL-PACKAGE-BODY-AROUND(Str $name) {
+        self.IMPL-PACKAGE-BODY-AROUND-IN($!scopes, $name, 1)
     }
 
     # Create a resolver for a fresh compilation unit of the specified language
@@ -2346,7 +2373,8 @@ class RakuAST::Resolver::Compile
             my $scope := @scopes[$i];
             for $scope.lexical-declarations {
                 my $name := $_.lexical-name;
-                next if nqp::existskey($seen, $name);
+                next if nqp::existskey($seen, $name)
+                  || $scope.scope.IMPL-HIDES-META-NAME($name);
                 $seen{$name} := 1;
                 $inner-evaluator($name);
             }
@@ -2466,6 +2494,9 @@ class RakuAST::Resolver::Compile::Scope
     method find-lexical(Str $name) {
         if $!batch-mode {
             $!scope.find-lexical($name) // Nil
+        }
+        elsif $!scope.IMPL-HIDES-META-NAME($name) {
+            Nil
         }
         else {
             $!live-decl-map{$name} // $!scope.find-generated-lexical($name) // Nil

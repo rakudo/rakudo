@@ -767,6 +767,27 @@ role RakuAST::Code
                                     QAST::Var.new(:scope<lexical>, :decl<var>, :$name)
                                 );
                             }
+                            elsif nqp::eqat($name, '!HEADER_VALUE_', 0) {
+                                # The body of a package binds this on entry, which
+                                # BEGIN time precedes, so it stays unbound and the
+                                # lookup falls back to the value it resolved to.
+                                %seen{$name} := 1;
+                                $block[0].push(
+                                    QAST::Var.new(:scope<lexical>, :decl<var>, :$name)
+                                );
+                            }
+                            elsif RakuAST::Package.IMPL-IS-META-NAME($name) {
+                                # Nothing in scope declares this meta-object name, as
+                                # when the header of a package looks past its own, so
+                                # it is Mu here and check time reports it.
+                                my $mu := $parse-time-resolver.resolve-lexical-constant('Mu');
+                                my $value := $mu ?? $mu.compile-time-value !! Mu;
+                                $context.ensure-sc($value);
+                                %seen{$name} := 1;
+                                $block[0].push(
+                                    QAST::Var.new(:scope<lexical>, :decl<static>, :$name, :$value)
+                                );
+                            }
                             else {
                                 nqp::die("Could not find a compile-time-value for lexical $name");
                             }
@@ -2504,6 +2525,7 @@ class RakuAST::Block
     method propagate-sink(Bool $is-sunk) {
         my $body-sunk := $is-sunk && !self.needs-result;
         self.set-nil-on-succeed() if $body-sunk;
+        self.IMPL-VISIT-HEADER(-> $trait { $trait.apply-sink(False) });
         $!body.apply-sink($body-sunk);
     }
 
@@ -2837,6 +2859,7 @@ class RakuAST::Block
     }
 
     method visit-children(Code $visitor) {
+        self.IMPL-VISIT-HEADER($visitor);
         $visitor($!body);
         $visitor(self.WHY) if self.WHY;
     }
@@ -4047,6 +4070,7 @@ class RakuAST::Routine
         $visitor(self.WHY) if self.WHY;  # needs to be before signature
         $visitor($!signature) if $!signature;
         self.visit-traits($visitor);
+        self.IMPL-VISIT-HEADER($visitor);
         $visitor(self.body);
     }
 
@@ -4343,14 +4367,17 @@ class RakuAST::RoleBody
     method IMPL-RESOLVE-FORWARD-LEXICALS-IN(RakuAST::Resolver $resolver, $node) {
         my int $is-scope := nqp::istype($node, RakuAST::LexicalScope);
         $resolver.push-scope($node) if $is-scope;
-        $node.visit-children(-> $child {
+        my $visit := -> $child {
             if nqp::istype($child, RakuAST::Var::Lexical)
               && $child.needs-resolution && !$child.is-resolved {
                 my $resolved := $resolver.resolve-lexical($child.name);
                 $child.set-resolution($resolved) if $resolved;
             }
             self.IMPL-RESOLVE-FORWARD-LEXICALS-IN($resolver, $child);
-        });
+        };
+        $is-scope
+          ?? $node.IMPL-VISIT-CHILDREN-RESOLVING($visit)
+          !! $node.visit-children($visit);
         $resolver.pop-scope() if $is-scope;
     }
 }

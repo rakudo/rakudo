@@ -2302,8 +2302,8 @@ class RakuAST::Block
         # PositionalBindFailover binds as its cached List, which is
         # how a Seq binds to an '@' parameter.
         my $lookups := $param.IMPL-UNWRAP-LIST($param.get-implicit-lookups);
-        if $nominal =:= $lookups[0].resolved-value {
-            my $failover := $lookups[1].resolved-value;
+        if $nominal =:= $lookups[0].resolution.compile-time-value {
+            my $failover := $lookups[1].resolution.compile-time-value;
             $context.ensure-sc($failover);
             $dispatch := QAST::Stmts.new(
                 QAST::Op.new(
@@ -2550,7 +2550,7 @@ class RakuAST::Block
     }
 
     method IMPL-FATALIZE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolved-value;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
     method IMPL-FATALIZE-RESOLVED() {
@@ -2938,7 +2938,7 @@ class RakuAST::PointyBlock
     }
 
     method IMPL-FATALIZE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolved-value;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
@@ -3116,7 +3116,7 @@ class RakuAST::Routine
     }
 
     method IMPL-FATALIZE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolved-value;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
     method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
@@ -5934,7 +5934,7 @@ class RakuAST::Transliteration
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $Pair := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolved-value;
+        my $Pair := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
         my $trans := QAST::Op.new:
             QAST::Var.new(:name<$_>, :scope<lexical>),
             :op<callmethod>, :name<trans>,
@@ -5949,7 +5949,7 @@ class RakuAST::Transliteration
             $trans.push($arg);
         }
         if $!destructive {
-            my $StrDistance := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolved-value;
+            my $StrDistance := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
             my $original := QAST::Node.unique: 'original_value_to_trans';
 
             QAST::Stmt.new(

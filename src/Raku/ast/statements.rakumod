@@ -37,7 +37,7 @@ class RakuAST::Label
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $label-type :=
-          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolved-value;
+          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
         my int $line;
         my str $prematch  := '';
         my str $postmatch := '';
@@ -978,7 +978,7 @@ class RakuAST::StatementSequence
         }
         elsif $n == 0 {
             my $empty-list :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolved-value;
+              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
             $empty-list()
         }
         else {
@@ -2944,7 +2944,7 @@ class RakuAST::Statement::Import
         # Evaluate the argument to the import, if any.
         my $arglist := self.IMPL-BEGIN-TIME-ARGLIST($!argument, $resolver, $context);
 
-        my $module := self.resolved-value;
+        my $module := self.resolution.compile-time-value;
         my $CompUnitHandle := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].compile-time-value;
         my $handle := $CompUnitHandle.from-unit($module.WHO);
         self.IMPL-IMPORT($resolver, $handle, $arglist, :module($!module-name.canonicalize));

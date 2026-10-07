@@ -98,7 +98,7 @@ class RakuAST::Var::Lexical
     }
 
     method maybe-compile-time-value() {
-        self.resolved-value
+        self.resolution.compile-time-value
     }
 
     method IMPL-IS-META-OP() {
@@ -141,7 +141,7 @@ class RakuAST::Var::Lexical
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.resolved-value
+        self.resolution.compile-time-value
     }
 
     method dump-markers() {
@@ -378,7 +378,7 @@ class RakuAST::Var::Attribute
         my $class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         if $class.is-resolved
           && nqp::istype($class.resolution, RakuAST::CompileTimeValue) {
-            my $type-object := $class.resolved-value;
+            my $type-object := $class.resolution.compile-time-value;
             my $how := $type-object.HOW;
             unless nqp::can($how, 'archetypes') && nqp::can($how.archetypes, 'generic') && $how.archetypes.generic {
                 return QAST::WVal.new(:value($type-object))
@@ -804,7 +804,7 @@ class RakuAST::Var::Compiler::Resources
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $resources := nqp::getlexdyn('$*RESOURCES');
         unless $resources {
-            my $Resources := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolved-value;
+            my $Resources := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
             $resources := $Resources.from-precomp();
         }
         if $resources {
@@ -841,7 +841,7 @@ class RakuAST::Var::Compiler::Distribution
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $distribution := nqp::getlexdyn('$*DISTRIBUTION');
         unless $distribution {
-            my $Distribution := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolved-value;
+            my $Distribution := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
             $distribution := $Distribution.from-precomp();
         }
         if $distribution {
@@ -1122,7 +1122,7 @@ class RakuAST::Var::Package
                         # The leading package may be one we vivified for our own
                         # name (`Foo` for a `unit class Foo::Bar`), which has no
                         # serialization context yet, so make sure it gets one.
-                        my $value := self.resolved-value;
+                        my $value := self.resolution.compile-time-value;
                         $context.ensure-sc($value);
                         $result := QAST::WVal.new(:$value);
                     }
@@ -1238,7 +1238,7 @@ class RakuAST::Var::Slang
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
-            :op<callmethod>, :name<new>, :returns(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolved-value),
+            :op<callmethod>, :name<new>, :returns(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value),
             QAST::Var.new( :name<Slang>, :scope<lexical> ));
         my $g := $!grammar;
         my $a := $!actions;

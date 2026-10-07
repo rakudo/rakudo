@@ -1742,7 +1742,7 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method IMPL-SIGIL-TYPE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].resolved-value
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].resolution.compile-time-value
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {

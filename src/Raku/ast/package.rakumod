@@ -457,7 +457,7 @@ class RakuAST::Package
 
     method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
         if self.is-resolved {
-            self.resolved-value;
+            self.resolution.compile-time-value;
         }
         elsif $!augmented && nqp::istype(self, RakuAST::Role) {
             Nil # Will report the error a little later

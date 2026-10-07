@@ -11,9 +11,9 @@ use v6;
 use Test;
 # Below is the text taken from PropertyAliases-17.0.0.txt from the Unicode site's zip file
 my $property-aliases-string = Q:to/🐧/;
-# PropertyAliases-17.0.0.txt
-# Date: 2025-04-25, 14:00:52 GMT
-# © 2025 Unicode®, Inc.
+# PropertyAliases-18.0.0.txt
+# Date: 2026-02-03, 23:10:11 GMT
+# © 2026 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use and license, see https://www.unicode.org/terms_of_use.html
 #
@@ -123,6 +123,13 @@ kEH_Desc                 ; kEH_Desc
 kEH_HG                   ; kEH_HG
 kEH_IFAO                 ; kEH_IFAO
 kEH_JSesh                ; kEH_JSesh
+kJURC_Src                ; kJURC_Src
+kNSHU_DubenSrc           ; kNSHU_DubenSrc
+kSEAL_CCZSrc             ; kSEAL_CCZSrc
+kSEAL_DYCSrc             ; kSEAL_DYCSrc
+kSEAL_QJZSrc             ; kSEAL_QJZSrc
+kSEAL_THXSrc             ; kSEAL_THXSrc
+kTGT_MergedSrc           ; kTGT_MergedSrc
 na                       ; Name
 na1                      ; Unicode_1_Name
 Name_Alias               ; Name_Alias
@@ -239,7 +246,7 @@ XO_NFKC                  ; Expands_On_NFKC
 XO_NFKD                  ; Expands_On_NFKD
 
 # ================================================
-# Total:    145
+# Total:    152
 
 # EOF
 🐧

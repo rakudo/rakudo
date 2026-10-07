@@ -1475,33 +1475,45 @@ class RakuAST::Resolver::EVAL
 
         # If it's in the current scope only, just look at the top one, if any
         if $current-scope-only {
-            return nqp::elems(@scopes)
+            nqp::elems(@scopes)
               ?? @scopes[nqp::elems(@scopes) - 1].find-lexical($name)
               !! Nil;
         }
 
         # No need to look further
-        if $name eq 'GLOBAL' {
+        elsif $name eq 'GLOBAL' {
             self.global-package;
         }
 
         # Walk active scopes, most nested first.
         else {
             my int $i := nqp::elems(@scopes);
-            while $i-- {
-                my $found := @scopes[$i].find-lexical($name);
-                return $found if nqp::isconcrete($found);
+            my $found;
+
+            nqp::until(
+              nqp::not_i($i) || nqp::isconcrete(
+                $found := @scopes[--$i].find-lexical($name)
+              ),
+              nqp::null
+            );
+
+            # Found it
+            if nqp::isconcrete($found) {
+                $found
             }
 
             # Fallback: try the captured outer context, and if that doesn't
             # reach the setting (e.g. EVAL from inside a BEGIN block whose
             # outer chain isn't yet linked to CORE), walk $!setting directly.
-            my $found := self.resolve-lexical-in-outer($name);
-            return $found if nqp::isconcrete($found);
-            my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
-            nqp::isnull($setting) || !$setting
-              ?? Nil
-              !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
+            elsif nqp::isconcrete($found := self.resolve-lexical-in-outer($name)) {
+                $found
+            }
+            else {
+                my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
+                nqp::isconcrete($setting)
+                  ?? self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
+                  !! Nil
+            }
         }
     }
 
@@ -2147,34 +2159,44 @@ class RakuAST::Resolver::Compile
     # Resolves a lexical to its declaration. The declaration need not have a
     # compile-time value.
     method resolve-lexical(Str $name, Bool :$current-scope-only) {
+        my @scopes := $!scopes;
+
         # If it's in the current scope only, we just look at the top one.
         if $current-scope-only {
-            my @scopes := $!scopes;
-            my int $i := nqp::elems(@scopes);
-            return $i > 0 ?? @scopes[$i - 1].find-lexical($name) !! Nil;
+            (my int $i := nqp::elems(@scopes))
+              ?? @scopes[$i - 1].find-lexical($name)
+              !! Nil
         }
 
-        if $name eq 'GLOBAL' {
-            return self.global-package;
+        elsif $name eq 'GLOBAL' {
+            self.global-package;
         }
 
-        if nqp::isconcrete($!heredoc-body) {
+        elsif nqp::isconcrete($!heredoc-body) {
             my @lookup := self.IMPL-HEREDOC-LOOKUP($name, :note);
-            return @lookup[0] ne '' ?? Nil
-              !! nqp::isconcrete(@lookup[1]) ?? @lookup[1]
-              !! self.resolve-lexical-in-outer($name);
+            @lookup[0] ne ''
+              ?? Nil
+              !! nqp::isconcrete(nqp::atpos(@lookup,1))
+                ?? nqp::atpos(@lookup,1)
+                !! self.resolve-lexical-in-outer($name)
         }
 
         # Walk active scopes, most nested first.
-        my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            my $found := $scope.find-lexical($name);
-            return $found if nqp::isconcrete($found);
-        }
+        else {
+            my int $i := nqp::elems(@scopes);
+            my $found;
 
-        self.resolve-lexical-in-outer($name)
+            nqp::until(
+              nqp::not_i($i) || nqp::isconcrete(
+                $found := @scopes[--$i].find-lexical($name)
+              ),
+              nqp::null
+            );
+
+            nqp::isconcrete($found)
+              ?? $found
+              !! self.resolve-lexical-in-outer($name)
+        }
     }
 
     # Resolves a name to the lexical constant it refers to in the

@@ -3785,9 +3785,9 @@ class RakuAST::Routine
             !! nqp::istype($node, QAST::IVal)
     }
 
-    # The value coerced to the routine's native return, with a Nil or a
-    # Failure handed back as it is. An unsigned value is boxed as the
-    # signed kind, as a native return reaching a caller is.
+    # The value coerced to the routine's native return. Anything but a concrete
+    # instance of its box type goes through raku-rv-native. An unsigned value
+    # is boxed as the signed kind, as a native return reaching a caller is.
     method IMPL-NATIVE-RETURN-QAST(RakuAST::IMPL::QASTContext $context, Mu $routine,
             int $prim, Mu $value) {
         my str $rv := QAST::Node.unique('native_rv');
@@ -3796,28 +3796,23 @@ class RakuAST::Routine
             QAST::Var.new( :name($rv), :scope<local> ) );
         $coerced := QAST::Op.new( :op<box_i>, $coerced, QAST::WVal.new( :value(Int) ) )
             if $prim == 10;
-        my $exempt := QAST::Op.new( :op<istype>,
-            QAST::Var.new( :name($rv), :scope<local> ),
-            QAST::WVal.new( :value(Nil) ) );
-        my $resolver := $context.parse-time-resolver(nqp::getattr_s(self, RakuAST::Code, '$!cuid'));
-        my $Failure := nqp::isconcrete($resolver)
-            ?? self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Failure')
-            !! nqp::null();
-        unless nqp::isnull($Failure) {
-            $context.ensure-sc($Failure);
-            $exempt := QAST::Op.new( :op<if>, $exempt,
-                QAST::IVal.new( :value(1) ),
-                QAST::Op.new( :op<istype>,
-                    QAST::Var.new( :name($rv), :scope<local> ),
-                    QAST::WVal.new( :value($Failure) ) ) );
-        }
+        my $returns := nqp::getattr($routine, Code, '$!signature').returns;
+        $context.ensure-sc($returns);
         QAST::Stmts.new(
             QAST::Op.new( :op<bind>,
                 QAST::Var.new( :name($rv), :scope<local>, :decl<var> ),
                 QAST::Op.new( :op<decont>, $value ) ),
-            QAST::Op.new( :op<if>, $exempt,
-                QAST::Var.new( :name($rv), :scope<local> ),
-                $coerced ) )
+            QAST::Op.new( :op<if>,
+                QAST::Op.new( :op<if>,
+                    QAST::Op.new( :op<isconcrete>, QAST::Var.new( :name($rv), :scope<local> ) ),
+                    QAST::Op.new( :op<istype>,
+                        QAST::Var.new( :name($rv), :scope<local> ),
+                        QAST::WVal.new( :value($prim == 2 ?? Num !! $prim == 3 ?? Str !! Int) ) ) ),
+                $coerced,
+                QAST::Op.new( :op<dispatch>,
+                    QAST::SVal.new( :value<raku-rv-native> ),
+                    QAST::Var.new( :name($rv), :scope<local> ),
+                    QAST::WVal.new( :value($returns) ) ) ) )
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {

@@ -1,6 +1,6 @@
 use Test;
 
-plan 21;
+plan 26;
 
 # Loop controls inside hyper/race iteration stop, skip, or repeat the
 # parallel iteration instead of being silently discarded, and a label on
@@ -57,6 +57,28 @@ is-deeply (1..20).hyper(:batch(5), :degree(4)).map({ next if $_ %% 2; $_ }).List
     lives-ok { FOO: hyper for 1..100 { $ran⚛++; next FOO } },
         'a labeled next in a hyper for loop compiles and runs';
     is $ran, 100, 'the labeled next ran the body for every value';
+}
+
+{
+    is-deeply (L: for (1..20).hyper(:batch(5), :degree(4)) { next L if $_ %% 2; $_ }).List,
+        (1, 3, 5, 7, 9, 11, 13, 15, 17, 19),
+        'a labeled next in a hyper for loop gives no value';
+}
+{
+    is-deeply (L: for (1..100).hyper(:batch(10), :degree(4)) { last L if $_ == 25; $_ }).List,
+        (1..24).List,
+        'a labeled last in a hyper for loop gives no value';
+}
+{
+    is-deeply (L: for (1..20).race(:batch(5), :degree(4)) { next L if $_ %% 2; $_ }).List.sort.List,
+        (1, 3, 5, 7, 9, 11, 13, 15, 17, 19),
+        'a labeled next in a race for loop gives no value';
+}
+{
+    my @result = (L: for (1..10000).race(:batch(64), :degree(4)) { last L if $_ == 100; $_ });
+    ok @result.all ~~ Int, 'a labeled last in a race for loop gives no value';
+    ok (1..99).Set (<=) @result.Set,
+        'a race for loop stopped by a labeled last still gives every value before the last';
 }
 
 {

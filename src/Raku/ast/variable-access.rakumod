@@ -149,16 +149,69 @@ class RakuAST::Var::Lexical
     }
 }
 
+# A lookup that may read the meta-object of a package, such as $?CLASS or
+# ::?CLASS. One that resolved past the body of a package to a value known only
+# at runtime reads what the outermost such body takes from around it.
+role RakuAST::Var::PackageHeaderLookup {
+    has Mu $!header-value;
+
+    method IMPL-FIND-HEADER-VALUE(RakuAST::Resolver $resolver, Str $name) {
+        my $resolution := self.resolution;
+        if RakuAST::Package.IMPL-IS-META-NAME($name)
+          && !(nqp::istype($resolution, RakuAST::VarDeclaration::Implicit::Constant)
+                && $resolution.IMPL-IS-META-OBJECT-OF-PACKAGE)
+          && !nqp::istype($resolution, RakuAST::Declaration::External::Constant) {
+            my $body := $resolver.IMPL-PACKAGE-BODY-AROUND($name);
+            if nqp::isconcrete($body) {
+                my $value := nqp::istype($resolution, RakuAST::CompileTimeValue)
+                  ?? $resolution.compile-time-value
+                  !! nqp::istype($resolution, RakuAST::Declaration::External)
+                    ?? $resolution.maybe-compile-time-value
+                    !! nqp::istype($resolution, RakuAST::Meta)
+                      ?? $resolution.meta-object
+                      !! Mu;
+                nqp::bindattr(self, RakuAST::Var::PackageHeaderLookup, '$!header-value',
+                  $body.IMPL-HEADER-VALUE($name, nqp::ifnull($value, Mu)));
+            }
+        }
+        Nil
+    }
+
+    method IMPL-HEADER-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu $qast, Str $name) {
+        if nqp::isconcrete($!header-value) && nqp::istype($qast, QAST::Var)
+          && $qast.scope eq 'lexical' && $qast.name eq $name {
+            # Code run at BEGIN time, before the body binds the value, takes
+            # the value the name resolved to.
+            my $value := $!header-value.value;
+            $context.ensure-sc($value);
+            QAST::Op.new(:op<ifnull>,
+              QAST::Var.new(:name($!header-value.name), :scope<lexical>),
+              QAST::WVal.new(:$value))
+        }
+        else {
+            $qast
+        }
+    }
+}
+
 # A lexical variable lookup, but assumed to resolve to a compile time
 # value.
 class RakuAST::Var::Lexical::Constant
   is RakuAST::Var::Lexical
+  does RakuAST::Var::PackageHeaderLookup
 {
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical-constant(self.name);
         if $resolved {
             self.set-resolution($resolved);
+            self.IMPL-FIND-HEADER-VALUE($resolver, self.name);
         }
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-HEADER-LOOKUP-QAST($context,
+          nqp::findmethod(RakuAST::Var::Lexical, 'IMPL-EXPR-QAST')(self, $context),
+          self.name)
     }
 
     # A ::? name is declared on entering the package it names, so one
@@ -860,6 +913,7 @@ class RakuAST::Var::Compiler::Lookup
   does RakuAST::Var::Compiler
   does RakuAST::Lookup
   does RakuAST::ParseTime
+  does RakuAST::Var::PackageHeaderLookup
 {
     has str $.name;
 
@@ -875,6 +929,7 @@ class RakuAST::Var::Compiler::Lookup
         my $resolved := $resolver.resolve-lexical($!name);
         if $resolved {
             self.set-resolution($resolved);
+            self.IMPL-FIND-HEADER-VALUE($resolver, $!name);
         }
     }
 
@@ -893,8 +948,12 @@ class RakuAST::Var::Compiler::Lookup
         }
     }
 
+    # An unresolved one reaches code generation only in code formed at BEGIN
+    # time, as a trait argument is, and check time reports it.
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.resolution.IMPL-LOOKUP-QAST($context)
+        self.is-resolved
+          ?? self.IMPL-HEADER-LOOKUP-QAST($context, self.resolution.IMPL-LOOKUP-QAST($context), $!name)
+          !! QAST::Var.new(:name($!name), :scope<lexical>)
     }
 }
 

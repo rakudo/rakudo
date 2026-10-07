@@ -153,6 +153,22 @@ class RakuAST::Package
         Nil
     }
 
+    # The scope of the package holds the meta-object lexicals for the body,
+    # so it hides them from the header as the body does.
+    method IMPL-HIDES-META-NAME(str $name) {
+        $!body.IMPL-HIDES-META-NAME($name)
+    }
+
+    # Whether a name is one the body of a package declares for the meta-object
+    # of the package.
+    method IMPL-IS-META-NAME(str $name) {
+        my str $root := nqp::eqat($name, '$?', 0)
+          ?? nqp::substr($name, 2)
+          !! nqp::eqat($name, '::?', 0) ?? nqp::substr($name, 3) !! '';
+        $root eq 'PACKAGE' || $root eq 'CLASS' || $root eq 'ROLE' || $root eq 'MODULE'
+          ?? 1 !! 0
+    }
+
     # Informational methods
     method declarator()  { "package"             }
     method dba()         { "package"             }
@@ -177,6 +193,7 @@ class RakuAST::Package
     method replace-body(RakuAST::Code $body, RakuAST::Signature $signature) {
         nqp::bindattr(self, RakuAST::Package, '$!body',
           $body // RakuAST::Block.new);
+        $!body.IMPL-SET-HEADER(self);
         Nil
     }
 
@@ -296,18 +313,23 @@ class RakuAST::Package
                 # rather than always with a raw VM string.
                 my $current-name := $type-object.HOW.name($type-object);
                 my str $full-name-str := $full-name.canonicalize(:colonpairs(0));
-                $type-object.HOW.set_name(
-                    $type-object,
-                    nqp::istype($current-name, Str)
-                      ?? nqp::box_s($full-name-str, Str)
-                      !! $full-name-str
-                );
+                # A package that defines a stub declared in the header of the
+                # package around it keeps the name and place of the stub.
+                unless self.is-resolved && !$!augmented && $current-name ne $full-name-str
+                  && nqp::eqaddr($type-object, nqp::decont(self.resolution.compile-time-value)) {
+                    $type-object.HOW.set_name(
+                        $type-object,
+                        nqp::istype($current-name, Str)
+                          ?? nqp::box_s($full-name-str, Str)
+                          !! $full-name-str
+                    );
 
-                # Update the Stash's name, too.
-                nqp::bindattr_s($type-object.WHO, Stash, '$!longname',
-                  $type-object.HOW.name($type-object));
+                    # Update the Stash's name, too.
+                    nqp::bindattr_s($type-object.WHO, Stash, '$!longname',
+                      $type-object.HOW.name($type-object));
 
-                self.install-in-scope($resolver, $scope, $name, $full-name);
+                    self.install-in-scope($resolver, $scope, $name, $full-name);
+                }
             }
 
             self.install-extra-declarations($resolver);
@@ -321,8 +343,14 @@ class RakuAST::Package
 
         self.IMPL-DOCUMENT-AT-BEGIN;
 
-        # Apply any traits
+        # Apply any traits with the body in scope but its meta-object names hidden,
+        # as the body holds what a trait argument declares. While parsing, this
+        # body is a stub and the parser enters the parsed one around this.
+        $resolver.push-scope($!body);
+        $!body.IMPL-SET-VISITING-HEADER(1);
         self.apply-traits($resolver, $context, self);
+        $!body.IMPL-SET-VISITING-HEADER(0);
+        $resolver.pop-scope();
 
         # Remember the enclosing parametric role, if any, so that we can
         # register an instantiation lexical with it once the type is composed.
@@ -417,10 +445,10 @@ class RakuAST::Package
         self.IMPL-CHECK-DECLARATIONS($resolver, $context);
     }
 
-    # A role declared in a trait of the package declares its lexical fixup in
-    # the package's scope, which generates no code, so the package hands it on.
+    # The body holds what the header declares, the lexical fixups of the roles
+    # declared there included.
     method install-extra-declarations(RakuAST::Resolver $resolver) {
-        self.IMPL-HAND-OVER-FIXUPS($resolver.current-scope);
+        Nil
     }
 
     # The block of the body, which evaluating the package calls. Each entry of
@@ -448,13 +476,11 @@ class RakuAST::Package
         $var
     }
 
-    # The block evaluating the package declares the code of its header and the
-    # block of its body, so code that only uses the type of the package still
-    # has its body.
+    # The block evaluating the package declares the block of its body, so code
+    # that only uses the type of the package still has its body.
     method IMPL-QAST-DECLS-WHERE-EVALUATED(RakuAST::IMPL::QASTContext $context) {
-        my $frame := QAST::Op.new(:op<bind>,
-          self.IMPL-QAST-FRAME-VARIABLE(:decl), self.IMPL-QAST-FRAME($context));
-        QAST::Stmts.new(self.IMPL-QAST-NESTED-BLOCK-DECLS($context), $frame)
+        QAST::Op.new(:op<bind>,
+          self.IMPL-QAST-FRAME-VARIABLE(:decl), self.IMPL-QAST-FRAME($context))
     }
 
     # Need to install the package somewhere
@@ -492,7 +518,7 @@ class RakuAST::Package
     method implicit-constant(str $name, :$resolver, :$context) {
         RakuAST::VarDeclaration::Implicit::Constant.new(
           :$name, :value(self.stubbed-meta-object(:$resolver, :$context))
-        )
+        ).IMPL-SET-META-OBJECT-OF-PACKAGE
     }
 
     method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
@@ -722,9 +748,9 @@ class RakuAST::Package
         }
     }
 
+    # The body visits the traits, as it holds what they declare.
     method visit-children(Code $visitor) {
         $visitor($!name) if $!name;
-        self.visit-traits($visitor);
         $visitor($!body);
         $visitor(self.WHY) if self.WHY;
     }
@@ -908,6 +934,7 @@ class RakuAST::Role
         }
 
         nqp::bindattr(self, RakuAST::Package, '$!body', $body-node);
+        $body-node.IMPL-SET-HEADER(self);
         Nil
     }
 
@@ -993,10 +1020,10 @@ class RakuAST::Role
         $resolver.current-scope.add-generated-lexical-declaration(self.body.fixup) if self.body.fixup;
     }
 
-    # Where the role is evaluated declares the code of its header, as its
-    # lexical fixup declares its body.
+    # The lexical fixup of the role declares its body, which holds its header,
+    # so the block evaluating the role declares nothing for it.
     method IMPL-QAST-DECLS-WHERE-EVALUATED(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-QAST-NESTED-BLOCK-DECLS($context)
+        QAST::Stmts.new
     }
 
     method additional-body-lexicals(:$resolver, :$context) {

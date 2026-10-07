@@ -531,10 +531,10 @@ class RakuAST::CompUnit
                 my $package := $!resolver.current-package;
                 add(RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?PACKAGE', value => $package
-                ));
+                ).IMPL-SET-META-OBJECT-OF-PACKAGE);
                 add(RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '::?PACKAGE', value => $package
-                ));
+                ).IMPL-SET-META-OBJECT-OF-PACKAGE);
             }
         }
         else {
@@ -552,10 +552,10 @@ class RakuAST::CompUnit
             unless $core-setting {
                 add(RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?PACKAGE', value => $global.compile-time-value
-                ));
+                ).IMPL-SET-META-OBJECT-OF-PACKAGE);
                 add(RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '::?PACKAGE', value => $global.compile-time-value
-                ));
+                ).IMPL-SET-META-OBJECT-OF-PACKAGE);
             }
 
             # GLOBAL package is always added so generated-global can find it

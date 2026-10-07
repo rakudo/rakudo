@@ -471,8 +471,8 @@ class RakuAST::CompUnit
                 CATCH {
                     my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
                     my $exception := $_;
-                    my $BeginTime := $lookups[2].resolved-value;
-                    my $coercer := $lookups[3].resolved-value;
+                    my $BeginTime := $lookups[2].resolution.compile-time-value;
+                    my $coercer := $lookups[3].resolution.compile-time-value;
                     $exception := $coercer($_);
                     my $wrapped := $BeginTime.new(:$exception, :use-case('evaluating a CHECK'));
                     $check-phaser.IMPL-LOCATE-EXCEPTION($wrapped)
@@ -497,7 +497,7 @@ class RakuAST::CompUnit
     }
 
     method IMPL-FATALIZE {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolved-value;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
     }
 
     # True when this compunit IS the CORE setting (NULL.c / NULL.d / NULL.e).

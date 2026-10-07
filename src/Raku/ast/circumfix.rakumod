@@ -293,7 +293,7 @@ class RakuAST::Circumfix::HashComposer
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my $composer := self.resolved-value;
+        my $composer := self.resolution.compile-time-value;
         $!expression
           ?? $composer($!expression.IMPL-INTERPRET($ctx))
           !! $composer()

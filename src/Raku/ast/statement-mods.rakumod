@@ -399,7 +399,7 @@ class RakuAST::StatementModifier::For
                  && self.IMPL-CAN-USE-STATEMENT-FORM($expression)
             !! True) {
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $Nil := @lookups[1].resolved-value;
+            my $Nil := @lookups[1].resolution.compile-time-value;
 
             # An integer range or sequence source the optimize pass approved becomes a
             # native counting loop, unless a bound turns out not to be a
@@ -417,7 +417,7 @@ class RakuAST::StatementModifier::For
                     $source-qast,
                     $statement-qast,
                     RakuAST::Label,
-                    @lookups[0].resolved-value,
+                    @lookups[0].resolution.compile-time-value,
                     $Nil
                 );
             }

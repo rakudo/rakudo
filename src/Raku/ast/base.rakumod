@@ -3302,7 +3302,7 @@ class RakuAST::Node {
             }
             # The junction a topic that turns out to be a concrete
             # Junction falls back to matching against.
-            my $routine := $constructor.resolved-value;
+            my $routine := $constructor.resolution.compile-time-value;
             return nqp::null() unless nqp::isconcrete($routine);
             my @args;
             for @types {
@@ -4471,7 +4471,7 @@ class RakuAST::Node {
         CATCH {
             return 0;
         }
-        my $routine := $operator.resolved-value;
+        my $routine := $operator.resolution.compile-time-value;
         nqp::can($routine, 'is-pure') ?? 1 !! 0
     }
 
@@ -4944,7 +4944,7 @@ class RakuAST::Node {
         if $callee.is-resolved
           && nqp::istype($callee.resolution, RakuAST::CompileTimeValue)
           && $args.IMPL-CAN-INTERPRET {
-            my $resolved := $callee.resolved-value;
+            my $resolved := $callee.resolution.compile-time-value;
             my $interpreted := self.IMPL-BEGIN-TIME-INTERPRET-ARGS($args, $resolver, $context);
             return Nil if nqp::isnull($interpreted);
 

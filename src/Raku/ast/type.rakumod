@@ -121,7 +121,7 @@ class RakuAST::Type::Simple
     }
 
     method return-type() {
-        self.is-resolved ?? self.resolved-value !! Mu
+        self.is-resolved ?? self.resolution.compile-time-value !! Mu
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -165,9 +165,9 @@ class RakuAST::Type::Simple
 
         if self.is-resolved {
             self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-                if self.sunk && !(self.resolved-value =:= Nil);
+                if self.sunk && !(self.resolution.compile-time-value =:= Nil);
 
-            my $value := self.resolved-value;
+            my $value := self.resolution.compile-time-value;
             if nqp::can($value.HOW, 'archetypes') && $value.HOW.archetypes.generic {
                 my str $candidate := '!INS_OF_' ~ $value.HOW.name($value);
                 my $found := $resolver.resolve-lexical-constant($candidate);
@@ -177,14 +177,14 @@ class RakuAST::Type::Simple
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
-        self.resolved-value
+        self.resolution.compile-time-value
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $name := $!name;
 
         if self.is-resolved {
-            my $value := self.resolved-value;
+            my $value := self.resolution.compile-time-value;
             if RakuAST::IMPL::Archetypes.generic($value) {
                 # If the resolved type is a nested package inside a parametric
                 # role, prefer the `!INS_OF_<fullname>` instantiation lexical
@@ -268,7 +268,7 @@ class RakuAST::Type::Simple
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.resolved-value
+        self.resolution.compile-time-value
     }
 
     # This probably needs a better heuristic or be implemented as an attribute
@@ -278,7 +278,7 @@ class RakuAST::Type::Simple
     }
 
     method is-coercive(--> Bool) {
-        my $type := self.resolved-value;
+        my $type := self.resolution.compile-time-value;
         ?$type.HOW.archetypes($type).coercive
     }
 
@@ -1021,9 +1021,9 @@ class RakuAST::Type::Enum
         nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
 
         my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        my $Pair    := $lookups[0].resolved-value;
-        my $Stringy := $lookups[1].resolved-value;
-        my $Numeric := $lookups[2].resolved-value;
+        my $Pair    := $lookups[0].resolution.compile-time-value;
+        my $Stringy := $lookups[1].resolution.compile-time-value;
+        my $Numeric := $lookups[2].resolution.compile-time-value;
 
         my $base-type;
         my $has-base-type := False;

@@ -83,6 +83,86 @@ while @lines {
         last if @lines.shift.starts-with($end);
     }
 
+    # the candidates of shaped arrays of two or three dimensions, before
+    # the others so they bind first where a named argument is required
+    for 2, 3 -> $dims {
+        say Q:to/SHAPED/.subst(/ '#' (\w+) '#' /, -> $/ { $0 eq 'dims' ?? $dims !! %mapper{$0} }, :g).chomp;
+
+# A shaped array of #dims# dimensions is indexed as an array of objects is,
+# so an index of its first dimension alone gives a view
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, uint $pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Int:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, uint $pos, #Type#:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Int:D \pos, #Type#:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Int:D \pos, :$exists!, *%_
+) is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$exists, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Int:D \pos, :$delete!, *%_
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$delete, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Int:D \pos, :$k!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$k)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Int:D \pos, :$kv!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$kv)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Int:D \pos, :$p!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$p)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Int:D \pos, :$v!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$v)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Callable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Iterable:D $pos is rw
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Iterable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped#dims##type#array:D \SELF, Iterable:D \pos, \values
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, values)
+}
+SHAPED
+    }
+
     # spurt the candidates
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 

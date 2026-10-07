@@ -134,7 +134,10 @@ my role Array::Shaped1 does Array::Shaped is implementation-detail {
           ?? nqp::getattr(self,List,'$!reified')
           !! self!RE-INITIALIZE;
         my \desc := nqp::getattr(self,Array,'$!descriptor');
-        my \iter := in.iterator;
+        # a view must have the shape of the array
+        my \iter := nqp::istype(in,Array::ShapedView)
+          ?? Rakudo::Internals.SHAPED-ITERATOR(in, self.shape, 0)
+          !! in.iterator;
         my int $i = -1;
         my uint $elems = nqp::elems(list);
         nqp::until(

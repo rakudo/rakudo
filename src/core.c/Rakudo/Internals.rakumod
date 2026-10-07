@@ -7,6 +7,7 @@ my class List::Reifier { ... }
 my class Proc { ... }
 my class Proc::Async { ... }
 
+my class X::Assignment::ArrayShapeMismatch { ... }
 my class X::Assignment::ToShaped { ... }
 my class X::IllegalDimensionInShape { ... }
 my class X::IllegalOnFixedDimensionArray { ... }
@@ -726,6 +727,28 @@ my class Rakudo::Internals is implementation-detail {
         }
         multi method EXISTS-POS(::?CLASS:D:) {
             die "Must specify at least one index with {self.^name}.EXISTS-POS"
+        }
+    }
+
+    # The iterator of a value assigned to the dimensions of a shaped array
+    # from the one given. A shaped array or view gives its rows, and must
+    # have the shape of as many of those dimensions as it has.
+    method SHAPED-ITERATOR(\value, \dims, int $from) {
+        if nqp::istype(value,Rakudo::Internals::ShapedArrayCommon)
+          || nqp::istype(value,Array::ShapedView) {
+            my \given := value.shape.List;
+            my \shape := dims.skip($from).List;
+            X::Assignment::ArrayShapeMismatch.new(
+              source-shape => given,
+              target-shape => shape
+            ).throw unless nqp::isle_i(given.elems,shape.elems)
+              && given eqv shape.head(given.elems).List;
+            nqp::isgt_i(given.elems,1)
+              ?? (^given.AT-POS(0)).map({ value.AT-POS($_) }).iterator
+              !! value.iterator
+        }
+        else {
+            value.iterator
         }
     }
 

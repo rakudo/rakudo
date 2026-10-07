@@ -1,10 +1,10 @@
 use Test;
 
-# A hash shape names the key type and must be one type object known at
-# compile time. A declaration takes at most one shape. Only an array
+# A hash shape names the key type of each dimension as a type object known
+# at compile time. A declaration takes at most one shape. Only an array
 # takes [] and only a hash takes {}.
 
-plan 47;
+plan 52;
 
 use MONKEY-SEE-NO-EVAL;
 
@@ -71,9 +71,18 @@ invalid-shape 'state %h{}',
 invalid-shape 'class { has %.h{} }',
     'an empty hash shape is refused on an attribute';
 
-throws-like { EVAL 'my %h{Str;Int}' }, X::Comp::NYI,
-    feature => 'multidimensional shaped hashes',
-    'a hash shape of two types is not yet implemented';
+invalid-shape 'my %h{Str;1}',
+    'a hash shape whose second dimension is a literal value is refused';
+invalid-shape 'my %h{Str;;Int}',
+    'a hash shape with an empty statement between its dimensions is refused';
+invalid-shape 'my %h{1;Str}',
+    'a hash shape whose first dimension is a literal value is refused';
+invalid-shape 'my %h{Str; Int if False}',
+    'a hash shape whose second dimension has a condition modifier is refused';
+invalid-shape 'my %h{Str; FOO: Int}',
+    'a hash shape whose second dimension is labeled is refused';
+invalid-shape 'my %h{Str; my Int $x}',
+    'a hash shape whose second dimension declares a variable is refused';
 
 try EVAL 'my %h{Srt}';
 isa-ok ($! ~~ X::Comp::Group ?? $!.panic !! $!), X::Undeclared::Symbols,

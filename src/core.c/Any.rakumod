@@ -418,11 +418,11 @@ my class Any { # declared in BOOTSTRAP
     multi method BIND-KEY(Any:D: \k, \v) is raw {
         X::Bind.new(target => self.^name).throw
     }
-    multi method BIND-KEY(Any:U $SELF is rw: $key, $BIND ) is raw {
-        ($SELF = Hash.new).BIND-KEY($key, $BIND);
-        $BIND
+    multi method BIND-KEY(Any:U $SELF is rw: $key, Mu \BIND ) is raw {
+        ($SELF = Hash.new).BIND-KEY($key, BIND);
+        BIND
     }
-    multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is raw {
+    multi method BIND-KEY(Any:U \SELF: $key, Mu \BIND ) is raw {
         X::Parameter::RW.new(:symbol<self>, :got(self)).Failure
     }
 

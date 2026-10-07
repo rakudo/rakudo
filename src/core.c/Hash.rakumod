@@ -59,6 +59,8 @@ my class Hash { # declared in BOOTSTRAP
           self!AT_KEY_CONTAINER(key.Str)
         )
     }
+    # The descriptor the elements of a new instance take, or Mu for the default
+    method ELEMENT-DESCRIPTOR(Hash:U:) is implementation-detail { Mu }
 
     proto method STORE_AT_KEY(|) is implementation-detail {*}
     multi method STORE_AT_KEY(Str:D $key, Mu \value --> Nil) {
@@ -125,6 +127,13 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
 
+    # The type a subset, definite or coercion type of a hash vivifies
+    my sub NOMINAL(Mu \type) is raw {
+        type.HOW.archetypes(type).nominalizable
+          ?? type.HOW.nominalize(type)
+          !! type
+    }
+
     multi method ASSIGN-KEY(Hash:D: Str:D $key, Mu \assignval) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::if(
@@ -132,6 +141,23 @@ my class Hash { # declared in BOOTSTRAP
           nqp::bindkey(storage, $key,
             nqp::p6scalarwithvalue($!descriptor, assignval)),
           nqp::p6assign(existing, assignval))
+    }
+    # A Hash type object vivifies an instance of its nominal type
+    multi method ASSIGN-KEY(Hash:U \SELF: \key, Mu \assignval) is raw {
+        SELF.VIVIFY-ASSIGN-KEY(key, assignval)
+    }
+    # Object hashes call the VIVIFY methods directly, as the candidates for a
+    # type object refuse a Mu key and autothread a junction
+    method VIVIFY-ASSIGN-KEY(
+      Hash:U \SELF:
+      Mu \key,
+      Mu \assignval
+    ) is raw is implementation-detail {
+        X::Assignment::RO.new(:value(SELF)).throw unless nqp::iscont(SELF);
+        my \hash  := NOMINAL(SELF.WHAT).new;
+        my \value := hash.ASSIGN-KEY(key, assignval);
+        SELF = hash unless nqp::istype_nd(value, Failure) && nqp::not_i(hash.elems);
+        value
     }
     multi method ASSIGN-KEY(Hash:D: \key, Mu \assignval) is raw {
         my str $key = key.Str;
@@ -149,6 +175,20 @@ my class Hash { # declared in BOOTSTRAP
     }
     multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
         nqp::bindkey(nqp::getattr(self,Map,'$!storage'),key.Str,bindval)
+    }
+    multi method BIND-KEY(Hash:U \SELF: \key, Mu \bindval) is raw {
+        SELF.VIVIFY-BIND-KEY(key, bindval)
+    }
+    method VIVIFY-BIND-KEY(
+      Hash:U \SELF:
+      Mu \key,
+      Mu \bindval
+    ) is raw is implementation-detail {
+        X::Assignment::RO.new(:value(SELF)).throw unless nqp::iscont(SELF);
+        my \hash  := NOMINAL(SELF.WHAT).new;
+        my \bound := hash.BIND-KEY(key, bindval);
+        SELF = hash unless nqp::istype_nd(bound, Failure) && nqp::not_i(hash.elems);
+        bound
     }
 
     multi method DELETE-KEY(Hash:U: --> Nil) { }
@@ -469,6 +509,13 @@ my class Hash { # declared in BOOTSTRAP
       Mu \keyof = Str(Any),
       Mu \default = of
     ) {
+        # a coercive value type defaults to its nominal target
+        my \of-default := nqp::not_i(nqp::isconcrete(of))
+          && of.HOW.archetypes(of).coercive
+          ?? of.HOW.nominalize(of)
+          !! of;
+        my \value-default := nqp::eqaddr(default,of) ?? of-default !! default;
+
         # fast path
         if nqp::eqaddr(of,Mu)
           && nqp::eqaddr(keyof,Str(Any))
@@ -483,13 +530,41 @@ my class Hash { # declared in BOOTSTRAP
 
         # only constraint on type
         elsif nqp::eqaddr(keyof,Str(Any)) {
-            my $what := hash.^mixin(Hash::Typed[of, Str(Any), default]);
+            my $what := hash.^mixin(Hash::Typed[of, Str(Any), value-default]);
              # needs to be done in COMPOSE phaser when that works
             my $name = hash.^name ~ '[' ~ of.^name;
-            $name ~= (',Str(Any),' ~ default.^name)
-              unless nqp::eqaddr(default,of);
+            $name ~= (',Str(Any),' ~ value-default.^name)
+              unless nqp::eqaddr(value-default,of-default);
             $what.^set_name: "$name]";
             $what
+        }
+
+        # a list of key types keys the hash by a key for each of them
+        elsif nqp::islist(keyof)
+          || (nqp::isconcrete(keyof) && nqp::istype(keyof,List)) {
+            my \types := nqp::islist(keyof) ?? nqp::hllize(keyof) !! keyof.List;
+            for types -> \type {
+                die "Can not parameterize {hash.^name} with {type.raku}"
+                  if nqp::isconcrete(type);
+                die 'Parameterization of hashes with native '
+                  ~ type.raku
+                  ~ ' not yet implemented. Sorry.'
+                  if nqp::objprimspec(nqp::decont(type));
+            }
+            if types.elems < 2 {
+                die "Can not parameterize {hash.^name} with {keyof.raku}"
+                  unless types.elems;
+                hash.^parameterize(of, types[0], default)
+            }
+            else {
+                my $what := hash.^mixin(Hash::Shaped[of, value-default, |types]);
+                my $name = hash.^name ~ '[' ~ of.^name
+                  ~ ',(' ~ types.map({ .^name }).join(',') ~ ')';
+                $name ~= (',' ~ value-default.^name)
+                  unless nqp::eqaddr(value-default,of-default);
+                $what.^set_name: "$name]";
+                $what
+            }
         }
 
         # error checking
@@ -506,10 +581,11 @@ my class Hash { # declared in BOOTSTRAP
 
         # a true object hash
         else {
-            my $what := hash.^mixin(Hash::Object[of, keyof, default]);
+            my $what := hash.^mixin(Hash::Object[of, keyof, value-default]);
             # needs to be done in COMPOSE phaser when that works
             my $name = hash.^name ~ '[' ~ of.^name ~ ',' ~ keyof.^name;
-            $name ~= (',' ~ default.^name) unless nqp::eqaddr(default,of);
+            $name ~= (',' ~ value-default.^name)
+              unless nqp::eqaddr(value-default,of-default);
             $what.^set_name: "$name]";
             $what
         }

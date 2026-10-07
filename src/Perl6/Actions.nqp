@@ -8024,7 +8024,8 @@ Did you mean a call like '"
                 nqp::istype($target[0], QAST::Op) && $target[0].op eq 'call' &&
                 ((my $target_0_name := $target[0].name) eq '&postcircumfix:<[ ]>' ||
                  $target_0_name eq '&postcircumfix:<{ }>' ||
-                 $target_0_name eq '&postcircumfix:<[; ]>') {
+                 $target_0_name eq '&postcircumfix:<[; ]>' ||
+                 $target_0_name eq '&postcircumfix:<{; }>') {
             $source.named('BIND');
             $target[0].push($source);
             $target.nosink(1);
@@ -8033,7 +8034,8 @@ Did you mean a call like '"
         elsif nqp::istype($target, QAST::Op) && $target.op eq 'call' &&
               ((my $target_name := $target.name) eq '&postcircumfix:<[ ]>' ||
                $target_name eq '&postcircumfix:<{ }>' ||
-               $target_name eq '&postcircumfix:<[; ]>') {
+               $target_name eq '&postcircumfix:<[; ]>' ||
+               $target_name eq '&postcircumfix:<{; }>') {
             $source.named('BIND');
             $target.push($source);
             $target.nosink(1);
@@ -8159,7 +8161,8 @@ Did you mean a call like '"
         elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'call' &&
               ((my $lhs_ast_name := $lhs_ast.name) eq '&postcircumfix:<[ ]>' ||
                $lhs_ast_name eq '&postcircumfix:<{ }>' ||
-               $lhs_ast_name eq '&postcircumfix:<[; ]>') &&
+               $lhs_ast_name eq '&postcircumfix:<[; ]>' ||
+               $lhs_ast_name eq '&postcircumfix:<{; }>') &&
                 +@($lhs_ast) == 2 { # no adverbs
             $lhs_ast.push($rhs_ast);
             $past := $lhs_ast;

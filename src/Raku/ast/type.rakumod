@@ -789,33 +789,63 @@ class RakuAST::Type::Parameterized
         my @pos;
         my %named;
         for $!args.IMPL-UNWRAP-LIST($!args.args) -> $arg {
-            my $expr := $!args.IMPL-ARG-COMPILE-TIME-SOURCE($arg);
-            my $value;
-            if $expr.has-compile-time-value {
-                $value := $expr.maybe-compile-time-value;
-            }
-            elsif nqp::istype($expr, RakuAST::Term::Name) && $expr.is-resolved
-              && nqp::istype($expr.resolution, RakuAST::Declaration::External) {
-                $value := $expr.resolution.maybe-compile-time-value;
-                return nqp::null() if nqp::isnull($value);
-                $value := nqp::who($value) if $expr.name.is-package-lookup;
-            }
-            elsif nqp::istype($expr, RakuAST::Type::Parameterized) {
-                my $inner := $expr.IMPL-ARG-VALUES-NOW;
-                return nqp::null() if nqp::isnull($inner);
-                my @inner-pos   := $inner[0];
-                my %inner-named := $inner[1];
-                my $ptype := $expr.IMPL-BASE-TYPE.compile-time-value;
-                $value := $ptype.HOW.parameterize($ptype, |@inner-pos, |%inner-named);
-            }
-            else {
-                return nqp::null();
-            }
+            my $value := self.IMPL-ARG-VALUE-NOW(
+              $!args.IMPL-ARG-COMPILE-TIME-SOURCE($arg));
+            return nqp::null() if nqp::isnull($value);
             nqp::istype($arg, RakuAST::NamedArg)
               ?? (%named{$arg.named-arg-name} := $value)
               !! nqp::push(@pos, $value);
         }
         [@pos, %named]
+    }
+
+    # The value of one argument while compiling, or null when it has none. A
+    # comma list has the List of the values of its operands.
+    method IMPL-ARG-VALUE-NOW(Mu $expr) {
+        if $expr.has-compile-time-value {
+            $expr.maybe-compile-time-value
+        }
+        elsif nqp::istype($expr, RakuAST::Term::Name) && $expr.is-resolved
+          && nqp::istype($expr.resolution, RakuAST::Declaration::External) {
+            my $value := $expr.resolution.maybe-compile-time-value;
+            nqp::isnull($value) || !$expr.name.is-package-lookup
+              ?? $value
+              !! nqp::who($value)
+        }
+        # A ::? name has no compile time value of its own, but resolves to one
+        elsif nqp::istype($expr, RakuAST::Var::Lexical::Constant)
+          && $expr.is-resolved {
+            $expr.resolution.maybe-compile-time-value
+        }
+        elsif nqp::istype($expr, RakuAST::Type::Parameterized) {
+            my $inner := $expr.IMPL-ARG-VALUES-NOW;
+            return nqp::null() if nqp::isnull($inner);
+            my @inner-pos   := $inner[0];
+            my %inner-named := $inner[1];
+            my $ptype := $expr.IMPL-BASE-TYPE.compile-time-value;
+            $ptype.HOW.parameterize($ptype, |@inner-pos, |%inner-named)
+        }
+        elsif nqp::istype($expr, RakuAST::ApplyListInfix)
+          && nqp::istype($expr.infix, RakuAST::Infix)
+          && $expr.infix.operator eq ',' {
+            my @values;
+            for self.IMPL-UNWRAP-LIST($expr.operands) {
+                my $value := nqp::istype($_, RakuAST::NamedArg)
+                  ?? ($_.IMPL-CAN-INTERPRET
+                       ?? $_.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
+                       !! nqp::null())
+                  !! self.IMPL-ARG-VALUE-NOW(
+                       $!args.IMPL-ARG-COMPILE-TIME-SOURCE($_));
+                return nqp::null() if nqp::isnull($value);
+                nqp::push(@values, $value);
+            }
+            my $value := nqp::create(List);
+            nqp::bindattr($value, List, '$!reified', @values);
+            $value
+        }
+        else {
+            nqp::null()
+        }
     }
 
     # A parameterization of arguments known at compile time is the one formed

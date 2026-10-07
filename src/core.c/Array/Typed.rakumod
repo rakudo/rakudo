@@ -2,6 +2,10 @@ my role Array::Typed[::TValue]
   does Positional[TValue]
   is implementation-detail
 {
+    # a coercive value type defaults to its nominal target
+    my \TDefault := TValue.HOW.archetypes(TValue).coercive
+      ?? TValue.HOW.nominalize(TValue)
+      !! TValue;
 
     proto method new(|) {*}
     multi method new(:$shape!) {
@@ -43,9 +47,13 @@ my role Array::Typed[::TValue]
 
     sub set-descriptor(\list) is raw {
         nqp::bindattr(list,Array,'$!descriptor',
-          ContainerDescriptor.new(:of(TValue), :default(TValue))
+          ContainerDescriptor.new(:of(TValue), :default(TDefault))
         );
         list
+    }
+
+    method ELEMENT-DESCRIPTOR() is implementation-detail {
+        ContainerDescriptor.new(:of(TValue), :default(TDefault))
     }
 
     method !out-of-range(int $got) {

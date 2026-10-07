@@ -590,6 +590,22 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
+    # The descriptor the elements of a new instance take, or Mu for the default
+    method ELEMENT-DESCRIPTOR(Array:U:) is implementation-detail { Mu }
+
+    # An Array type object vivifies an instance of its nominal type
+    multi method ASSIGN-POS(Array:U \SELF: Int:D \pos, Mu \assignee) is raw {
+        X::Assignment::RO.new(:value(SELF)).throw unless nqp::iscont(SELF);
+        my \type  := SELF.WHAT;
+        my \array := (type.HOW.archetypes(type).nominalizable
+          ?? type.HOW.nominalize(type)
+          !! type
+        ).new;
+        my \value := array.ASSIGN-POS(pos, assignee);
+        SELF = array unless nqp::istype_nd(value, Failure) && nqp::not_i(array.elems);
+        value
+    }
+
     # handle any lookup that is not simple
     method !AT_POS_SLOW(int $pos) is raw {
         nqp::if(

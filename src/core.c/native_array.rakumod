@@ -2776,7 +2776,7 @@ my class array is Cool does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2026-10-07T04:37:07-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-10-07T04:27:47-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray is implementation-detail {
@@ -2909,7 +2909,9 @@ my class array is Cool does Iterable does Positional {
                       nqp::bindpos($!iterators,$i,  # add an empty one
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
-                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
+                        nqp::istype(item,Iterable)
+                          && (nqp::isconcrete(item)
+                               || nqp::istype(item,Array::JaggedRow)),
                         nqp::bindpos($!iterators,$i,
                           nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
                             || nqp::istype(item,Array::ShapedView)
@@ -2970,6 +2972,11 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a row not made yet of a jagged array gives the values of a new one
+        multi method STORE(::?CLASS:D: Array::JaggedRow:U \from) {
+            self.STORE(from.new)
+        }
+
         # Whether values may be read from an array while they are assigned
         # to it, as from a view of it or a sequence, given the number of
         # dimensions whose rows the values hold
@@ -3317,7 +3324,7 @@ my class array is Cool does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapeduintarray role -----------------------------
-#- Generated on 2026-10-07T04:37:07-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-10-07T04:27:47-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapeduintarray does shapedarray is implementation-detail {
@@ -3450,7 +3457,9 @@ my class array is Cool does Iterable does Positional {
                       nqp::bindpos($!iterators,$i,  # add an empty one
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
-                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
+                        nqp::istype(item,Iterable)
+                          && (nqp::isconcrete(item)
+                               || nqp::istype(item,Array::JaggedRow)),
                         nqp::bindpos($!iterators,$i,
                           nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
                             || nqp::istype(item,Array::ShapedView)
@@ -3511,6 +3520,11 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a row not made yet of a jagged array gives the values of a new one
+        multi method STORE(::?CLASS:D: Array::JaggedRow:U \from) {
+            self.STORE(from.new)
+        }
+
         # Whether values may be read from an array while they are assigned
         # to it, as from a view of it or a sequence, given the number of
         # dimensions whose rows the values hold
@@ -3858,7 +3872,7 @@ my class array is Cool does Iterable does Positional {
 #- end of generated part of shapeduintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2026-10-07T04:37:07-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-10-07T04:27:47-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray is implementation-detail {
@@ -3991,7 +4005,9 @@ my class array is Cool does Iterable does Positional {
                       nqp::bindpos($!iterators,$i,  # add an empty one
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
-                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
+                        nqp::istype(item,Iterable)
+                          && (nqp::isconcrete(item)
+                               || nqp::istype(item,Array::JaggedRow)),
                         nqp::bindpos($!iterators,$i,
                           nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
                             || nqp::istype(item,Array::ShapedView)
@@ -4052,6 +4068,11 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a row not made yet of a jagged array gives the values of a new one
+        multi method STORE(::?CLASS:D: Array::JaggedRow:U \from) {
+            self.STORE(from.new)
+        }
+
         # Whether values may be read from an array while they are assigned
         # to it, as from a view of it or a sequence, given the number of
         # dimensions whose rows the values hold
@@ -4399,7 +4420,7 @@ my class array is Cool does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2026-10-07T04:37:07-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-10-07T04:27:47-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray is implementation-detail {
@@ -4532,7 +4553,9 @@ my class array is Cool does Iterable does Positional {
                       nqp::bindpos($!iterators,$i,  # add an empty one
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
-                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
+                        nqp::istype(item,Iterable)
+                          && (nqp::isconcrete(item)
+                               || nqp::istype(item,Array::JaggedRow)),
                         nqp::bindpos($!iterators,$i,
                           nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
                             || nqp::istype(item,Array::ShapedView)
@@ -4593,6 +4616,11 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a row not made yet of a jagged array gives the values of a new one
+        multi method STORE(::?CLASS:D: Array::JaggedRow:U \from) {
+            self.STORE(from.new)
+        }
+
         # Whether values may be read from an array while they are assigned
         # to it, as from a view of it or a sequence, given the number of
         # dimensions whose rows the values hold
@@ -5016,6 +5044,11 @@ my class array is Cool does Iterable does Positional {
         if nqp::iseq_i($dims,1)
           && nqp::istype(nqp::atpos($reified,0),Whatever) {
             nqp::create(self.WHAT)
+        }
+
+        # several dimensions, one of no set length
+        elsif Rakudo::Internals.JAGGED-SHAPE(shape) {
+            Rakudo::Internals.JAGGED-ARRAY(self.WHAT, shape)
         }
         elsif $dims {
             # Calculate new meta-object (probably hitting caches in most cases).

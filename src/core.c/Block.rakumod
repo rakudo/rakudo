@@ -179,7 +179,7 @@ my class Block { # declared in BOOTSTRAP
     # helper method for array slicing
     multi method POSITIONS(Block:D: Failure:D \failure) { failure }
     multi method POSITIONS(Block:D $self: \list) {
-        nqp::isconcrete(list)
+        nqp::isconcrete(list) || nqp::istype(list,Array::JaggedRow)
           ?? (nqp::istype(
                (my \count := nqp::getattr(
                  nqp::getattr($self,Code,'$!signature'),Signature,'$!count'

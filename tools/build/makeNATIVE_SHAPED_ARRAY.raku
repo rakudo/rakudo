@@ -184,7 +184,9 @@ while @lines {
                       nqp::bindpos($!iterators,$i,  # add an empty one
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
-                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
+                        nqp::istype(item,Iterable)
+                          && (nqp::isconcrete(item)
+                               || nqp::istype(item,Array::JaggedRow)),
                         nqp::bindpos($!iterators,$i,
                           nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
                             || nqp::istype(item,Array::ShapedView)
@@ -245,6 +247,11 @@ while @lines {
               ).throw
             )
         }
+        # a row not made yet of a jagged array gives the values of a new one
+        multi method STORE(::?CLASS:D: Array::JaggedRow:U \from) {
+            self.STORE(from.new)
+        }
+
         # Whether values may be read from an array while they are assigned
         # to it, as from a view of it or a sequence, given the number of
         # dimensions whose rows the values hold

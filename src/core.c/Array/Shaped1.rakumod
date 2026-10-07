@@ -152,6 +152,10 @@ my role Array::Shaped1 does Array::Shaped is implementation-detail {
           unless nqp::islt_i($i,$elems) || iter.is-lazy;
         self
     }
+    # a row not made yet of a jagged array gives the values of a new one
+    multi method STORE(::?CLASS:D: Array::JaggedRow:U \in, :$INITIALIZE) {
+        self.STORE(in.new, :$INITIALIZE)
+    }
     multi method STORE(::?CLASS:D: Mu \item, :$INITIALIZE) {
         my \list := $INITIALIZE
           ?? nqp::getattr(self,List,'$!reified')

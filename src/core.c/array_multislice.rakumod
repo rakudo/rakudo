@@ -48,13 +48,14 @@ sub MD-ARRAY-SLICE-ONE-POSITION(
         }
     }
 }
-# The indices a slice of a shaped array stands for, or Nil for no change.
-# Each dimension left out takes *, as does a trailing ** for any number of
-# them, and a lazy index takes only those within its dimension.
+# The indices a slice of a shaped or jagged array stands for, or Nil for no
+# change. Each dimension left out takes *, as does a trailing ** for any
+# number of them, and a lazy index takes only those within a set length.
 sub MD-SHAPED-INDICES(\SELF, @indices) is implementation-detail {
     return Nil
       unless nqp::istype(SELF,Rakudo::Internals::ShapedArrayCommon)
-        || nqp::istype(SELF,Array::ShapedView);
+        || nqp::istype(SELF,Array::ShapedView)
+        || nqp::istype(SELF,Array::Jagged);
 
     my int $elems = @indices.elems;  # reifies
     my \indices := nqp::getattr(@indices,List,'$!reified');
@@ -79,7 +80,7 @@ sub MD-SHAPED-INDICES(\SELF, @indices) is implementation-detail {
     );
     return Nil unless $slice;
 
-    # a lazy index takes the indices within its dimension
+    # a lazy index takes the indices within a set length
     my \shape   := SELF.shape;
     my \sliced  := nqp::create(IterationBuffer);
     my int $changed = $hyper || $given < shape.elems;
@@ -88,7 +89,8 @@ sub MD-SHAPED-INDICES(\SELF, @indices) is implementation-detail {
         my \index := nqp::atpos(indices,$i);
         if nqp::istype(index,Iterable)
           && nqp::not_i(nqp::iscont(index))
-          && index.is-lazy {
+          && index.is-lazy
+          && nqp::not_i(nqp::istype(shape.AT-POS($i),Whatever)) {
             $changed = 1;
             my int $length = shape.AT-POS($i);
             my \within  := nqp::create(IterationBuffer);
@@ -117,7 +119,9 @@ sub MD-POS-WITHIN(\target, \pos) is implementation-detail {
     nqp::istype(target,Rakudo::Internals::ShapedArrayCommon)
       || nqp::istype(target,Array::ShapedView)
       ?? 0 <= pos < target.elems
-      !! True
+      !! nqp::istype(target,Array::Jagged)
+        ?? target.POS-WITHIN(pos)
+        !! True
 }
 
 # The result of an adverb for each element a multidimensional slice takes,

@@ -351,7 +351,9 @@ my role Array::Shaped
                 nqp::bindpos($!iterators,$i,  # add an empty one
                   Rakudo::Iterator.Empty),
                 nqp::if(                      # is it an iterator?
-                  nqp::istype($item,Iterable) && nqp::isconcrete($item),
+                  nqp::istype($item,Iterable)
+                    && (nqp::isconcrete($item)
+                         || nqp::istype($item,Array::JaggedRow)),
                   nqp::bindpos($!iterators,$i,
                     nqp::istype($item,Rakudo::Internals::ShapedArrayCommon)
                       || nqp::istype($item,Array::ShapedView)
@@ -433,6 +435,10 @@ my role Array::Shaped
         self
     }
 
+    # a row not made yet of a jagged array gives the values of a new one
+    multi method STORE(::?CLASS:D: Array::JaggedRow:U \in, :$INITIALIZE) {
+        self.STORE(in.new, :$INITIALIZE)
+    }
     multi method STORE(::?CLASS:D: Mu \item --> Nil) {
         X::Assignment::ToShaped.new(shape => self.shape).throw
     }

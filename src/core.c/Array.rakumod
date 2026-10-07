@@ -1588,6 +1588,11 @@ my class Array { # declared in BOOTSTRAP
             nqp::create(self.WHAT)
         }
 
+        # several dimensions, one of no set length
+        elsif Rakudo::Internals.JAGGED-SHAPE(shape) {
+            Rakudo::Internals.JAGGED-ARRAY(self.WHAT, shape)
+        }
+
         # we haz dimensions
         elsif $dims {
             my $what := self.WHAT.^mixin(

@@ -181,6 +181,10 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
         }
     }
 
+    # A slice of a shaped array takes the indices it stands for
+    return-rw postcircumfix:<[; ]>(initial-SELF, $_, |%_)
+      with MD-SHAPED-INDICES(initial-SELF, @indices);
+
     # Did not fast path.  Map $topdim to the highest index number, so that
     # it can be easier used in recursion checks.
     --$topdim;
@@ -236,7 +240,9 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                         ) for idx.(SELF.elems);
                     }
                     else  {
-                        my $base := SELF.AT-POS(idx.Int);
+                        my $base := MD-POS-WITHIN(SELF, idx.Int)
+                          ?? SELF.AT-POS(idx.Int)
+                          !! Any;
                         $base.defined || !$*LAZY
                           ?? EXISTS-POS-recursively(
                                $base, nqp::atpos($indices,$dim)
@@ -311,7 +317,9 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                         ) for idx.(SELF.elems);
                     }
                     else  {
-                        my $base := SELF.AT-POS(idx.Int);
+                        my $base := MD-POS-WITHIN(SELF, idx.Int)
+                          ?? SELF.AT-POS(idx.Int)
+                          !! Any;
                         $base.defined || !$*LAZY
                           ?? DELETE-POS-recursively(
                                $base, nqp::atpos($indices,$dim)
@@ -539,7 +547,9 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     }
                     else  {
                         nqp::push($keys,idx.Int);
-                        my $base := SELF.AT-POS(idx.Int);
+                        my $base := MD-POS-WITHIN(SELF, idx.Int)
+                          ?? SELF.AT-POS(idx.Int)
+                          !! Any;
                         $base.defined || !$*LAZY
                           ?? PROCESS-POS-recursively(
                                $base, nqp::atpos($indices,$dim)

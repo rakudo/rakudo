@@ -89,6 +89,7 @@ src/core.c/Array/Shaped3.rakumod
 src/core.c/Array.rakumod
 src/core.c/array_operators.rakumod
 src/core.c/native_array.rakumod
+src/core.c/Array/ShapedView.rakumod
 src/core.c/Pair.rakumod
 src/core.c/Map.rakumod
 src/core.c/Hash/Typed.rakumod

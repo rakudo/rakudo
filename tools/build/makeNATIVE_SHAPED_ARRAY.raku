@@ -55,7 +55,7 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
     role shaped#type#array does shapedarray is implementation-detail {
-        multi method AT-POS(::?CLASS:D: **@indices --> #type#) is raw {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -77,7 +77,7 @@ while @lines {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                NYI("Partially dimensioned views of shaped arrays").throw
+                Array::ShapedView.new(self, @indices)
               )
             )
         }
@@ -156,7 +156,7 @@ while @lines {
                 nqp::stmts(
                   self!SET-SELF(to),
                   ($!iterators := nqp::setelems(
-                    nqp::list(from.iterator),
+                    nqp::list(Rakudo::Internals.SHAPED-ITERATOR(from, self.dims, 0)),
                     nqp::add_i($!maxdim,1)
                   )),
                   self
@@ -185,7 +185,11 @@ while @lines {
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
                         nqp::istype(item,Iterable) && nqp::isconcrete(item),
-                        nqp::bindpos($!iterators,$i,item.iterator),
+                        nqp::bindpos($!iterators,$i,
+                          nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
+                            || nqp::istype(item,Array::ShapedView)
+                            ?? Rakudo::Internals.SHAPED-ITERATOR(item, self.dims, $i)
+                            !! item.iterator),
                         X::Assignment::ToShaped.new(shape => $!dims).throw
                       )
                     )
@@ -241,9 +245,35 @@ while @lines {
               ).throw
             )
         }
+        # Whether values may be read from an array while they are assigned
+        # to it, as from a view of it or a sequence, given the number of
+        # dimensions whose rows the values hold
+        sub READS-ALONG(Mu \from, int $rows) {
+            return False unless nqp::isconcrete(from);
+            return nqp::not_i(nqp::istype(from,Range))
+              unless nqp::istype(from,List);
+            return True if nqp::isconcrete(nqp::getattr(from,List,'$!todo'));
+            my $reified := nqp::getattr(from,List,'$!reified');
+            my int $i = -1;
+            nqp::while(
+              nqp::isgt_i($rows,0)
+                && nqp::isconcrete($reified)
+                && nqp::islt_i(++$i,nqp::elems($reified)),
+              nqp::if(
+                nqp::istype((my \item := nqp::decont(nqp::atpos($reified,$i))),
+                  Iterable)
+                  && READS-ALONG(item,nqp::sub_i($rows,1)),
+                (return True)
+              )
+            );
+            False
+        }
+
+        # Values that may be read from this array are stored in a copy that
+        # then takes the place of its values, so they are those it had
         multi method STORE(::?CLASS:D: Iterable:D \from) {
             nqp::if(
-              nqp::can(from,'shape'),
+              nqp::istype(from,List) && nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
                 OBJCPY(self,from),
@@ -252,7 +282,9 @@ while @lines {
                     target-shape => self.shape
                 ).throw
               ),
-              ITERCPY(self,from)
+              READS-ALONG(from,nqp::sub_i(nqp::numdimensions(self),1))
+                ?? NATCPY(self,ITERCPY(NATCPY(self.new(:shape(self.shape)),self),from))
+                !! ITERCPY(self,from)
             )
         }
 
@@ -358,8 +390,14 @@ while @lines {
               ).throw
             )
         }
+        # a view must have the shape of the array
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            my \iter := Rakudo::Iterator.TailWith(in.iterator,#null#);
+            my \iter := Rakudo::Iterator.TailWith(
+              nqp::istype(in,Array::ShapedView)
+                ?? Rakudo::Internals.SHAPED-ITERATOR(in, self.shape, 0)
+                !! in.iterator,
+              #null#
+            );
             my int $i = -1;
             nqp::while(
               nqp::islt_i(++$i,nqp::elems(self)),

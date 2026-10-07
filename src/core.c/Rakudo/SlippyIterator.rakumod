@@ -56,7 +56,12 @@ my role Rakudo::SlippyIterator does Iterator is implementation-detail {
     # was obtained.  Handles Slips.
     method control-payload() is raw {
         nqp::if(
-          nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+          nqp::isnull(my $value := nqp::getpayload(nqp::exception))
+            # a labeled control exception carries its label, not a value
+            || nqp::bitand_i(
+                 nqp::getextype(nqp::exception),
+                 nqp::const::CONTROL_LABELED
+               ),
           IterationEnd,
           nqp::if(
             nqp::istype($value,Slip),
@@ -70,7 +75,12 @@ my role Rakudo::SlippyIterator does Iterator is implementation-detail {
     # target while following Slip semantics.
     method push-control-payload(\target --> Nil) {
         nqp::unless(
-          nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+          nqp::isnull(my $value := nqp::getpayload(nqp::exception))
+            # a labeled control exception carries its label, not a value
+            || nqp::bitand_i(
+                 nqp::getextype(nqp::exception),
+                 nqp::const::CONTROL_LABELED
+               ),
           nqp::if(
             nqp::istype($value,Slip),
             self.slip-all($value,target),

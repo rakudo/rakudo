@@ -3897,20 +3897,17 @@ class RakuAST::ApplyPrefix
     # operand reads as the boxed value it is, which matches the boxed form
     # the emission passes.
     method IMPL-RECORD-NATIVE-RETURN-TYPE(RakuAST::Resolver $resolver) {
-        my $prefix := $!prefix;
-        return Nil unless nqp::istype($prefix, RakuAST::Prefix) && $prefix.is-resolved;
-        return Nil unless nqp::can($prefix.resolution, 'compile-time-value');
-        my $routine := $prefix.resolved-value;
-        return Nil unless nqp::isconcrete($routine) && nqp::istype($routine, Code);
 
-        my $operand := $!operand;
-        return Nil unless nqp::isconcrete($operand);
-        my @info := self.IMPL-CT-ARG-TYPES($resolver, [$operand]);
-        return Nil unless nqp::elems(@info);
+        my $routine := try $!prefix.resolved-value;
+        if nqp::isconcrete($routine) && nqp::isconcrete($!operand) {
+            my @info := self.IMPL-CT-ARG-TYPES($resolver, [$!operand]);
+            if @info {
+                my $ret := $!prefix.IMPL-NATIVE-RETURN-TYPE($routine, @info[0], @info[1]);
+                nqp::bindattr(self, RakuAST::ApplyPrefix, '$!native-return-type', $ret)
+                  unless nqp::isnull($ret);
+            }
+        }
 
-        my $ret := $prefix.IMPL-NATIVE-RETURN-TYPE($routine, @info[0], @info[1]);
-        nqp::bindattr(self, RakuAST::ApplyPrefix, '$!native-return-type', $ret)
-            unless nqp::isnull($ret);
         Nil
     }
 

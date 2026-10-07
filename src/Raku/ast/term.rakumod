@@ -43,7 +43,7 @@ class RakuAST::Term::Name
     # the .WHO of the resolved package, so the compile-time value is that
     # stash, not the package itself.
     method maybe-compile-time-value() {
-        my $value := self.resolution.compile-time-value;
+        my $value := self.resolved-value;
         $!name.is-package-lookup ?? nqp::who($value) !! $value
     }
 
@@ -105,7 +105,7 @@ class RakuAST::Term::Name
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         if $!compile-to-value {
-            my $value := nqp::decont(self.resolution.compile-time-value);
+            my $value := nqp::decont(self.resolved-value);
             $context.ensure-sc($value);
             return QAST::WVal.new( :value($value) );
         }
@@ -619,7 +619,7 @@ class RakuAST::Term::Reduce
     }
 
     method IMPL-HOP-INFIX() {
-        my &reducer := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        my &reducer := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolved-value;
         $!triangle ?? &reducer($!infix.IMPL-HOP-INFIX, True) !! &reducer($!infix.IMPL-HOP-INFIX)
     }
 

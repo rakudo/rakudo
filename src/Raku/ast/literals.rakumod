@@ -344,7 +344,7 @@ class RakuAST::QuotedString
             elsif $_ eq 'val' {
                 my $val-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
                 my $val := $val-lookup.is-resolved
-                    ?? $val-lookup.resolution.compile-time-value
+                    ?? $val-lookup.resolved-value
                     !! -> $val { $val };
                 $part := $val(nqp::hllizefor($part, 'Raku'));
             }
@@ -391,7 +391,7 @@ class RakuAST::QuotedString
                 && $_.is-resolved
                 && ($force || nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant))
             {
-                self.IMPL-PROCESS-PART(@parts, $_.resolution.compile-time-value.Str) || return Nil;
+                self.IMPL-PROCESS-PART(@parts, $_.resolved-value.Str) || return Nil;
             }
             elsif $force && nqp::istype($_, RakuAST::Block) && $_.body.IMPL-CAN-INTERPRET {
                 nqp::push(@parts, ~$_.body.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new));
@@ -448,7 +448,7 @@ class RakuAST::QuotedString
 
             # format string
             if $!processors && $!processors[0] eq 'format' {
-                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolved-value;
                 my $format := $Format.new($literal-value);
                 $context.ensure-sc($format);
                 return QAST::WVal.new(:value($format));
@@ -581,7 +581,7 @@ class RakuAST::QuotedString
                 );
             }
             elsif $_ eq 'format' {
-                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolved-value;
                 $qast := QAST::Op.new(
                   :op('callmethod'), :name('new'),
                   QAST::WVal.new( :value($Format)),

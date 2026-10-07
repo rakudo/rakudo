@@ -479,7 +479,7 @@ class RakuAST::Call::Name
             || nqp::can(self.resolution, 'maybe-compile-time-value')
         ) {
             my $routine := nqp::istype(self.resolution, RakuAST::CompileTimeValue)
-                ?? self.resolution.compile-time-value
+                ?? self.resolved-value
                 !! self.resolution.maybe-compile-time-value;
             if nqp::isconcrete($routine) && nqp::istype($routine, Code) && nqp::can($routine, 'signature') {
                 my $sig := $routine.signature;
@@ -774,7 +774,7 @@ class RakuAST::Call::Name
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my $resolved := self.resolution.compile-time-value;
+        my $resolved := self.resolved-value;
         my @args := self.args.IMPL-INTERPRET($ctx);
         my @pos := @args[0];
         my %named := @args[1];
@@ -1306,7 +1306,7 @@ class RakuAST::Call::PrivateMethod
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if self.is-resolved {
-            my $methpkg := self.resolution.compile-time-value;
+            my $methpkg := self.resolved-value;
             if $!name.is-multi-part {
                 unless nqp::can($methpkg.HOW, 'is_trusted') && $methpkg.HOW.is_trusted($methpkg, $!package) {
                     self.add-sorry:

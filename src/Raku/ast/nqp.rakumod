@@ -47,6 +47,16 @@ class RakuAST::Nqp
             ++$i;
         }
 
+        # The first argument runs in the current frame and each handler in a
+        # block of its own.
+        if $op eq 'handle' || $op eq 'handlepayload' {
+            $i := 0;
+            while ++$i < $n {
+                $args[$i].IMPL-MARK-PACKAGES-IN-HIDDEN-BLOCK
+                  if nqp::istype($args[$i], RakuAST::Node);
+            }
+        }
+
         $obj
     }
 

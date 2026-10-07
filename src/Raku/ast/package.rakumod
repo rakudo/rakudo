@@ -49,6 +49,12 @@ class RakuAST::Package
     # archetypally generic after composition.
     has Mu $!generics-pad;
 
+    # The variable holding the closure of the body, which the block evaluating
+    # the package binds on each entry and calls. It is a lexical when the
+    # package runs in a block the tree does not show.
+    has str $!frame-variable;
+    has int $!in-hidden-block;
+
     method new(          str :$scope,
                RakuAST::Name :$name,
           RakuAST::Signature :$parameterization,
@@ -417,6 +423,40 @@ class RakuAST::Package
         self.IMPL-HAND-OVER-FIXUPS($resolver.current-scope);
     }
 
+    # The block of the body, which evaluating the package calls. Each entry of
+    # the block evaluating the package takes a fresh closure of it.
+    method IMPL-QAST-FRAME(RakuAST::IMPL::QASTContext $context) {
+        my $body := self.IMPL-QAST-BODY($context, :blocktype<declaration>);
+        # The block may be cached from a walk that formed it with another type.
+        $body.blocktype('declaration');
+        $body
+    }
+
+    method IMPL-SET-IN-HIDDEN-BLOCK() {
+        nqp::bindattr_i(self, RakuAST::Package, '$!in-hidden-block', 1);
+        Nil
+    }
+
+    method IMPL-QAST-FRAME-VARIABLE(:$decl) {
+        my str $name := $!frame-variable;
+        if nqp::isnull_s($name) || $name eq '' {
+            $name := QAST::Node.unique('!package_frame_');
+            nqp::bindattr_s(self, RakuAST::Package, '$!frame-variable', $name);
+        }
+        my $var := QAST::Var.new(:$name, :scope($!in-hidden-block ?? 'lexical' !! 'local'));
+        $var.decl('var') if $decl;
+        $var
+    }
+
+    # The block evaluating the package declares the code of its header and the
+    # block of its body, so code that only uses the type of the package still
+    # has its body.
+    method IMPL-QAST-DECLS-WHERE-EVALUATED(RakuAST::IMPL::QASTContext $context) {
+        my $frame := QAST::Op.new(:op<bind>,
+          self.IMPL-QAST-FRAME-VARIABLE(:decl), self.IMPL-QAST-FRAME($context));
+        QAST::Stmts.new(self.IMPL-QAST-NESTED-BLOCK-DECLS($context), $frame)
+    }
+
     # Need to install the package somewhere
     method install-in-scope(RakuAST::Resolver $resolver, str $scope, RakuAST::Name $name, RakuAST::Name $full-name) {
         self.IMPL-INSTALL-PACKAGE(
@@ -601,15 +641,13 @@ class RakuAST::Package
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
         QAST::Stmts.new(
-            self.IMPL-QAST-BODY($context),
+            QAST::Op.new(:op<call>, self.IMPL-QAST-FRAME-VARIABLE),
             QAST::WVal.new( :value($type-object) )
         )
     }
 
-    # A package other than a role runs its body as an immediate block where it
-    # is evaluated, while a role's body is a routine its lexical fixup declares.
-    method IMPL-QAST-BODY(RakuAST::IMPL::QASTContext $context) {
-        my $body := $!body.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
+    method IMPL-QAST-BODY(RakuAST::IMPL::QASTContext $context, str :$blocktype!) {
+        my $body := $!body.IMPL-QAST-BLOCK($context, :$blocktype);
         # Splice in any accessor QAST captured by PRODUCE-META-OBJECT;
         # absent on the degraded compose path. The body's cached block
         # survives a re-formation of an enclosing routine, so this can
@@ -953,6 +991,12 @@ class RakuAST::Role
             $resolver.current-scope.add-generated-lexical-declaration($_);
         }
         $resolver.current-scope.add-generated-lexical-declaration(self.body.fixup) if self.body.fixup;
+    }
+
+    # Where the role is evaluated declares the code of its header, as its
+    # lexical fixup declares its body.
+    method IMPL-QAST-DECLS-WHERE-EVALUATED(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-QAST-NESTED-BLOCK-DECLS($context)
     }
 
     method additional-body-lexicals(:$resolver, :$context) {

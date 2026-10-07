@@ -3408,6 +3408,7 @@ class RakuAST::ApplyListInfix
             for self.IMPL-FEED-STAGES {
                 $_.set-feed-stage if nqp::istype($_, RakuAST::Call);
             }
+            $_.IMPL-MARK-PACKAGES-IN-HIDDEN-BLOCK for self.IMPL-UNWRAP-LIST($!operands);
         }
 
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |self.IMPL-UNWRAP-LIST($!operands));

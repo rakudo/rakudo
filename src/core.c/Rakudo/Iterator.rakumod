@@ -6381,44 +6381,23 @@ my class Rakudo::IterateMoreWithPhasers
                     nqp::if($NEXT, &block.fire_phasers('NEXT')),
                     nqp::setelems($!value-buffer,0),
                     nqp::if(
-                      nqp::isnull($result := nqp::getpayload(nqp::exception)),
-                      nqp::stmts(
-                        nqp::if(
-                          nqp::eqaddr(
-                            $source.push-exactly($!value-buffer, $count),
-                            IterationEnd
-                          ) && nqp::elems($!value-buffer) == 0,
-                          ($result := IterationEnd),
-                          ($redo = 1)
-                        )
-                      ),
-                      nqp::if(                        # next with value
-                        nqp::istype($result,Slip)
-                          && nqp::eqaddr(             # it's a Slip
-                               ($result := self.start-slip($result)),
-                               IterationEnd
-                             )
-                          && nqp::not_i(nqp::eqaddr(  # an empty Slip
-                               $source.push-exactly($!value-buffer, $count),
-                               IterationEnd
-                             )),
-                        ($redo = 1)                   # process these values
+                      nqp::eqaddr(($result := self.control-payload),IterationEnd),
+                      nqp::if(
+                        nqp::eqaddr(
+                          $source.push-exactly($!value-buffer, $count),
+                          IterationEnd
+                        ) && nqp::elems($!value-buffer) == 0,
+                        ($result := IterationEnd),
+                        ($redo = 1)
                       )
                     )
                   ),
                   'REDO', $redo = 1,
                   'LAST', nqp::stmts(
                     ($!did-iterate = 1),
-                    nqp::if(
-                      nqp::isnull($result := nqp::getpayload(nqp::exception)),
-                      ($result := IterationEnd),
-                      nqp::stmts(
-                        nqp::if(
-                          nqp::istype($result,Slip),
-                          ($result := self.start-slip($result))
-                        ),
-                        ($!source := Rakudo::Iterator.Empty)
-                      )
+                    nqp::unless(
+                      nqp::eqaddr(($result := self.control-payload),IterationEnd),
+                      ($!source := Rakudo::Iterator.Empty)  # end later
                     )
                   )
                 )

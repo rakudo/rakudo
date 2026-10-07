@@ -2562,10 +2562,13 @@ class Rakudo::Iterator is implementation-detail {
                     nqp::handle(
                       nqp::if(
                         nqp::istype(($result := &!body()),Slip),
-                        ($stopped = nqp::eqaddr(
-                          ($result := self.start-slip($result)),
-                          IterationEnd
-                        ))
+                        nqp::if(
+                          nqp::eqaddr(
+                            ($result := self.start-slip($result)),
+                            IterationEnd
+                          ),
+                          ($stopped = 0)         # empty Slip
+                        )
                       ),
                       'LABELED', $!label,
                       'NEXT', nqp::if(
@@ -4205,10 +4208,13 @@ class Rakudo::Iterator is implementation-detail {
                         nqp::handle(
                           nqp::if(
                             nqp::istype(($result := &!body()),Slip),
-                            ($stopped = nqp::eqaddr(
-                              ($result := self.start-slip($result)),
-                              IterationEnd
-                            ) && nqp::if(&!cond(),0,1))
+                            nqp::if(
+                              nqp::eqaddr(
+                                ($result := self.start-slip($result)),
+                                IterationEnd
+                              ),
+                              ($stopped = nqp::if(&!cond(),0,1))  # empty Slip
+                            )
                           ),
                           'LABELED', $!label,
                           'NEXT', nqp::if(
@@ -5329,10 +5335,13 @@ class Rakudo::Iterator is implementation-detail {
                         nqp::handle(
                           nqp::if(
                             nqp::istype(($result := &!body()),Slip),
-                            ($stopped = nqp::eqaddr(
-                              ($result := self.start-slip($result)),
-                              IterationEnd
-                            ) && nqp::if(&!cond(),0,1))
+                            nqp::if(
+                              nqp::eqaddr(
+                                ($result := self.start-slip($result)),
+                                IterationEnd
+                              ),
+                              ($stopped = nqp::if(&!cond(),0,1))  # empty Slip
+                            )
                           ),
                           'LABELED', $!label,
                           'NEXT', nqp::if(

@@ -80,7 +80,12 @@ class Rakudo::Internals::HyperRaceSharedImpl is implementation-detail {
         method !push-control-payload(Mu \result --> Nil) {
             my $payload := nqp::getpayload(nqp::exception);
             nqp::unless(
-              nqp::isnull($payload),
+              nqp::isnull($payload)
+                # a labeled control exception carries its label, not a value
+                || nqp::bitand_i(
+                     nqp::getextype(nqp::exception),
+                     nqp::const::CONTROL_LABELED
+                   ),
               nqp::if(
                 nqp::istype($payload,Slip),
                 nqp::if(

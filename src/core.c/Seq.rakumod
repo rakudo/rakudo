@@ -173,20 +173,45 @@ my class Seq is Cool does Iterable does Sequence {
     # iterator to run the body's LAST phaser at exhaustion (only if the body
     # ran), the way a `for` loop does; the RakuAST frontend passes it, the
     # legacy frontend still emits the LAST call after the loop instead.
+    # $until runs the loop while &cond is false, the way an until loop does,
+    # and $pass-condition passes the value of &cond to &body.
     proto method from-loop(|) {*}
     multi method from-loop(&body, :$label, :$fire-last = 0) {
         Seq.new: Rakudo::Iterator.Loop(&body, $label, $fire-last)
     }
-    multi method from-loop(&body, &cond, :$repeat!, :$label, :$fire-last = 0) {
+    multi method from-loop(
+      &body,
+      &cond,
+      :$repeat!,
+      :$label,
+      :$fire-last = 0,
+      :$until,
+      :$pass-condition
+    ) {
         Seq.new: $repeat
-          ?? Rakudo::Iterator.RepeatLoop(&body, &cond // -> { 1 }, $label, $fire-last)
-          !! Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label, $fire-last)
+          ?? Rakudo::Iterator.RepeatLoop(&body, &cond // -> { 1 }, $label, $fire-last, $until, $pass-condition)
+          !! Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label, $fire-last, $until, $pass-condition)
     }
-    multi method from-loop(&body, &cond, :$label, :$fire-last = 0) {
-        Seq.new: Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label, $fire-last)
+    multi method from-loop(
+      &body,
+      &cond,
+      :$label,
+      :$fire-last = 0,
+      :$until,
+      :$pass-condition
+    ) {
+        Seq.new: Rakudo::Iterator.WhileLoop(&body, &cond // -> { 1 }, $label, $fire-last, $until, $pass-condition)
     }
-    multi method from-loop(&body, &cond, &afterwards, :$label, :$fire-last = 0) {
-        Seq.new: Rakudo::Iterator.CStyleLoop(&body, &cond // -> { 1 }, &afterwards, $label, $fire-last)
+    multi method from-loop(
+      &body,
+      &cond,
+      &afterwards,
+      :$label,
+      :$fire-last = 0,
+      :$until,
+      :$pass-condition
+    ) {
+        Seq.new: Rakudo::Iterator.CStyleLoop(&body, &cond // -> { 1 }, &afterwards, $label, $fire-last, $until, $pass-condition)
     }
 
     multi method ACCEPTS(Seq:D: Iterable:D \iterable --> Bool:D) {

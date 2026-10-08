@@ -1,6 +1,6 @@
 use Test;
 
-plan 11;
+plan 17;
 
 # A numeric-literal key reaches enum building as an Int, not a Str.
 is EVAL('my enum E (A => 1, 12844 => 25); E.enums<12844>'), 25,
@@ -36,5 +36,24 @@ is-deeply EVAL(q|my enum E ('a', 3, 'b'); E.enums|), Map.new((a => 0, 3 => 1, b 
 
 is-deeply EVAL('my enum A <x y>; { my enum B (A::x, A::y); B.enums }'), Map.new((x => 0, y => 1)),
     'values of another enum become keys named by their Str';
+
+is-deeply EVAL('my $m = (my enum E (6, 7)); $m'), Map.new((6 => 0, 7 => 1)),
+    'an enum declaration with bare Int keys evaluates to a Map of its keys';
+
+is-deeply EVAL('my $m = (my enum E (6 => 1)); $m'), Map.new((6 => 1)),
+    'an enum declaration with an Int pair key evaluates to a Map of its keys';
+
+lives-ok { EVAL 'my module M { my enum E (6) }' },
+    'an enum with a bare Int key that ends a package body composes';
+
+is-deeply EVAL('my enum N (a => <1>, b => <2>); my $m = (my enum E (N::a, N::b)); $m'),
+    Map.new((1 => 0, 2 => 1)),
+    'an enum declaration keyed by values of an allomorph enum evaluates to a Map of its keys';
+
+is-deeply EVAL('my $m = (my enum E (<a b>, <c d>)); $m'), Map.new(("a b" => 0, "c d" => 1)),
+    'an enum declaration with list items evaluates to a Map with a key for each item';
+
+is-deeply EVAL('my $x; BEGIN $x = <a b>; my $m = (my enum E ($x)); $m'), Map.new((a => 0, b => 1)),
+    'an enum declaration of an itemized list evaluates to a Map with a key for each element';
 
 # vim: expandtab shiftwidth=4

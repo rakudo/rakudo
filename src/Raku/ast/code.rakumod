@@ -1450,7 +1450,11 @@ class RakuAST::ExpressionThunk
             my $qast := self.IMPL-THUNK-TWEAK-EXPRESSION($context,
                 $expression.IMPL-EXPR-QAST($context));
             $qast := QAST::Op.new( :op('p6sink'), $qast ) if $expression.needs-sink-call && $expression.sunk;
-            $block.push($qast);
+            # A thunk compiled on its own at BEGIN time is located at the start
+            # of its expression, so its frame reports the file and line of it.
+            $block.push($!compiled-alone
+              ?? $expression.IMPL-SET-NODE(QAST::Stmts.new($qast), :start)
+              !! $qast);
         }
 
         $block

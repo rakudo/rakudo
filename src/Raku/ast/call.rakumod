@@ -765,10 +765,13 @@ class RakuAST::Call::Name
         $call
     }
 
+    # A call to callframe compiles, since the frame calling it would otherwise
+    # be the interpreter's own.
     method IMPL-CAN-INTERPRET() {
         (
             $!name.is-identifier && $!name.canonicalize ne 'EVAL' && self.is-resolved
                 && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+                && !self.IMPL-RESOLVES-TO-SETTING('&callframe')
         )
         && self.args.IMPL-CAN-INTERPRET
     }

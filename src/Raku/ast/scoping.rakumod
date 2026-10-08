@@ -1365,6 +1365,21 @@ role RakuAST::Lookup {
           unless $!heredoc-refused;
     }
 
+    # Whether the lookup resolves to the value the name has in the setting.
+    method IMPL-RESOLVES-TO-SETTING(str $name) {
+        return False unless nqp::isconcrete($!resolution)
+          && nqp::istype($!resolution, RakuAST::CompileTimeValue);
+        return True if nqp::istype($!resolution, RakuAST::Declaration::External::Setting)
+          && $!resolution.lexical-name eq $name;
+        my $resolver := nqp::getlexdyn('$*R');
+        return False if nqp::isnull($resolver) || !nqp::isconcrete($resolver);
+        my $setting := $resolver.resolve-lexical-constant-in-setting($name);
+        nqp::isconcrete($setting) && nqp::istype($setting, RakuAST::CompileTimeValue)
+          && nqp::eqaddr($!resolution.compile-time-value, $setting.compile-time-value)
+          ?? True
+          !! False
+    }
+
     # Given a resolved routine and the compile-time argument types and native
     # flags, return the native return type of the single candidate the call
     # settles on, or NQPMu when it settles on none or on a non-native one.

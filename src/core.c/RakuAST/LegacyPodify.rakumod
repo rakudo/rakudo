@@ -101,7 +101,7 @@ class RakuAST::LegacyPodify {
     }
 
     # create podified contents for atoms
-    method !contentify(@source) {
+    method !contentify(@source, :$keep-leading) {
         my str @parts;
         my @atoms = @source.map({
             nqp::istype($_,Str)
@@ -132,12 +132,64 @@ class RakuAST::LegacyPodify {
         @atoms.push: @parts.join if @parts;
 
         # string at left needs to be trimmed left
-        if @atoms.head <-> $_ {
-            $_ = .trim-leading if nqp::istype($_,Str);
+        unless $keep-leading {
+            if @atoms.head <-> $_ {
+                $_ = .trim-leading if nqp::istype($_,Str);
+            }
         }
 
         # return strings if just strings
         nqp::istype(@atoms.are,Str) ?? @atoms.join !! @atoms
+    }
+
+    # split the meta of D<> into synonyms at semicolons, and the meta of X<>
+    # into index entries at semicolons with their levels at commas, leaving
+    # any markup such as V<> whole
+    method !split-meta(str $letter, @source) {
+        my $separators := $letter eq 'X' ?? /<[;,]>/ !! /';'/;
+        my @meta = @source;
+        @meta[0] = @meta[0].trim-leading if nqp::istype(@meta[0],Str);
+
+        my @entries;
+        my @levels;
+        my @level;
+
+        my sub end-level() {
+            if @level {
+                my $level := self!contentify(@level, :keep-leading);
+                @levels.push(nqp::istype($level,Str) ?? $level !! $level.List);
+            }
+            @level = ();
+        }
+        my sub end-entry() {
+            end-level();
+            @entries.push(@levels.List) if @levels;
+            @levels = ();
+        }
+
+        for @meta {
+            if nqp::istype($_,Str) {
+                for .split($separators, :v) {
+                    if nqp::istype($_,Match) {
+                        $_ eq ',' ?? end-level() !! end-entry()
+                    }
+                    elsif $_ {
+                        @level.push($_)
+                    }
+                }
+            }
+            else {
+                @level.push($_)
+            }
+        }
+        end-entry();
+
+        # a single index entry of a single level is not nested
+        $letter eq 'D'
+          ?? @entries.map(*.head)
+          !! @entries == 1 && @entries.head == 1
+            ?? @entries.head.head.List
+            !! @entries.map(*.Array)
     }
 
     proto method podify(|) {*}
@@ -172,7 +224,9 @@ class RakuAST::LegacyPodify {
                    type     => $letter,
                    meta     => $letter eq 'E'
                      ?? $ast.meta.map(*.key)
-                     !! @meta,
+                     !! $letter eq 'D' || $letter eq 'X'
+                       ?? self!split-meta($letter, $ast.meta)
+                       !! @meta,
                    contents => $letter eq 'C'
                      ?? $ast.atoms.join.trim-leading.subst("\n", ' ', :g)
                      !! $letter eq 'E'

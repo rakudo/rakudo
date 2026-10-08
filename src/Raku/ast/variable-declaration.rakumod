@@ -97,8 +97,12 @@ class RakuAST::Initializer::CallAssign
         $!postfixish.add-colonpair($pair);
     }
 
+    # The result is mapped into Raku land as a method call postfix maps it
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-qast) {
-        $!postfixish.IMPL-POSTFIX-QAST($context, $invocant-qast)
+        my $call := $!postfixish.IMPL-POSTFIX-QAST($context, $invocant-qast);
+        nqp::istype($!postfixish, RakuAST::Call::Methodish) && $!postfixish.IMPL-HLLIZE-RESULT
+            ?? QAST::Op.new(:op<hllize>, $call)
+            !! $call
     }
 
     method IMPL-COMPILE-TIME-VALUE(RakuAST::Resolver $resolver,

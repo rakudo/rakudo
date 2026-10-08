@@ -4857,6 +4857,21 @@ class RakuAST::ApplyPostfix
     method IMPL-CAN-INTERPRET() {
         self.IMPL-PRIMED-CAN-INTERPRET
           || $!operand.IMPL-CAN-INTERPRET && $!postfix.IMPL-CAN-INTERPRET
+            && !self.IMPL-CALLS-CALLFRAME
+    }
+
+    # Whether this calls callframe or CallFrame.new, which find a frame by
+    # counting from the one that calls them, so the call must compile rather
+    # than run in the interpreter.
+    method IMPL-CALLS-CALLFRAME() {
+        nqp::istype($!operand, RakuAST::Lookup)
+          && (nqp::istype($!postfix, RakuAST::Call::Term)
+                && $!operand.IMPL-RESOLVES-TO-SETTING('&callframe')
+              || nqp::istype($!postfix, RakuAST::Call::Method)
+                && $!postfix.name.canonicalize eq 'new'
+                && $!operand.IMPL-RESOLVES-TO-SETTING('CallFrame'))
+          ?? True
+          !! False
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {

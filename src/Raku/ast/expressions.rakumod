@@ -4859,9 +4859,11 @@ class RakuAST::ApplyPostfix
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.IMPL-PRIMED-CAN-INTERPRET
-          ?? self.IMPL-PRIMED-INTERPRET($ctx)
-          !! $!postfix.IMPL-INTERPRET($ctx, -> { $!operand.IMPL-INTERPRET($ctx) })
+        return self.IMPL-PRIMED-INTERPRET($ctx) if self.IMPL-PRIMED-CAN-INTERPRET;
+        my $result := $!postfix.IMPL-INTERPRET($ctx, -> { $!operand.IMPL-INTERPRET($ctx) });
+        nqp::istype($!postfix, RakuAST::Call::Methodish) && $!postfix.IMPL-HLLIZE-RESULT
+            ?? nqp::hllizefor($result, 'Raku')
+            !! $result
     }
 }
 

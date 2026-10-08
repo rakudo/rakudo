@@ -1126,9 +1126,14 @@ class RakuAST::Call::Method
             $invocant.WHO
         }
         elsif $name eq 'VAR' {
-            my $var := nqp::create(Scalar);
-            nqp::bindattr_s($var, Scalar, '$!value', $invocant);
-            $var
+            if nqp::isconcrete_nd($invocant) && nqp::iscont($invocant) {
+                my $var := nqp::create(ScalarVAR);
+                nqp::bindattr($var, Scalar, '$!value', $invocant);
+                $var
+            }
+            else {
+                $invocant
+            }
         }
         elsif $name eq 'REPR' {
             nqp::box_s(nqp::reprname($invocant), Str)

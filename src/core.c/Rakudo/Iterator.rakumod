@@ -17,6 +17,27 @@ class Rakudo::Iterator is implementation-detail {
     sub always-IterationEnd(--> IterationEnd) { }
     sub always-False(--> False) { }
 
+    # Bind the body and condition of a loop with pass or negate. With pass the
+    # body gets the value of the condition, which is Mu before it is first
+    # tested. With negate the loop runs while the condition is false.
+    sub set-loop-body-cond(\iter, Mu \class, &body, &cond, \negate, \pass --> Nil) {
+        if pass {
+            my $value := Mu;
+            nqp::bindattr(iter,class,'&!body',-> { body($value) });
+            nqp::bindattr(iter,class,'&!cond',negate
+              ?? -> { nqp::not_i(nqp::istrue(($value := cond()))) }
+              !! -> { $value := cond() }
+            );
+        }
+        else {
+            nqp::bindattr(iter,class,'&!body',&body);
+            nqp::bindattr(iter,class,'&!cond',negate
+              ?? -> { nqp::not_i(nqp::istrue(cond())) }
+              !! &cond
+            );
+        }
+    }
+
 #-------------------------------------------------------------------------------
 # Roles that are used by iterators in the rest of the core settings, in
 # alphabetical order for easier perusal.
@@ -1423,10 +1444,15 @@ class Rakudo::Iterator is implementation-detail {
         has $!LAST;      # combined LAST phaser of the body, or Nil
         has int $!body-ran; # set once the loop body has run
 
-        method !SET-SELF(\body,\cond,\afterwards,\label,\fire-last) {
+        method !SET-SELF(\body,\cond,\afterwards,\label,\fire-last,\negate,\pass) {
             nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
-            &!body := body;
-            &!cond := cond;
+            if negate || pass {
+                set-loop-body-cond(self, CStyleLoop, body, cond, negate, pass);
+            }
+            else {
+                &!body := body;
+                &!cond := cond;
+            }
             &!afterwards := afterwards;
             $!label := nqp::decont(label);
             # The frontend asks the iterator to run the body's LAST phaser by
@@ -1436,8 +1462,8 @@ class Rakudo::Iterator is implementation-detail {
               nqp::if(fire-last, body.callable_for_phaser('LAST'), Nil));
             self
         }
-        method new(\body,\cond,\afterwards,\label,\fire-last) {
-            nqp::create(self)!SET-SELF(body,cond,afterwards,label,fire-last)
+        method new(\body,\cond,\afterwards,\label,\fire-last,\negate,\pass) {
+            nqp::create(self)!SET-SELF(body,cond,afterwards,label,fire-last,negate,pass)
         }
 
         method pull-one() {
@@ -1520,8 +1546,8 @@ class Rakudo::Iterator is implementation-detail {
             IterationEnd
         }
     }
-    method CStyleLoop(&body, &cond, &afterwards, $label, $fire-last = 0) {
-        CStyleLoop.new(&body, &cond, &afterwards, $label, $fire-last)
+    method CStyleLoop(&body, &cond, &afterwards, $label, $fire-last = 0, $negate = 0, $pass = 0) {
+        CStyleLoop.new(&body, &cond, &afterwards, $label, $fire-last, $negate, $pass)
     }
 
     # Returns an iterator for iterating file system directories, producing
@@ -4169,10 +4195,15 @@ class Rakudo::Iterator is implementation-detail {
         has $!LAST;      # combined LAST phaser of the body, or Nil
         has int $!body-ran; # set once the loop body has run
 
-        method !SET-SELF(\body,\cond,\label,\fire-last) {
+        method !SET-SELF(\body,\cond,\label,\fire-last,\negate,\pass) {
             nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
-            &!body  := body;
-            &!cond  := cond;
+            if negate || pass {
+                set-loop-body-cond(self, RepeatLoop, body, cond, negate, pass);
+            }
+            else {
+                &!body := body;
+                &!cond := cond;
+            }
             $!label := nqp::decont(label);
             $!skip   = 1;
             # The frontend asks the iterator to run the body's LAST phaser by
@@ -4182,8 +4213,8 @@ class Rakudo::Iterator is implementation-detail {
               nqp::if(fire-last, body.callable_for_phaser('LAST'), Nil));
             self
         }
-        method new(\body,\cond,\label,\fire-last) {
-            nqp::create(self)!SET-SELF(body,cond,label,fire-last)
+        method new(\body,\cond,\label,\fire-last,\negate,\pass) {
+            nqp::create(self)!SET-SELF(body,cond,label,fire-last,negate,pass)
         }
 
         method pull-one() {
@@ -4254,8 +4285,8 @@ class Rakudo::Iterator is implementation-detail {
             IterationEnd
         }
     }
-    method RepeatLoop(&body, &cond, $label, $fire-last = 0) {
-        RepeatLoop.new(&body, &cond, $label, $fire-last)
+    method RepeatLoop(&body, &cond, $label, $fire-last = 0, $negate = 0, $pass = 0) {
+        RepeatLoop.new(&body, &cond, $label, $fire-last, $negate, $pass)
     }
 
     # Return an iterator for a non-lazy iterator that rotates values for a
@@ -5295,10 +5326,15 @@ class Rakudo::Iterator is implementation-detail {
         has $!LAST;      # combined LAST phaser of the body, or Nil
         has int $!body-ran; # set once the loop body has run
 
-        method !SET-SELF(\body,\cond,\label,\fire-last) {
+        method !SET-SELF(\body,\cond,\label,\fire-last,\negate,\pass) {
             nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
-            &!body := body;
-            &!cond := cond;
+            if negate || pass {
+                set-loop-body-cond(self, WhileLoop, body, cond, negate, pass);
+            }
+            else {
+                &!body := body;
+                &!cond := cond;
+            }
             $!label := nqp::decont(label);
             # The frontend asks the iterator to run the body's LAST phaser by
             # passing fire-last (the RakuAST frontend does; the legacy frontend
@@ -5307,8 +5343,8 @@ class Rakudo::Iterator is implementation-detail {
               nqp::if(fire-last, body.callable_for_phaser('LAST'), Nil));
             self
         }
-        method new(\body,\cond,\label,\fire-last) {
-            nqp::create(self)!SET-SELF(body,cond,label,fire-last)
+        method new(\body,\cond,\label,\fire-last,\negate,\pass) {
+            nqp::create(self)!SET-SELF(body,cond,label,fire-last,negate,pass)
         }
 
         method pull-one() {
@@ -5380,8 +5416,8 @@ class Rakudo::Iterator is implementation-detail {
             IterationEnd
         }
     }
-    method WhileLoop(&body, &cond, $label, $fire-last = 0) {
-        WhileLoop.new(&body, &cond, $label, $fire-last)
+    method WhileLoop(&body, &cond, $label, $fire-last = 0, $negate = 0, $pass = 0) {
+        WhileLoop.new(&body, &cond, $label, $fire-last, $negate, $pass)
     }
 
     # Return an iterator that will zip the given iterables (with &[,])

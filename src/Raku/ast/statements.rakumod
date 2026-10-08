@@ -1440,11 +1440,18 @@ class RakuAST::Statement::IfWith
         nqp::bindattr_i(self, RakuAST::Statement::IfWith, '$!native-condition', 1)
     }
 
-    method IMPL-CONDITION-QAST(RakuAST::IMPL::QASTContext $context, Mu $condition, str $type) {
-        my $qast := $condition.IMPL-TO-QAST($context);
-        $qast := self.IMPL-NATIVE-CONDITION-QAST($qast)
+    method IMPL-CONDITIONAL-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $condition,
+                             str $type,
+                              Mu $then,
+                              Mu $else
+    ) {
+        my $cond-qast := $condition.IMPL-TO-QAST($context);
+        my $then-qast := self.IMPL-BRANCH-QAST($context, $then);
+        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $then-qast, $else)
             if $!native-condition && $type eq 'if';
-        $qast
+        QAST::Op.new(:op($type), $cond-qast, $then-qast, $else)
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1462,19 +1469,21 @@ class RakuAST::Statement::IfWith
         my int $i := nqp::elems($!elsifs);
         while $i-- > 0 {
             my $branch := $!elsifs[$i];
-            $cur-end := QAST::Op.new(
-                :op($branch.IMPL-QAST-TYPE),
-                self.IMPL-CONDITION-QAST($context, $branch.condition, $branch.IMPL-QAST-TYPE),
-                self.IMPL-BRANCH-QAST($context, $branch.then),
+            $cur-end := self.IMPL-CONDITIONAL-QAST(
+                $context,
+                $branch.condition,
+                $branch.IMPL-QAST-TYPE,
+                $branch.then,
                 $cur-end
             );
         }
 
         # Finally, the initial condition.
-        QAST::Op.new(
-            :op(self.IMPL-QAST-TYPE),
-            self.IMPL-CONDITION-QAST($context, $!condition, self.IMPL-QAST-TYPE),
-            self.IMPL-BRANCH-QAST($context, $!then),
+        self.IMPL-CONDITIONAL-QAST(
+            $context,
+            $!condition,
+            self.IMPL-QAST-TYPE,
+            $!then,
             $cur-end
         )
     }
@@ -1599,14 +1608,15 @@ class RakuAST::Statement::Unless
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $cond-qast := $!condition.IMPL-TO-QAST($context);
-        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+        my $body-qast := $!body.IMPL-FLATTEN-APPROVED
+            ?? $!body.IMPL-QAST-FLATTENED($context)
+            !! $!body.IMPL-TO-QAST($context, :immediate);
+        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $body-qast)
             if $!native-condition;
         QAST::Op.new(
             :op('unless'),
             $cond-qast,
-            $!body.IMPL-FLATTEN-APPROVED
-                ?? $!body.IMPL-QAST-FLATTENED($context)
-                !! $!body.IMPL-TO-QAST($context, :immediate),
+            $body-qast,
             self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
         )
     }
@@ -1701,8 +1711,8 @@ class RakuAST::Statement::Loop
     }
 
     # Set at BEGIN time for a loop without an increment whose condition is
-    # a constant that always runs the body, so its from-loop call need not
-    # test it.
+    # a constant that always runs a body that does not take it, so its
+    # from-loop call need not test it.
     has int $!unconditional;
 
     # The setup expression for the loop.
@@ -1744,7 +1754,7 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-ON-BLOCK-STATEMENT() {
-        self.IMPL-UNTHUNK() unless self.IMPL-HAS-UNDO-PHASERS;
+        self.IMPL-UNTHUNK() unless self.IMPL-SUNK-WITH-ITERATOR;
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1756,6 +1766,21 @@ class RakuAST::Statement::Loop
 
     method IMPL-DISCARD-RESULT() {
         self.is-block-statement || self.sunk
+    }
+
+    # Whether the body takes the value of the condition, which the loop then
+    # passes to it.
+    method IMPL-BODY-TAKES-CONDITION() {
+        my $signature := $!body.signature || $!body.placeholder-signature;
+        $signature && nqp::istrue($signature.count)
+    }
+
+    # Whether the loop runs through a from-loop iterator even when sunk. The
+    # iterator runs UNDO phasers, and it fires LAST and passes the condition
+    # without testing the condition twice.
+    method IMPL-SUNK-WITH-ITERATOR() {
+        self.IMPL-HAS-UNDO-PHASERS
+          || (self.IMPL-GUARD-LAST && self.IMPL-BODY-TAKES-CONDITION)
     }
 
     method IMPL-HAS-UNDO-PHASERS() {
@@ -1771,7 +1796,7 @@ class RakuAST::Statement::Loop
     # we're sunk, we have to undo that thunking again.
     method IMPL-UNTHUNK() {
         if nqp::defined($!condition-thunk) {
-            if self.negate {
+            if self.negate && !self.IMPL-BODY-TAKES-CONDITION {
                 # No need to unthunk as we're throwing away the thunked ApplyPostfix
                 nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', $!condition.operand);
             }
@@ -1792,11 +1817,14 @@ class RakuAST::Statement::Loop
         my $value := $!condition && !$!increment
           ?? self.IMPL-TRUSTED-COMPILE-TIME-VALUE($!condition)
           !! nqp::null;
-        my int $unconditional := !nqp::isnull($value) && nqp::istrue($value) == $while ?? 1 !! 0;
+        my int $unconditional := !nqp::isnull($value) && nqp::istrue($value) == $while
+          && !self.IMPL-BODY-TAKES-CONDITION ?? 1 !! 0;
         nqp::bindattr_i(self, RakuAST::Statement::Loop, '$!unconditional', $unconditional);
         unless $unconditional {
             if ($!condition) {
-                if self.negate {
+                # A body taking the condition gets its value, so from-loop
+                # negates it for an until loop instead.
+                if self.negate && !self.IMPL-BODY-TAKES-CONDITION {
                     nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', RakuAST::ApplyPostfix.new(
                         :postfix(
                             RakuAST::Call::Method.new(:name(RakuAST::Name.from-identifier('not')))
@@ -1842,12 +1870,17 @@ class RakuAST::Statement::Loop
         $qast
     }
 
-    # A Code that runs each of the given NEXT phasers, for use as a from-loop
-    # afterwards argument.
-    method IMPL-NEXT-PHASER-AFTERWARDS-QAST(RakuAST::IMPL::QASTContext $context, @next-phasers) {
-        my $run-phasers := -> { $_() for @next-phasers };
-        $context.ensure-sc($run-phasers);
-        QAST::WVal.new(:value($run-phasers))
+    # The Code that runs each of the body's NEXT phasers, for use as a
+    # from-loop afterwards argument. It is made at runtime, so precompilation
+    # never has to keep a closure made here.
+    method IMPL-NEXT-PHASER-AFTERWARDS-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $body := $!body.meta-object;
+        $context.ensure-sc($body);
+        QAST::Op.new(
+            :op('callmethod'), :name('callable_for_phaser'),
+            QAST::WVal.new(:value($body)),
+            QAST::SVal.new(:value('NEXT'))
+        )
     }
 
     # A pre-test loop (while/until, or a C-style loop with a condition) that
@@ -1883,9 +1916,8 @@ class RakuAST::Statement::Loop
         my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
         my @next-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'NEXT') ?? $phasers<NEXT> !! [];
         my @last-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'LAST') ?? $phasers<LAST> !! [];
-        my @undo-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'UNDO') ?? $phasers<UNDO> !! [];
         my @labels := self.IMPL-UNWRAP-LIST(self.labels);
-        if self.IMPL-DISCARD-RESULT && !nqp::elems(@undo-phasers) {
+        if self.IMPL-DISCARD-RESULT && !self.IMPL-SUNK-WITH-ITERATOR {
             # Select correct node type for the loop and produce it.
             my str $op := self.repeat
                 ?? (self.negate ?? 'repeat_until' !! 'repeat_while')
@@ -1893,7 +1925,10 @@ class RakuAST::Statement::Loop
             my $cond-qast := $!condition
                 ?? $!condition.IMPL-TO-QAST($context)
                 !! QAST::IVal.new( :value(1) );
-            $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+            my $body-qast := $!body.IMPL-FLATTEN-APPROVED
+                ?? $!body.IMPL-QAST-FLATTENED($context)
+                !! $!body.IMPL-TO-QAST($context, :immediate);
+            $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $body-qast)
                 if $!native-condition && $!condition;
             my int $guard-last := self.IMPL-GUARD-LAST;
             my str $ran;
@@ -1901,13 +1936,7 @@ class RakuAST::Statement::Loop
                 $ran := QAST::Node.unique('LOOP_LAST_RAN');
                 $cond-qast := self.IMPL-LAST-GUARD-CONDITION($cond-qast, !self.negate, $ran);
             }
-            my $loop-qast := QAST::Op.new(
-                :$op,
-                $cond-qast,
-                $!body.IMPL-FLATTEN-APPROVED
-                    ?? $!body.IMPL-QAST-FLATTENED($context)
-                    !! $!body.IMPL-TO-QAST($context, :immediate),
-            );
+            my $loop-qast := QAST::Op.new(:$op, $cond-qast, $body-qast);
             my @post;
             if @next-phasers {
                 for @next-phasers {
@@ -1970,7 +1999,7 @@ class RakuAST::Statement::Loop
                     # No real condition or increment, so pass the "no condition"
                     # sentinel to make room for a phaser-running afterwards thunk.
                     $loop-qast.push(QAST::WVal.new(:value(Code)));
-                    $loop-qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
+                    $loop-qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context));
                 }
                 if @labels {
                     my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
@@ -1996,9 +2025,13 @@ class RakuAST::Statement::Loop
                 # afterwards thunk, which the iterator runs each iteration and on
                 # an explicit `next`.
                 if @next-phasers && !$!increment && !self.repeat {
-                    $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
+                    $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context));
                 }
                 $qast.push: QAST::IVal.new(:value(1), :named('repeat')) if self.repeat;
+                if self.IMPL-BODY-TAKES-CONDITION {
+                    $qast.push: QAST::IVal.new(:value(1), :named('pass-condition'));
+                    $qast.push: QAST::IVal.new(:value(1), :named('until')) if self.negate;
+                }
                 if @labels {
                     my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
                     $label-qast.named('label');
@@ -2027,7 +2060,7 @@ class RakuAST::Statement::Loop
                 $qast.push($label-qast);
             }
             if @next-phasers {
-                $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
+                $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context));
             }
             # No LAST call here: this loop is lazy, so its from-loop iterator
             # runs the body's LAST phaser at exhaustion (only if the body ran).
@@ -2047,7 +2080,7 @@ class RakuAST::Statement::Loop
     }
 
     method propagate-sink(Bool $is-sunk) {
-        self.IMPL-UNTHUNK() if $is-sunk && ! self.IMPL-HAS-UNDO-PHASERS;
+        self.IMPL-UNTHUNK() if $is-sunk && ! self.IMPL-SUNK-WITH-ITERATOR;
         $!condition.apply-sink(False) if $!condition;
         $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
         $!setup.apply-sink(True) if $!setup;
@@ -2063,9 +2096,7 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
-        my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
-        my $has-undo-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'UNDO');
-        self.sunk && !$has-undo-phasers && $node =:= $!body
+        self.sunk && !self.IMPL-SUNK-WITH-ITERATOR && $node =:= $!body
     }
 }
 

@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 11;
+plan 15;
 
 my $c = q[use nqp; my class C { method m { nqp::list(1, 2) }; method n { 'str' } }; ];
 
@@ -43,5 +43,17 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
 else {
     skip 'a closure made by the arguments of a .= initializer of a precompiled constant dies on the legacy frontend';
 }
+
+is EVAL(q[my class F { has $.a .= new }; F.new.a.raku]), 'Any.new',
+    'a .= initializer of an attribute without a type calls the method on Any';
+
+is EVAL(q[my class F { has $!a .= new; method a { $!a } }; F.new.a.raku]), 'Any.new',
+    'a .= initializer of a private attribute without a type calls the method on Any';
+
+is EVAL(q[my role R { has $.a .= new }; my class F does R { }; F.new.a.raku]), 'Any.new',
+    'a .= initializer of a role attribute without a type calls the method on Any';
+
+is EVAL(q[my class F { has Int:D $.a .= new(5) }; F.new.a]), 5,
+    'a .= initializer of an attribute with a definite type calls the method on the base type';
 
 # vim: expandtab shiftwidth=4

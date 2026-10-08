@@ -1448,12 +1448,18 @@ class RakuAST::VarDeclaration::Simple
                 }
                 else {
                     my $method := $!initializer-method;
+                    # A `.=` initializer calls the method on the type of the
+                    # attribute, Any when it has none.
+                    my $invocant := $!type
+                        ?? $!type.IMPL-VALUE-TYPE
+                        !! RakuAST::Type::Setting.from-identifier('Any');
+                    $invocant.to-begin-time($resolver, $context) unless $!type;
                     $method.body.statement-list.add-statement(
                         RakuAST::Statement::Expression.new(
                             :expression(
                                 nqp::istype($initializer, RakuAST::Initializer::CallAssign)
                                 ?? RakuAST::ApplyPostfix.new(
-                                    operand => $!type.IMPL-VALUE-TYPE,
+                                    operand => $invocant,
                                     postfix => $initializer.postfixish
                                 )
                                 !! RakuAST::Call::Name.new(

@@ -5306,3 +5306,37 @@ nqp::register('raku-rv-typecheck', -> $capture {
     # Do the actual delegation
     nqp::delegate($delegate, $capture);
 });
+
+#- raku-rv-native --------------------------------------------------------------
+# Return value check for a routine with a native return type, given a value
+# that is not a concrete instance of that type's box type.
+
+# Unbox the value, as a Pointer or a class with a box target can be, or
+# error out if it cannot be
+sub native_return_coerce($ret, $type) {
+    my int $prim := nqp::objprimspec($type);
+    my $coerced  := nqp::null;
+    try {
+        $coerced := $prim == 2
+          ?? nqp::box_n(nqp::unbox_n($ret), Num)
+          !! $prim == 3
+            ?? nqp::box_s(nqp::unbox_s($ret), Str)
+            !! $prim == 10
+              ?? nqp::box_i(nqp::unbox_u($ret), Int)
+              !! nqp::box_i(nqp::unbox_i($ret), Int);
+    }
+    nqp::isnull($coerced) ?? return_error($ret, $type) !! $coerced
+}
+
+# The first value is the return value, the second is the native return type.
+# A Nil or a Failure is returned as is.
+nqp::register('raku-rv-native', -> $capture {
+    nqp::guard('type', nqp::track('arg', $capture, 0));
+    nqp::istype(nqp::captureposarg($capture, 0), Nil)
+      ?? nqp::delegate('boot-value', $capture)
+      !! nqp::delegate('boot-code-constant',
+           nqp::syscall('dispatcher-insert-arg-literal-obj',
+             $capture, 0, &native_return_coerce
+           )
+         );
+});

@@ -4010,8 +4010,10 @@ class RakuAST::Node {
     method IMPL-INLINE-DOT-ASSIGN(Mu $call) {
         my $target := $call[0];
         $call.name('');
+        # The result is mapped into Raku land as the dispatcher maps it
+        my $result := QAST::Op.new(:op<hllize>, $call);
         if nqp::istype($target, QAST::Var) {
-            QAST::Op.new(:op<p6store>, $target, $call)
+            QAST::Op.new(:op<p6store>, $target, $result)
         }
         else {
             $target := $call.shift;
@@ -4021,7 +4023,7 @@ class RakuAST::Node {
                 QAST::Op.new(:op<bind>,
                     QAST::Var.new(:name($name), :scope<local>, :decl<var>), $target),
                 QAST::Op.new(:op<p6store>,
-                    QAST::Var.new(:name($name), :scope<local>), $call))
+                    QAST::Var.new(:name($name), :scope<local>), $result))
         }
     }
 

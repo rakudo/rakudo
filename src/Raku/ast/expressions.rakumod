@@ -3558,7 +3558,11 @@ class RakuAST::DottyInfix::Call
 
     method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
             RakuAST::Postfixish $rhs-ast) {
-        $rhs-ast.IMPL-POSTFIX-QAST($context, $lhs-qast)
+        my $call := $rhs-ast.IMPL-POSTFIX-QAST($context, $lhs-qast);
+        # The result is mapped into Raku land as a method call postfix maps it
+        nqp::istype($rhs-ast, RakuAST::Call::Methodish) && $rhs-ast.IMPL-HLLIZE-RESULT
+            ?? QAST::Op.new(:op<hllize>, $call)
+            !! $call
     }
 
     method operator() { '.' }

@@ -1701,8 +1701,8 @@ class RakuAST::Statement::Loop
     }
 
     # Set at BEGIN time for a loop without an increment whose condition is
-    # a constant that always runs the body, so its from-loop call need not
-    # test it.
+    # a constant that always runs a body that does not take it, so its
+    # from-loop call need not test it.
     has int $!unconditional;
 
     # The setup expression for the loop.
@@ -1744,7 +1744,7 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-ON-BLOCK-STATEMENT() {
-        self.IMPL-UNTHUNK() unless self.IMPL-HAS-UNDO-PHASERS;
+        self.IMPL-UNTHUNK() unless self.IMPL-SUNK-WITH-ITERATOR;
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1756,6 +1756,21 @@ class RakuAST::Statement::Loop
 
     method IMPL-DISCARD-RESULT() {
         self.is-block-statement || self.sunk
+    }
+
+    # Whether the body takes the value of the condition, which the loop then
+    # passes to it.
+    method IMPL-BODY-TAKES-CONDITION() {
+        my $signature := $!body.signature || $!body.placeholder-signature;
+        $signature && nqp::istrue($signature.count)
+    }
+
+    # Whether the loop runs through a from-loop iterator even when sunk. The
+    # iterator runs UNDO phasers, and it fires LAST and passes the condition
+    # without testing the condition twice.
+    method IMPL-SUNK-WITH-ITERATOR() {
+        self.IMPL-HAS-UNDO-PHASERS
+          || (self.IMPL-GUARD-LAST && self.IMPL-BODY-TAKES-CONDITION)
     }
 
     method IMPL-HAS-UNDO-PHASERS() {
@@ -1771,7 +1786,7 @@ class RakuAST::Statement::Loop
     # we're sunk, we have to undo that thunking again.
     method IMPL-UNTHUNK() {
         if nqp::defined($!condition-thunk) {
-            if self.negate {
+            if self.negate && !self.IMPL-BODY-TAKES-CONDITION {
                 # No need to unthunk as we're throwing away the thunked ApplyPostfix
                 nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', $!condition.operand);
             }
@@ -1792,11 +1807,14 @@ class RakuAST::Statement::Loop
         my $value := $!condition && !$!increment
           ?? self.IMPL-TRUSTED-COMPILE-TIME-VALUE($!condition)
           !! nqp::null;
-        my int $unconditional := !nqp::isnull($value) && nqp::istrue($value) == $while ?? 1 !! 0;
+        my int $unconditional := !nqp::isnull($value) && nqp::istrue($value) == $while
+          && !self.IMPL-BODY-TAKES-CONDITION ?? 1 !! 0;
         nqp::bindattr_i(self, RakuAST::Statement::Loop, '$!unconditional', $unconditional);
         unless $unconditional {
             if ($!condition) {
-                if self.negate {
+                # A body taking the condition gets its value, so from-loop
+                # negates it for an until loop instead.
+                if self.negate && !self.IMPL-BODY-TAKES-CONDITION {
                     nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', RakuAST::ApplyPostfix.new(
                         :postfix(
                             RakuAST::Call::Method.new(:name(RakuAST::Name.from-identifier('not')))
@@ -1888,9 +1906,8 @@ class RakuAST::Statement::Loop
         my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
         my @next-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'NEXT') ?? $phasers<NEXT> !! [];
         my @last-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'LAST') ?? $phasers<LAST> !! [];
-        my @undo-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'UNDO') ?? $phasers<UNDO> !! [];
         my @labels := self.IMPL-UNWRAP-LIST(self.labels);
-        if self.IMPL-DISCARD-RESULT && !nqp::elems(@undo-phasers) {
+        if self.IMPL-DISCARD-RESULT && !self.IMPL-SUNK-WITH-ITERATOR {
             # Select correct node type for the loop and produce it.
             my str $op := self.repeat
                 ?? (self.negate ?? 'repeat_until' !! 'repeat_while')
@@ -2004,6 +2021,10 @@ class RakuAST::Statement::Loop
                     $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context));
                 }
                 $qast.push: QAST::IVal.new(:value(1), :named('repeat')) if self.repeat;
+                if self.IMPL-BODY-TAKES-CONDITION {
+                    $qast.push: QAST::IVal.new(:value(1), :named('pass-condition'));
+                    $qast.push: QAST::IVal.new(:value(1), :named('until')) if self.negate;
+                }
                 if @labels {
                     my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
                     $label-qast.named('label');
@@ -2052,7 +2073,7 @@ class RakuAST::Statement::Loop
     }
 
     method propagate-sink(Bool $is-sunk) {
-        self.IMPL-UNTHUNK() if $is-sunk && ! self.IMPL-HAS-UNDO-PHASERS;
+        self.IMPL-UNTHUNK() if $is-sunk && ! self.IMPL-SUNK-WITH-ITERATOR;
         $!condition.apply-sink(False) if $!condition;
         $!body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
         $!setup.apply-sink(True) if $!setup;
@@ -2068,9 +2089,7 @@ class RakuAST::Statement::Loop
     }
 
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
-        my $phasers := nqp::getattr($!body.meta-object, Block, '$!phasers');
-        my $has-undo-phasers := nqp::ishash($phasers) && nqp::existskey($phasers, 'UNDO');
-        self.sunk && !$has-undo-phasers && $node =:= $!body
+        self.sunk && !self.IMPL-SUNK-WITH-ITERATOR && $node =:= $!body
     }
 }
 

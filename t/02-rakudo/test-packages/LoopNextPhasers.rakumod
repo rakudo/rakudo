@@ -34,3 +34,10 @@ our sub while-undo-next() {
     while $i++ < 2 { UNDO { }; NEXT { @log.push('N') }; @log.push($i) }
     @log.List
 }
+
+our sub while-pointy-last-next() {
+    my @a = 1, 2;
+    my @log;
+    while @a.shift -> $x { LAST { @log.push('L') }; NEXT { @log.push('N') }; @log.push($x) }
+    @log.List
+}

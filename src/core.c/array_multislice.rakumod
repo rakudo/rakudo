@@ -48,9 +48,162 @@ sub MD-ARRAY-SLICE-ONE-POSITION(
         }
     }
 }
-sub MD-ARRAY-SLICE(\SELF, @indices) is raw is implementation-detail {
+# The indices a slice of a shaped or jagged array stands for, or Nil for no
+# change. Each dimension left out takes *, as does a trailing ** for any
+# number of them, and a lazy index takes only those within a set length.
+sub MD-SHAPED-INDICES(\SELF, @indices) is implementation-detail {
+    return Nil
+      unless nqp::istype(SELF,Rakudo::Internals::ShapedArrayCommon)
+        || nqp::istype(SELF,Array::ShapedView)
+        || nqp::istype(SELF,Array::Jagged);
+
+    my int $elems = @indices.elems;  # reifies
+    my \indices := nqp::getattr(@indices,List,'$!reified');
+    my int $hyper = $elems && nqp::istype(
+      nqp::decont(nqp::atpos(indices,nqp::sub_i($elems,1))),HyperWhatever
+    );
+    my int $given = nqp::sub_i($elems,$hyper);
+    my int $slice = $hyper;
+    my int $i = -1;
+    nqp::while(
+      nqp::islt_i(++$i,$given),
+      nqp::if(
+        nqp::istype((my \index := nqp::atpos(indices,$i)),HyperWhatever),
+        die("Only the last dimension of a subscript can take **"),
+        nqp::if(
+          nqp::istype(index,Whatever)
+            || nqp::istype(index,Callable)
+            || (nqp::istype(index,Iterable) && nqp::not_i(nqp::iscont(index))),
+          ($slice = 1)
+        )
+      )
+    );
+    return Nil unless $slice;
+
+    # a lazy index takes the indices within a set length
+    my \shape   := SELF.shape;
+    my \sliced  := nqp::create(IterationBuffer);
+    my int $changed = $hyper || $given < shape.elems;
+    $i = -1;
+    while ++$i < $given {
+        my \index := nqp::atpos(indices,$i);
+        if nqp::istype(index,Iterable)
+          && nqp::not_i(nqp::iscont(index))
+          && index.is-lazy
+          && nqp::not_i(nqp::istype(shape.AT-POS($i),Whatever)) {
+            $changed = 1;
+            my int $length = shape.AT-POS($i);
+            my \within  := nqp::create(IterationBuffer);
+            my \iterator := index.iterator;
+            nqp::until(
+              nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd)
+                || nqp::isge_i(pos.Int,$length),
+              nqp::push(within,pos)
+            );
+            nqp::push(sliced,within.List);
+        }
+        else {
+            # An index can be a Seq, which iterates when sunk, so the index
+            # pushed must not be this block's value
+            nqp::push(sliced,index);
+            Nil
+        }
+    }
+    nqp::push(sliced,Whatever) while $i++ < shape.elems;
+    $changed ?? sliced.List !! Nil
+}
+
+# Whether a position is within a shaped array, which refuses one that is
+# not, while any other array takes any position
+sub MD-POS-WITHIN(\target, \pos) is implementation-detail {
+    nqp::istype(target,Rakudo::Internals::ShapedArrayCommon)
+      || nqp::istype(target,Array::ShapedView)
+      ?? 0 <= pos < target.elems
+      !! nqp::istype(target,Array::Jagged)
+        ?? target.POS-WITHIN(pos)
+        !! True
+}
+
+# The result of an adverb for each element a multidimensional slice takes,
+# as the adverb gives it for a slice of one dimension, with the list of the
+# index of each dimension as its key
+sub MD-ARRAY-SLICE-ADVERB(\SELF, @given, str $adverb) is implementation-detail {
+    my \indices := MD-SHAPED-INDICES(SELF, @given) // @given;
+    my \result  := nqp::create(IterationBuffer);
+    my \path    := nqp::create(IterationBuffer);
+    my int $last  = nqp::sub_i(indices.elems,1);  # reifies
+
+    my sub walk(\target, int $dim, \idx --> Nil) {
+        if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
+            if idx.is-lazy {
+                # a lazy index stops at the end of the array
+                my int $elems = nqp::isconcrete(target) ?? target.elems !! 0;
+                for idx -> \pos {
+                    last if nqp::istype(pos,Numeric) && pos.Int >= $elems;
+                    walk(target, $dim, pos);
+                }
+            }
+            else {
+                walk(target, $dim, $_) for idx;
+            }
+        }
+        elsif nqp::istype(idx,Whatever) {
+            walk(target, $dim, $_) for ^target.elems;
+        }
+        elsif nqp::istype(idx,Callable) {
+            walk(target, $dim,
+              idx.(|(target.elems xx (idx.count == Inf ?? 1 !! idx.count))));
+        }
+        else {
+            my $pos := idx.Int;
+            my int $within = MD-POS-WITHIN(target, $pos);
+            nqp::push(path,$pos);
+            # Within nqp::stmts, as a statement giving the value pushed could
+            # sink it, which throws a Failure and iterates a Seq
+            nqp::stmts(
+              nqp::if(
+                nqp::islt_i($dim,$last),
+                walk($within ?? target.AT-POS($pos) !! Any,
+                  nqp::add_i($dim,1), indices.AT-POS(nqp::add_i($dim,1))),
+                nqp::if(
+                  nqp::iseq_s($adverb,'exists'),
+                  nqp::push(result,$within ?? target.EXISTS-POS($pos) !! False),
+                  nqp::if(
+                    nqp::iseq_s($adverb,'delete'),
+                    nqp::push(result,$within ?? target.DELETE-POS($pos) !! Nil),
+                    nqp::if(
+                      $within && target.EXISTS-POS($pos),
+                      nqp::stmts(
+                        (my \key := nqp::p6bindattrinvres(
+                          nqp::create(List),List,'$!reified',nqp::clone(path))),
+                        nqp::iseq_s($adverb,'k')
+                          ?? nqp::push(result,key)
+                          !! nqp::iseq_s($adverb,'v')
+                            ?? nqp::push(result,nqp::decont(target.AT-POS($pos)))
+                            !! nqp::iseq_s($adverb,'kv')
+                              ?? nqp::stmts(
+                                   nqp::push(result,key),
+                                   nqp::push(result,target.AT-POS($pos))
+                                 )
+                              !! nqp::push(result,Pair.new(key,target.AT-POS($pos)))
+                      )
+                    )
+                  )
+                )
+              ),
+              nqp::pop(path)
+            );
+        }
+    }
+
+    walk(SELF, 0, indices.AT-POS(0));
+    result.List
+}
+
+sub MD-ARRAY-SLICE(\SELF, @given) is raw is implementation-detail {
+    my \indices := MD-SHAPED-INDICES(SELF, @given) // @given;
     my \target = nqp::create(IterationBuffer);
-    MD-ARRAY-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
+    MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, indices.AT-POS(0), 0, target);
     target.List
 }
 
@@ -134,7 +287,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
     )
 }
 
-multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
+multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu :$BIND! is raw) is raw {
     my int $elems = @indices.elems;   # reifies
     my \indices := nqp::getattr(@indices,List,'$!reified');
     my int $i = -1;
@@ -183,7 +336,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          NYI(':delete on multi-dimensional slices'),
+          MD-ARRAY-SLICE-ADVERB(SELF, @indices, 'delete'),
           nqp::if(
             nqp::iseq_i($elems,2),
             SELF.DELETE-POS(
@@ -220,7 +373,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          NYI(':exists on multi-dimensional slices'),
+          MD-ARRAY-SLICE-ADVERB(SELF, @indices, 'exists'),
           nqp::if(
             nqp::iseq_i($elems,2),
             SELF.EXISTS-POS(
@@ -257,7 +410,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$kv!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          NYI(':kv on multi-dimensional slices'),
+          MD-ARRAY-SLICE-ADVERB(SELF, @indices, 'kv'),
           nqp::if(
             nqp::iseq_i($elems,2),
             nqp::if(
@@ -313,7 +466,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$p!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          NYI(':p on multi-dimensional slices'),
+          MD-ARRAY-SLICE-ADVERB(SELF, @indices, 'p'),
           nqp::if(
             nqp::iseq_i($elems,2),
             nqp::if(
@@ -369,7 +522,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$k!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          NYI(':k on multi-dimensional slices'),
+          MD-ARRAY-SLICE-ADVERB(SELF, @indices, 'k'),
           nqp::if(
             nqp::iseq_i($elems,2),
             nqp::if(
@@ -418,7 +571,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$v!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          NYI(':v on multi-dimensional slices'),
+          MD-ARRAY-SLICE-ADVERB(SELF, @indices, 'v'),
           nqp::if(
             nqp::iseq_i($elems,2),
             nqp::if(

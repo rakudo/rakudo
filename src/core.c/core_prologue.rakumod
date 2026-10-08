@@ -35,6 +35,10 @@ my role PositionalBindFailover { ... }
 my role Hash::Typed { ... }
 my role Hash::Object { ... }
 my role Hash::Shaped { ... }
+my class Array::ShapedView { ... }
+my role Array::Jagged { ... }
+my role Array::JaggedRow { ... }
+my role Array::JaggedSlots { ... }
 
 # Make Iterable available for the code-gen.
 BEGIN nqp::bindhllsym('Raku', 'Iterable', Iterable);

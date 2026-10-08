@@ -14,9 +14,9 @@ my role Array::Shaped
           !! Array.new(:$!shape)
     }
 
-    # Handle dimensions > 3 or more indices than dimensions.
-    # If dimensions <= 3, then custom AT-POS should have caught
-    # correct number of indices already.
+    # Handle more than three dimensions, or more or fewer indices than
+    # dimensions, as other AT-POS candidates take as many indices as there
+    # are dimensions up to three. Fewer indices give a view.
     multi method AT-POS(::?CLASS:D: **@indices) is raw {
         my \reified := nqp::getattr(self,List,'$!reified');
         nqp::if(
@@ -24,7 +24,7 @@ my role Array::Shaped
             @indices.elems,                    # reifies
             (my int $numdims = nqp::numdimensions(reified))
           ),
-          NYI("Partially dimensioned views of shaped arrays").throw,
+          Array::ShapedView.new(self, @indices),
           nqp::stmts(
             (my \indices := nqp::getattr(@indices,List,'$!reified')),
             (my \idxs := nqp::list_i),
@@ -285,6 +285,7 @@ my role Array::Shaped
 
     proto method STORE(::?CLASS:D: |) {*}
     multi method STORE(::?CLASS:D: ::?CLASS:D \in, :$INITIALIZE) {
+        return self if nqp::eqaddr(self,nqp::decont(in));
         nqp::if(
           in.shape eqv self.shape,
           nqp::stmts(
@@ -324,7 +325,7 @@ my role Array::Shaped
             self!SET-SELF(to);
             $!desc := nqp::getattr(to,Array,'$!descriptor');
             $!iterators := nqp::setelems(
-                nqp::list(from.iterator),
+                nqp::list(Rakudo::Internals.SHAPED-ITERATOR(from, self.dims, 0)),
                 nqp::add_i($!maxdim,1)
             );
             self
@@ -350,8 +351,14 @@ my role Array::Shaped
                 nqp::bindpos($!iterators,$i,  # add an empty one
                   Rakudo::Iterator.Empty),
                 nqp::if(                      # is it an iterator?
-                  nqp::istype($item,Iterable) && nqp::isconcrete($item),
-                  nqp::bindpos($!iterators,$i,$item.iterator),
+                  nqp::istype($item,Iterable)
+                    && (nqp::isconcrete($item)
+                         || nqp::istype($item,Array::JaggedRow)),
+                  nqp::bindpos($!iterators,$i,
+                    nqp::istype($item,Rakudo::Internals::ShapedArrayCommon)
+                      || nqp::istype($item,Array::ShapedView)
+                      ?? Rakudo::Internals.SHAPED-ITERATOR($item, self.dims, $i)
+                      !! $item.iterator),
                   X::Assignment::ToShaped.new(shape => self.dims).throw
                 )
               )
@@ -381,10 +388,24 @@ my role Array::Shaped
             )
         }
     }
+    # The values are stored in new storage that then takes the place of the
+    # old, so values read through a view of this array are those it had
     multi method STORE(::?CLASS:D: Iterable:D \in, :$INITIALIZE) {
-        self!RE-INITIALIZE unless $INITIALIZE;
-        StoreIterable.new(self,in).sink-all;
-        self
+        nqp::stmts(
+          nqp::if(
+            $INITIALIZE,
+            StoreIterable.new(self,in).sink-all,
+            nqp::stmts(
+              (my \fresh := self.new(:shape(self.shape))),
+              nqp::bindattr(fresh,Array,'$!descriptor',
+                nqp::getattr(self,Array,'$!descriptor')),
+              StoreIterable.new(fresh,in).sink-all,
+              nqp::bindattr(self,List,'$!reified',
+                nqp::getattr(fresh,List,'$!reified'))
+            )
+          ),
+          self
+        )
     }
 
     my class StoreIterator does Rakudo::Iterator::ShapeLeaf {
@@ -414,6 +435,10 @@ my role Array::Shaped
         self
     }
 
+    # a row not made yet of a jagged array gives the values of a new one
+    multi method STORE(::?CLASS:D: Array::JaggedRow:U \in, :$INITIALIZE) {
+        self.STORE(in.new, :$INITIALIZE)
+    }
     multi method STORE(::?CLASS:D: Mu \item --> Nil) {
         X::Assignment::ToShaped.new(shape => self.shape).throw
     }

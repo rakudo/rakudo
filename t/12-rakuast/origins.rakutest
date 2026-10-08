@@ -195,6 +195,8 @@ subtest "Spans" => {
     sub ee() { }
     sub ff() { } #=((nested doc))
     $s ~~ / <[\s]> a+ % ','  b /;
+    my $sig = :($x, $y);
+    sub hh(&c:(Int)) { }
     SOURCE
 
     my $comp := Perl6::Compiler.new();
@@ -235,7 +237,7 @@ subtest "Spans" => {
         node($type, $which).origin.from
     }
 
-    plan 66;
+    plan 68;
 
     is span(RakuAST::ApplyListInfix), '$x = @a[0].foo(1, 2), 3',
       'a list infix application covers all of its operands';
@@ -371,6 +373,10 @@ subtest "Spans" => {
       'a declarator doc whose text starts with a # covers its #|';
     is text(node(RakuAST::Sub, *.name.canonicalize eq 'ff').WHY), '#=((nested doc))',
       'a declarator doc with doubled brackets covers all of its closers';
+    is span(RakuAST::FakeSignature), ':($x, $y)',
+      'a signature literal covers its delimiters';
+    is text(node(RakuAST::Sub, *.name.canonicalize eq 'hh').signature.parameters[0].signature-constraint),
+      ':(Int)', 'the signature literal of a parameter covers its delimiters';
     is text(node(RakuAST::VarDeclaration::Signature, 2).signature.parameters[0].target.declaration),
       '$w = 7',
       'a variable of a list declaration covers the default it takes over';

@@ -1170,17 +1170,12 @@ class RakuAST::Statement::Expression
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        # If there is a condition modifier, and the expression is a block
-        # with either an explicit signature or a placeholder signature,
-        # we should compile it immediate in order that the arity is set
-        # right and things like `{ say $^x } if $y` work. Blocks with no
-        # signature aren't handled this way, since the $_ should not be
-        # counted.
+        # A condition modifier wraps the statement here unless it went into
+        # the thunk a loop modifier puts around the expression.
+        my int $wrap-condition := $!condition-modifier && !$!condition-thunk ?? 1 !! 0;
         my $qast;
-        if $!condition-modifier && nqp::istype($!expression, RakuAST::Block) &&
-                ($!expression.signature || $!expression.placeholder-signature) {
-            $qast := $!condition-modifier.IMPL-WRAP-QAST($context,
-                $!expression.IMPL-TO-QAST($context, :immediate));
+        if $wrap-condition && $!condition-modifier.IMPL-IMMEDIATE-BLOCK($!expression) {
+            $qast := $!expression.IMPL-TO-QAST($context, :immediate);
         }
         elsif self.sunk && !$!condition-modifier && !$!loop-modifier
                 && nqp::istype($!expression, RakuAST::Routine)
@@ -1223,16 +1218,21 @@ class RakuAST::Statement::Expression
                     $qast := QAST::Op.new( :op('p6sink'), $qast );
                 }
             }
-            $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast)
-                if $!condition-modifier && (!$!loop-modifier || !$!loop-modifier.handles-condition);
         }
+        $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $wrap-condition;
         if $!loop-modifier {
             my $sink := self.IMPL-DISCARD-RESULT;
             $qast := $!loop-modifier.IMPL-WRAP-QAST($context, $qast, :$sink,
-                :block(nqp::istype(self.expression, RakuAST::Block)),
+                :block(self.IMPL-BLOCK-IS-LOOP-BODY),
                 :expression($!expression));
         }
         $qast
+    }
+
+    # A loop modifier takes a block as its body, unless a condition modifier
+    # has to be tested before the block runs.
+    method IMPL-BLOCK-IS-LOOP-BODY() {
+        nqp::istype($!expression, RakuAST::Block) && !$!condition-modifier ?? True !! False
     }
 
     # StatementModifier::WhileUntil needs us to thunk loop-condition, condition-modifier and expression
@@ -1245,14 +1245,11 @@ class RakuAST::Statement::Expression
             $!loop-modifier.expression.IMPL-REMOVE-THUNK($!loop-thunk)
                 unless $!loop-modifier.IMPL-UNNEGATE-IF-NEEDED;
             nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-thunk', RakuAST::ExpressionThunk);
-            if $!condition-modifier {
-                nqp::die('cond thunk not defined?') unless nqp::defined($!condition-thunk);
+            if nqp::defined($!condition-thunk) {
                 $!expression.IMPL-REMOVE-THUNK($!condition-thunk);
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-thunk', RakuAST::ExpressionThunk);
             }
-
-            unless nqp::istype($!expression, RakuAST::Block) {
-                nqp::die('expr thunk not defined') unless nqp::defined($!expression-thunk);
+            if nqp::defined($!expression-thunk) {
                 $!expression.IMPL-REMOVE-THUNK($!expression-thunk);
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression-thunk', RakuAST::ExpressionThunk);
             }
@@ -1283,18 +1280,17 @@ class RakuAST::Statement::Expression
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # A bare block under a condition or given modifier runs where it
+        # stands, as a block statement does.
+        $!expression.mark-block-statement
+            if nqp::istype($!expression, RakuAST::Block)
+            && ($!condition-modifier
+                || nqp::istype($!loop-modifier, RakuAST::StatementModifier::Given));
+
         if $!loop-modifier {
             my $thunk := $!loop-modifier.expression-thunk;
-            if $thunk && !nqp::istype($!expression, RakuAST::Block) {
-                # only need to thunk the condition if we also have a loop thunk
-                if $!condition-modifier {
-                    my $thunk := $!condition-modifier.expression-thunk;
-                    $!expression.wrap-with-thunk($thunk);
-                    $thunk.ensure-begin-performed($resolver, $context);
-                }
-                $!expression.wrap-with-thunk($thunk);
-                $thunk.ensure-begin-performed($resolver, $context);
-            }
+            self.IMPL-THUNK-LOOP-BODY($resolver, $context, $thunk)
+                if $thunk && !self.IMPL-BLOCK-IS-LOOP-BODY;
 
             # See IMPL-UNTHUNK for important information
             if (nqp::istype($!loop-modifier, RakuAST::StatementModifier::WhileUntil)) {
@@ -1304,20 +1300,30 @@ class RakuAST::Statement::Expression
                 $loop-thunk.ensure-begin-performed($resolver, $context);
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-thunk', $loop-thunk);
 
-                unless nqp::istype($!expression, RakuAST::Block) {
-                    if $!condition-modifier {
-                        my $thunk := $!condition-modifier.expression-thunk;
-                        $!expression.wrap-with-thunk($thunk);
-                        $thunk.ensure-begin-performed($resolver, $context);
-                        nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-thunk', $thunk);
-                    }
-                    my $thunk := RakuAST::ExpressionThunk.new;
-                    $!expression.wrap-with-thunk($thunk);
-                    $thunk.ensure-begin-performed($resolver, $context);
-                    nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression-thunk', $thunk);
+                unless self.IMPL-BLOCK-IS-LOOP-BODY {
+                    my $expression-thunk := RakuAST::ExpressionThunk.new;
+                    self.IMPL-THUNK-LOOP-BODY($resolver, $context, $expression-thunk);
+                    nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression-thunk', $expression-thunk);
                 }
             }
         }
+    }
+
+    # Wraps the expression in the thunk a loop runs on each iteration, with
+    # any condition modifier inside it so the condition is tested there.
+    method IMPL-THUNK-LOOP-BODY(
+        RakuAST::Resolver $resolver,
+        RakuAST::IMPL::QASTContext $context,
+        RakuAST::ExpressionThunk $thunk
+    ) {
+        if $!condition-modifier {
+            my $condition-thunk := $!condition-modifier.expression-thunk;
+            $!expression.wrap-with-thunk($condition-thunk);
+            $condition-thunk.ensure-begin-performed($resolver, $context);
+            nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-thunk', $condition-thunk);
+        }
+        $!expression.wrap-with-thunk($thunk);
+        $thunk.ensure-begin-performed($resolver, $context);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

@@ -47,6 +47,14 @@ class RakuAST::StatementModifier::Condition
     method expression-thunk() {
         RakuAST::StatementModifier::Condition::Thunk.new(self)
     }
+
+    # A block with a signature or placeholders is formed immediate, so its
+    # arity is set and it is given the condition's value, as in
+    # `{ say $^x } if $y`. The implicit $_ of a plain block does not count.
+    method IMPL-IMMEDIATE-BLOCK(RakuAST::Expression $expression) {
+        nqp::istype($expression, RakuAST::Block)
+          && ($expression.signature || $expression.placeholder-signature) ?? True !! False
+    }
 }
 
 # The if statement modifier.
@@ -251,8 +259,6 @@ class RakuAST::StatementModifier::Loop
   is RakuAST::StatementModifier
 {
     method expression-thunk() { Nil }
-
-    method handles-condition() { True }
 }
 
 class RakuAST::StatementModifier::WhileUntil
@@ -261,8 +267,6 @@ class RakuAST::StatementModifier::WhileUntil
 {
     # Is the condition negated?
     method negate() { False }
-
-    method handles-condition() { False }
 
     method IMPL-NEGATE-IF-NEEDED(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
     }
@@ -340,8 +344,6 @@ class RakuAST::StatementModifier::Until
 class RakuAST::StatementModifier::Given
   is RakuAST::StatementModifier::Loop
 {
-    method handles-condition() { False }
-
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block, Mu :$expression) {
         if $block {
             if $sink {
@@ -478,14 +480,20 @@ class RakuAST::StatementModifier::Condition::Thunk
         # The condition wraps what the expression evaluates to, which is the
         # value of an inner thunk when the expression already had one, as
         # a WhateverCode does.
+        my $statement-qast;
         if self.next {
             self.next.IMPL-THUNK-CODE-QAST($context, $target, $expression);
-            $target.push($!condition.IMPL-WRAP-QAST($context,
-                self.next.IMPL-THUNK-VALUE-QAST($context)));
+            $statement-qast := self.next.IMPL-THUNK-VALUE-QAST($context);
+        }
+        elsif $!condition.IMPL-IMMEDIATE-BLOCK($expression) {
+            $statement-qast := $expression.IMPL-EXPR-QAST($context, :immediate);
         }
         else {
-            $target.push($!condition.IMPL-WRAP-QAST($context, $expression.IMPL-EXPR-QAST($context)));
+            $statement-qast := $expression.IMPL-EXPR-QAST($context);
+            $statement-qast := QAST::Op.new( :op('p6sink'), $statement-qast )
+                if $expression.needs-sink-call && $expression.sunk;
         }
+        $target.push($!condition.IMPL-WRAP-QAST($context, $statement-qast));
     }
 
     method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {

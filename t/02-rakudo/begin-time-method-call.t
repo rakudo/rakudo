@@ -2,7 +2,7 @@ use Test;
 use MONKEY-SEE-NO-EVAL;
 use nqp;
 
-plan 25;
+plan 28;
 
 is-deeply EVAL(q[constant C = 5.VAR; C]), 5,
     '.VAR on a value in a constant is the value';
@@ -92,3 +92,15 @@ is EVAL(q[constant C = Int.HOW.?mro(Int); C.^name]), 'List',
     '.? in a constant maps an NQP array it returns to a List';
 is EVAL(q[use nqp; constant L = nqp::list(1, 2); constant C = L.WHAT; C.^name]), 'BOOTArray',
     '.WHAT of a VM array in a constant is the VM array type';
+
+ok EVAL(q[use nqp; constant L = nqp::list(1); constant C = L.WHERE; C > 0]),
+    '.WHERE of a VM array in a constant is a positive number';
+isnt EVAL(q[my class A { method WHERE { 42 } }; constant C = A.WHERE; C]), 42,
+    '.WHERE in a constant does not call a WHERE method of the class';
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    is EVAL(q[use nqp; constant L = nqp::list(1); constant C = L.WHERE; C.^name]), 'Int',
+        '.WHERE of a VM array in a constant is an Int';
+}
+else {
+    skip 'legacy gives a BOOTInt for .WHERE in a constant';
+}

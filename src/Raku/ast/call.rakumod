@@ -1140,6 +1140,9 @@ class RakuAST::Call::Method
         elsif $name eq 'WHO' {
             $invocant.WHO
         }
+        elsif $name eq 'WHERE' {
+            nqp::box_i(nqp::where($invocant), Int)
+        }
         elsif $name eq 'VAR' {
             if nqp::isconcrete_nd($invocant) && nqp::iscont($invocant) {
                 my $var := nqp::create(ScalarVAR);

@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 26;
+plan 33;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -89,6 +89,56 @@ my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
     until @a.shift { LAST { }; @seen.push($^x) }
     is-deeply @seen, [0, ''],
         'a block with a placeholder and a LAST phaser of an until loop gets the value of the condition';
+}
+
+{
+    my int $i = 0;
+    my @seen;
+    while $i < 2 -> $x { $i++; @seen.push($x) }
+    is-deeply @seen, [True, True],
+        'a pointy block of a while loop with a native condition gets the value of the condition';
+}
+{
+    my int $i = 2;
+    my $seen;
+    if $i < 5 -> $x { $seen = $x }
+    is-deeply $seen, True,
+        'a pointy block of an if with a native condition gets the value of the condition';
+}
+{
+    my int $i = 9;
+    my $seen;
+    if $i < 5 { } elsif $i < 10 -> $x { $seen = $x }
+    is-deeply $seen, True,
+        'a pointy block of an elsif with a native condition gets the value of the condition';
+}
+{
+    my int $i = 2;
+    my $seen;
+    if $i > 5 { } else -> $x { $seen = $x }
+    is-deeply $seen, False,
+        'a pointy block of an else after a native condition gets the value of the condition';
+}
+{
+    my int $i = 5;
+    my $seen;
+    unless $i < 2 -> $x { $seen = $x }
+    is-deeply $seen, False,
+        'a pointy block of an unless with a native condition gets the value of the condition';
+}
+{
+    my int $i = 2;
+    my $seen;
+    { $seen = $^x } if $i < 5;
+    is-deeply $seen, True,
+        'a block with a placeholder before an if with a native condition gets the value of the condition';
+}
+{
+    my int $i = 5;
+    my $seen;
+    { $seen = $^x } unless $i < 2;
+    is-deeply $seen, False,
+        'a block with a placeholder before an unless with a native condition gets the value of the condition';
 }
 
 if $rakuast {

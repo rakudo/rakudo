@@ -55,7 +55,7 @@ class RakuAST::StatementModifier::If
 {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         my $cond-qast := self.expression.IMPL-TO-QAST($context);
-        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $statement-qast)
             if self.IMPL-NATIVE-CONDITION;
         QAST::Op.new(
             :op('if'),
@@ -72,7 +72,7 @@ class RakuAST::StatementModifier::Unless
 {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         my $cond-qast := self.expression.IMPL-TO-QAST($context);
-        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $statement-qast)
             if self.IMPL-NATIVE-CONDITION;
         QAST::Op.new(
             :op('unless'),
@@ -289,7 +289,7 @@ class RakuAST::StatementModifier::WhileUntil
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink, Bool :$block, Mu :$expression) {
         if $sink {
             my $cond-qast := self.expression.IMPL-TO-QAST($context);
-            $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+            $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $statement-qast)
                 if $!native-condition;
             QAST::Op.new(
                 :op(self.negate ?? 'until' !! 'while'),

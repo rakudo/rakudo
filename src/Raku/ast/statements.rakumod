@@ -1440,11 +1440,18 @@ class RakuAST::Statement::IfWith
         nqp::bindattr_i(self, RakuAST::Statement::IfWith, '$!native-condition', 1)
     }
 
-    method IMPL-CONDITION-QAST(RakuAST::IMPL::QASTContext $context, Mu $condition, str $type) {
-        my $qast := $condition.IMPL-TO-QAST($context);
-        $qast := self.IMPL-NATIVE-CONDITION-QAST($qast)
+    method IMPL-CONDITIONAL-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $condition,
+                             str $type,
+                              Mu $then,
+                              Mu $else
+    ) {
+        my $cond-qast := $condition.IMPL-TO-QAST($context);
+        my $then-qast := self.IMPL-BRANCH-QAST($context, $then);
+        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $then-qast, $else)
             if $!native-condition && $type eq 'if';
-        $qast
+        QAST::Op.new(:op($type), $cond-qast, $then-qast, $else)
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1462,19 +1469,21 @@ class RakuAST::Statement::IfWith
         my int $i := nqp::elems($!elsifs);
         while $i-- > 0 {
             my $branch := $!elsifs[$i];
-            $cur-end := QAST::Op.new(
-                :op($branch.IMPL-QAST-TYPE),
-                self.IMPL-CONDITION-QAST($context, $branch.condition, $branch.IMPL-QAST-TYPE),
-                self.IMPL-BRANCH-QAST($context, $branch.then),
+            $cur-end := self.IMPL-CONDITIONAL-QAST(
+                $context,
+                $branch.condition,
+                $branch.IMPL-QAST-TYPE,
+                $branch.then,
                 $cur-end
             );
         }
 
         # Finally, the initial condition.
-        QAST::Op.new(
-            :op(self.IMPL-QAST-TYPE),
-            self.IMPL-CONDITION-QAST($context, $!condition, self.IMPL-QAST-TYPE),
-            self.IMPL-BRANCH-QAST($context, $!then),
+        self.IMPL-CONDITIONAL-QAST(
+            $context,
+            $!condition,
+            self.IMPL-QAST-TYPE,
+            $!then,
             $cur-end
         )
     }
@@ -1599,14 +1608,15 @@ class RakuAST::Statement::Unless
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $cond-qast := $!condition.IMPL-TO-QAST($context);
-        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+        my $body-qast := $!body.IMPL-FLATTEN-APPROVED
+            ?? $!body.IMPL-QAST-FLATTENED($context)
+            !! $!body.IMPL-TO-QAST($context, :immediate);
+        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $body-qast)
             if $!native-condition;
         QAST::Op.new(
             :op('unless'),
             $cond-qast,
-            $!body.IMPL-FLATTEN-APPROVED
-                ?? $!body.IMPL-QAST-FLATTENED($context)
-                !! $!body.IMPL-TO-QAST($context, :immediate),
+            $body-qast,
             self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
         )
     }
@@ -1915,7 +1925,10 @@ class RakuAST::Statement::Loop
             my $cond-qast := $!condition
                 ?? $!condition.IMPL-TO-QAST($context)
                 !! QAST::IVal.new( :value(1) );
-            $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast)
+            my $body-qast := $!body.IMPL-FLATTEN-APPROVED
+                ?? $!body.IMPL-QAST-FLATTENED($context)
+                !! $!body.IMPL-TO-QAST($context, :immediate);
+            $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $body-qast)
                 if $!native-condition && $!condition;
             my int $guard-last := self.IMPL-GUARD-LAST;
             my str $ran;
@@ -1923,13 +1936,7 @@ class RakuAST::Statement::Loop
                 $ran := QAST::Node.unique('LOOP_LAST_RAN');
                 $cond-qast := self.IMPL-LAST-GUARD-CONDITION($cond-qast, !self.negate, $ran);
             }
-            my $loop-qast := QAST::Op.new(
-                :$op,
-                $cond-qast,
-                $!body.IMPL-FLATTEN-APPROVED
-                    ?? $!body.IMPL-QAST-FLATTENED($context)
-                    !! $!body.IMPL-TO-QAST($context, :immediate),
-            );
+            my $loop-qast := QAST::Op.new(:$op, $cond-qast, $body-qast);
             my @post;
             if @next-phasers {
                 for @next-phasers {

@@ -1460,11 +1460,16 @@ class RakuAST::VarDeclaration::Simple
 
             my $meta-object := self.meta-object;
             if self.scope eq 'HAS' && $meta-object.type.REPR eq 'CArray' && $!shape {
-                my @dimensions := nqp::list_i();
-                my $shape := self.IMPL-BEGIN-TIME-EVALUATE($!shape, $resolver, $context);
-                my $elems := nqp::unbox_i(self.IMPL-BEGIN-TIME-EVALUATE($!shape, $resolver, $context));
-                nqp::push_i(@dimensions, $elems);
-                nqp::bindattr($meta-object, $meta-object.WHAT, '$!dimensions', @dimensions);
+                # The shape is evaluated as an expression, so it may be compiled.
+                # One that fails to evaluate has added a sorry and gives no size.
+                my int $sorries := nqp::elems(self.IMPL-UNWRAP-LIST(self.sorries));
+                my $shape := self.IMPL-BEGIN-TIME-EVALUATE(
+                    RakuAST::Circumfix::Parentheses.new($!shape), $resolver, $context);
+                if nqp::elems(self.IMPL-UNWRAP-LIST(self.sorries)) == $sorries {
+                    my @dimensions := nqp::list_i();
+                    nqp::push_i(@dimensions, nqp::unbox_i($shape));
+                    nqp::bindattr($meta-object, $meta-object.WHAT, '$!dimensions', @dimensions);
+                }
             }
 
             $!attribute-package.ATTACH-ATTRIBUTE(self) if $!attribute-package && $!attribute-package.can-have-attributes;

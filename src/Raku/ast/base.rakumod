@@ -2066,7 +2066,12 @@ class RakuAST::Node {
     # it a return-type check the boolification satisfied statically. A
     # bare native-int variable reference is read as a value and compared
     # against zero, which is what its boolification comes down to.
-    method IMPL-NATIVE-CONDITION-QAST(Mu $cond) {
+    method IMPL-NATIVE-CONDITION-QAST(Mu $cond, Mu $then, Mu $else?) {
+        # The op passes the condition to a branch that is a block taking an
+        # argument, so the condition stays as it is for one.
+        return $cond
+          if self.IMPL-BRANCH-TAKES-CONDITION($then)
+          || self.IMPL-BRANCH-TAKES-CONDITION($else);
         my $stripped := self.IMPL-STRIP-BOOL-CONDITION($cond);
         return $stripped unless nqp::isnull($stripped);
         if nqp::istype($cond, QAST::Var)
@@ -2084,6 +2089,14 @@ class RakuAST::Node {
             return QAST::Op.new( :op('isne_i'), $cond, QAST::IVal.new( :value(0) ) );
         }
         $cond
+    }
+
+    # Whether a conditional op passes its condition to this branch, the way
+    # NQP decides it.
+    method IMPL-BRANCH-TAKES-CONDITION(Mu $branch) {
+        nqp::istype($branch, QAST::Block)
+          && ($branch.arity > 0 || $branch.ann('count'))
+          && ($branch.blocktype eq 'immediate' || $branch.blocktype eq 'immediate_static')
     }
 
     # Descend a condition's value path through statement wrappers, and

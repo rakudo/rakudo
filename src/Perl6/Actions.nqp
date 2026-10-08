@@ -10826,7 +10826,8 @@ Did you mean a call like '"
         $call.unshift(WANTED($target,'make_dot'));
         $call.op('callmethod');
         wantall($call, 'make_dot');
-        $call;
+        # Map the result into Raku land as a method call postfix does
+        QAST::Op.new( :op('hllize'), $call )
     }
 
     # XXX This isn't quite right yet... need to evaluate these semantics

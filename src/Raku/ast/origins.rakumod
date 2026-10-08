@@ -48,6 +48,12 @@ class RakuAST::Origin {
 
     method as-match() { $!source.match-from(self) }
 
+    # A match at the start of the span, where the code it covers begins,
+    # rather than at the locus.
+    method as-start-match() {
+        $!source.match-from(RakuAST::Origin.new(:from($!from), :to($!to), :source($!source)))
+    }
+
     method Str() {
         nqp::substr($!source.orig, $!from, $!to - $!from)
     }

@@ -184,7 +184,9 @@ class RakuAST::Node {
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;
-        self.visit-children(-> $child { $child.IMPL-BEGIN($resolver, $context) });
+        $is-scope
+          ?? self.IMPL-VISIT-CHILDREN-RESOLVING(-> $child { $child.IMPL-BEGIN($resolver, $context) })
+          !! self.visit-children(-> $child { $child.IMPL-BEGIN($resolver, $context) });
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 
@@ -212,7 +214,9 @@ class RakuAST::Node {
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;
-        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context) });
+        $is-scope
+          ?? self.IMPL-VISIT-CHILDREN-RESOLVING(-> $child { $child.IMPL-CHECK($resolver, $context) })
+          !! self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context) });
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 
@@ -412,11 +416,19 @@ class RakuAST::Node {
                 $stmts.push($code.IMPL-QAST-DECL-CODE($context));
             }
         }
+        # The type of a variable's `of` trait is also its type, so a package
+        # there is reached twice.
+        my %packages-seen;
+        # The nodes a regex thunk evaluates in a frame of its own.
+        my %in-regex-frame;
         my @code-todo := [self];
         while @code-todo {
             my $visit := @code-todo.shift;
+            my int $visit-in-regex := nqp::existskey(%in-regex-frame, nqp::objectid($visit));
             $visit.visit-children: -> $node {
                 my int $owned := self.IMPL-OWNED-BY-SCOPE($node);
+                my int $in-regex := $visit-in-regex
+                  || nqp::istype($visit, RakuAST::RegexThunk) && nqp::istype($node, RakuAST::Regex);
                 if nqp::istype($node, RakuAST::Code) {
                     if nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) &&
                             $visit.IMPL-IMMEDIATELY-USES($node) {
@@ -452,19 +464,12 @@ class RakuAST::Node {
                 }
 
                 if nqp::istype($node, RakuAST::LexicalScope) {
-                    # A code object emits declarations for the blocks among
-                    # its children itself, including those in its traits.
-                    # Emitting a trait's block here as well would nest the
-                    # same block twice, and this frame's prologue would then
-                    # capture it against the wrong frame. A package produces
-                    # no frame of its own for a trait's block to nest in, so
-                    # its traits' blocks do belong here.
-                    if nqp::istype($node, RakuAST::TraitTarget) && !nqp::istype($node, RakuAST::Code) {
-                        $node.visit-traits(-> $trait { @code-todo.push($trait) });
-                        # So does the code the package would declare.
-                        for $node.IMPL-OWNED-CODE -> $code {
-                            $stmts.push($code.IMPL-QAST-DECL-CODE($context));
-                        }
+                    # A code object declares the blocks among its children,
+                    # its traits' too. The block evaluating a package declares
+                    # its body, unless a thunk or a regex evaluates the package.
+                    if nqp::istype($node, RakuAST::Package) && !$node.outer-most-thunk
+                      && !$in-regex && !%packages-seen{nqp::objectid($node)}++ {
+                        $stmts.push($node.IMPL-QAST-DECLS-WHERE-EVALUATED($context));
                     }
                 }
                 elsif $owned {
@@ -475,6 +480,7 @@ class RakuAST::Node {
                 }
                 else {
                     @code-todo.push($node);
+                    %in-regex-frame{nqp::objectid($node)} := 1 if $in-regex;
                 }
             }
         }
@@ -4266,10 +4272,12 @@ class RakuAST::Node {
         $none
     }
 
-    # Whether no code in the node has formed its block yet.
+    # Whether no code in the node has formed its block yet. A package counts
+    # as formed code, as BEGIN time made the code objects of its methods.
     method IMPL-NO-FORMED-CODE(Mu $node) {
         return 1 unless nqp::isconcrete($node);
         return 0 if nqp::istype($node, RakuAST::Code) && $node.IMPL-HAS-QAST-BLOCK;
+        return 0 if nqp::istype($node, RakuAST::Package);
         my int $none := 1;
         $node.visit-children(-> $child {
             $none := 0 if $none && !self.IMPL-NO-FORMED-CODE($child);
@@ -4855,6 +4863,23 @@ class RakuAST::Node {
             nqp::push(@values, $box ?? self.IMPL-BOX-VM-VALUE($value) !! $value);
         }
         $callee(|@values)
+    }
+
+    # This node runs in a block the tree does not show, as a feed stage or an
+    # nqp::handle handler does, so a package in it calls its body through a
+    # lexical rather than a local.
+    method IMPL-MARK-PACKAGES-IN-HIDDEN-BLOCK() {
+        self.visit-dfs(-> $node {
+            if nqp::istype($node, RakuAST::Package) {
+                $node.IMPL-SET-IN-HIDDEN-BLOCK;
+                0
+            }
+            else {
+                !nqp::istype($node, RakuAST::LexicalScope)
+                  && !(nqp::istype($node, RakuAST::MayCreateBlock) && $node.creates-block)
+            }
+        });
+        Nil
     }
 
     # Whether code declares a variable outside any scope of its own.

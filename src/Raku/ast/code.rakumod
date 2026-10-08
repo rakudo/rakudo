@@ -767,6 +767,27 @@ role RakuAST::Code
                                     QAST::Var.new(:scope<lexical>, :decl<var>, :$name)
                                 );
                             }
+                            elsif nqp::eqat($name, '!HEADER_VALUE_', 0) {
+                                # The body of a package binds this on entry, which
+                                # BEGIN time precedes, so it stays unbound and the
+                                # lookup falls back to the value it resolved to.
+                                %seen{$name} := 1;
+                                $block[0].push(
+                                    QAST::Var.new(:scope<lexical>, :decl<var>, :$name)
+                                );
+                            }
+                            elsif RakuAST::Package.IMPL-IS-META-NAME($name) {
+                                # Nothing in scope declares this meta-object name, as
+                                # when the header of a package looks past its own, so
+                                # it is Mu here and check time reports it.
+                                my $mu := $parse-time-resolver.resolve-lexical-constant('Mu');
+                                my $value := $mu ?? $mu.compile-time-value !! Mu;
+                                $context.ensure-sc($value);
+                                %seen{$name} := 1;
+                                $block[0].push(
+                                    QAST::Var.new(:scope<lexical>, :decl<static>, :$name, :$value)
+                                );
+                            }
                             else {
                                 nqp::die("Could not find a compile-time-value for lexical $name");
                             }
@@ -1125,7 +1146,7 @@ class RakuAST::LexicalFixup
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        my $stmts := QAST::Stmts.new($!role.IMPL-QAST-BODY($context));
+        my $stmts := QAST::Stmts.new($!role.IMPL-QAST-BODY($context, :blocktype<immediate>));
         if $!block {
             $stmts.push($!block.IMPL-QAST-DECL-CODE($context));
             $stmts.push(QAST::Op.new(
@@ -1389,10 +1410,11 @@ class RakuAST::ExpressionThunk
         if $evaluates-expression && $anon-decl($expression) {
             nqp::push($stmts, $expression.IMPL-QAST-DECL($context));
         }
-        # A signature literal or code scope the thunk evaluates declares what
-        # it holds, so the thunk does not walk into it.
+        # A signature literal, package or code scope the thunk evaluates
+        # declares what it holds, so the thunk does not walk into it.
         my $evaluates-scope := $evaluates-expression
           && (nqp::istype($expression, RakuAST::FakeSignature)
+            || nqp::istype($expression, RakuAST::Package)
             || nqp::istype($expression, RakuAST::Code) && nqp::istype($expression, RakuAST::LexicalScope))
           ?? 1 !! 0;
         my @code-todo := $evaluates-expression && !$evaluates-scope ?? [$expression] !! [];
@@ -1420,6 +1442,9 @@ class RakuAST::ExpressionThunk
             # the thunk declares is the one it sees.
             if nqp::istype($expression, RakuAST::FakeSignature) {
                 $stmts.push($expression.block.IMPL-QAST-DECL-CODE($context));
+            }
+            elsif nqp::istype($expression, RakuAST::Package) {
+                $stmts.push($expression.IMPL-QAST-DECLS-WHERE-EVALUATED($context));
             }
             elsif $expression.IMPL-CODE-DECLARED-BY-THUNK {
                 $stmts.push($expression.IMPL-QAST-DECL-CODE($context));
@@ -2500,6 +2525,7 @@ class RakuAST::Block
     method propagate-sink(Bool $is-sunk) {
         my $body-sunk := $is-sunk && !self.needs-result;
         self.set-nil-on-succeed() if $body-sunk;
+        self.IMPL-VISIT-HEADER(-> $trait { $trait.apply-sink(False) });
         $!body.apply-sink($body-sunk);
     }
 
@@ -2833,6 +2859,7 @@ class RakuAST::Block
     }
 
     method visit-children(Code $visitor) {
+        self.IMPL-VISIT-HEADER($visitor);
         $visitor($!body);
         $visitor(self.WHY) if self.WHY;
     }
@@ -4043,6 +4070,7 @@ class RakuAST::Routine
         $visitor(self.WHY) if self.WHY;  # needs to be before signature
         $visitor($!signature) if $!signature;
         self.visit-traits($visitor);
+        self.IMPL-VISIT-HEADER($visitor);
         $visitor(self.body);
     }
 
@@ -4339,14 +4367,17 @@ class RakuAST::RoleBody
     method IMPL-RESOLVE-FORWARD-LEXICALS-IN(RakuAST::Resolver $resolver, $node) {
         my int $is-scope := nqp::istype($node, RakuAST::LexicalScope);
         $resolver.push-scope($node) if $is-scope;
-        $node.visit-children(-> $child {
+        my $visit := -> $child {
             if nqp::istype($child, RakuAST::Var::Lexical)
               && $child.needs-resolution && !$child.is-resolved {
                 my $resolved := $resolver.resolve-lexical($child.name);
                 $child.set-resolution($resolved) if $resolved;
             }
             self.IMPL-RESOLVE-FORWARD-LEXICALS-IN($resolver, $child);
-        });
+        };
+        $is-scope
+          ?? $node.IMPL-VISIT-CHILDREN-RESOLVING($visit)
+          !! $node.visit-children($visit);
         $resolver.pop-scope() if $is-scope;
     }
 }
@@ -5337,6 +5368,30 @@ role RakuAST::RegexThunk
         $stmts
     }
 
+    # The packages the regex evaluates in its frame, which its block declares
+    # ahead of the regex. A regex thunk nested in it declares its own.
+    method IMPL-QAST-PACKAGE-DECLS(RakuAST::IMPL::QASTContext $context) {
+        my $stmts := QAST::Stmts.new;
+        my @todo;
+        self.visit-children(-> $node {
+            nqp::push(@todo, $node) if nqp::istype($node, RakuAST::Regex);
+        });
+        while @todo {
+            @todo.shift.visit-children: -> $node {
+                if nqp::istype($node, RakuAST::Package) {
+                    $stmts.push($node.IMPL-QAST-DECLS-WHERE-EVALUATED($context))
+                      unless $node.outer-most-thunk;
+                }
+                elsif !nqp::istype($node, RakuAST::LexicalScope)
+                  && !nqp::istype($node, RakuAST::RegexThunk)
+                  && !(nqp::istype($node, RakuAST::MayCreateBlock) && $node.creates-block) {
+                    nqp::push(@todo, $node);
+                }
+            }
+        }
+        $stmts
+    }
+
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         # Create default signature, receiving invocant only.
         my $signature := nqp::create(Signature);
@@ -5362,6 +5417,7 @@ role RakuAST::RegexThunk
         my $nested-decls := $*IMPL-COMPILE-DYNAMICALLY || $*EMIT-BEGIN-SHAPE
             ?? self.IMPL-NESTED-REGEX-THUNK-DECLS($context)
             !! QAST::Stmts.new;
+        $nested-decls.push(self.IMPL-QAST-PACKAGE-DECLS($context));
         QAST::Block.new(
             :blocktype('declaration_static'),
             QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),

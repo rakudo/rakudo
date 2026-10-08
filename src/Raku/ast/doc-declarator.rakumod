@@ -73,13 +73,19 @@ class RakuAST::Doc::Declarator
     }
 
     # Takes the documentation back off the meta-object it was set on, as
-    # when a subset takes the doc of its where routine.
+    # when a subset takes back a doc a declarand in its where clause took.
     method IMPL-UNDOCUMENT() {
         if nqp::isconcrete($!pod) {
             my $meta := $!documented;
-            nqp::isconcrete($meta)
-              ?? nqp::bindattr($meta, Block, '$!why', nqp::null)
-              !! $meta.HOW.set_why(NQPMu);
+            if nqp::isconcrete($meta) {
+                my $class := nqp::istype($meta, Parameter)
+                  ?? Parameter
+                  !! nqp::istype($meta, Attribute) ?? Attribute !! Block;
+                nqp::bindattr($meta, $class, '$!why', nqp::null);
+            }
+            else {
+                $meta.HOW.set_why(NQPMu);
+            }
             nqp::bindattr(self, RakuAST::Doc::Declarator, '$!pod', Mu);
             nqp::bindattr(self, RakuAST::Doc::Declarator, '$!documented', Mu);
         }

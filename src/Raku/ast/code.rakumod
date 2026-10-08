@@ -1205,6 +1205,15 @@ class RakuAST::ExpressionThunk
 
     method IMPL-USER-TAKES-VALUE() { $!user-takes-value }
 
+    # Set when the thunk evaluates to its expression's `.not`, as the
+    # condition of an until loop does.
+    has int $!negated;
+
+    method IMPL-SET-NEGATED() {
+        nqp::bindattr_i(self, RakuAST::ExpressionThunk, '$!negated', 1);
+        Nil
+    }
+
     # Whether the thunk declares the implicit state of a node of its
     # expression. A state guard, and a `once` outside a curry, which is code of
     # its own, belong to the frame around, unless a thunk is compiled alone.
@@ -1467,7 +1476,7 @@ class RakuAST::ExpressionThunk
         if $!next {
             $!next.IMPL-THUNK-CODE-QAST($context, $block[nqp::elems($block) - 1], $expression);
             my $value := $!next.IMPL-THUNK-VALUE-QAST($context);
-            $block.push($value) if $value;
+            $block.push(self.IMPL-NEGATE-IF-SET($value)) if $value;
         }
 
         # Otherwise, we evaluate to the expression.
@@ -1475,6 +1484,7 @@ class RakuAST::ExpressionThunk
             my $qast := self.IMPL-THUNK-TWEAK-EXPRESSION($context,
                 $expression.IMPL-EXPR-QAST($context));
             $qast := QAST::Op.new( :op('p6sink'), $qast ) if $expression.needs-sink-call && $expression.sunk;
+            $qast := self.IMPL-NEGATE-IF-SET($qast);
             # A thunk compiled on its own at BEGIN time is located at the start
             # of its expression, so its frame reports the file and line of it.
             $block.push($!compiled-alone
@@ -1483,6 +1493,12 @@ class RakuAST::ExpressionThunk
         }
 
         $block
+    }
+
+    method IMPL-NEGATE-IF-SET(Mu $qast) {
+        $!negated
+          ?? QAST::Op.new( :op('callmethod'), :name('not'), $qast )
+          !! $qast
     }
 
     # Produces a Code object that corresponds to the thunk.

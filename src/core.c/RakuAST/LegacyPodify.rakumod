@@ -403,8 +403,11 @@ class RakuAST::LegacyPodify {
 
         # wrap up
         $headers := [spread .cells.map(&table-sanitize)] with $headers;
+        # a legacy caption is a string, so :caption<a b> joins its words
+        # and a bare :caption or :!caption gives no caption
+        my $caption := $config<caption>;
         Pod::Block::Table.new(
-          caption  => $config<caption> // "",
+          caption  => nqp::istype($caption,Bool) ?? "" !! ($caption // "").Str,
           headers  => $headers // [],
           config   => $config,
           contents => @rows.map({ [spread .cells.map(&table-sanitize)] })

@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 9;
+plan 11;
 
 # $=pod holds the same Pod objects whichever frontend compiled this file
 
@@ -46,3 +46,16 @@ is-deeply @codes[0].meta, ["b;c"],
 is-deeply @codes[1].meta, ["b;c"],
     'a semicolon inside V<> does not separate synonyms';
 
+=begin table :caption<Test Caption>
+  a  b
+=end table
+
+is-deeply $=pod[2].caption, "Test Caption",
+    'the caption of a table is a string of its words';
+
+=begin table :!caption
+  a  b
+=end table
+
+is-deeply $=pod[3].caption, "",
+    'a negated caption gives a table no caption';

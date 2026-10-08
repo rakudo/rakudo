@@ -2,7 +2,7 @@ use Test;
 use MONKEY-SEE-NO-EVAL;
 use nqp;
 
-plan 20;
+plan 25;
 
 is-deeply EVAL(q[constant C = 5.VAR; C]), 5,
     '.VAR on a value in a constant is the value';
@@ -81,3 +81,14 @@ if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
 else {
     skip 'legacy calls dispatch:<.?>, which a VM array lacks';
 }
+
+is EVAL(q[constant C = Int.HOW.mro(Int); C.^name]), 'List',
+    'a method call in a constant maps an NQP array it returns to a List';
+is EVAL(q[constant C = 0 || Int.HOW.mro(Int); C.^name]), 'List',
+    'a method call right of || in a constant maps an NQP array it returns to a List';
+is-deeply EVAL(q[constant C = Int.HOW.mro(Int).head; C]), Int,
+    'a method call in a constant calls a List method on an NQP array another method call returns';
+is EVAL(q[constant C = Int.HOW.?mro(Int); C.^name]), 'List',
+    '.? in a constant maps an NQP array it returns to a List';
+is EVAL(q[use nqp; constant L = nqp::list(1, 2); constant C = L.WHAT; C.^name]), 'BOOTArray',
+    '.WHAT of a VM array in a constant is the VM array type';

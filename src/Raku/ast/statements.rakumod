@@ -1842,12 +1842,17 @@ class RakuAST::Statement::Loop
         $qast
     }
 
-    # A Code that runs each of the given NEXT phasers, for use as a from-loop
-    # afterwards argument.
-    method IMPL-NEXT-PHASER-AFTERWARDS-QAST(RakuAST::IMPL::QASTContext $context, @next-phasers) {
-        my $run-phasers := -> { $_() for @next-phasers };
-        $context.ensure-sc($run-phasers);
-        QAST::WVal.new(:value($run-phasers))
+    # The Code that runs each of the body's NEXT phasers, for use as a
+    # from-loop afterwards argument. It is made at runtime, so precompilation
+    # never has to keep a closure made here.
+    method IMPL-NEXT-PHASER-AFTERWARDS-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $body := $!body.meta-object;
+        $context.ensure-sc($body);
+        QAST::Op.new(
+            :op('callmethod'), :name('callable_for_phaser'),
+            QAST::WVal.new(:value($body)),
+            QAST::SVal.new(:value('NEXT'))
+        )
     }
 
     # A pre-test loop (while/until, or a C-style loop with a condition) that
@@ -1970,7 +1975,7 @@ class RakuAST::Statement::Loop
                     # No real condition or increment, so pass the "no condition"
                     # sentinel to make room for a phaser-running afterwards thunk.
                     $loop-qast.push(QAST::WVal.new(:value(Code)));
-                    $loop-qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
+                    $loop-qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context));
                 }
                 if @labels {
                     my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
@@ -1996,7 +2001,7 @@ class RakuAST::Statement::Loop
                 # afterwards thunk, which the iterator runs each iteration and on
                 # an explicit `next`.
                 if @next-phasers && !$!increment && !self.repeat {
-                    $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
+                    $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context));
                 }
                 $qast.push: QAST::IVal.new(:value(1), :named('repeat')) if self.repeat;
                 if @labels {
@@ -2027,7 +2032,7 @@ class RakuAST::Statement::Loop
                 $qast.push($label-qast);
             }
             if @next-phasers {
-                $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context, @next-phasers));
+                $qast.push(self.IMPL-NEXT-PHASER-AFTERWARDS-QAST($context));
             }
             # No LAST call here: this loop is lazy, so its from-loop iterator
             # runs the body's LAST phaser at exhaustion (only if the body ran).

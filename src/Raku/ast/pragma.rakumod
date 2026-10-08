@@ -113,7 +113,9 @@ class RakuAST::Pragma
                 ).throw;
             }
             elsif $*PKGDECL {
-                $resolver.build-exception('X::Package::UseLib', :what($*PKGDECL));
+                $resolver.build-exception(
+                  'X::Package::UseLib', :what($*PKGDECL)
+                ).throw;
             }
             elsif nqp::islist($arglist) {
                 my $Registry := $resolver.type-from-setting(

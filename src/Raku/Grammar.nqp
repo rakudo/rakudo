@@ -1679,6 +1679,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Helper token to mark the end of the traits of a package
     token leave-package-header { <?> }
 
+    # Helper token to claim the leading doc of a declaration that is made
+    # after the expression it holds
+    token claim-leading-doc() { <?> }
+
     # Helper token to make the actions handle the end of a scope
     token enter-block-body()  { <?> }
     token leave-block-body()  { <?> }
@@ -4541,6 +4545,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.typer-enum>
         <.kok>
         :my $*IN-DECL := 'enum';
+        :my $*CLAIMED-DOC;
+        <.claim-leading-doc>
         [
           | <longname>
           | <variable>
@@ -4552,6 +4558,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait>*
 
         [ <?[<(«]>
+          <.claim-leading-doc>
           <term>
           <.ws>
             || <.panic: 'An enum must supply an expression using <>, «», or ()'>
@@ -4561,12 +4568,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule type-declarator:sym<subset> {
         <.typer-subset><.kok>
         :my $*IN-DECL := 'subset';
+        :my $*CLAIMED-DOC;
+        <.claim-leading-doc>
         [
           [
             [ <longname> ]
             { $*IN-DECL := '' }
             <trait>*
-            [ <.constraint-where> <EXPR('e=')> ]?
+            [ <?before <.constraint-where>> <.claim-leading-doc>
+              <.constraint-where> <EXPR('e=')> ]?
           ] || <.malformed: 'subset'>
         ]
     }

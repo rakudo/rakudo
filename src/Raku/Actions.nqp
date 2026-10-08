@@ -2995,7 +2995,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                      ).new($key);
         }
         elsif $<fakesignature> -> $signature {
-            make $signature.ast;
+            self.signature-literal($/, $signature);
         }
         else {
             make $<coloncircumfix>.ast;
@@ -3004,6 +3004,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method Nil() {
         Nodify('Term::Name').new(Nodify('Name').from-identifier('Nil'))
+    }
+
+    # A signature literal and the block of its parameters cover its
+    # delimiters, as the signature is parsed inside them
+    method signature-literal($/, $fakesignature) {
+        my $ast := $fakesignature.ast;
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to);
+        self.WIDEN-NODE-ORIGIN($ast.block, $/.from, $/.to);
+        make $ast;
+    }
+
+    method sigterm($/) {
+        self.signature-literal($/, $<fakesignature>);
     }
 
     method coloncircumfix($/) {
@@ -4684,7 +4697,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         if $<param-var><name><sigterm> || $<param-var><sigterm> -> $sig {
-            my $signature := $sig<fakesignature>.ast;
+            my $signature := $sig.ast;
             if $parameter.type && $signature.signature.set-returns($parameter.type) {
                 $/.typed-panic('X::Redeclaration',
                     what    => 'return type for',

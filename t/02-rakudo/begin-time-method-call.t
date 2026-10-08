@@ -1,7 +1,8 @@
 use Test;
 use MONKEY-SEE-NO-EVAL;
+use nqp;
 
-plan 9;
+plan 20;
 
 is-deeply EVAL(q[constant C = 5.VAR; C]), 5,
     '.VAR on a value in a constant is the value';
@@ -27,3 +28,56 @@ ok EVAL(q[use nqp; constant C = Scalar.VAR; nqp::eqaddr(C, Scalar)]),
 throws-like q[constant C = 5.?VAR], Exception,
     message => /'Cannot use .? on a non-identifier method call'/,
     '.? with .VAR in a constant reports a non-identifier method call';
+
+is EVAL(q[constant C = 5.?nope; C.raku]), 'Nil',
+    '.? in a constant gives Nil for a method the invocant lacks';
+is-deeply EVAL(q[my class A { method m($x, :$y) { "$x$y" } }; constant C = A.?m(1, :y(2)); C]), '12',
+    '.? in a constant passes the arguments to a method the invocant has';
+is-deeply EVAL(q[constant C = [7].AT-POS(0).?is-prime; C]), True,
+    '.? in a constant calls a method of the value in a container';
+is EVAL(q[my class A { has $.x is default(5.?nope) }; A.new.x.raku]), 'Nil',
+    '.? in a trait argument gives Nil for a method the invocant lacks';
+is-deeply EVAL(q[
+        my class A { method m { "A" } }
+        my class B is A { method m { "B" } }
+        constant C = B.+m;
+        C
+    ]), ("B", "A"),
+    '.+ in a constant calls each method of the name';
+is-deeply EVAL(q[
+        my class A { method m { "A" } }
+        my class B is A { method m { "B" } }
+        my class C { has $.x is default(0 || B.+m) }
+        C.new.x
+    ]), ("B", "A"),
+    '.+ right of || in a trait argument calls each method of the name';
+is-deeply EVAL(q[
+        my class A { method m($x) { "A$x" } }
+        my class B is A { method m($x) { "B$x" } }
+        constant C = B.+m(1);
+        C
+    ]), ("B1", "A1"),
+    '.+ in a constant passes the arguments to each method of the name';
+is-deeply EVAL(q[
+        my class A { method m { "A" } }
+        my class B is A { method m { "B" } }
+        constant C = B.*m;
+        C
+    ]), ("B", "A"),
+    '.* in a constant calls each method of the name';
+is-deeply EVAL(q[
+        my class A { method m(:$y) { "A$y" } }
+        my class B is A { method m(:$y) { "B$y" } }
+        constant C = B.*m(:y(3));
+        C
+    ]), ("B3", "A3"),
+    '.* in a constant passes the named arguments to each method of the name';
+is-deeply EVAL(q[constant C = 5.*nope; C]), (),
+    '.* in a constant gives an empty list for a method the invocant lacks';
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    is EVAL(q[use nqp; constant L = nqp::list(1, 2); constant C = L.?nope; C.raku]), 'Nil',
+        '.? in a constant gives Nil for a method a VM array lacks';
+}
+else {
+    skip 'legacy calls dispatch:<.?>, which a VM array lacks';
+}

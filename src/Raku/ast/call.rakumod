@@ -1116,7 +1116,22 @@ class RakuAST::Call::Method
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, Mu $invocant-compiler) {
         my $invocant := $invocant-compiler();
         my $name := $!name.canonicalize;
-        if $name eq 'WHAT' {
+        my $dispatcher := self.dispatcher;
+        if $dispatcher {
+            my @args := self.args.IMPL-INTERPRET($ctx);
+            my @pos := @args[0];
+            my %named := @args[1];
+            if $dispatcher eq 'dispatch:<.?>' {
+                my $obj := nqp::decont($invocant);
+                nqp::isconcrete(nqp::decont(nqp::how_nd($obj).find_method($obj, $name)))
+                  ?? $invocant."$name"(|@pos, |%named)
+                  !! Nil
+            }
+            else {
+                $invocant."$dispatcher"($name, |@pos, |%named)
+            }
+        }
+        elsif $name eq 'WHAT' {
             $invocant.WHAT
         }
         elsif $name eq 'HOW' {

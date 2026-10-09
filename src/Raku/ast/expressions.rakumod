@@ -364,6 +364,10 @@ class RakuAST::Infixish
 
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
+        $expression.IMPL-SET-PRIME-CALLED
+          if $type eq 'b'
+          && nqp::istype($expression, RakuAST::WhateverApplicable)
+          && $expression.IMPL-PRIMED;
         return Nil if self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $expression);
         # 'b', 't' and the no-thunk '.' the caller skips are the entire
         # thunky vocabulary of OperatorProperties.
@@ -2787,6 +2791,7 @@ role RakuAST::WhateverApplicable
 {
     has int $!must-not-prime;
     has int $!hyperwhatever;
+    has int $!prime-called;
 
     # The worry about a Whatever or WhateverCode that a short-circuit operator
     # tests first once it is added, or True once a sorry covers it.
@@ -2795,6 +2800,24 @@ role RakuAST::WhateverApplicable
     method IMPL-MUST-NOT-PRIME() {
         nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!must-not-prime', 1);
     }
+
+    # Set when the operator holding this expression calls its WhateverCode,
+    # as andthen does, rather than taking the WhateverCode as a value.
+    method IMPL-SET-PRIME-CALLED() {
+        nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!prime-called', 1);
+    }
+
+    # A primed expression evaluates to its WhateverCode and nothing else, so
+    # a sunk one is a useless use unless the operator holding it calls it.
+    method IMPL-CHECK-SUNK(RakuAST::Resolver $resolver) {
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+          if self.sunk
+          && (!$!prime-called && self.IMPL-PRIMED || self.IMPL-SUNK-OPERATOR-USELESS);
+    }
+
+    # Whether the operator computes a value and nothing else, so that a sunk
+    # application of it is a useless use.
+    method IMPL-SUNK-OPERATOR-USELESS() { False }
 
     method IMPL-PRIME(@params) {
         my $expr := self.origin ?? self.origin.Str !! self.DEPARSE;
@@ -3178,14 +3201,15 @@ class RakuAST::ApplyInfix
             }
         }
 
-        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.sunk
-            && !self.infix.short-circuit
-            && self.IMPL-SUNK-OPERATOR-PURE(self.infix);
+        self.IMPL-CHECK-SUNK($resolver);
 
         self.IMPL-RECORD-NATIVE-RETURN-TYPE($resolver);
 
         True
+    }
+
+    method IMPL-SUNK-OPERATOR-USELESS() {
+        !self.infix.short-circuit && self.IMPL-SUNK-OPERATOR-PURE(self.infix)
     }
 
     # Record the native return type when the operator settles on a single
@@ -3442,11 +3466,13 @@ class RakuAST::ApplyListInfix
             }
         }
 
-        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.sunk
-            && !self.infix.short-circuit
-            && !self.IMPL-IS-LIST-LITERAL
-            && self.IMPL-SUNK-OPERATOR-PURE(self.infix);
+        self.IMPL-CHECK-SUNK($resolver);
+    }
+
+    method IMPL-SUNK-OPERATOR-USELESS() {
+        !self.infix.short-circuit
+          && !self.IMPL-IS-LIST-LITERAL
+          && self.IMPL-SUNK-OPERATOR-PURE(self.infix)
     }
 
     # The operands of a feed in flow order, with the source operand
@@ -3869,11 +3895,12 @@ class RakuAST::ApplyPrefix
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.sunk && self.IMPL-SUNK-OPERATOR-PURE(self.prefix);
+        self.IMPL-CHECK-SUNK($resolver);
 
         self.IMPL-RECORD-NATIVE-RETURN-TYPE($resolver);
     }
+
+    method IMPL-SUNK-OPERATOR-USELESS() { self.IMPL-SUNK-OPERATOR-PURE(self.prefix) }
 
     # Record the native return type when the operator settles on a single
     # candidate, so a native-typed target coerces with the matching unbox
@@ -4788,6 +4815,7 @@ class RakuAST::ApplyPostfix
         #      ArgList  ⎡...⎤
         self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!operand, $resolver, $context)
           if nqp::istype($!postfix, RakuAST::Call::Term);
+        self.IMPL-CHECK-SUNK($resolver);
     }
 
     method IMPL-SET-NATIVE-INCDEC(int $primspec) {

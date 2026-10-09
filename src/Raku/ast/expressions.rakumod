@@ -4256,32 +4256,43 @@ class RakuAST::Postcircumfix::Index
           && !($expression.IMPL-PRIMED || $expression.IMPL-SHOULD-PRIME)
     }
 
+    # An index that interpolates a list with prefix:<||> takes its number of
+    # dimensions from its indices, so they go through a check for laziness
     method IMPL-INDEX-QAST(RakuAST::IMPL::QASTContext $context) {
-        if self.IMPL-INTERPOLATES && nqp::elems(self.index.code-statements) == 1 {
-            my $stmt := self.index.code-statements[0];
-            if nqp::istype($stmt, RakuAST::Statement::Expression)
-                && self.IMPL-IS-INTERPOLATION($stmt.expression)
-            {
-                # cut out the || op
-                $stmt.expression.operand.IMPL-TO-QAST($context);
-            }
-            elsif nqp::istype($stmt, RakuAST::Statement::Expression)
-                && nqp::istype($stmt.expression, RakuAST::ApplyListInfix)
-                && $stmt.expression.IMPL-IS-LIST-LITERAL
-                && self.IMPL-IS-INTERPOLATION(self.IMPL-UNWRAP-LIST($stmt.expression.operands)[0])
-            {
-                # cut out the || op
-                my $qast := $stmt.IMPL-TO-QAST($context);
-                $qast[0] := $qast[0][0];
-                $qast
-            }
-            else {
-                $stmt.IMPL-TO-QAST($context)
-            }
+        if self.IMPL-INTERPOLATES {
+            QAST::Op.new(
+              :op('callstatic'), :name('&MD-INTERPOLATED-INDICES'),
+              self.IMPL-SEMILIST-QAST($context)
+            )
         }
         else {
             self.index.IMPL-TO-QAST($context)
         }
+    }
+
+    # The index with a leading prefix:<||> cut out
+    method IMPL-SEMILIST-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $statements := self.index.code-statements;
+        if nqp::elems($statements) == 1
+          && nqp::istype($statements[0], RakuAST::Statement::Expression) {
+            my $statement  := $statements[0];
+            my $expression := $statement.expression;
+            if self.IMPL-IS-INTERPOLATION($expression) {
+                # cut out the || op
+                return $expression.operand.IMPL-TO-QAST($context);
+            }
+            if nqp::istype($expression, RakuAST::ApplyListInfix)
+              && $expression.IMPL-IS-LIST-LITERAL
+              && self.IMPL-IS-INTERPOLATION(
+                   self.IMPL-UNWRAP-LIST($expression.operands)[0]
+                 ) {
+                # cut out the || op
+                my $qast := $statement.IMPL-TO-QAST($context);
+                $qast[0] := $qast[0][0];
+                return $qast;
+            }
+        }
+        self.index.IMPL-TO-QAST($context)
     }
 }
 
@@ -4530,7 +4541,7 @@ class RakuAST::Postcircumfix::ArrayIndex
         my $op := QAST::Op.new:
             :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
             $operand-qast;
-        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         $op.push(self.resolution.IMPL-LOOKUP-QAST($context));
         $op
     }
@@ -4617,7 +4628,7 @@ class RakuAST::Postcircumfix::HashIndex
         my $op := QAST::Op.new:
             :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
             $operand-qast;
-        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         $op.push(self.resolution.IMPL-LOOKUP-QAST($context));
         $op
     }

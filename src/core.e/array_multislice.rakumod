@@ -28,7 +28,9 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
                nqp::atpos($indices,2),
                assignee
              )
-          !! SELF.ASSIGN-POS(|@indices, assignee)
+          !! $dims
+            ?? SELF.ASSIGN-POS(|@indices, assignee)
+            !! (postcircumfix:<[ ]>(SELF) = assignee)  # @a[||()]
       # need an extra named here to prevent infilooping because otherwise
       # this will code-gen to a call to this candidate again.
       !! (postcircumfix:<[; ]>(SELF, @indices, :none) = assignee)
@@ -60,7 +62,9 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is raw) is raw {
                nqp::atpos($indices,2),
                $BIND
              )
-          !! SELF.BIND-POS(|@indices, $BIND)
+          !! $dims
+            ?? SELF.BIND-POS(|@indices, $BIND)
+            !! X::Bind::ZenSlice.new(type => SELF.WHAT).throw  # @a[||()]
       !! X::Bind::Slice.new(type => SELF.WHAT).throw
 }
 
@@ -80,6 +84,11 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
           !! nqp::decont(result)
     }
 
+    # An empty list of indices, as @a[||()] gives, is the zen slice @a[]
+    # that takes the whole array
+    my int $topdim = @indices.elems;  # .elems reifies
+    return-rw postcircumfix:<[ ]>(initial-SELF, |%_) unless $topdim;
+
     # find out what we actually got
     my str $adverbs;
     if nqp::getattr(%_,Map,'$!storage') -> $nameds is raw {
@@ -96,7 +105,6 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
         $adverbs = nqp::concat($adverbs,":v" ) if nqp::atkey($nameds,'v');
     }
 
-    my int $topdim = @indices.elems;  # .elems reifies
     my $indices   := nqp::getattr(@indices,List,'$!reified');
     my int $i;
     nqp::while(

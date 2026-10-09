@@ -4521,11 +4521,40 @@ class RakuAST::Postcircumfix::ArrayIndex
         $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
-        $op
+        self.IMPL-HAS-UNKNOWN-ADVERB($context)
+          ?? self.IMPL-GUARD-ADVERBS($op)
+          !! $op
+    }
+
+    # A subscript with an adverb the setting's routine would ignore calls what
+    # MD-ARRAY-SUBSCRIPT gives for the routine in scope when it runs, so a
+    # user's own or wrapped routine still gets the adverb
+    method IMPL-GUARD-ADVERBS(Mu $op) {
+        my $call := QAST::Op.new( :op('call'),
+          QAST::Op.new( :op('callstatic'), :name('&MD-ARRAY-SUBSCRIPT'),
+            QAST::Var.new( :name($op.name), :scope('lexical') ) ) );
+        $call.push($_) for $op.list;
+        $call
+    }
+
+    # Whether a multidimensional subscript in 6.e has an adverb that the
+    # setting's multidimensional array subscript would ignore
+    method IMPL-HAS-UNKNOWN-ADVERB(RakuAST::IMPL::QASTContext $context) {
+        if self.is-multislice && nqp::unbox_i($context.language-revision) >= 3 {
+            for self.IMPL-UNWRAP-LIST(self.colonpairs) {
+                my str $name := $_.named-arg-name;
+                return 1 unless $name eq 'exists' || $name eq 'delete'
+                  || $name eq 'k' || $name eq 'kv' || $name eq 'p' || $name eq 'v'
+                  || $name eq 'BIND';
+            }
+        }
+        0
     }
 
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $operand, QAST::Node $source-qast) {
+        return self.IMPL-GUARD-BIND-ADVERBS($context, $operand, $source-qast)
+          if self.IMPL-HAS-UNKNOWN-ADVERB($context);
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
@@ -4533,6 +4562,41 @@ class RakuAST::Postcircumfix::ArrayIndex
         $bind.named('BIND');
         $op.push($bind);
         $op
+    }
+
+    # An unwrapped setting routine refuses an adverb it would ignore, while a
+    # user's own or wrapped routine binds as it would without the adverbs
+    method IMPL-GUARD-BIND-ADVERBS(
+      RakuAST::IMPL::QASTContext $context,
+      RakuAST::Expression $operand,
+      QAST::Node $source-qast
+    ) {
+        my $name := self.resolution.lexical-name;
+        my str $operand-var := QAST::Node.unique('bind_operand');
+        my str $index-var   := QAST::Node.unique('bind_index');
+        my str $source-var  := QAST::Node.unique('bind_source');
+        my $refuse := QAST::Op.new( :op('callstatic'), :name('&MD-ARRAY-UNKNOWN-ADVERBS'),
+          QAST::Var.new( :scope('local'), :name($operand-var) ),
+          QAST::Var.new( :scope('local'), :name($index-var) ) );
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $refuse);
+        QAST::Stmts.new(
+          QAST::Op.new( :op('bind'),
+            QAST::Var.new( :scope('local'), :name($operand-var), :decl('var') ),
+            $operand.IMPL-TO-QAST($context) ),
+          QAST::Op.new( :op('bind'),
+            QAST::Var.new( :scope('local'), :name($index-var), :decl('var') ),
+            self.IMPL-INDEX-QAST($context) ),
+          QAST::Op.new( :op('bind'),
+            QAST::Var.new( :scope('local'), :name($source-var), :decl('var') ),
+            $source-qast ),
+          QAST::Op.new( :op('if'),
+            QAST::Op.new( :op('callstatic'), :name('&MD-ARRAY-REFUSES'),
+              QAST::Var.new( :name($name), :scope('lexical') ) ),
+            $refuse,
+            QAST::Op.new( :op(self.IMPL-CALL-OP), :$name,
+              QAST::Var.new( :scope('local'), :name($operand-var) ),
+              QAST::Var.new( :scope('local'), :name($index-var) ),
+              QAST::Var.new( :scope('local'), :name($source-var), :named('BIND') ) ) ) )
     }
 
     method can-be-used-with-hyper() { True }

@@ -5,13 +5,7 @@ proto sub postcircumfix:<{; }>($, $, Mu $?, *%) is nodal {*}
 # handle the case of %h{|| "a"}, and of an adverb no other candidate takes
 multi sub postcircumfix:<{; }>(\initial-SELF, \value, *%adverbs) is raw {
     if nqp::istype(value,List) {
-        my @nogo = %adverbs<delete exists kv p k v>:delete:k;
-        X::Adverb.new(
-          :what<multi-dimensional slice>,
-          :source((try initial-SELF.VAR.name) // initial-SELF.^name),
-          :unexpected(%adverbs.keys),
-          :@nogo,
-        ).throw
+        MD-UNKNOWN-ADVERBS(initial-SELF, %adverbs)
     }
     else {
         postcircumfix:<{; }>(initial-SELF, value.List, |%adverbs)

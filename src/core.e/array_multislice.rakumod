@@ -68,6 +68,35 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is raw) is raw {
       !! X::Bind::Slice.new(type => SELF.WHAT).throw
 }
 
+# Whether the routine in scope for a multidimensional array subscript with
+# an adverb these candidates ignore refuses it, as the hash subscript does,
+# which a user's own or wrapped routine doesn't
+sub MD-ARRAY-REFUSES(&subscript --> Bool:D) is implementation-detail {
+    nqp::hllbool(
+      nqp::eqaddr(&subscript, &postcircumfix:<[; ]>)
+        && nqp::not_i(&subscript.is-wrapped)
+    )
+}
+
+# The routine to call for such a subscript, one that refuses the adverb or
+# else the routine in scope
+sub MD-ARRAY-SUBSCRIPT(&subscript) is raw is implementation-detail {
+    MD-ARRAY-REFUSES(&subscript) ?? &MD-ARRAY-UNKNOWN-ADVERBS !! &subscript
+}
+sub MD-ARRAY-UNKNOWN-ADVERBS(\SELF, Mu $, Mu $?, *%adverbs) is implementation-detail {
+    %adverbs<BIND>:delete;
+    MD-UNKNOWN-ADVERBS(SELF, %adverbs)
+}
+sub MD-UNKNOWN-ADVERBS(\SELF, %adverbs) is implementation-detail {
+    my @nogo = %adverbs<delete exists kv p k v>:delete:k;
+    X::Adverb.new(
+      :what<multi-dimensional slice>,
+      :source((try SELF.VAR.name) // SELF.^name),
+      :unexpected(%adverbs.keys),
+      :@nogo,
+    ).throw
+}
+
 # handle the case of @a[|| 0]
 multi sub postcircumfix:<[; ]>(\initial-SELF, \value, *%_) is raw {
     postcircumfix:<[; ]>(initial-SELF, value.List, |%_)

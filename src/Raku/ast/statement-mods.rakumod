@@ -268,13 +268,6 @@ class RakuAST::StatementModifier::WhileUntil
     # Is the condition negated?
     method negate() { False }
 
-    method IMPL-NEGATE-IF-NEEDED(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-    }
-
-    method IMPL-UNNEGATE-IF-NEEDED() {
-        Nil
-    }
-
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
           RakuAST::Type::Setting.from-identifier('Nil'),
@@ -323,21 +316,6 @@ class RakuAST::StatementModifier::Until
   is RakuAST::StatementModifier::WhileUntil
 {
     method negate() { True }
-
-    method IMPL-NEGATE-IF-NEEDED(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::bindattr(self, RakuAST::StatementModifier, '$!expression', RakuAST::ApplyPostfix.new(
-            :postfix(
-                RakuAST::Call::Method.new(:name(RakuAST::Name.from-identifier('not')))
-            ),
-            :operand(self.expression),
-        ));
-        self.expression.ensure-begin-performed($resolver, $context);
-    }
-
-    method IMPL-UNNEGATE-IF-NEEDED() {
-        nqp::bindattr(self, RakuAST::StatementModifier, '$!expression', self.expression.operand);
-        True
-    }
 }
 
 # The given statement modifier.

@@ -1242,8 +1242,7 @@ class RakuAST::Statement::Expression
     # we thunk just in case and if it turns out we're sunk, we have to undo that thunking again.
     method IMPL-UNTHUNK() {
         if $!loop-modifier && nqp::istype($!loop-modifier, RakuAST::StatementModifier::WhileUntil) && nqp::defined($!loop-thunk) {
-            $!loop-modifier.expression.IMPL-REMOVE-THUNK($!loop-thunk)
-                unless $!loop-modifier.IMPL-UNNEGATE-IF-NEEDED;
+            $!loop-modifier.expression.IMPL-REMOVE-THUNK($!loop-thunk);
             nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-thunk', RakuAST::ExpressionThunk);
             if nqp::defined($!condition-thunk) {
                 $!expression.IMPL-REMOVE-THUNK($!condition-thunk);
@@ -1294,8 +1293,8 @@ class RakuAST::Statement::Expression
 
             # See IMPL-UNTHUNK for important information
             if (nqp::istype($!loop-modifier, RakuAST::StatementModifier::WhileUntil)) {
-                $!loop-modifier.IMPL-NEGATE-IF-NEEDED($resolver, $context);
                 my $loop-thunk := RakuAST::ExpressionThunk.new;
+                $loop-thunk.IMPL-SET-NEGATED if $!loop-modifier.negate;
                 $!loop-modifier.expression.wrap-with-thunk($loop-thunk);
                 $loop-thunk.ensure-begin-performed($resolver, $context);
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-thunk', $loop-thunk);
@@ -1802,13 +1801,7 @@ class RakuAST::Statement::Loop
     # we're sunk, we have to undo that thunking again.
     method IMPL-UNTHUNK() {
         if nqp::defined($!condition-thunk) {
-            if self.negate && !self.IMPL-BODY-TAKES-CONDITION {
-                # No need to unthunk as we're throwing away the thunked ApplyPostfix
-                nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', $!condition.operand);
-            }
-            else {
-                $!condition.IMPL-REMOVE-THUNK($!condition-thunk)
-            }
+            $!condition.IMPL-REMOVE-THUNK($!condition-thunk);
             nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition-thunk', RakuAST::ExpressionThunk);
         }
         if nqp::defined($!increment-thunk) {
@@ -1828,18 +1821,10 @@ class RakuAST::Statement::Loop
         nqp::bindattr_i(self, RakuAST::Statement::Loop, '$!unconditional', $unconditional);
         unless $unconditional {
             if ($!condition) {
+                my $thunk := RakuAST::ExpressionThunk.new;
                 # A body taking the condition gets its value, so from-loop
                 # negates it for an until loop instead.
-                if self.negate && !self.IMPL-BODY-TAKES-CONDITION {
-                    nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', RakuAST::ApplyPostfix.new(
-                        :postfix(
-                            RakuAST::Call::Method.new(:name(RakuAST::Name.from-identifier('not')))
-                        ),
-                        :operand($!condition),
-                    ));
-                    $!condition.ensure-begin-performed($resolver, $context);
-                }
-                my $thunk := RakuAST::ExpressionThunk.new;
+                $thunk.IMPL-SET-NEGATED if self.negate && !self.IMPL-BODY-TAKES-CONDITION;
                 $!condition.wrap-with-thunk($thunk);
                 $thunk.ensure-begin-performed($resolver, $context);
                 nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition-thunk', $thunk);

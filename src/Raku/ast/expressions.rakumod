@@ -2876,6 +2876,15 @@ role RakuAST::WhateverApplicable
         False
     }
 
+    # The WhateverCode in a parenthesized operand whose prime this takes over.
+    # A parenthesized WhateverCode is a value to xx, so that `(* > 1) xx 3`
+    # and `(* > 1) xx *.succ` both repeat `* > 1`.
+    method IMPL-PARENTHESIZED-PRIMED-EXPRESSION(Mu $operand) {
+        nqp::istype($operand, RakuAST::Circumfix::Parentheses) && !self.IMPL-IS-XX
+            ?? $operand.IMPL-SINGULAR-PRIMED-EXPRESSION
+            !! Nil
+    }
+
     method IMPL-SHOULD-PRIME() {
         return False if $!must-not-prime;
         return False unless self.operator.IMPL-PRIMES;
@@ -2891,8 +2900,7 @@ role RakuAST::WhateverApplicable
             }
             if nqp::bitand_i($primes, 2) {
                 return True if nqp::istype($_, RakuAST::Expression) && $_.IMPL-PRIMED;
-                return True if nqp::istype($_, RakuAST::Circumfix::Parentheses)
-                                        && $_.IMPL-SINGULAR-PRIMED-EXPRESSION && !self.IMPL-IS-XX;
+                return True if self.IMPL-PARENTHESIZED-PRIMED-EXPRESSION($_);
             }
         }
         False
@@ -2921,9 +2929,7 @@ role RakuAST::WhateverApplicable
                 if $_.IMPL-PRIMED {
                     $_.IMPL-UNPRIME;
                 }
-                elsif nqp::istype($_, RakuAST::Circumfix::Parentheses)
-                      && (my $expression := $_.IMPL-SINGULAR-PRIMED-EXPRESSION)
-                {
+                elsif (my $expression := self.IMPL-PARENTHESIZED-PRIMED-EXPRESSION($_)) {
                     $expression.IMPL-UNPRIME;
                 }
             }
@@ -2932,7 +2938,6 @@ role RakuAST::WhateverApplicable
         }
         self.set-operands(@operands);
 
-        my $self-is-xx := self.IMPL-IS-XX;
         my int $primes-whatevercode := nqp::bitand_i(self.operator.IMPL-PRIMES, 2);
 
         # Re-number WhateverCode arguments
@@ -2954,33 +2959,12 @@ role RakuAST::WhateverApplicable
                 # no WhateverCode, or when it primed on its own and so keeps its
                 # own parameters.
                 || (nqp::istype($n, RakuAST::WhateverApplicable)
-                      && (!$primes-whatevercode || $n.IMPL-PRIMED))
-                || ($self-is-xx && nqp::istype($n, RakuAST::ApplyInfix) && $n.IMPL-SHOULD-PRIME-DIRECTLY))
+                      && (!$primes-whatevercode || $n.IMPL-PRIMED)))
         };
         self.visit-dfs($visitor, :strict);
 
         # Return WhateverCode arguments as they will be used to construct the signature
         @args
-    }
-
-    method IMPL-SHOULD-PRIME-DIRECTLY() {
-        return False unless nqp::bitand_i(self.operator.IMPL-PRIMES, 1);
-        return False unless self.IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS;
-        for self.IMPL-UNWRAP-LIST(self.operands) {
-            return True if nqp::istype($_, RakuAST::Term::Whatever)
-                        || nqp::istype($_, RakuAST::Term::HyperWhatever);
-            return True if nqp::istype($_, RakuAST::WhateverCode::Argument);
-        }
-        False
-    }
-
-    method IMPL-OPERANDS-SHOULD-PRIME-DIRECTLY() {
-        my $should-so := False;
-        for self.IMPL-UNWRAP-LIST(self.operands) {
-            $should-so := $should-so || (nqp::istype($_, RakuAST::WhateverApplicable) && $_.IMPL-SHOULD-PRIME-DIRECTLY)
-                                     || (nqp::istype($_, RakuAST::Circumfix::Parentheses) && $_.IMPL-CONTAINS-SINGULAR-PRIMEABLE-EXPRESSION)
-        }
-        $should-so
     }
 
     # Override this to ask questions about the self when it comes to the should-prime question

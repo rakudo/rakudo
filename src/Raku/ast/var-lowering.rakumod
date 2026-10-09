@@ -463,8 +463,7 @@ class RakuAST::IMPL::VarLowering {
             if nqp::eqaddr($expression.WHAT, RakuAST::Block)
                 && $expression.bare-block
                 && (!nqp::isconcrete($cond)
-                    || nqp::istype($cond, RakuAST::StatementModifier::If)
-                    || nqp::istype($cond, RakuAST::StatementModifier::Unless)) {
+                    || nqp::istype($cond, RakuAST::StatementModifier::IfUnless)) {
                 self.IMPL-REGISTER-IMPLICIT-LOOKUPS($node);
                 self.IMPL-WALK($cond) if nqp::isconcrete($cond);
                 self.IMPL-WALK-FLATTEN-CANDIDATE($expression);
@@ -1179,8 +1178,7 @@ class RakuAST::IMPL::VarLowering {
             my $loop := $node.loop-modifier;
             self.IMPL-MARK-MAGICAL-USED('$_')
                 if (nqp::isconcrete($cond)
-                    && !nqp::istype($cond, RakuAST::StatementModifier::If)
-                    && !nqp::istype($cond, RakuAST::StatementModifier::Unless))
+                    && !nqp::istype($cond, RakuAST::StatementModifier::IfUnless))
                 || (nqp::isconcrete($loop)
                     && !nqp::istype($loop, RakuAST::StatementModifier::WhileUntil));
         }

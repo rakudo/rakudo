@@ -13,3 +13,9 @@ my role R {
     has $.x;
 }
 our class C does R { }
+
+#| subset doc
+our subset Positive of Int where ({ $_ > 0 });
+
+#| enum doc
+our enum Letters (do { my sub f() { <a b> }; f() });

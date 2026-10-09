@@ -4,7 +4,7 @@ use Test;
 use Test::Helpers;
 use nqp;
 
-plan 43;
+plan 51;
 
 my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
@@ -1112,6 +1112,321 @@ my subset T of Any where 1
 CODE
     is-deeply $ast.DEPARSE.AST.DEPARSE, $ast.DEPARSE,
       'the deparse parses back to itself';
+}
+
+subtest 'A subset or an enum keeps its leading doc from what its expression declares' => {
+    # #| d1
+    # my subset A of Int where ({
+    #     $_ > 0
+    # });
+    # #| d2
+    # my subset B of Int where {
+    #     $_ > 0
+    # } | {
+    #     $_ < -5
+    # };
+    # #| d3
+    # my subset C of Int where [{
+    #     $_ > 0
+    # }][0];
+    # #| d4
+    # my enum E (do {
+    #     sub f {
+    #         <a b>
+    #     }
+    #     f()
+    # })
+    my $source := Q:to/SOURCE/;
+    #| d1
+    my subset A of Int where ({ $_ > 0 });
+    #| d2
+    my subset B of Int where { $_ > 0 } | { $_ < -5 };
+    #| d3
+    my subset C of Int where [{ $_ > 0 }][0];
+    #| d4
+    my enum E (do { my sub f() { <a b> }; f() });
+    SOURCE
+    my $ast := $source.AST;
+    is-deeply $ast.statements.map({ .expression.WHY andthen .leading }).List,
+      (("d1",), ("d2",), ("d3",), ("d4",)),
+      'each declaration keeps its own leading doc';
+    is-deeply $ast.grep({
+        $_ ~~ RakuAST::Doc::DeclaratorTarget && .WHY
+    }).List, $ast.statements.map(*.expression).List,
+      'nothing its expression declares is documented';
+    is ($ast.statements.head.expression.WHY andthen $source.substr(.origin.from, .origin.to - .origin.from)),
+      '#| d1', 'the doc spans its doc comment';
+    is-deeply $ast.DEPARSE, Q:to/CODE/, 'deparse';
+#| d1
+my subset A of Int where ({
+    $_ > 0
+});
+#| d2
+my subset B of Int where {
+    $_ > 0
+} | {
+    $_ < -5
+};
+#| d3
+my subset C of Int where [{
+    $_ > 0
+}][0];
+#| d4
+my enum E (do {
+    sub f {
+        <a b>
+    }
+    f()
+})
+CODE
+    is-deeply $ast.DEPARSE.AST.DEPARSE, $ast.DEPARSE,
+      'the deparse parses back to itself';
+    is-deeply EVAL('use experimental :rakuast; ' ~ $ast.raku).DEPARSE, $ast.DEPARSE,
+      'Raku: the docs survive the .raku round trip';
+}
+
+subtest 'A constant or a term leaves the doc of a routine or class it holds' => {
+    is-deeply EVAL(q:to/CODE/), ('lead f', 'negates', 'C doc', 'u'),
+        #| lead f
+        my constant &f = sub ($x) { $x };
+        my constant &neg = sub ($x) { -$x } #= negates
+        ;
+        #| C doc
+        my constant C = class { method m { } };
+        #| u
+        my \u = sub { 42 };
+        (&f, &neg, C, u).map(*.WHY.Str).List
+        CODE
+      'each routine or class keeps its doc';
+}
+
+subtest 'A doc before the expression of a subset or an enum documents it' => {
+    # #| a
+    # #| b
+    # my subset A of Int where * > 0;
+    # #| c
+    # #| d
+    # my enum E (do {
+    #     <x y>
+    # });
+    my $ast := Q:to/SOURCE/.AST;
+    #| a
+    my subset A of Int
+      #| b
+      where * > 0;
+    #| c
+    my enum E
+      #| d
+      (do { <x y> });
+    SOURCE
+    is-deeply $ast.statements.map({ .expression.WHY andthen .leading }).List,
+      (("a", "b"), ("c", "d")),
+      'each declaration takes the doc before its expression';
+    is-deeply $ast.grep({
+        $_ ~~ RakuAST::Doc::DeclaratorTarget && .WHY
+    }).List, $ast.statements.map(*.expression).List,
+      'nothing its expression declares is documented';
+}
+
+subtest 'A where block gives its doc to the subset and a where sub keeps its own' => {
+    # #| s
+    # my subset S of Int where #| f
+    # my sub f ($x) {
+    #     $x > 0
+    # };
+    # #| a
+    # #| b
+    # my subset A of Int where {
+    #     $_ > 0
+    # } #= t
+    my $ast := Q:to/SOURCE/.AST;
+    #| s
+    my subset S of Int where
+      #| f
+      my sub f($x) { $x > 0 };
+    #| a
+    my subset A of Int where #|(b)
+      { $_ > 0 } #= t
+    ;
+    SOURCE
+    my @statements := $ast.statements;
+    is-deeply (@statements[0].expression.WHY andthen .leading), ("s",),
+      'a subset keeps its own doc';
+    is-deeply (@statements[0].expression.where.WHY andthen .leading), ("f",),
+      'the sub used as its where clause keeps its own doc';
+    is-deeply (@statements[1].expression.WHY andthen (.leading, .trailing)),
+      (("a", "b"), ("t",)),
+      'a subset takes the doc of its where block after its own';
+    nok @statements[1].expression.where.WHY, 'the where block has no doc';
+}
+
+subtest 'A doc in an expression that nothing in it takes documents its declaration' => {
+    # #| lead
+    # #| stray
+    # my subset S of Int where ({
+    #     $_ > 0
+    # });
+    # #| colors
+    # #| the red one
+    # my enum Color ("red",);
+    # #| f
+    # sub f {
+    # }
+    my $ast := Q:to/SOURCE/.AST;
+    #| lead
+    my subset S of Int where ({
+        #| stray
+        $_ > 0
+    });
+    #| colors
+    my enum Color (
+        #| the red one
+        'red',
+    );
+    #| f
+    sub f { }
+    SOURCE
+    is-deeply $ast.statements.map({ .expression.WHY andthen .leading }).List,
+      (("lead", "stray"), ("colors", "the red one"), ("f",)),
+      'the docs stay with the declaration they are in';
+}
+
+subtest 'A doc after a declaration made after its expression documents the next one' => {
+    # my subset S of Int where {
+    #     $_ > 0
+    # }
+    # #| f
+    # sub f {
+    # }
+    # my constant K = do {
+    #     42
+    # }
+    # #| g
+    # sub g {
+    # }
+    # my \t = do {
+    #     42
+    # }
+    # #| h
+    # sub h {
+    # }
+    # my subset W of Int;
+    # #| w
+    # sub w {
+    # }
+    my $ast := Q:to/SOURCE/.AST;
+    my subset S of Int where { $_ > 0 }
+    #| f
+    sub f { }
+    my constant K = do { 42 }
+    #| g
+    sub g { }
+    my \t = do { 42 }
+    #| h
+    sub h { }
+    my subset W of Int #|(w)
+    ;
+    sub w { }
+    SOURCE
+    is-deeply $ast.statements.map({ .expression.WHY ?? .expression.WHY.leading !! () }).List,
+      ((), ("f",), (), ("g",), (), ("h",), (), ("w",)),
+      'each doc documents the sub after it';
+}
+
+subtest 'A trailing doc after the expression of a declaration documents it' => {
+    my $ast := Q:to/SOURCE/.AST;
+    #| lead
+    my subset A of Int where ({ $_ > 0 }) #= t1
+    ;
+    my subset B of Int where { $_ > 0 } | { $_ < -5 } #= t2
+    ;
+    my enum E (do { <a b> }) #= t3
+    ;
+    my subset M of Int where (
+        * > 0
+    ); #= t4
+    my enum N <
+        a b
+    >; #= t5
+    #| lead
+    my subset S of Int where { $_ > 0 } #= t6
+    ;
+    my subset P of Signature where :($p) #= t7
+    ;
+    SOURCE
+    is-deeply $ast.statements.map({ .expression.WHY andthen .trailing }).List,
+      (("t1",), ("t2",), ("t3",), ("t4",), ("t5",), ("t6",), ("t7",)),
+      'each declaration takes the trailing doc on the line its expression ends';
+    is-deeply $ast.grep({
+        $_ ~~ RakuAST::Doc::DeclaratorTarget && .WHY
+    }).List, $ast.statements.map(*.expression).List,
+      'nothing its expression declares is documented';
+    my $subset := $ast.statements.head.expression;
+    is-deeply ($subset.WHY andthen (.leading, .trailing)), (("lead",), ("t1",)),
+      'a subset keeps its leading doc with the trailing doc it takes';
+
+    my $inner := Q:to/SOURCE/.AST;
+    my enum E (sub { #= makes the keys
+        <a b> }());
+    SOURCE
+    nok $inner.statements.head.expression.WHY,
+      'an enum does not take a doc on the opening line of a sub in its term';
+    is-deeply ($inner.first(RakuAST::Sub).WHY andthen .trailing), ("makes the keys",),
+      'the sub keeps that doc';
+
+    my $literal := Q:to/SOURCE/.AST;
+    my subset Q of Signature where :($q #= q doc
+    );
+    SOURCE
+    nok $literal.statements.head.expression.WHY,
+      'a subset does not take the doc of a parameter in its signature literal';
+    is-deeply ($literal.first(RakuAST::Parameter).WHY andthen .trailing), ("q doc",),
+      'the parameter keeps its doc';
+}
+
+subtest 'A subset or an enum documents its type ahead of what its expression declares' => {
+    is EVAL(q:to/CODE/), 'doc',
+        #| doc
+        my subset A of Int where ({ $_ > 0 });
+        A.WHY.Str
+        CODE
+      'a subset with a parenthesized where block';
+    is EVAL(q:to/CODE/), 'doc',
+        #| doc
+        my subset B of Int where { $_ > 0 } | { $_ < -5 };
+        B.WHY.Str
+        CODE
+      'a subset with a junction of where blocks';
+    is EVAL(q:to/CODE/), 'doc',
+        #| doc
+        my subset C of Int where (1 andthen { $_ > 0 });
+        C.WHY.Str
+        CODE
+      'a subset with a where block in a thunk';
+    is EVAL(q:to/CODE/), 'doc',
+        #| doc
+        my enum E (do { my sub f() { <a b> }; f() });
+        E.WHY.Str
+        CODE
+      'an enum with a block declaring a sub';
+    is-deeply EVAL(q:to/CODE/), ('A: doc', 'Sub: inner'),
+        #| doc
+        my subset A of Int where ({
+            #| inner
+            my sub g() { }; True
+        });
+        $=pod.map({ .WHEREFORE.^name ~ ': ' ~ .contents.join }).List
+        CODE
+      'the doc of a subset comes before what its where clause declares in $=pod';
+    is-deeply EVAL(q:to/CODE/), ('E: doc', 'Sub: inner'),
+        #| doc
+        my enum E (do {
+            #| inner
+            my sub g() { <a b> }; g()
+        });
+        $=pod.map({ .WHEREFORE.^name ~ ': ' ~ .contents.join }).List
+        CODE
+      'the doc of an enum comes before what its term declares in $=pod';
 }
 
 subtest 'A trailing doc on the line where a body closes documents its block' => {

@@ -93,7 +93,6 @@ class RakuAST::CompUnit
 
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
           $precompilation-mode ?? 1 !! 0);
-        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!explicit-ctxsave', 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-content', nqp::create(Array));
         nqp::bindattr($obj, RakuAST::CompUnit, '$!data-content', nqp::null);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);

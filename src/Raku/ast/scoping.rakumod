@@ -280,7 +280,7 @@ role RakuAST::LexicalScope
                 }
             }
             for @not-if-duplicate -> $decl {
-                my $found := 0;
+                my int $found;
                 my str $name := $decl.lexical-name;
                 for @declarations {
                     if $_.lexical-name eq $name && !($_ =:= $decl) {
@@ -921,7 +921,7 @@ role RakuAST::Declaration {
 
     method check-scope(RakuAST::Resolver $resolver, str $declaration) {
         my $scope := self.scope;
-        my $ok := 0;
+        my int $ok;
         for self.IMPL-UNWRAP-LIST(self.allowed-scopes) {
             if $_ eq $scope {
                 $ok := 1;
@@ -1530,8 +1530,8 @@ role RakuAST::Lookup {
         # The positional count decides which candidates the call can
         # reach. A flattened argument makes it, and the positions of the
         # arguments after it, unknowable at compile time.
-        my int $positionals := 0;
-        my int $flat := 0;
+        my int $positionals;
+        my int $flat;
         my int $scan := $start;
         my @object-args;
         while $scan < $n {
@@ -1555,11 +1555,11 @@ role RakuAST::Lookup {
         my @reads;
         my @hoist;
         my @named;
-        my int $impure := 0;
-        my int $condition-read := 0;
+        my int $impure;
+        my int $condition-read;
         my int $first-read := -1;
-        my int $past-flat := 0;
-        my int $pos := 0;
+        my int $past-flat;
+        my int $pos;
         my int $child := $start;
         while $child < $n {
             my $arg := $call.list[$child];
@@ -1689,7 +1689,7 @@ role RakuAST::Lookup {
             return 1;
         }
         if nqp::istype($node, QAST::Want) {
-            my int $i := 0;
+            my int $i;
             my int $n := nqp::elems($node.list);
             while $i < $n {
                 return 0 unless self.IMPL-ARG-IS-PURE($node.list[$i]);
@@ -1785,7 +1785,7 @@ role RakuAST::Lookup {
         # A dispatcher holds a dispatchee list, and the flag bit is the one
         # the onlystar method reads.
         my @candidates;
-        my int $dispatcher := 0;
+        my int $dispatcher;
         if nqp::istype($routine, Routine)
             && nqp::defined(nqp::getattr($routine, Routine, '@!dispatchees')) {
             return 0 unless nqp::getattr_i($routine, Routine, '$!flags') +& 0x04;
@@ -1812,8 +1812,8 @@ role RakuAST::Lookup {
                 return 0 unless nqp::iseq_n($arity, $count);
             }
             my $param;
-            my int $pos := 0;
-            my int $object-miss := 0;
+            my int $pos;
+            my int $object-miss;
             for nqp::getattr($sig, Signature, '@!params') {
                 my int $flags := nqp::getattr_i($_, Parameter, '$!flags');
                 unless nqp::getattr($_, Parameter, '@!named_names')
@@ -1988,8 +1988,8 @@ role RakuAST::Lookup {
         }
         # A native variable is read where the inlined op runs, whether
         # by value or through a reference under a statement wrapper.
-        my int $reorder := 0;
-        my int $read := 0;
+        my int $reorder;
+        my int $read;
         for @args {
             my $result := self.IMPL-ARG-RESULT-NODE($_);
             if nqp::istype($result, QAST::Var) && nqp::objprimspec($result.returns)

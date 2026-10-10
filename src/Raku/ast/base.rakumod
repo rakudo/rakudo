@@ -394,7 +394,7 @@ class RakuAST::Node {
                     nqp::bindattr(self, $package, $attr.name, $new);
                 }
                 elsif nqp::islist($value) {
-                    my int $i := 0;
+                    my int $i;
                     my int $n := nqp::elems($value);
                     while $i < $n {
                         nqp::bindpos($value, $i, $new)
@@ -1120,7 +1120,7 @@ class RakuAST::Node {
     # gate, since it pins no routine identity.
     method IMPL-MARK-VALUE-ARGS(RakuAST::Resolver $resolver, Mu $expr) {
         my $lookup;
-        my int $current := 0;
+        my int $current;
         if nqp::istype($expr, RakuAST::ApplyInfix) {
             $lookup := $expr.infix;
             $lookup := $lookup.infix while nqp::istype($lookup, RakuAST::MetaInfix);
@@ -1274,7 +1274,7 @@ class RakuAST::Node {
         # literal with the native target. A float literal never overflows
         # that way.
         my $right := $expr.right;
-        my int $rhs-ok := 0;
+        my int $rhs-ok;
         if nqp::istype($right, RakuAST::Var::Attribute)
           && nqp::objprimspec($right.return-type) == $spec {
             $rhs-ok := 1;
@@ -2184,7 +2184,7 @@ class RakuAST::Node {
                 # none of them may be inlined. The operands were visited,
                 # and possibly marked, before this node was offered, so the
                 # decision they took is withdrawn here.
-                my int $linked := 0;
+                my int $linked;
                 if nqp::istype($left, RakuAST::ApplyInfix)
                     && nqp::istype($left.infix, RakuAST::Infixish)
                     && $left.infix.properties.chain {
@@ -2233,7 +2233,7 @@ class RakuAST::Node {
         my $chosen;
         if nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher {
             return Nil unless nqp::can($routine, 'onlystar') && $routine.onlystar;
-            my int $proto-ok := 0;
+            my int $proto-ok;
             my @multi-result;
             try {
                 $proto-ok := nqp::p6trialbind($routine.signature, @types, @flags);
@@ -2245,7 +2245,7 @@ class RakuAST::Node {
             $chosen := nqp::atpos(@multi-result, 1);
         }
         else {
-            my int $ct-result := 0;
+            my int $ct-result;
             try $ct-result := nqp::p6trialbind($routine.signature, @types, @flags);
             return Nil unless $ct-result == 1;
             $chosen := $routine;
@@ -2359,7 +2359,7 @@ class RakuAST::Node {
             return [] unless nqp::isconcrete($_) && nqp::istype($_, RakuAST::Node);
             my $type := $_.IMPL-STATIC-ARG-TYPE;
             return [] if $type =:= Mu;
-            my int $ok := 0;
+            my int $ok;
             try $ok := $type.HOW.archetypes.nominal && !$type.HOW.archetypes.generic;
             return [] unless $ok;
             return [] if nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW);
@@ -2466,7 +2466,7 @@ class RakuAST::Node {
         CATCH {
             return nqp::null();
         }
-        my int $string := 0;
+        my int $string;
         if nqp::istype($matcher, RakuAST::StrLiteral) {
             $string := 1;
         }
@@ -2779,7 +2779,7 @@ class RakuAST::Node {
         return Nil if nqp::isnull($Junction);
         my @kinds := self.IMPL-JUNCTION-FOLD-KINDS($resolver);
         return Nil unless nqp::elems(@kinds) == 4;
-        my int $side := 0;
+        my int $side;
         $side := 1 if self.IMPL-JUNCTION-FOLD-OPERAND($resolver, $left, $Junction);
         $side := 2 if !$side && self.IMPL-JUNCTION-FOLD-OPERAND($resolver, $right, $Junction);
         return Nil unless $side;
@@ -3002,7 +3002,7 @@ class RakuAST::Node {
         my @containers;
         my @values;
         my @checks;
-        my int $conjunctive := 0;
+        my int $conjunctive;
 
         # A constant eigenstate rules out the type it is not of and the
         # kinds it is not one of, and the chain needs one of the two left.
@@ -3266,7 +3266,7 @@ class RakuAST::Node {
         my $Junction := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, 'Junction');
         return nqp::null() if nqp::isnull($Junction);
         my @types;
-        my int $all := 0;
+        my int $all;
         my $junction;
         if $node.has-compile-time-value {
             # The checks replace evaluating the node.
@@ -3552,7 +3552,7 @@ class RakuAST::Node {
         }
         return Nil if $found < 0;
         my @kept;
-        my int $dropped := 0;
+        my int $dropped;
         $i := $found;
         while ++$i < $n {
             my $following := nqp::atpos($statements, $i);
@@ -3704,7 +3704,7 @@ class RakuAST::Node {
         return Nil unless nqp::istype($expr, RakuAST::ApplyInfix)
             && nqp::istype($expr.infix, RakuAST::Infixish)
             && $expr.infix.properties.chain;
-        my int $linked := 0;
+        my int $linked;
         for [$expr.left, $expr.right] -> $operand {
             if nqp::istype($operand, RakuAST::ApplyInfix)
                 && nqp::istype($operand.infix, RakuAST::Infixish)
@@ -3920,7 +3920,7 @@ class RakuAST::Node {
                 && nqp::isconcrete($resolution.declaration) {
                 try $topic-type := $resolution.declaration.return-type;
             }
-            my int $guaranteed := 0;
+            my int $guaranteed;
             try $guaranteed := nqp::can($topic-type.HOW, 'archetypes')
                 && !$topic-type.HOW.archetypes($topic-type).generic
                 && nqp::istype($topic-type, $type);
@@ -4385,7 +4385,7 @@ class RakuAST::Node {
         my $unparen := self.IMPL-FOLD-PARENS($expr);
         return $unparen unless $unparen =:= $expr;
 
-        my int $foldable := 0;
+        my int $foldable;
         if nqp::istype($expr, RakuAST::ApplyInfix) {
             my $infix := $expr.infix;
             # A chaining comparison (a < b < c) means (a < b) && (b < c), so it

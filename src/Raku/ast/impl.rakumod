@@ -276,7 +276,7 @@ class RakuAST::IMPL::QASTContext {
     # passed, returns the matching code ref; otherwise returns Mu.
     method IMPL-FIXUP-COMPILED-CODEREFS(Mu $coderefs, $block-cuid?, :$drain-compstuff-fixups) {
         my int $n := nqp::elems($coderefs);
-        my int $i := 0;
+        my int $i;
         my $result;
         while $i < $n {
             my $coderef := nqp::atpos($coderefs, $i);

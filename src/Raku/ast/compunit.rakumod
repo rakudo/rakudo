@@ -995,7 +995,7 @@ class RakuAST::LiteralBuilder {
     # Convert an optionally signed decimal literal, single underscores
     # between digits allowed, to an Int. Returns null on anything else.
     method IMPL-DECIMAL-INT(str $source) {
-        my int $from := 0;
+        my int $from;
         my int $negate;
         if nqp::eqat($source, '-', 0) || nqp::eqat($source, '−', 0) {
             $negate := 1;

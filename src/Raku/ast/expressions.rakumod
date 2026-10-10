@@ -1903,8 +1903,7 @@ class RakuAST::MetaInfix::Assign
     method is-pure() { False }
 
     method IMPL-RESULT-NEEDS-ITERATION() {
-        nqp::istype($!infix, RakuAST::MetaInfix::Zip)
-          || nqp::istype($!infix, RakuAST::MetaInfix::Cross)
+        nqp::istype($!infix, RakuAST::MetaInfix::CrossZip)
     }
 
     # The assign form of a plain short-circuit operator takes a Whatever or
@@ -2485,32 +2484,30 @@ class RakuAST::MetaInfix::Sequence
     }
 }
 
-# A cross meta-operator.
-class RakuAST::MetaInfix::Cross
+# A cross or zip meta-operator.
+class RakuAST::MetaInfix::CrossZip
   is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::MetaInfix::Cross, '$!infix', $infix);
+        nqp::bindattr($obj, RakuAST::MetaInfix::CrossZip, '$!infix', $infix);
         $obj
     }
-
-    method action { 'cross with' }
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
 
-    # The cross produces a lazy sequence, so when the wrapped operator
+    # The zip/cross produces a lazy sequence, so when the wrapped operator
     # has side effects a sunk result must still be iterated to run
     # those effects.
     method IMPL-RESULT-NEEDS-ITERATION() {
         !$!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION
     }
 
-    method properties() { OperatorProperties.infix('X') }
+    method properties() { OperatorProperties.infix(self.metaop) }
 
     method reducer-name() {
         self.properties.reducer-name
@@ -2518,7 +2515,7 @@ class RakuAST::MetaInfix::Cross
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-          RakuAST::Type::Setting.from-identifier('&METAOP_CROSS'),
+          RakuAST::Type::Setting.from-identifier(self.handler),
           RakuAST::Type::Setting.from-identifier($!infix.reducer-name),
         ]
     }
@@ -2528,7 +2525,7 @@ class RakuAST::MetaInfix::Cross
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+        my $op := QAST::Op.new( :op<call>, self.IMPL-HOP-INFIX-QAST($context) );
         for $operands {
             $op.push($_);
         }
@@ -2539,7 +2536,7 @@ class RakuAST::MetaInfix::Cross
         nqp::ifnull(
           self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
           QAST::Op.new(:op<callstatic>,
-            :name<&METAOP_CROSS>,
+            :name(self.handler),
             $!infix.IMPL-HOP-INFIX-QAST($context),
             QAST::Var.new(:name($!infix.reducer-name), :scope<lexical>)
           )
@@ -2588,107 +2585,22 @@ class RakuAST::MetaInfix::Cross
     }
 }
 
+# A cross meta-operator.
+class RakuAST::MetaInfix::Cross
+  is RakuAST::MetaInfix::CrossZip
+{
+    method action  { 'cross with'    }
+    method metaop  { 'X'             }
+    method handler { '&METAOP_CROSS' }
+}
+
 # A zip meta-operator.
 class RakuAST::MetaInfix::Zip
-  is RakuAST::MetaInfix
+  is RakuAST::MetaInfix::CrossZip
 {
-    has RakuAST::Infixish $.infix;
-
-    method new(RakuAST::Infixish $infix) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::MetaInfix::Zip, '$!infix', $infix);
-        $obj
-    }
-
-    method action { 'zip with' }
-
-    method visit-children(Code $visitor) {
-        $visitor($!infix);
-    }
-
-    # The zip produces a lazy sequence, so when the wrapped operator
-    # has side effects a sunk result must still be iterated to run
-    # those effects.
-    method IMPL-RESULT-NEEDS-ITERATION() {
-        !$!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION
-    }
-
-    method properties() { OperatorProperties.infix('Z') }
-
-    method reducer-name() {
-        self.properties.reducer-name
-    }
-
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-          RakuAST::Type::Setting.from-identifier('&METAOP_ZIP'),
-          RakuAST::Type::Setting.from-identifier($!infix.reducer-name),
-        ]
-    }
-
-    method IMPL-OPERATOR() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
-    }
-
-    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
-        for $operands {
-            $op.push($_);
-        }
-        $op
-    }
-
-    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        nqp::ifnull(
-          self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
-          QAST::Op.new(:op<callstatic>,
-            :name<&METAOP_ZIP>,
-            $!infix.IMPL-HOP-INFIX-QAST($context),
-            QAST::Var.new(:name($!infix.reducer-name), :scope<lexical>)
-          )
-        )
-    }
-
-    method IMPL-HOP-INFIX() {
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        $lookups[0].resolution.compile-time-value()(
-            self.infix.IMPL-HOP-INFIX,
-            $lookups[1].resolution.compile-time-value,
-        )
-    }
-
-    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                               RakuAST::Expression $expression, str $type) {
-        # Circumfix::Parentheses  ⎡((say(\"ooh\"),),)⎤
-        #   SemiList  ⎡(say(\"ooh\"),),⎤
-        #     Statement::Expression  ⎡(say(\"ooh\"),),⎤
-        #       ApplyListInfix  ⎡,⎤
-        #         Infix 【,】  ⎡,⎤
-        if nqp::istype($expression, RakuAST::Circumfix::Parentheses) {
-            my $semilist := $expression.semilist;
-            if $semilist.IMPL-IS-SINGLE-EXPRESSION {
-                my $expr := $semilist.code-statements[0].expression;
-                if nqp::istype($expr, RakuAST::ApplyListInfix) && $expr.IMPL-IS-LIST-LITERAL {
-                    for $expr.IMPL-UNWRAP-LIST($expr.operands) {
-                        self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
-                    }
-                }
-            }
-        }
-    }
-
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
-        my $thunky := self.infix.properties.thunky;
-        my int $i;
-        for @operands {
-            my $type := nqp::substr($thunky, $i, $i + 1);
-            if $type && $type ne '.' {
-                self.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
-            }
-            ++$i if $i < nqp::chars($thunky) - 1;
-        }
-    }
+    method action  { 'zip with'    }
+    method metaop  { 'Z'           }
+    method handler { '&METAOP_ZIP' }
 }
 
 # An infix hyper operator.

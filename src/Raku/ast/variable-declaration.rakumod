@@ -83,6 +83,9 @@ class RakuAST::Initializer::CallAssign
 {
     has RakuAST::Postfixish $.postfixish;
 
+    # The method call a constant evaluates at BEGIN time
+    has RakuAST::ApplyPostfix $!call;
+
     method new(RakuAST::Postfixish $postfixish) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Initializer::CallAssign, '$!postfixish', $postfixish);
@@ -97,22 +100,43 @@ class RakuAST::Initializer::CallAssign
         $!postfixish.add-colonpair($pair);
     }
 
+    # The result is mapped into Raku land as a method call postfix maps it
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-qast) {
-        $!postfixish.IMPL-POSTFIX-QAST($context, $invocant-qast)
+        my $call := $!postfixish.IMPL-POSTFIX-QAST($context, $invocant-qast);
+        nqp::istype($!postfixish, RakuAST::Call::Methodish) && $!postfixish.IMPL-HLLIZE-RESULT
+            ?? QAST::Op.new(:op<hllize>, $call)
+            !! $call
     }
 
+    # Evaluates the call on the invocant as a method call postfix, which is
+    # interpreted when it can be and compiled otherwise.
     method IMPL-COMPILE-TIME-VALUE(RakuAST::Resolver $resolver,
         RakuAST::IMPL::QASTContext $context, Mu :$invocant-compiler)
     {
-        self.postfixish.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new(:$resolver, :$context), $invocant-compiler)
+        my $invocant := $invocant-compiler();
+        my $operand := RakuAST::Type::Simple.from-identifier($invocant.HOW.name($invocant));
+        $operand.set-resolution(
+            RakuAST::Declaration::ResolvedConstant.new(:compile-time-value($invocant)));
+        my $call := RakuAST::ApplyPostfix.new(:$operand, :postfix($!postfixish));
+        nqp::bindattr(self, RakuAST::Initializer::CallAssign, '$!call', $call);
+        my $value := RakuAST::Node.IMPL-BEGIN-TIME-EVALUATE($call, $resolver, $context);
+        nqp::istype($!postfixish, RakuAST::Call::Methodish) && $!postfixish.IMPL-HLLIZE-RESULT
+            ?? nqp::hllizefor($value, 'Raku')
+            !! $value
     }
 
+    # A call compiled at BEGIN time is emitted with the unit, so code objects
+    # it made for the constant have their outer frame after precompilation.
     method IMPL-THUNK-EXPRESSION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        Nil
+        nqp::bindattr(self, RakuAST::Initializer, '$!thunk', $!call.outer-most-thunk)
+            if $!call && $!call.outer-most-thunk;
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(:op<null>)
+        my $thunk := nqp::getattr(self, RakuAST::Initializer, '$!thunk');
+        $thunk
+            ?? $thunk.IMPL-QAST-BLOCK($context, :expression($!call))
+            !! QAST::Op.new(:op<null>)
     }
 }
 
@@ -646,7 +670,7 @@ class RakuAST::VarDeclaration::Constant
         }
 
         my $type := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
-        if $type && !nqp::istype($!initializer, RakuAST::Initializer::CallAssign) && !nqp::objprimspec($type.meta-object) {
+        if $type && !nqp::objprimspec($type.meta-object) {
             unless nqp::istype($!value, $type.meta-object) {
                 my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
                 self.add-sorry:
@@ -1424,12 +1448,18 @@ class RakuAST::VarDeclaration::Simple
                 }
                 else {
                     my $method := $!initializer-method;
+                    # A `.=` initializer calls the method on the type of the
+                    # attribute, Any when it has none.
+                    my $invocant := $!type
+                        ?? $!type.IMPL-VALUE-TYPE
+                        !! RakuAST::Type::Setting.from-identifier('Any');
+                    $invocant.to-begin-time($resolver, $context) unless $!type;
                     $method.body.statement-list.add-statement(
                         RakuAST::Statement::Expression.new(
                             :expression(
                                 nqp::istype($initializer, RakuAST::Initializer::CallAssign)
                                 ?? RakuAST::ApplyPostfix.new(
-                                    operand => $!type.IMPL-VALUE-TYPE,
+                                    operand => $invocant,
                                     postfix => $initializer.postfixish
                                 )
                                 !! RakuAST::Call::Name.new(

@@ -129,7 +129,7 @@ class RakuAST::Regex
     # zerowidth atom instead. The thunk's compiled body rides along on
     # the argument reference for LTM, so it is at hand here.
     method IMPL-SIMPLIFY-BEFORE-ASSERTIONS(Mu $node) {
-        my int $i := 0;
+        my int $i;
         my int $n := nqp::elems(@($node));
         while $i < $n {
             my $visit := $node[$i];
@@ -425,7 +425,7 @@ class RakuAST::Regex::Sequence
     # QRegex::P6Regex::Actions.termish.
     method IMPL-FUSE-CRLF($terms) {
         my @fused;
-        my int $i := 0;
+        my int $i;
         my int $n := nqp::elems($terms);
         while $i < $n {
             my $term := nqp::atpos($terms, $i);

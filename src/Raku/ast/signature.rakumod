@@ -57,7 +57,7 @@ class RakuAST::Signature
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $!implicit-invocant.to-begin-time($resolver, $context) if $!implicit-invocant;
-        my $has-slurpy-pos := 0;
+        my int $has-slurpy-pos;
         if $!parameters {
             for $!parameters {
                 $_.to-begin-time($resolver, $context);
@@ -79,7 +79,7 @@ class RakuAST::Signature
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my %seen;
         if $!parameters {
-            my int $prev-kind := 0;
+            my int $prev-kind;
             for $!parameters {
                 my int $kind := $_.named ?? 1 !!
                             $_.is-optional ?? 2 !!
@@ -456,8 +456,8 @@ class RakuAST::Signature
     }
 
     method IMPL-PARAM-POSITION(RakuAST::Parameter $param) {
-        my $i := 0;
-        my $found := 0;
+        my int $i;
+        my int $found;
         if $!implicit-invocant {
             if $!implicit-invocant =:= $param {
                 $found := 1;

@@ -800,7 +800,7 @@ role RakuAST::Code
 
         # A flattened body block lands in the frame as a statement list
         # rather than a block of its own, and a run may skip it.
-        my int $flattened := 0;
+        my int $flattened;
 
         # A native return Want holds a call and a clone of it that repeats
         # across its alternatives, and both share the argument subtrees. A
@@ -1049,7 +1049,7 @@ role RakuAST::Code
     # context. These survive serialization and thus point at what
     # has to be fixed up.
     method IMPL-BEGIN-TIME-LEXICAL-FIXUP(RakuAST::IMPL::QASTContext $context, Mu $block, RakuAST::LexicalFixup $lexical-fixup) {
-        my $has_nested_blocks := 0;
+        my $has_nested_blocks;
         my $todo := nqp::list($block);
         while $todo {
             my $stmts := nqp::shift($todo);
@@ -2032,7 +2032,7 @@ role RakuAST::ScopePhaser {
             if nqp::isconcrete($block) && nqp::ishash($phasers) && nqp::existskey($phasers, 'ENTER') {
                 my $enter-phasers := nqp::atkey($phasers, 'ENTER');
                 if nqp::isconcrete($enter-phasers) {
-                    my int $i := 0;
+                    my int $i;
                     my int $n := nqp::elems($enter-phasers);
                     while $i < $n {
                         my $p := nqp::atpos($enter-phasers, $i);
@@ -2787,7 +2787,7 @@ class RakuAST::Block
           !! LATER-OPERANDS{$infix.IMPL-SHORT-CIRCUIT-KIND} // '';
         return False unless $later;
         my int $last := nqp::elems(@operands) - 1;
-        my int $i := 0;
+        my int $i;
         for @operands {
             my int $decides := $later eq 'tested'
               || $i < $last && !($i && $later eq 'called' && $infix.IMPL-CALLS-OPERAND($_));
@@ -3542,7 +3542,7 @@ class RakuAST::Routine
         # exceeds it keeps the call, and the amount of code any single
         # call site can splice stays small.
         my $info;
-        my int $walked := 0;
+        my int $walked;
         my @budget := [64];
         try {
             $info := self.IMPL-INLINE-INFO-NODE($block.list[2], %placeholders, @budget);
@@ -3617,7 +3617,7 @@ class RakuAST::Routine
         elsif nqp::istype($node, QAST::Want) {
             my $replacement := $node.shallow_clone;
             my int $n := nqp::elems($node.list);
-            my int $i := 0;
+            my int $i;
             while $i < $n {
                 nqp::bindpos($replacement.list, $i,
                     self.IMPL-INLINE-INFO-NODE($node.list[$i], %placeholders, @budget));
@@ -6293,7 +6293,7 @@ class FixupList {
         nqp::bindattr(self, FixupList, '$!resolved', $resolved);
         nqp::scwbenable();
         my $do-list := nqp::list();
-        my int $i := 0;
+        my int $i;
         my int $n := nqp::elems($!list);
         while $i < $n {
             nqp::bindpos($do-list, $i, nqp::getattr(nqp::atpos($!list, $i), Code, '$!do'));

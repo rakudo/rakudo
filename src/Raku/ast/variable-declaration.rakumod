@@ -421,7 +421,7 @@ role RakuAST::ContainerCreator {
     # an outer setting.
     method IMPL-RESOLVE-CONTAINER-VIVIFY-MODE(RakuAST::Resolver $resolver) {
         my $base := self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE;
-        my int $bare := 0;
+        my int $bare;
         for nqp::list_s('Set', 'Bag', 'Mix') -> str $type-name {
             my $name  := RakuAST::Name.from-identifier($type-name);
             my $found := $resolver.resolve-name-constant-in-setting($name)
@@ -3016,7 +3016,7 @@ class RakuAST::VarDeclaration::Signature
             if nqp::elems(@groups) || nqp::elems(@terms) {
                 my $stmts := QAST::Stmts.new(:resultchild(0), $list);
                 # a sub-signature inside a group queues its own group
-                my int $i := 0;
+                my int $i;
                 while $i < nqp::elems(@groups) {
                     my $group := @groups[$i];
                     $stmts.push(QAST::Op.new(

@@ -2148,26 +2148,14 @@ class RakuAST::VarDeclaration::Simple
                 );
                 # A hoisted declaration's initializer runs in another frame,
                 # so the slot takes its default here.
-                if $!is-parameter || $!initializer && !self.is-hoisted-to-outer {
-                    $qast
-                }
-                else {
-                    my $init;
-                    my $assign-op := 'bind';
-                    if $prim-spec == 1 || (4 <= $prim-spec && $prim-spec <= 6) {
-                        $init := QAST::IVal.new( :value(0) );
-                    }
-                    elsif $prim-spec == 1 || (7 <= $prim-spec && $prim-spec <= 10) {
-                        $init := QAST::IVal.new( :value(0) );
-                    }
-                    elsif $prim-spec == 2 {
-                        $init := QAST::NVal.new( :value(0e0) );
-                    }
-                    else {
-                        $init := QAST::SVal.new( :value('') );
-                    }
-                    QAST::Op.new( :op($assign-op), $qast, $init )
-                }
+                $!is-parameter || $!initializer && !self.is-hoisted-to-outer
+                  ?? $qast
+                  !! $prim-spec == 3
+                    ?? QAST::Op.new(:op<bind>,
+                         $qast,
+                         QAST::SVal.new( :value(''))
+                       )
+                    !! $qast
             }
             elsif $!initializer && $!initializer.is-binding {
                 # Will be bound on first use, so just a declaration.

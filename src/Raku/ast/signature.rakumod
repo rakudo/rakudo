@@ -1580,7 +1580,7 @@ class RakuAST::Parameter
         nqp::die('RakuAST::Parameter::IMPL-TO-QAST reached for a sub-signature parameter. The owning routine must have custom-args True so dispatch routes through Signature::IMPL-QAST-BINDINGS.')
             if $!sub-signature;
         # Flag constants we need to pay attention to.
-        my @iscont-ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
+        my constant OPS := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
 
         # Get the parameter meta-object, since traits can change some things.
         my $param-obj := self.meta-object;
@@ -1651,7 +1651,7 @@ class RakuAST::Parameter
         if !$is-generic && $spec {
             if $is-rw {
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                    :op(@iscont-ops[$spec]),
+                    :op(nqp::atpos(OPS,$spec)),
                     $temp-qast-var
                 )));
             }

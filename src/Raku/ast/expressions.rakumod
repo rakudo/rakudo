@@ -1106,7 +1106,6 @@ class RakuAST::Infix
             my $result-local := QAST::Node.unique('!sm-result');
             my $rhs := $right.IMPL-EXPR-QAST($context);
 
-            my $boolify := 0;
             my $sm-call := QAST::Op.new(
                 :op<bind>,
                 QAST::Var.new( :name($result-local), :scope('local'), :decl('var') ),
@@ -1115,7 +1114,7 @@ class RakuAST::Infix
                     QAST::SVal.new( :value<raku-smartmatch> ),
                     QAST::Var.new( :name('$_'), :scope('lexical') ),
                     $rhs,
-                    QAST::IVal.new( :value( $negate ?? -1 !! $boolify ) )
+                    QAST::IVal.new( :value($negate ?? -1 !! 0) )
                 )
             );
             $sm-call[1].annotate('smartmatch_accepts', 1);

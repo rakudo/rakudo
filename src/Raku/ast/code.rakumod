@@ -3712,7 +3712,7 @@ class RakuAST::Routine
         # A native return coerces the value the routine ends with, unless
         # that value is already native, or is a Nil or a Failure, which
         # every return type lets through.
-        my int $native-return := nqp::objprimspec(nqp::ifnull($signature.returns, Mu));
+        my int $native-return := nqp::objprimspec($signature.returns);
         if $native-return && !$routine.rw {
             my str $deref := self.IMPL-RETURN-NATIVE-DEREF($body);
             if $deref {

@@ -698,8 +698,6 @@ class RakuAST::Call::Name
             $call.push(QAST::WVal.new(:value($ret.maybe-compile-time-value)));
         }
 
-        my $qast := self.IMPL-SIMPLIFY-REF-ARGS($call);
-
         # A call the check-time analysis settled on one candidate carries
         # that candidate's native return type. This takes precedence over
         # the callstatic return copy: the copy's Want offers the raw return
@@ -708,14 +706,12 @@ class RakuAST::Call::Name
         # Want widens across native kinds. A dispatcher leaves its return to
         # its candidates, which the copy declines to guess at, so a settled
         # multi is covered here as well.
-        my $native-return := $!native-return-type;
-        if !nqp::isnull($native-return) && nqp::objprimspec($native-return) {
-            $qast := self.IMPL-NATIVE-RETURN-WANT($qast, $native-return);
-        }
-        elsif $!callstatic {
-            $qast := self.IMPL-COPY-RETURNS($qast);
-        }
-        $qast
+        my $qast := self.IMPL-SIMPLIFY-REF-ARGS($call);
+        nqp::objprimspec($!native-return-type)
+          ?? self.IMPL-NATIVE-RETURN-WANT($qast, $!native-return-type)
+          !! $!callstatic
+            ?? self.IMPL-COPY-RETURNS($qast)
+            !! $qast
     }
 
     # Copy the resolved callee's declared return type onto the call node, so

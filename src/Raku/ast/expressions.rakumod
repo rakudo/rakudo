@@ -3252,8 +3252,9 @@ class RakuAST::ApplyInfix
     }
 
     method return-type() {
-        my $type := $!native-return-type;
-        !nqp::isnull($type) && nqp::objprimspec($type) ?? $type !! Mu
+        nqp::objprimspec($!native-return-type)
+          ?? $!native-return-type
+          !! Mu
     }
 
     # An assignment to a native variable yields the value it stored, so as
@@ -3281,13 +3282,11 @@ class RakuAST::ApplyInfix
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $adverb := $!args.arg-at-pos(2) // RakuAST::ColonPairish;
         my $qast := $!infix.IMPL-INFIX-COMPILE($context, self.left, self.right, :$adverb);
-        my $type := $!native-return-type;
-        if !nqp::isnull($type) && nqp::objprimspec($type)
+        nqp::objprimspec($!native-return-type)
           && nqp::istype($qast, QAST::Op)
-          && ($qast.op eq 'call' || $qast.op eq 'callstatic') {
-            $qast := $!infix.IMPL-NATIVE-RETURN-WANT($qast, $type);
-        }
-        $qast
+          && ($qast.op eq 'call' || $qast.op eq 'callstatic')
+          ?? $!infix.IMPL-NATIVE-RETURN-WANT($qast, $!native-return-type)
+          !! $qast
     }
 
     method visit-children(Code $visitor) {
@@ -3927,20 +3926,25 @@ class RakuAST::ApplyPrefix
     }
 
     method return-type() {
-        my $type := $!native-return-type;
-        !nqp::isnull($type) && nqp::objprimspec($type) ?? $type !! Mu
+        nqp::objprimspec($!native-return-type)
+          ?? $!native-return-type
+          !! Mu
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        return self.IMPL-NATIVE-INCDEC-QAST($context) if $!native-incdec;
-        my $qast := $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context));
-        my $type := $!native-return-type;
-        if !nqp::isnull($type) && nqp::objprimspec($type)
-          && nqp::istype($qast, QAST::Op)
-          && ($qast.op eq 'call' || $qast.op eq 'callstatic') {
-            $qast := $!prefix.IMPL-NATIVE-RETURN-WANT($qast, $type);
+        if $!native-incdec {
+            self.IMPL-NATIVE-INCDEC-QAST($context);
         }
-        $qast
+        else {
+            my $qast := $!prefix.IMPL-PREFIX-QAST(
+              $context, $!operand.IMPL-TO-QAST($context)
+            );
+            nqp::objprimspec($!native-return-type)
+              && nqp::istype($qast, QAST::Op)
+              && ($qast.op eq 'call' || $qast.op eq 'callstatic')
+              ?? $!prefix.IMPL-NATIVE-RETURN-WANT($qast, $!native-return-type)
+              !! $qast
+        }
     }
 
     # A native int/num ++ or -- the optimize pass marked: emit the raw op on

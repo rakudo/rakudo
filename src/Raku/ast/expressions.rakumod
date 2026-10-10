@@ -3898,7 +3898,9 @@ class RakuAST::ApplyPrefix
     # the emission passes.
     method IMPL-RECORD-NATIVE-RETURN-TYPE(RakuAST::Resolver $resolver) {
         my $routine := try $!prefix.resolution.compile-time-value;
-        if nqp::isconcrete($routine) && nqp::isconcrete($!operand) {
+        if nqp::isconcrete($routine)
+          && nqp::istype($routine,Code)
+          && nqp::isconcrete($!operand) {
             my @info := self.IMPL-CT-ARG-TYPES($resolver, [$!operand]);
             if @info {
                 my $ret := $!prefix.IMPL-NATIVE-RETURN-TYPE($routine, @info[0], @info[1]);
@@ -3906,7 +3908,6 @@ class RakuAST::ApplyPrefix
                   unless nqp::isnull($ret);
             }
         }
-
         Nil
     }
 

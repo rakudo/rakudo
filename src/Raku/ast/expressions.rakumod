@@ -4223,41 +4223,87 @@ class RakuAST::Postcircumfix
 class RakuAST::Postcircumfix::Index
   is RakuAST::Postcircumfix
 {
+    # Whether the index interpolates, set once to 2 when it does and to 1
+    # when it doesn't, as the optimizer can drop a statement modifier after
+    # the subscript routine is resolved
+    has int $!interpolates;
+
     method is-multislice(--> Bool) {
-        my $statements := self.index.code-statements;
-        nqp::elems($statements) > 1
-        || nqp::elems(self.IMPL-UNWRAP-LIST(self.index.find-nodes(RakuAST::Prefix::Multislice, :stopper(RakuAST::Code))))
+        self.IMPL-INTERPOLATES || nqp::elems(self.index.code-statements) > 1
     }
 
+    method IMPL-INTERPOLATES() {
+        nqp::bindattr_i(self, RakuAST::Postcircumfix::Index, '$!interpolates',
+          self.IMPL-FIND-INTERPOLATION ?? 2 !! 1
+        ) unless $!interpolates;
+        $!interpolates == 2
+    }
+
+    # Whether the index interpolates a list with prefix:<||>, as a statement
+    # of its own without a modifier or an item of a comma list that is one
+    method IMPL-FIND-INTERPOLATION() {
+        for self.index.code-statements -> $statement {
+            if nqp::istype($statement, RakuAST::Statement::Expression)
+              && !$statement.condition-modifier
+              && !$statement.loop-modifier {
+                my $expression := $statement.expression;
+                return 1 if self.IMPL-IS-INTERPOLATION($expression);
+                if nqp::istype($expression, RakuAST::ApplyListInfix)
+                  && $expression.IMPL-IS-LIST-LITERAL {
+                    for self.IMPL-UNWRAP-LIST($expression.operands) {
+                        return 1 if self.IMPL-IS-INTERPOLATION($_);
+                    }
+                }
+            }
+        }
+        0
+    }
+
+    # Whether an expression is a || that interpolates rather than one that
+    # curries, as any prefix does on a Whatever, HyperWhatever or WhateverCode
+    method IMPL-IS-INTERPOLATION(Mu $expression) {
+        nqp::istype($expression, RakuAST::ApplyPrefix)
+          && nqp::istype($expression.prefix, RakuAST::Prefix::Multislice)
+          && !($expression.IMPL-PRIMED || $expression.IMPL-SHOULD-PRIME)
+    }
+
+    # An index that interpolates a list with prefix:<||> takes its number of
+    # dimensions from its indices, so they go through a check for laziness
     method IMPL-INDEX-QAST(RakuAST::IMPL::QASTContext $context) {
-        if self.is-multislice && nqp::elems(self.index.code-statements) == 1 {
-            my $stmt := self.index.code-statements[0];
-            if nqp::istype($stmt, RakuAST::Statement::Expression)
-                && nqp::istype($stmt.expression, RakuAST::ApplyPrefix)
-                && nqp::istype($stmt.expression.prefix, RakuAST::Prefix::Multislice)
-            {
-                # cut out the || op
-                $stmt.expression.operand.IMPL-TO-QAST($context);
-            }
-            elsif nqp::istype($stmt, RakuAST::Statement::Expression)
-                && nqp::istype($stmt.expression, RakuAST::ApplyListInfix)
-                && nqp::istype($stmt.expression.infix, RakuAST::Infix)
-                && $stmt.expression.infix.operator eq ','
-                && nqp::istype((my $operand := self.IMPL-UNWRAP-LIST($stmt.expression.operands)[0]), RakuAST::ApplyPrefix)
-                && nqp::istype($operand.prefix, RakuAST::Prefix::Multislice)
-            {
-                # cut out the || op
-                my $qast := $stmt.IMPL-TO-QAST($context);
-                $qast[0] := $qast[0][0];
-                $qast
-            }
-            else {
-                $stmt.IMPL-TO-QAST($context)
-            }
+        if self.IMPL-INTERPOLATES {
+            QAST::Op.new(
+              :op('callstatic'), :name('&MD-INTERPOLATED-INDICES'),
+              self.IMPL-SEMILIST-QAST($context)
+            )
         }
         else {
             self.index.IMPL-TO-QAST($context)
         }
+    }
+
+    # The index with a leading prefix:<||> cut out
+    method IMPL-SEMILIST-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $statements := self.index.code-statements;
+        if nqp::elems($statements) == 1
+          && nqp::istype($statements[0], RakuAST::Statement::Expression) {
+            my $statement  := $statements[0];
+            my $expression := $statement.expression;
+            if self.IMPL-IS-INTERPOLATION($expression) {
+                # cut out the || op
+                return $expression.operand.IMPL-TO-QAST($context);
+            }
+            if nqp::istype($expression, RakuAST::ApplyListInfix)
+              && $expression.IMPL-IS-LIST-LITERAL
+              && self.IMPL-IS-INTERPOLATION(
+                   self.IMPL-UNWRAP-LIST($expression.operands)[0]
+                 ) {
+                # cut out the || op
+                my $qast := $statement.IMPL-TO-QAST($context);
+                $qast[0] := $qast[0][0];
+                return $qast;
+            }
+        }
+        self.index.IMPL-TO-QAST($context)
     }
 }
 
@@ -4486,11 +4532,40 @@ class RakuAST::Postcircumfix::ArrayIndex
         $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
-        $op
+        self.IMPL-HAS-UNKNOWN-ADVERB($context)
+          ?? self.IMPL-GUARD-ADVERBS($op)
+          !! $op
+    }
+
+    # A subscript with an adverb the setting's routine would ignore calls what
+    # MD-ARRAY-SUBSCRIPT gives for the routine in scope when it runs, so a
+    # user's own or wrapped routine still gets the adverb
+    method IMPL-GUARD-ADVERBS(Mu $op) {
+        my $call := QAST::Op.new( :op('call'),
+          QAST::Op.new( :op('callstatic'), :name('&MD-ARRAY-SUBSCRIPT'),
+            QAST::Var.new( :name($op.name), :scope('lexical') ) ) );
+        $call.push($_) for $op.list;
+        $call
+    }
+
+    # Whether a multidimensional subscript in 6.e has an adverb that the
+    # setting's multidimensional array subscript would ignore
+    method IMPL-HAS-UNKNOWN-ADVERB(RakuAST::IMPL::QASTContext $context) {
+        if self.is-multislice && nqp::unbox_i($context.language-revision) >= 3 {
+            for self.IMPL-UNWRAP-LIST(self.colonpairs) {
+                my str $name := $_.named-arg-name;
+                return 1 unless $name eq 'exists' || $name eq 'delete'
+                  || $name eq 'k' || $name eq 'kv' || $name eq 'p' || $name eq 'v'
+                  || $name eq 'BIND';
+            }
+        }
+        0
     }
 
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $operand, QAST::Node $source-qast) {
+        return self.IMPL-GUARD-BIND-ADVERBS($context, $operand, $source-qast)
+          if self.IMPL-HAS-UNKNOWN-ADVERB($context);
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
@@ -4500,13 +4575,48 @@ class RakuAST::Postcircumfix::ArrayIndex
         $op
     }
 
+    # An unwrapped setting routine refuses an adverb it would ignore, while a
+    # user's own or wrapped routine binds as it would without the adverbs
+    method IMPL-GUARD-BIND-ADVERBS(
+      RakuAST::IMPL::QASTContext $context,
+      RakuAST::Expression $operand,
+      QAST::Node $source-qast
+    ) {
+        my $name := self.resolution.lexical-name;
+        my str $operand-var := QAST::Node.unique('bind_operand');
+        my str $index-var   := QAST::Node.unique('bind_index');
+        my str $source-var  := QAST::Node.unique('bind_source');
+        my $refuse := QAST::Op.new( :op('callstatic'), :name('&MD-ARRAY-UNKNOWN-ADVERBS'),
+          QAST::Var.new( :scope('local'), :name($operand-var) ),
+          QAST::Var.new( :scope('local'), :name($index-var) ) );
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $refuse);
+        QAST::Stmts.new(
+          QAST::Op.new( :op('bind'),
+            QAST::Var.new( :scope('local'), :name($operand-var), :decl('var') ),
+            $operand.IMPL-TO-QAST($context) ),
+          QAST::Op.new( :op('bind'),
+            QAST::Var.new( :scope('local'), :name($index-var), :decl('var') ),
+            self.IMPL-INDEX-QAST($context) ),
+          QAST::Op.new( :op('bind'),
+            QAST::Var.new( :scope('local'), :name($source-var), :decl('var') ),
+            $source-qast ),
+          QAST::Op.new( :op('if'),
+            QAST::Op.new( :op('callstatic'), :name('&MD-ARRAY-REFUSES'),
+              QAST::Var.new( :name($name), :scope('lexical') ) ),
+            $refuse,
+            QAST::Op.new( :op(self.IMPL-CALL-OP), :$name,
+              QAST::Var.new( :scope('local'), :name($operand-var) ),
+              QAST::Var.new( :scope('local'), :name($index-var) ),
+              QAST::Var.new( :scope('local'), :name($source-var), :named('BIND') ) ) ) )
+    }
+
     method can-be-used-with-hyper() { True }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $op := QAST::Op.new:
             :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
             $operand-qast;
-        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         $op.push(self.resolution.IMPL-LOOKUP-QAST($context));
         $op
     }
@@ -4593,7 +4703,7 @@ class RakuAST::Postcircumfix::HashIndex
         my $op := QAST::Op.new:
             :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
             $operand-qast;
-        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push(self.IMPL-INDEX-QAST($context)) unless $!index.is-empty;
         $op.push(self.resolution.IMPL-LOOKUP-QAST($context));
         $op
     }

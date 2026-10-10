@@ -277,6 +277,16 @@ multi sub postcircumfix:<{ }>(Hash::Shaped \SELF, HyperWhatever \key, *%adverbs)
       !! &postcircumfix:<{; }>(SELF, (key,), |%adverbs)
 }
 
+# A zen slice with an adverb takes every key as %h{*} does, so each key
+# stays the list of a key for each dimension
+multi sub postcircumfix:<{ }>(Hash::Shaped \SELF, *%adverbs) is raw {
+    nqp::elems(my \adverbs := nqp::getattr(%adverbs,Map,'$!storage'))
+      ?? nqp::existskey(adverbs,'BIND')
+        ?? X::Bind::ZenSlice.new(type => SELF.WHAT).throw
+        !! &postcircumfix:<{; }>(SELF, (nqp::create(HyperWhatever),), |%adverbs)
+      !! nqp::decont(SELF)
+}
+
 # A list of a key for each dimension, or a slice of such lists, is taken as
 # an object hash takes a key. Any other list is a list of keys for fewer
 # dimensions or a slice of the first.

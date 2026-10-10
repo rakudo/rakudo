@@ -2491,7 +2491,6 @@ class RakuAST::Block
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
-        nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
         nqp::bindattr_i($obj, RakuAST::Block, '$!may-have-signature', $may-have-signature ?? 1 !! 0);
         $obj.set-implicit-topic($implicit-topic // True, :required($required-topic), :$exception);
         $obj.set-WHY($WHY);
@@ -2944,7 +2943,6 @@ class RakuAST::PointyBlock
           $signature // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Block, '$!body',
           $body // RakuAST::Blockoid.new);
-        nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
         $obj.set-WHY($WHY);
         $obj
     }

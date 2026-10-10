@@ -26,11 +26,6 @@ class RakuAST::Signature
           self.IMPL-UNWRAP-LIST($parameters)
         ) if nqp::isconcrete($parameters);
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-named-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-meta-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!invocant-type-check', 1);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-array', ?$is-array);
         $obj

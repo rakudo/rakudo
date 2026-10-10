@@ -3100,14 +3100,14 @@ class RakuAST::Statement::Require
             # constraint into the dependency specification. Without this the
             # adverbs stay in the short-name and the module is looked up under a
             # name like "Foo:ver<...>", which never resolves.
-            my @adverb-keys   := ['ver', 'auth', 'api', 'from'];
-            my @matcher-names := ['version-matcher', 'auth-matcher', 'api-matcher', 'from'];
+            my constant ADVERBS  := ['ver', 'auth', 'api', 'from'];
+            my constant MATCHERS := ['version-matcher', 'auth-matcher', 'api-matcher', 'from'];
             my int $i := 0;
             while $i < 4 {
-                my $cp := $!module-name.first-colonpair(@adverb-keys[$i]);
+                my $cp := $!module-name.first-colonpair(nqp::atpos(ADVERBS,$i));
                 if $cp {
                     my $matcher := $cp.IMPL-VALUE-QAST($context);
-                    $matcher.named(@matcher-names[$i]);
+                    $matcher.named(nqp::atpos(MATCHERS,$i));
                     $spec.push($matcher);
                 }
                 $i := $i + 1;

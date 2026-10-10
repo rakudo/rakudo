@@ -974,7 +974,7 @@ class RakuAST::Infix
     method IMPL-ASSIGN-OP(QAST::Node $lhs_ast, QAST::Node $rhs_ast) {
         my $initialize := 0;
         # The _i64 and _u64 are only used on backends that emulate int64/uint64
-        my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i', 'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
+        my constant NATIVE-OPS := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i', 'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
         my $past;
         my $var_sigil;
         if nqp::istype($lhs_ast, QAST::Var) {
@@ -996,7 +996,7 @@ class RakuAST::Infix
         }
 
         if nqp::istype($lhs_ast, QAST::Var)
-                && (my $spec := nqp::objprimspec($lhs_ast.returns)) {
+                && (my int $spec := nqp::objprimspec($lhs_ast.returns)) {
             # Native assignment is only possible to a reference; complain now
             # rather than at runtime since we'll inevitably fail.
             my $scope := $lhs_ast.scope;
@@ -1006,7 +1006,7 @@ class RakuAST::Infix
                     variable => $lhs_ast.name);
             }
             $past := QAST::Op.new(
-                :op(@native_assign_ops[$spec]), :returns($lhs_ast.returns),
+                :op(nqp::atpos(NATIVE-OPS,$spec)), :returns($lhs_ast.returns),
                 $lhs_ast, $rhs_ast);
         }
         elsif $var_sigil eq '@' || $var_sigil eq '%' {
@@ -2099,10 +2099,10 @@ class RakuAST::MetaInfix::Assign
     # written through.
     method IMPL-NATIVE-ASSIGN-QAST(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right, int $spec) {
-        my @assign := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i',
+        my constant OPS := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i',
             'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
         my $var := $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context));
-        QAST::Op.new(:op(@assign[$spec]), :returns($var.returns), $var,
+        QAST::Op.new(:op(nqp::atpos(OPS,$spec)), :returns($var.returns), $var,
             $!infix.IMPL-INFIX-COMPILE($context, $left, $right))
     }
 

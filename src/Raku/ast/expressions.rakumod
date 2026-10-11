@@ -1650,11 +1650,11 @@ class RakuAST::Assignment
     method item { $!item ?? True !! False }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
-        my $i := 0;
-        while $i < nqp::elems($operands) {
-            $operands[$i].apply-sink(False);
-            $i++;
-        }
+        my int $i;
+        nqp::while(
+          $i < nqp::elems($operands),
+          nqp::atpos($operands,$i++).apply-sink(False)
+        );
     }
 
     method is-pure() { False }

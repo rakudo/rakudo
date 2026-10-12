@@ -66,7 +66,12 @@ my role Array::JaggedRow[::Base, Str:D $key] is implementation-detail {
             Pair.new($_, self!element(SELF, nqp::istype($_,List) ?? $_ !! ($_,), row))
         }
     }
-    method !elements(\SELF) { self!pairs(SELF).map(*.value) }
+    method !elements(\SELF) {
+        my \row := self.new;
+        row.keys.map: {
+            self!element(SELF, nqp::istype($_,List) ?? $_ !! ($_,), row)
+        }
+    }
 
     multi method elems(::?CLASS:U:)         { self.new.elems  }
     multi method end(::?CLASS:U:)           { self.new.end    }

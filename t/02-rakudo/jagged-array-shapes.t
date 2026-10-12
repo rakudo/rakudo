@@ -3,7 +3,7 @@ use Test;
 use Test::Helpers;
 use MONKEY-SEE-NO-EVAL;
 
-plan 189;
+plan 251;
 
 # a set length for the first dimension
 {
@@ -15,8 +15,10 @@ plan 189;
     @j[0;5] = 1;
     is @j[0;5], 1,
         'a dimension of no set length takes any index';
-    is-deeply (@j[0].elems, @j[1].elems), (6, 0),
-        'each element of the first dimension has its own length';
+    is-deeply @j[0].elems, 6,
+        'each element of the first dimension has its own length 1';
+    is-deeply @j[1].elems, 0,
+        'each element of the first dimension has its own length 2';
     push @j[1], 1, 2, 3;
     is-deeply @j[1].List, (1, 2, 3),
         'an element of the first dimension takes a push';
@@ -85,8 +87,10 @@ plan 189;
     @cal[1;42;8] = 'meeting';
     is @cal[1;42;8], 'meeting',
         'a dimension of no set length between two of set length takes any index';
-    is-deeply (@cal[1].elems, @cal[1;42].elems), (43, 24),
-        'the dimensions around one of no set length keep their lengths';
+    is-deeply @cal[1].elems, 43,
+        'the dimensions around one of no set length keep their lengths 1';
+    is-deeply @cal[1;42].elems, 24,
+        'the dimensions around one of no set length keep their lengths 2';
     throws-like { @cal[1;0;24] = 1 }, Exception, message => /'Index 24 for dimension 3'/,
         'an index past the set length of the last dimension is refused';
 }
@@ -94,8 +98,12 @@ plan 189;
 {
     my Int @t[2;*];
     @t[0;1] = 5;
-    is-deeply (@t.of, @t[0;1], @t[0;0]), (Int, 5, Int),
-        'a typed array of a dimension of no set length keeps its type';
+    is-deeply @t.of, Int,
+        'a typed array of a dimension of no set length keeps its type 1';
+    is-deeply @t[0;1], 5,
+        'a typed array of a dimension of no set length keeps its type 2';
+    is-deeply @t[0;0], Int,
+        'a typed array of a dimension of no set length keeps its type 3';
     throws-like { @t[0;1] = 'x' }, X::TypeCheck::Assignment, expected => Int,
         'a typed array of a dimension of no set length checks its values';
 }
@@ -106,8 +114,12 @@ plan 189;
     is-deeply @n[41].List, (1, 2),
         'an element of a native array of a dimension of no set length takes a push';
     @n[0;3] = 5;
-    is-deeply (@n.of, @n[0;3], @n[0;0]), (int, 5, 0),
-        'a native array of a dimension of no set length keeps its native type';
+    is-deeply @n.of, int,
+        'a native array of a dimension of no set length keeps its native type 1';
+    is-deeply @n[0;3], 5,
+        'a native array of a dimension of no set length keeps its native type 2';
+    is-deeply @n[0;0], 0,
+        'a native array of a dimension of no set length keeps its native type 3';
 }
 
 is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
@@ -115,8 +127,10 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
 
 {
     my @j[2;*] = (1,),(2,3);
-    is-deeply (@j[0]:exists, @j[0]:!exists), (True, False),
-        'an element of the first dimension takes :exists';
+    is-deeply @j[0]:exists, True,
+        'an element of the first dimension takes :exists 1';
+    is-deeply @j[0]:!exists, False,
+        'an element of the first dimension takes :exists 2';
     my @rows = [1,2],[3];
     my @k[2;*] = @rows;
     is-deeply @k[0].List, (1, 2),
@@ -162,8 +176,10 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     is @n.elems, 0,
         'a refused value for a native row not made yet makes nothing';
     @n[1][1] = 5;
-    is-deeply (@n[1] ~~ array[int], @n[1;1]), (True, 5),
-        'a cascaded assignment to a native row not made yet makes a native row';
+    is-deeply @n[1] ~~ array[int], True,
+        'a cascaded assignment to a native row not made yet makes a native row 1';
+    is-deeply @n[1;1], 5,
+        'a cascaded assignment to a native row not made yet makes a native row 2';
     my Int @t[2;*];
     ok @t.default === Int,
         'a typed array of a dimension of no set length has the default of its type';
@@ -214,13 +230,21 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     my Int @i[2;*];
     my @n := @i.new(:shape(3,*));
     @n[0;1] = 5;
-    is-deeply (@n[0;1], @n[0].elems, @n.shape, @n.of), (5, 2, (3, *), Int),
-        'a new array of another shape of a jagged one has arrays of its base type';
+    is-deeply @n[0;1], 5,
+        'a new array of another shape of a jagged one has arrays of its base type 1';
+    is-deeply @n[0].elems, 2,
+        'a new array of another shape of a jagged one has arrays of its base type 2';
+    is-deeply @n.shape, (3, *),
+        'a new array of another shape of a jagged one has arrays of its base type 3';
+    is-deeply @n.of, Int,
+        'a new array of another shape of a jagged one has arrays of its base type 4';
     my @e[2;*] = (1,2),(3,);
     my @f[2;*] = (1,2),(3,);
     my @g[2;*] = (1,2),(4,);
-    is-deeply (@e eqv @f, @e eqv @g), (True, False),
-        'arrays of a dimension of no set length are eqv when their values are';
+    is-deeply @e eqv @f, True,
+        'arrays of a dimension of no set length are eqv when their values are 1';
+    is-deeply @e eqv @g, False,
+        'arrays of a dimension of no set length are eqv when their values are 2';
 }
 
 # a row not made yet reads as the type object of a row, which makes one of
@@ -235,8 +259,12 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     is @j.elems, 1,
         'reading through a row not made yet makes nothing';
     @j[2][1] = 42;
-    is-deeply (@j.elems, @j[2].List, @j[2].shape), (3, (Any, 42, Any), (3,)),
-        'a cascaded assignment to a row not made yet makes it of its shape';
+    is-deeply @j.elems, 3,
+        'a cascaded assignment to a row not made yet makes it of its shape 1';
+    is-deeply @j[2].List, (Any, 42, Any),
+        'a cascaded assignment to a row not made yet makes it of its shape 2';
+    is-deeply @j[2].shape, (3,),
+        'a cascaded assignment to a row not made yet makes it of its shape 3';
     @j[3][0] += 5;
     @j[3][0]++;
     is @j[3;0], 6,
@@ -391,8 +419,10 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     is-deeply @c[4].List, (Any, Any, 'z'),
         'a Callable index takes the set length of a row not made yet';
     @c[6;*] = 1, 2, 3;
-    is-deeply (@c[6].List, @c.elems), ((1, 2, 3), 7),
-        'assigning through a whatever star makes a row not made yet';
+    is-deeply @c[6].List, (1, 2, 3),
+        'assigning through a whatever star makes a row not made yet 1';
+    is-deeply @c.elems, 7,
+        'assigning through a whatever star makes a row not made yet 2';
     my Int @t[*;3];
     @t[2;0] = 1;
     ok @t.splice(0, 1).head.WHAT =:= @t[2].WHAT,
@@ -403,14 +433,24 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     my @j[2;*] = (1,2),(3,);
     is-deeply (@j[1]:delete).List, (3,),
         'deleting an element of a set first dimension gives its row';
-    is-deeply (@j.elems, @j[1].defined, @j[1].elems), (2, True, 0),
-        'deleting an element of a set first dimension leaves an empty row';
+    is-deeply @j.elems, 2,
+        'deleting an element of a set first dimension leaves an empty row 1';
+    is-deeply @j[1].defined, True,
+        'deleting an element of a set first dimension leaves an empty row 2';
+    is-deeply @j[1].elems, 0,
+        'deleting an element of a set first dimension leaves an empty row 3';
     my @k[*;3] = (1,2,3),(4,5,6);
-    is-deeply ((@k[1]:delete).List, @k.elems), ((4, 5, 6), 1),
-        'deleting the last element of a first dimension of no set length removes it';
+    is-deeply (@k[1]:delete).List, (4, 5, 6),
+        'deleting the last element of a first dimension of no set length removes it 1';
+    is-deeply @k.elems, 1,
+        'deleting the last element of a first dimension of no set length removes it 2';
     my @r[*;3];
-    is-deeply ((@r[5][1]:exists), (@r[5;1]:exists), @r.elems), (False, False, 0),
-        ':exists through a row not made yet makes nothing';
+    is-deeply @r[5][1]:exists, False,
+        ':exists through a row not made yet makes nothing 1';
+    is-deeply @r[5;1]:exists, False,
+        ':exists through a row not made yet makes nothing 2';
+    is-deeply @r.elems, 0,
+        ':exists through a row not made yet makes nothing 3';
     @r[5][1]:delete;
     @r[5;1]:delete;
     is @r.elems, 0,
@@ -422,8 +462,10 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     my $v = 1;
     @j[2;1] := $v;
     $v = 2;
-    is-deeply (@j[2;1], @j.elems), (2, 3),
-        'binding an element of a row not made yet by its indices makes the row';
+    is-deeply @j[2;1], 2,
+        'binding an element of a row not made yet by its indices makes the row 1';
+    is-deeply @j.elems, 3,
+        'binding an element of a row not made yet by its indices makes the row 2';
     my @r[3] = 1, 2, 3;
     @j[0] := @r;
     @r[0] = 9;
@@ -441,8 +483,12 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     @a.unshift((2,),(3,));
     is-deeply @a.List.map(*.List), ((2,), (3,), (1,)),
         'an unshift of several values adds a row of each in order';
-    is-deeply (@a.pop.List, @a.shift.List, @a.elems), ((1,), (2,), 1),
-        'a first dimension of no set length takes a pop and a shift';
+    is-deeply @a.pop.List, (1,),
+        'a first dimension of no set length takes a pop and a shift 1';
+    is-deeply @a.shift.List, (2,),
+        'a first dimension of no set length takes a pop and a shift 2';
+    is-deeply @a.elems, 1,
+        'a first dimension of no set length takes a pop and a shift 3';
     my @p[3;*] = (1,2),;
     is-deeply (@p.elems, @p[2].defined, @p[2].elems), (3, True, 0),
         'fewer values than a set length leave empty rows';
@@ -453,8 +499,10 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     @a[1] = 1, 2, 3;
     @a[3,4] = @a[1], @a[1];
     @a[3;0] = 99;
-    is-deeply (@a[1].List, @a[1] =:= @a[4]), ((1, 2, 3), False),
-        'assigning a row to a slice of rows not made yet copies its values';
+    is-deeply @a[1].List, (1, 2, 3),
+        'assigning a row to a slice of rows not made yet copies its values 1';
+    is-deeply @a[1] =:= @a[4], False,
+        'assigning a row to a slice of rows not made yet copies its values 2';
     my $c := @a[6];
     $c = @a[1];
     @a[6][0] = 98;
@@ -485,8 +533,12 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     $_ = (7, 8, 9) for @b.head(2);
     is-deeply @b[0,1].map(*.List), ((7, 8, 9), (7, 8, 9)),
         'assigning to an iterated row not made yet makes it';
-    is-deeply (@a[5;1;0], @a[5][0;0]:exists, @a.elems), (Any, False, 3),
-        'reading more indices than a row not made yet has makes nothing';
+    is-deeply @a[5;1;0], Any,
+        'reading more indices than a row not made yet has makes nothing 1';
+    is-deeply @a[5][0;0]:exists, False,
+        'reading more indices than a row not made yet has makes nothing 2';
+    is-deeply @a.elems, 3,
+        'reading more indices than a row not made yet has makes nothing 3';
     my @s[*;*];
     @s[2] = 1, 2;
     @s.splice(3, 0, $(5,));
@@ -497,16 +549,22 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
         'binding the type object of a row of a first dimension of no set length deletes it';
     my @f[2;*] = (1,),(2,);
     @f[0] := Array;
-    is-deeply (@f[0].defined, @f[0].List), (True, ()),
-        'binding the type object of a row of a set first length empties it';
+    is-deeply @f[0].defined, True,
+        'binding the type object of a row of a set first length empties it 1';
+    is-deeply @f[0].List, (),
+        'binding the type object of a row of a set first length empties it 2';
 }
 
 {
     my @j[*;2;*];
     @j[3][1][4] = 7;
     @j[3][1].push(5);
-    is-deeply (@j.elems, @j[3;1][^6], @j[5][1].defined), (4, (Any, Any, Any, Any, 7, 5), False),
-        'writes through rows not made yet of a set length make each of them';
+    is-deeply @j.elems, 4,
+        'writes through rows not made yet of a set length make each of them 1';
+    is-deeply @j[3;1][^6], (Any, Any, Any, Any, 7, 5),
+        'writes through rows not made yet of a set length make each of them 2';
+    is-deeply @j[5][1].defined, False,
+        'writes through rows not made yet of a set length make each of them 3';
     my @k[2;*];
     @k[0,1] = (1,2),(3,);
     is-deeply @k.List.map(*.List), ((1, 2), (3,)),
@@ -517,23 +575,43 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     my @p[*;*];
     @p[2] = 1, 2;
     my @t[*;3];
-    is-deeply (@p[0;*], @t[5][*], @t[5].elems, @t[5].defined), ((), (Any, Any, Any), 3, False),
-        'the elements of a row not made yet read as those of a new row';
-    is-deeply (@t[5].keys.List, @t[5].values.List, @t[5].kv.elems, @t[5].pairs.elems, @t[5].end),
-      ((0, 1, 2), (Any, Any, Any), 6, 3, 2),
-        'the keys and values of a row not made yet are those of a new row';
+    is-deeply @p[0;*], (),
+        'the elements of a row not made yet read as those of a new row 1';
+    is-deeply @t[5][*], (Any, Any, Any),
+        'the elements of a row not made yet read as those of a new row 2';
+    is-deeply @t[5].elems, 3,
+        'the elements of a row not made yet read as those of a new row 3';
+    is-deeply @t[5].defined, False,
+        'the elements of a row not made yet read as those of a new row 4';
+    is-deeply @t[5].keys.List, (0, 1, 2),
+        'the keys and values of a row not made yet are those of a new row 1';
+    is-deeply @t[5].values.List, (Any, Any, Any),
+        'the keys and values of a row not made yet are those of a new row 2';
+    is-deeply @t[5].kv.elems, 6,
+        'the keys and values of a row not made yet are those of a new row 3';
+    is-deeply @t[5].pairs.elems, 3,
+        'the keys and values of a row not made yet are those of a new row 4';
+    is-deeply @t[5].end, 2,
+        'the keys and values of a row not made yet are those of a new row 5';
 }
 
 {
     my @j[2;*] = (1,2),(3,);
-    is-deeply (@j[*;*;*], @j[0;0;*-1]), ((1, 2, 3), (1,)),
-        'indices past the last dimension take the elements themselves';
+    is-deeply @j[*;*;*], (1, 2, 3),
+        'indices past the last dimension take the elements themselves 1';
+    is-deeply @j[0;0;*-1], (1,),
+        'indices past the last dimension take the elements themselves 2';
     my @k[*;*];
     @k[0] = 1|2;
     @k.push(4|5);
-    is-deeply (@k[0].elems, @k[0][0].^name, @k[1].elems, @k[1][0].^name),
-      (1, 'Junction', 1, 'Junction'),
-        'a junction assigned to a row is a value of it';
+    is-deeply @k[0].elems, 1,
+        'a junction assigned to a row is a value of it 1';
+    is-deeply @k[0][0].^name, 'Junction',
+        'a junction assigned to a row is a value of it 2';
+    is-deeply @k[1].elems, 1,
+        'a junction assigned to a row is a value of it 3';
+    is-deeply @k[1][0].^name, 'Junction',
+        'a junction assigned to a row is a value of it 4';
     my @b[*;*];
     my $a = [1,2];
     @b[0] := $a;
@@ -650,9 +728,14 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
 {
     my @k[*;3];
     my int @n[*;3];
-    is-deeply (@k[3].List, @k[3].list.List, @k[3].Seq.List, @n[3].List),
-      ((Any, Any, Any), (Any, Any, Any), (Any, Any, Any), (0, 0, 0)),
-        'a row not made yet lists as a new row';
+    is-deeply @k[3].List, (Any, Any, Any),
+        'a row not made yet lists as a new row 1';
+    is-deeply @k[3].list.List, (Any, Any, Any),
+        'a row not made yet lists as a new row 2';
+    is-deeply @k[3].Seq.List, (Any, Any, Any),
+        'a row not made yet lists as a new row 3';
+    is-deeply @n[3].List, (0, 0, 0),
+        'a row not made yet lists as a new row 4';
     my @j[*;3];
     @j[0..2;0] = 1, 2, 3;
     is-deeply (@j.elems, @j[*;0]), (3, (1, 2, 3)),
@@ -660,13 +743,18 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     my @r[*;*];
     @r[3;0] = 1;
     $_ = (5,) unless .defined for @r.rotate(1);
-    is-deeply (@r.List.map(*.List).List, @r.tail.List), (((5,), (5,), (5,), (1,)), (1,)),
-        'rotate gives rows not made yet as containers and tail the last row';
+    is-deeply @r.List.map(*.List).List, ((5,), (5,), (5,), (1,)),
+        'rotate gives rows not made yet as containers and tail the last row 1';
+    is-deeply @r.tail.List, (1,),
+        'rotate gives rows not made yet as containers and tail the last row 2';
     my @h[*;*];
     @h[2] = 1, 2;
-    is-deeply (@h.sort(*.elems).map(*.defined).List, @h.Array.map(*.defined).List, @h.combinations(2).elems),
-      ((False, False, True), (False, False, True), 3),
-        'list methods take a row not made yet as its type object';
+    is-deeply @h.sort(*.elems).map(*.defined).List, (False, False, True),
+        'list methods take a row not made yet as its type object 1';
+    is-deeply @h.Array.map(*.defined).List, (False, False, True),
+        'list methods take a row not made yet as its type object 2';
+    is-deeply @h.combinations(2).elems, 3,
+        'list methods take a row not made yet as its type object 3';
     my int @d[*;3];
     my str @e[*;3];
     is-deeply (@d.default, @e.default), (0, ''),
@@ -708,15 +796,18 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     my @c[2;*;2];
     @c[0;0;0] = 1;
     @c[1;1;1] = 5;
-    is-deeply (@c[*;0], @c[1;*]), ((1, Any, Any, Any), (Any, Any, Any, 5)),
-        'a dimension left out of a slice takes each of its indices';
+    is-deeply @c[*;0], (1, Any, Any, Any),
+        'a dimension left out of a slice takes each of its indices 1';
+    is-deeply @c[1;*], (Any, Any, Any, 5),
+        'a dimension left out of a slice takes each of its indices 2';
     my int @n[2;3] = (1,2,3),(4,5,6);
     my @v[2;2;2] = ((1,2),(3,4)),((5,6),(7,8));
     my @d[*;*] = @n;
     my @e[*;*] = @v[1];
-    is-deeply (@d.List.map(*.List).List, @e.List.map(*.List).List),
-      (((1, 2, 3), (4, 5, 6)), ((5, 6), (7, 8))),
-        'a jagged array takes its rows from a native shaped array or a view of one';
+    is-deeply @d.List.map(*.List).List, ((1, 2, 3), (4, 5, 6)),
+        'a jagged array takes its rows from a native shaped array or a view of one 1';
+    is-deeply @e.List.map(*.List).List, ((5, 6), (7, 8)),
+        'a jagged array takes its rows from a native shaped array or a view of one 2';
 }
 
 {
@@ -733,16 +824,19 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     my @j[*;*];
     @j[$_] = @src[$_] for ^2;
     @j[0][0] = 99;
-    is-deeply (@j.List.map(*.List).List, @src[0].List), (((99, 2), (3, 4)), (1, 2)),
-        'assigning an item of an array to a row assigns its values';
+    is-deeply @j.List.map(*.List).List, ((99, 2), (3, 4)),
+        'assigning an item of an array to a row assigns its values 1';
+    is-deeply @src[0].List, (1, 2),
+        'assigning an item of an array to a row assigns its values 2';
     my @s[2;3] = (1,2,3),(4,5,6);
     my @b[*;*];
     @b.append(@s);
     my @p[*;*];
     @p.prepend(@s);
-    is-deeply (@b.List.map(*.List).List, @p.List.map(*.List).List),
-      (((1, 2, 3), (4, 5, 6)), ((1, 2, 3), (4, 5, 6))),
-        'an append or prepend of a shaped array adds a row of each of its rows';
+    is-deeply @b.List.map(*.List).List, ((1, 2, 3), (4, 5, 6)),
+        'an append or prepend of a shaped array adds a row of each of its rows 1';
+    is-deeply @p.List.map(*.List).List, ((1, 2, 3), (4, 5, 6)),
+        'an append or prepend of a shaped array adds a row of each of its rows 2';
 }
 
 {
@@ -753,8 +847,12 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     @m[1;0] = $failure;
     my @d[*;3];
     @d[1][0] = $failure;
-    is-deeply (@m.elems, @d.elems, @m[1;0].^name), (2, 2, 'Failure'),
-        'a Failure written to a row of a set length not made yet is stored';
+    is-deeply @m.elems, 2,
+        'a Failure written to a row of a set length not made yet is stored 1';
+    is-deeply @d.elems, 2,
+        'a Failure written to a row of a set length not made yet is stored 2';
+    is-deeply @m[1;0].^name, 'Failure',
+        'a Failure written to a row of a set length not made yet is stored 3';
     my %h = a => 1, b => 2;
     my @j[*;*];
     @j.append(%h);
@@ -782,9 +880,14 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     .value = 4 for @k[3].pairs;
     my int @n[*;2];
     $_ = 5 for @n[0].list;
-    is-deeply (@k[1].List, @k[2].List, @k[3].List, @n[0].List),
-      ((1, 1, 1), (0, 1, 2), (4, 4, 4), (5, 5)),
-        'writing to an element iterated from a row not made yet makes the row';
+    is-deeply @k[1].List, (1, 1, 1),
+        'writing to an element iterated from a row not made yet makes the row 1';
+    is-deeply @k[2].List, (0, 1, 2),
+        'writing to an element iterated from a row not made yet makes the row 2';
+    is-deeply @k[3].List, (4, 4, 4),
+        'writing to an element iterated from a row not made yet makes the row 3';
+    is-deeply @n[0].List, (5, 5),
+        'writing to an element iterated from a row not made yet makes the row 4';
     my @j[*;*];
     @j[0;0] = @j;
     ok @j eqv @j,
@@ -793,9 +896,12 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
 
 {
     my @j[*;2;2];
-    is-deeply (@j[0].kv.head(4).List, @j[0].pairs.head.key, @j[0].keys.head),
-      (((0, 0), Any, (0, 1), Any), (0, 0), (0, 0)),
-        'the keys of a row not made yet of several dimensions are those of a new row';
+    is-deeply @j[0].kv.head(4).List, ((0, 0), Any, (0, 1), Any),
+        'the keys of a row not made yet of several dimensions are those of a new row 1';
+    is-deeply @j[0].pairs.head.key, (0, 0),
+        'the keys of a row not made yet of several dimensions are those of a new row 2';
+    is-deeply @j[0].keys.head, (0, 0),
+        'the keys of a row not made yet of several dimensions are those of a new row 3';
     my @a[*;*];
     my @b[*;*];
     my $p := Proxy.new(
@@ -804,8 +910,10 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     );
     $p.push(1);
     @a[0].push(2);
-    is-deeply (@b[0].List, @a[0] =:= @b[0]), ((1,), False),
-        'a row made through a container is a copy anywhere else it is assigned';
+    is-deeply @b[0].List, (1,),
+        'a row made through a container is a copy anywhere else it is assigned 1';
+    is-deeply @a[0] =:= @b[0], False,
+        'a row made through a container is a copy anywhere else it is assigned 2';
     my $lib = make-temp-dir;
     $lib.add('JaggedConstant.rakumod').spurt: q:to/MODULE/;
         unit module JaggedConstant;
@@ -840,8 +948,12 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     my int @q[*;3];
     @q[1;0] = 1;
     my int @w[3] = @q[0];
-    is-deeply (@m.List, @n[1].List, @w.List), ((Any, Any, Any), (Any, Any, Any), (0, 0, 0)),
-        'a row not made yet assigned to a shaped array gives the values of a new row';
+    is-deeply @m.List, (Any, Any, Any),
+        'a row not made yet assigned to a shaped array gives the values of a new row 1';
+    is-deeply @n[1].List, (Any, Any, Any),
+        'a row not made yet assigned to a shaped array gives the values of a new row 2';
+    is-deeply @w.List, (0, 0, 0),
+        'a row not made yet assigned to a shaped array gives the values of a new row 3';
     my @d = 3,;
     @j[0] := Array.new(:shape(@d), 1, 2, 3);
     is @j[0;2], 3,
@@ -853,16 +965,20 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     @j[1;0] = 5;
     my int @r[2;3];
     @r = @j[0], @j[1];
-    is-deeply (@r[0].List, @r[1].List), ((0, 0, 0), (5, 0, 0)),
-        'a native shaped array takes a row not made yet in a list as a new row';
+    is-deeply @r[0].List, (0, 0, 0),
+        'a native shaped array takes a row not made yet in a list as a new row 1';
+    is-deeply @r[1].List, (5, 0, 0),
+        'a native shaped array takes a row not made yet in a list as a new row 2';
 }
 
 {
     my @y[*;*];
     @y[1] = 1, 2;
     my int @s[2;2] = @y[0], @y[1];
-    is-deeply (@s[0].List, @s[1].List), ((0, 0), (1, 2)),
-        'a native shaped array takes a row not made yet of an array of objects as a new row';
+    is-deeply @s[0].List, (0, 0),
+        'a native shaped array takes a row not made yet of an array of objects as a new row 1';
+    is-deeply @s[1].List, (1, 2),
+        'a native shaped array takes a row not made yet of an array of objects as a new row 2';
 }
 
 # vim: expandtab shiftwidth=4

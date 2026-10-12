@@ -620,7 +620,6 @@ class RakuAST::StatementList
     method new(*@statements, Bool :$trace) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StatementList, '$!statements',@statements);
-        nqp::bindattr_i($obj, RakuAST::StatementList, '$!is-sunk', 0);
 
         # make sure any code statements are known in the internal code-only list
         my @code;

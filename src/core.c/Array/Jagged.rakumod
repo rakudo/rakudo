@@ -158,7 +158,7 @@ my role Array::JaggedRow[::Base, Str:D $key] is implementation-detail {
     }
 
     multi method AT-POS(::?CLASS:U \SELF: Int:D \pos) is raw {
-        self!element(SELF, (pos,))
+        self!element(SELF, pos)
     }
     multi method AT-POS(::?CLASS:U \SELF: |c) is raw is default {
         self!element(SELF, c.list)

@@ -62,26 +62,25 @@ my role Array::JaggedRow[::Base, Str:D $key] is implementation-detail {
     # one. Each of its elements makes it when assigned, as when read by index.
     method !pairs(\SELF) {
         my \row := self.new;
-        List.from-iterator(row.keys.map({
+        row.keys.map: {
             Pair.new($_, self!element(SELF, nqp::istype($_,List) ?? $_ !! ($_,), row))
-        }).iterator)
+        }
     }
-    method !elements(\SELF) {
-        List.from-iterator(self!pairs(SELF).map({ .value }).iterator)
-    }
+    method !elements(\SELF) { self!pairs(SELF).map(*.value) }
+
     multi method elems(::?CLASS:U:)         { self.new.elems  }
     multi method end(::?CLASS:U:)           { self.new.end    }
     multi method keys(::?CLASS:U:)          { self.new.keys   }
     multi method List(::?CLASS:U \SELF:)    { self!elements(SELF) }
-    multi method values(::?CLASS:U \SELF:)  { self!elements(SELF).Seq }
-    multi method pairs(::?CLASS:U \SELF:)   { self!pairs(SELF).Seq }
+    multi method values(::?CLASS:U \SELF:)  { self!elements(SELF) }
+    multi method pairs(::?CLASS:U \SELF:)   { self!pairs(SELF) }
     multi method kv(::?CLASS:U \SELF:) {
         my \kv := nqp::create(IterationBuffer);
         for self!pairs(SELF) -> \pair {
             nqp::push(kv,pair.key);
             nqp::push(kv,nqp::getattr(pair,Pair,'$!value'));
         }
-        kv.List.Seq
+        kv.Seq
     }
     # Not multis, as those of a native or shaped array are not
     method iterator(\SELF:) {
@@ -91,7 +90,7 @@ my role Array::JaggedRow[::Base, Str:D $key] is implementation-detail {
         nqp::isconcrete(SELF) ?? nextsame() !! self!elements(SELF)
     }
     method Seq(\SELF:) {
-        nqp::isconcrete(SELF) ?? nextsame() !! self!elements(SELF).Seq
+        nqp::isconcrete(SELF) ?? nextsame() !! self!elements(SELF)
     }
 
     # A change to an array not made yet is made to a new one, which then
@@ -147,7 +146,7 @@ my role Array::JaggedRow[::Base, Str:D $key] is implementation-detail {
     }
 
     # The indices of a capture, without the value that ends it
-    sub INDICES(\c) is raw {
+    sub INDICES(\c) {
         my \indices := nqp::clone(nqp::getattr(c,Capture,'@!list'));
         nqp::pop(indices);
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',indices)
@@ -241,7 +240,7 @@ my role Array::Jagged[::Base, Str:D $key, ::Row] is implementation-detail {
 
     # Whether a position is within the first dimension
     method POS-WITHIN(\pos) is implementation-detail {
-        so 0 <= pos && (nqp::not_i($fixed) || pos < $length)
+        pos >= 0 && (nqp::not_i($fixed) || pos < $length)
     }
 
     # Whether each index is within its dimension. When asked to, it dies for
@@ -659,17 +658,22 @@ multi sub postcircumfix:<[ ]>(
 # whatever the types of their rows, so one with a row bound to it is the
 # same as one with that row assigned
 multi sub infix:<eqv>(Array::Jagged:D \a, Array::Jagged:D \b --> Bool:D) {
-    return True if nqp::eqaddr(nqp::decont(a),nqp::decont(b));
-    return False
-      unless nqp::eqaddr(a.JAGGED-BASE,b.JAGGED-BASE)
-        && a.shape eqv b.shape
-        && a.elems == b.elems;
-    for a.JAGGED-ROWS Z b.JAGGED-ROWS -> (\x, \y) {
-        return False unless nqp::istype(x,Array::Jagged)
-          ?? x eqv y
-          !! x.shape eqv y.shape && x.Seq.List eqv y.Seq.List;
+    if nqp::eqaddr(nqp::decont(a),nqp::decont(b)) {
+        True
     }
-    True
+    elsif nqp::eqaddr(a.JAGGED-BASE,b.JAGGED-BASE)
+      && a.shape eqv b.shape
+      && a.elems == b.elems {
+        for a.JAGGED-ROWS Z b.JAGGED-ROWS -> (\x, \y) {
+            return False unless nqp::istype(x,Array::Jagged)
+              ?? x eqv y
+              !! x.shape eqv y.shape && x.Seq eqv y.Seq;
+        }
+        True
+    }
+    else {
+        False
+    }
 }
 
 # vim: expandtab shiftwidth=4

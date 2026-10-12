@@ -149,7 +149,7 @@ my class Array::ShapedView does Positional does Iterable is implementation-detai
             nqp::push(kv,key);
             nqp::push(kv,self.AT-POS(|key));
         }
-        kv.List.Seq
+        kv.Seq
     }
     multi method pairs(::?CLASS:D:) {
         self.keys.map({ Pair.new($_, self.AT-POS(|$_)) })

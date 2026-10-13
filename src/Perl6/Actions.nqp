@@ -5640,6 +5640,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # my $init-type := $world.maybe-definite-how-base: $type;
             $value_ast.unshift: QAST::WVal.new: :value($init-type);
             $value_ast.returns: $init-type;
+            # Map the result into Raku land as a method call postfix does
+            $value_ast := QAST::Op.new( :op('hllize'), $value_ast );
         }
         else {
             $value_ast.returns($type);
@@ -10826,7 +10828,8 @@ Did you mean a call like '"
         $call.unshift(WANTED($target,'make_dot'));
         $call.op('callmethod');
         wantall($call, 'make_dot');
-        $call;
+        # Map the result into Raku land as a method call postfix does
+        QAST::Op.new( :op('hllize'), $call )
     }
 
     # XXX This isn't quite right yet... need to evaluate these semantics

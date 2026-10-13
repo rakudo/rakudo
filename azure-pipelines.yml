@@ -376,6 +376,9 @@ stages:
           - ${{ if eq(variant, 'legacy') }}:
             - name: RAKUDO_RAKUAST
               value: '0'
+            # Silence the legacy frontend deprecation notice.
+            - name: RAKUDO_NO_DEPRECATIONS
+              value: '1'
           - ${{ if eq(variant, 'optimizeoff') }}:
             - name: RAKUDO_OPT
               value: '--optimize=off'

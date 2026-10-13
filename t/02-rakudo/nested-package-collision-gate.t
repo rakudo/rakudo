@@ -80,6 +80,8 @@ my $deprecation-package-rx = rx/
 
 {
     (temp %*ENV)<RAKUDO_RAKUAST> = '0';
+    # Silence the legacy frontend deprecation notice.
+    (temp %*ENV)<RAKUDO_NO_DEPRECATIONS> = '1';
     is-run $code_6d, :out('Perl6::Metamodel::ClassHOW;42'), :err($deprecation-rx),
       '6.d traditional: silent-replace + deprecation worry';
     is-run $code_6e, :out('Perl6::Metamodel::ModuleHOW;42'), :err(''),

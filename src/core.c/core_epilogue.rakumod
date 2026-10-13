@@ -802,6 +802,9 @@ BEGIN .^compose for
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 
+# Last in the mainline, as DEPRECATED needs %*ENV and friends set up
+Rakudo::Deprecations.DEPRECATE-LEGACY-FRONTEND;
+
 {YOU_ARE_HERE}
 
 # vim: expandtab shiftwidth=4

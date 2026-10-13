@@ -7,6 +7,7 @@ class Deprecation {
     has %.callsites;        # places where called (file -> line -> count)
     has Version $.from;     # release version from which deprecated
     has Version $.removed;  # release version when will be removed
+    has Str $.message;      # free-form text replacing the generated report
 
     my %DEPRECATIONS; # where we keep our deprecation info
     method DEPRECATIONS() is raw is implementation-detail { %DEPRECATIONS }
@@ -42,6 +43,12 @@ class Deprecation {
         }
     }
     multi method report (Deprecation:D:) {
+
+        # a free-form message is reported as is
+        if $!message -> $message {
+            return $message.ends-with("\n") ?? $message !! "$message\n";
+        }
+
         my $type    = $.type ?? "$.type " !! "";
         my $name    = $.name ?? "$.name " !! "";
         my $package = $.package ?? "(from $.package) " !! "";
@@ -77,7 +84,7 @@ class Rakudo::Deprecations {
     my $ver;
     method DEPRECATED(
       $alternative, $from?, $removed?,
-      :$up = 1, :$what, :$file, :$line, Bool :$lang-vers
+      :$up = 1, :$what, :$file, :$line, Bool :$lang-vers, Str :$message
     ) is implementation-detail {
         $ver //= $*RAKU.compiler.version;
         my $version = $lang-vers ?? nqp::getcomp('Raku').language_version !! $ver;
@@ -118,7 +125,8 @@ class Rakudo::Deprecations {
             :name($what),
             :$alternative,
             :from($vfrom),
-            :removed($vremoved) )
+            :removed($vremoved),
+            :$message )
           !! Deprecation.new(
             file    => $deprecated.file,
             type    => $deprecated.subtype.tc,
@@ -127,6 +135,7 @@ class Rakudo::Deprecations {
             :$alternative,
             :from($vfrom),
             :removed($vremoved),
+            :$message,
         );
         $dep = %DEPRECATIONS{$dep.WHICH} //= $dep;
 
@@ -136,14 +145,46 @@ class Rakudo::Deprecations {
         # update callsite
         ++$dep.callsites{$file // $callsite.file.IO}{$line // $callsite.line};
     }
+
+    # Called once per process at startup, from core_epilogue.rakumod
+    method DEPRECATE-LEGACY-FRONTEND(--> Nil) is implementation-detail {
+        self.DEPRECATED(
+          'the RakuAST frontend',
+          :what('legacy frontend'),
+          :file('environment variable'),
+          :message((
+            'The legacy frontend, selected by setting RAKUDO_RAKUAST=0, is deprecated and',
+            'will be removed in a future release. Please use the RakuAST frontend instead,',
+            'by unsetting RAKUDO_RAKUAST or setting it to 1.',
+            'If something works with the legacy frontend but not with the RakuAST frontend,',
+            'we would love to hear about it! Please open an issue at',
+            '    https://github.com/rakudo/rakudo/issues/new',
+            'so that it can be fixed before the legacy frontend is removed. Thank you!',
+          ).join("\n"))
+        ) if nqp::iseq_s(
+               nqp::ifnull(nqp::gethllsym('Raku','COMPILER-FRONTEND'),''),
+               'legacy'
+             )
+          # not while compiling CORE.d/CORE.e, which runs this mainline
+          && nqp::isfalse(
+               nqp::ifnull(nqp::getlexdyn('$*COMPILING_CORE_SETTING'),0)
+             )
+          # not in precomp workers, whose stderr the parent re-prints
+          && !(%*ENV<RAKUDO_PRECOMP_WITH>:exists)
+          # not when silenced, so Deprecation.report doesn't show it either
+          && !%*ENV<RAKUDO_NO_DEPRECATIONS>;
+    }
 }
 
 END {
+    # footer only if some lack a message; check before report resets them
+    my $footer := ?Deprecation.DEPRECATIONS.values.first({ !.message });
+
     if Deprecation.report -> $message {
         unless %*ENV<RAKUDO_NO_DEPRECATIONS> {
             note $message;   # q:to/TEXT/ doesn't work in settings
             note 'Please contact the author to have these occurrences of deprecated code
-adapted, so that this message will disappear!';
+adapted, so that this message will disappear!' if $footer;
         }
     }
 }

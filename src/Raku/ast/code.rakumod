@@ -1049,7 +1049,7 @@ role RakuAST::Code
     # context. These survive serialization and thus point at what
     # has to be fixed up.
     method IMPL-BEGIN-TIME-LEXICAL-FIXUP(RakuAST::IMPL::QASTContext $context, Mu $block, RakuAST::LexicalFixup $lexical-fixup) {
-        my $has_nested_blocks;
+        my int $has_nested_blocks;
         my $todo := nqp::list($block);
         while $todo {
             my $stmts := nqp::shift($todo);

@@ -26,11 +26,6 @@ class RakuAST::Signature
           self.IMPL-UNWRAP-LIST($parameters)
         ) if nqp::isconcrete($parameters);
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-named-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-meta-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!invocant-type-check', 1);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-array', ?$is-array);
         $obj
@@ -1580,7 +1575,7 @@ class RakuAST::Parameter
         nqp::die('RakuAST::Parameter::IMPL-TO-QAST reached for a sub-signature parameter. The owning routine must have custom-args True so dispatch routes through Signature::IMPL-QAST-BINDINGS.')
             if $!sub-signature;
         # Flag constants we need to pay attention to.
-        my @iscont-ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
+        my constant OPS := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
 
         # Get the parameter meta-object, since traits can change some things.
         my $param-obj := self.meta-object;
@@ -1651,7 +1646,7 @@ class RakuAST::Parameter
         if !$is-generic && $spec {
             if $is-rw {
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                    :op(@iscont-ops[$spec]),
+                    :op(nqp::atpos(OPS,$spec)),
                     $temp-qast-var
                 )));
             }

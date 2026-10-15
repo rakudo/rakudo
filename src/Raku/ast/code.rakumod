@@ -2491,7 +2491,6 @@ class RakuAST::Block
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
-        nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
         nqp::bindattr_i($obj, RakuAST::Block, '$!may-have-signature', $may-have-signature ?? 1 !! 0);
         $obj.set-implicit-topic($implicit-topic // True, :required($required-topic), :$exception);
         $obj.set-WHY($WHY);
@@ -2944,7 +2943,6 @@ class RakuAST::PointyBlock
           $signature // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Block, '$!body',
           $body // RakuAST::Blockoid.new);
-        nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
         $obj.set-WHY($WHY);
         $obj
     }
@@ -3712,7 +3710,7 @@ class RakuAST::Routine
         # A native return coerces the value the routine ends with, unless
         # that value is already native, or is a Nil or a Failure, which
         # every return type lets through.
-        my int $native-return := nqp::objprimspec(nqp::ifnull($signature.returns, Mu));
+        my int $native-return := nqp::objprimspec($signature.returns);
         if $native-return && !$routine.rw {
             my str $deref := self.IMPL-RETURN-NATIVE-DEREF($body);
             if $deref {

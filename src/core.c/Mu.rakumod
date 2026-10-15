@@ -1134,6 +1134,7 @@ my class Mu { # declared in BOOTSTRAP
 
                         # Native assign value
                         $primspec == nqp::const::BIND_VAL_INT
+                          || $primspec == nqp::const::BIND_VAL_UINT
                           ?? nqp::bindattr_i(self,$package,$name,$value)
                           !! $primspec == nqp::const::BIND_VAL_STR
                             ?? nqp::bindattr_s(self,$package,$name,$value)

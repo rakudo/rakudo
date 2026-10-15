@@ -2055,8 +2055,7 @@ class RakuAST::Node {
             my $cond := $expr.condition-modifier;
             $cond.IMPL-SET-NATIVE-CONDITION()
                 if nqp::isconcrete($cond)
-                && (nqp::istype($cond, RakuAST::StatementModifier::If)
-                    || nqp::istype($cond, RakuAST::StatementModifier::Unless));
+                && nqp::istype($cond, RakuAST::StatementModifier::IfUnless);
         }
         Nil
     }

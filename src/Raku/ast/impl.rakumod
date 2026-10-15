@@ -86,7 +86,6 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-cloned-code-objects', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-sc-idx', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!cleanup-tasks', []);
-        nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!is-nested', 0);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!language-revision', $language-revision);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!world-bridge', Mu);

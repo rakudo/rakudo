@@ -1473,7 +1473,7 @@ role RakuAST::Lookup {
             # unbox. Leave its result alone so lvalue use keeps working.
             return NQPMu if nqp::can($callee, 'rw') && $callee.rw;
             my $ret := $callee.returns;
-            return $ret if !nqp::isnull($ret) && nqp::objprimspec($ret);
+            return $ret if nqp::objprimspec($ret);
         }
         NQPMu
     }

@@ -306,12 +306,12 @@ my class Any { # declared in BOOTSTRAP
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
-    multi method AT-POS(Any:D: Int:D \pos) is raw {
+    multi method AT-POS(Any:D \SELF: Int:D \pos) is raw {
         pos
           ?? X::OutOfRange.new(
                :what($*INDEX // 'Index'), :got(pos), :range<0..0>
              ).Failure
-          !! self
+          !! SELF
     }
     multi method AT-POS(Any:D \SELF: Num:D \pos) is raw {
         nqp::isnanorinf(pos)
@@ -321,7 +321,7 @@ my class Any { # declared in BOOTSTRAP
     multi method AT-POS(Any:D \SELF: Any:D \pos) is raw {
         SELF.AT-POS(nqp::unbox_i(pos.Int));
     }
-    multi method AT-POS(Any:   Any:U \pos) is raw {
+    multi method AT-POS(Any:   Any:U \pos) {
         die "Cannot use '{pos.^name}' as an index";
     }
     multi method AT-POS(Any:D \SELF: \one, \two) is raw {
@@ -670,9 +670,11 @@ sub dd(|c) {  # is implementation-detail
                 );
             }
         }
+        return;
     }
     elsif c.hash -> %named {
         note .raku for %named.sort: { .key }
+        return;
     }
     elsif $*CU && $*CU.statement-list.statements -> @statements {
         .say for @statements.grep: {
@@ -680,12 +682,12 @@ sub dd(|c) {  # is implementation-detail
         }
         exit;
     }
-    else { # tell where we are
-        note .name
-          ?? "{lc .^name} {.name}{.signature.gist}"
-          !! "{lc .^name} {.signature.gist}"
-          with callframe(1).code;
-    }
+
+    # tell where we are
+    note .name
+      ?? "{lc .^name} {.name}{.signature.gist}"
+      !! "{lc .^name} {.signature.gist}"
+      with callframe(1).code;
     return
 }
 

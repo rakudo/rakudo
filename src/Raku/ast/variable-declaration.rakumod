@@ -1676,25 +1676,18 @@ class RakuAST::VarDeclaration::Simple
         }
 
         if self.sigil eq '$' && !(self.initializer || $!initializer-method) && !$!is-parameter && (!self.is-attribute || !self.meta-object.required) {
-            my $descriptor := self.container-descriptor;
-            my $ddefault := $descriptor.default;
+            my $ddefault        := self.container-descriptor.default;
             my $bind-constraint := self.bind-constraint;
+
             unless $ddefault.HOW.archetypes.generic || $bind-constraint.HOW.archetypes.generic {
-                my $matches;
-                my $maybe := 0;
-                try {
-                    $matches := nqp::istype($ddefault, $bind-constraint);
-                }
-                unless $matches {
-                    self.add-sorry(
-                        $resolver.build-exception: 'X::Syntax::Variable::MissingInitializer',
-                            what => self.is-attribute ?? 'attribute' !! 'variable',
-                            type => nqp::how($bind-constraint).name($bind-constraint),
-                            implicit => nqp::istype($type, RakuAST::Type::Definedness)
-                                ?? $type.IMPL-IMPLICIT
-                                !! '',
-                    );
-                }
+                self.add-sorry(
+                  $resolver.build-exception: 'X::Syntax::Variable::MissingInitializer',
+                    what => self.is-attribute ?? 'attribute' !! 'variable',
+                    type => nqp::how($bind-constraint).name($bind-constraint),
+                    implicit => nqp::istype($type, RakuAST::Type::Definedness)
+                      ?? $type.IMPL-IMPLICIT
+                      !! '',
+                ) unless try nqp::istype($ddefault, $bind-constraint);
             }
         }
 

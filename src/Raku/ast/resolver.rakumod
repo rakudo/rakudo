@@ -1441,10 +1441,10 @@ class RakuAST::Resolver::EVAL
 
     # Gets the current RakuAST::LexicalScope we are in during resolution.
     method current-scope() {
-        $!scopes[nqp::elems($!scopes) - 1]
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 1)
     }
     method outer-scope() {
-        $!scopes[nqp::elems($!scopes) - 2]
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 2)
     }
 
     # Pops the top active lexical scope.
@@ -1835,10 +1835,10 @@ class RakuAST::Resolver::Compile
 
     # Gets the current RakuAST::LexicalScope we are in during resolution.
     method current-scope() {
-        $!scopes[nqp::elems($!scopes) - 1].scope
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 1).scope
     }
     method outer-scope() {
-        $!scopes[nqp::elems($!scopes) - 2].scope
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 2).scope
     }
 
     # Pops the top active lexical scope. Used only in batch resolve mode.

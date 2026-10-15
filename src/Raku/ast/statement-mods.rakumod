@@ -57,38 +57,38 @@ class RakuAST::StatementModifier::Condition
     }
 }
 
-# The if statement modifier.
-class RakuAST::StatementModifier::If
+# The if/unless statement modifier.
+class RakuAST::StatementModifier::IfUnless
   is RakuAST::StatementModifier::Condition
 {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
+    method IMPL-WRAP-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $qast
+    ) {
         my $cond-qast := self.expression.IMPL-TO-QAST($context);
-        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $statement-qast)
-            if self.IMPL-NATIVE-CONDITION;
+        $cond-qast    := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $qast)
+          if self.IMPL-NATIVE-CONDITION;
         QAST::Op.new(
-            :op('if'),
-            $cond-qast,
-            $statement-qast,
-            self.IMPL-EMPTY($context)
+          :op(self.condition-type),
+          $cond-qast,
+          $qast,
+          self.IMPL-EMPTY($context)
         )
     }
 }
 
+# The if statement modifier.
+class RakuAST::StatementModifier::If
+  is RakuAST::StatementModifier::IfUnless
+{
+    method condition-type() { 'if' }
+}
+
 # The unless statement modifier.
 class RakuAST::StatementModifier::Unless
-  is RakuAST::StatementModifier::Condition
+  is RakuAST::StatementModifier::IfUnless
 {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
-        my $cond-qast := self.expression.IMPL-TO-QAST($context);
-        $cond-qast := self.IMPL-NATIVE-CONDITION-QAST($cond-qast, $statement-qast)
-            if self.IMPL-NATIVE-CONDITION;
-        QAST::Op.new(
-            :op('unless'),
-            $cond-qast,
-            $statement-qast,
-            self.IMPL-EMPTY($context)
-        )
-    }
+    method condition-type() { 'unless' }
 }
 
 # The when statement modifier.

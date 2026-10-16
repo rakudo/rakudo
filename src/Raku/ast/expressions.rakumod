@@ -1183,29 +1183,28 @@ class RakuAST::Infix
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
         if self.short-circuit { # Only final part of short-circuiting operators can be sunk
             my int $i;
-            while $i < nqp::elems($operands) - 1 {
-                $operands[$i].apply-sink(False);
-                $i++;
-            }
-            $operands[$i].apply-sink($is-sunk);
-        }
-        elsif self.operator eq ',' {
-            for $operands {
-                $_.apply-sink($is-sunk);
-            }
+            my int $last := nqp::elems($operands) - 1;
+            nqp::while(
+              $i < $last,
+              nqp::atpos($operands,$i++).apply-sink(False)
+            );
+            nqp::atpos($operands,$i).apply-sink($is-sunk);
         }
         elsif self.operator eq 'xor' {
-            $operands[0].apply-sink(False);
-            my $i := 1;
-            while $i < nqp::elems($operands) {
-                $operands[$i].apply-sink($is-sunk);
-                $i++;
-            }
+            nqp::atpos($operands,0).apply-sink(False);
+            my int $i;
+            nqp::while(
+              ++$i < nqp::elems($operands),  # skip first
+              nqp::atpos($operands,$i).apply-sink($is-sunk)
+            );
         }
         else {
-            for $operands {
-                $_.apply-sink(False);
-            }
+            my $sink := self.operator eq ',' ?? $is-sunk !! False;
+            my int $i;
+            nqp::while(
+              $i < nqp::elems($operands),
+              nqp::atpos($operands,$i++).apply-sink($sink)
+            );
         }
     }
 
@@ -1650,10 +1649,10 @@ class RakuAST::Assignment
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
         my int $i;
-        while $i < nqp::elems($operands) {
-            $operands[$i].apply-sink(False);
-            $i++;
-        }
+        nqp::while(
+          $i < nqp::elems($operands),
+          nqp::atpos($operands,$i++).apply-sink(False)
+        );
     }
 
     method is-pure() { False }

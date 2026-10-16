@@ -1441,10 +1441,10 @@ class RakuAST::Resolver::EVAL
 
     # Gets the current RakuAST::LexicalScope we are in during resolution.
     method current-scope() {
-        $!scopes[nqp::elems($!scopes) - 1]
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 1)
     }
     method outer-scope() {
-        $!scopes[nqp::elems($!scopes) - 2]
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 2)
     }
 
     # Pops the top active lexical scope.
@@ -1460,13 +1460,15 @@ class RakuAST::Resolver::EVAL
     method find-scope-property(Code $evaluator) {
         # Walk active scopes, most nested first.
         my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            my $res := $evaluator($scope);
-            return $res if nqp::isconcrete($res);
-        }
-        Nil
+        my $res    := Nil;
+        my int $i  := nqp::elems(@scopes);
+        nqp::until(  # XXX do we really skip the outermost intentionally?
+          $i-- == 0 || nqp::isconcrete(
+            $res := $evaluator(nqp::atpos(@scopes,$i))
+          ),
+          nqp::null
+        );
+        $res
     }
 
     # Whether the nearest active scope declaring the name is the outermost
@@ -1835,10 +1837,10 @@ class RakuAST::Resolver::Compile
 
     # Gets the current RakuAST::LexicalScope we are in during resolution.
     method current-scope() {
-        $!scopes[nqp::elems($!scopes) - 1].scope
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 1).scope
     }
     method outer-scope() {
-        $!scopes[nqp::elems($!scopes) - 2].scope
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 2).scope
     }
 
     # Pops the top active lexical scope. Used only in batch resolve mode.
@@ -1895,13 +1897,15 @@ class RakuAST::Resolver::Compile
     method find-scope-property(Code $evaluator) {
         # Walk active scopes, most nested first.
         my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            my $res := $evaluator($scope.scope);
-            return $res if nqp::isconcrete($res);
-        }
-        Nil
+        my $res    := Nil;
+        my int $i  := nqp::elems(@scopes);
+        nqp::until(  # XXX do we really skip the outermost intentionally?
+          $i-- == 0 || nqp::isconcrete(
+            $res := $evaluator(nqp::atpos(@scopes,$i).scope)
+          ),
+          nqp::null
+        );
+        $res
     }
 
     # Whether the nearest active scope declaring the name is the outermost

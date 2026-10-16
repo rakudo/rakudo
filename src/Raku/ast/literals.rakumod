@@ -93,10 +93,10 @@ class RakuAST::IntLiteral
     # rather than propagates should the unbox refuse a value it cannot hold.
     method IMPL-FITS-NATIVE-INT() {
         my $value := self.value;
-        my int $big := 0;
+        my int $big;
         try $big := nqp::isbig_I($value);
         return 1 unless $big;
-        my int $fits := 0;
+        my int $fits;
         try $fits := nqp::iseq_I(
             nqp::box_i(nqp::unbox_i($value), nqp::what($value)), $value);
         $fits
@@ -304,7 +304,7 @@ class RakuAST::QuotedString
 
     method IMPL-WORDS-AUTODEREF(str $str) {
         my $result := nqp::list();
-        my int $pos := 0;
+        my int $pos;
         my int $eos := nqp::chars($str);
         my int $ws;
         my constant NBSP := nqp::hash(

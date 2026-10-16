@@ -284,7 +284,7 @@ role RakuAST::ForLoopImplementation {
     method IMPL-TO-QAST-RANGE(RakuAST::IMPL::QASTContext $context,
             Mu $source, Mu $body-qast, Mu $Nil, :$flatten-body) {
         my $expr := self.IMPL-UNWRAP-RANGE-EXPRESSION($source);
-        my int $reverse := 0;
+        my int $reverse;
         if nqp::istype($expr, RakuAST::ApplyPostfix)
             && nqp::istype($expr.postfix, RakuAST::Call::Method)
             && $expr.postfix.name.canonicalize eq 'reverse'
@@ -295,9 +295,9 @@ role RakuAST::ForLoopImplementation {
 
         my $start-node;
         my $end-node;
-        my int $start-extra := 0;
-        my int $end-extra   := 0;
-        my int $sequence    := 0;
+        my int $start-extra;
+        my int $end-extra;
+        my int $sequence;
         if nqp::istype($expr, RakuAST::ApplyInfix)
             && nqp::istype($expr.infix, RakuAST::Infix) {
             my str $op := $expr.infix.operator;
@@ -708,8 +708,8 @@ class RakuAST::StatementList
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $catch-seen := 0;
-        my $control-seen := 0;
+        my int $catch-seen;
+        my int $control-seen;
         for $!code-statements {
             if nqp::istype($_, RakuAST::Statement::Catch) {
                 if $catch-seen {

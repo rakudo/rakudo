@@ -652,7 +652,7 @@ class RakuAST::Type::Parameterized
         }
 
         my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
-        my $fail := 0;
+        my int $fail;
         for $args -> $arg {
             if nqp::istype($arg, RakuAST::Lookup) && !$arg.is-resolved && $arg.needs-resolution {
                 $resolver.add-node-unresolved-after-check-time($arg);

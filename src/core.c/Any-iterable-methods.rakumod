@@ -1358,18 +1358,17 @@ Consider using a block if any of these are necessary for your mapping code."
         $type
     }
 
-    multi method are(Any:U: Mu:U $type --> Bool:D) {
+    multi method are(Any:U: Mu:U $type) {
         nqp::istype(self,$type)
           ?? True
-          !! fail("Expected '" ~ $type.^name ~ "' but got '" ~ self.^name ~ "'")
+          !! ("Expected '" ~ $type.^name ~ "' but got '" ~ self.^name ~ "'").Failure
     }
-    multi method are(Any:D: Mu:U $type --> Bool:D) {
+    multi method are(Any:D: Mu:U $type) {
         unless nqp::eqaddr(nqp::decont($type),Mu) {
-            my int $i;
-            my $iterator := self.iterator;
             return X::Cannot::Lazy.new(:action<infer type on>).Failure
-              if $iterator.is-lazy;
+              if (my $iterator := self.iterator).is-lazy;
 
+            my int $i;
             nqp::until(
               nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
               nqp::unless(

@@ -28,7 +28,9 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
                nqp::atpos($indices,2),
                assignee
              )
-          !! SELF.ASSIGN-POS(|@indices, assignee)
+          !! $dims
+            ?? SELF.ASSIGN-POS(|@indices, assignee)
+            !! (postcircumfix:<[ ]>(SELF) = assignee)  # @a[||()]
       # need an extra named here to prevent infilooping because otherwise
       # this will code-gen to a call to this candidate again.
       !! (postcircumfix:<[; ]>(SELF, @indices, :none) = assignee)
@@ -60,8 +62,39 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is raw) is raw {
                nqp::atpos($indices,2),
                $BIND
              )
-          !! SELF.BIND-POS(|@indices, $BIND)
+          !! $dims
+            ?? SELF.BIND-POS(|@indices, $BIND)
+            !! X::Bind::ZenSlice.new(type => SELF.WHAT).throw  # @a[||()]
       !! X::Bind::Slice.new(type => SELF.WHAT).throw
+}
+
+# Whether the routine in scope for a multidimensional array subscript with
+# an adverb these candidates ignore refuses it, as the hash subscript does,
+# which a user's own or wrapped routine doesn't
+sub MD-ARRAY-REFUSES(&subscript --> Bool:D) is implementation-detail {
+    nqp::hllbool(
+      nqp::eqaddr(&subscript, &postcircumfix:<[; ]>)
+        && nqp::not_i(&subscript.is-wrapped)
+    )
+}
+
+# The routine to call for such a subscript, one that refuses the adverb or
+# else the routine in scope
+sub MD-ARRAY-SUBSCRIPT(&subscript) is raw is implementation-detail {
+    MD-ARRAY-REFUSES(&subscript) ?? &MD-ARRAY-UNKNOWN-ADVERBS !! &subscript
+}
+sub MD-ARRAY-UNKNOWN-ADVERBS(\SELF, Mu $, Mu $?, *%adverbs) is implementation-detail {
+    %adverbs<BIND>:delete;
+    MD-UNKNOWN-ADVERBS(SELF, %adverbs)
+}
+sub MD-UNKNOWN-ADVERBS(\SELF, %adverbs) is implementation-detail {
+    my @nogo = %adverbs<delete exists kv p k v>:delete:k;
+    X::Adverb.new(
+      :what<multi-dimensional slice>,
+      :source((try SELF.VAR.name) // SELF.^name),
+      :unexpected(%adverbs.keys),
+      :@nogo,
+    ).throw
 }
 
 # handle the case of @a[|| 0]
@@ -80,6 +113,11 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
           !! nqp::decont(result)
     }
 
+    # An empty list of indices, as @a[||()] gives, is the zen slice @a[]
+    # that takes the whole array
+    my int $topdim = @indices.elems;  # .elems reifies
+    return-rw postcircumfix:<[ ]>(initial-SELF, |%_) unless $topdim;
+
     # find out what we actually got
     my str $adverbs;
     if nqp::getattr(%_,Map,'$!storage') -> $nameds is raw {
@@ -96,7 +134,6 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
         $adverbs = nqp::concat($adverbs,":v" ) if nqp::atkey($nameds,'v');
     }
 
-    my int $topdim = @indices.elems;  # .elems reifies
     my $indices   := nqp::getattr(@indices,List,'$!reified');
     my int $i;
     nqp::while(

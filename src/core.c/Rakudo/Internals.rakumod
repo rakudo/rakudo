@@ -556,19 +556,18 @@ my class Rakudo::Internals is implementation-detail {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::if(
-                nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
-                NYI('Jagged array shapes').throw,
+                nqp::istype(
+                  (my $dim := nqp::decont(nqp::atpos($spec,$i).Int)),
+                  Failure
+                ),
+                $dim.throw,
                 nqp::if(
-                  nqp::istype(($dim := nqp::decont($dim.Int)),Failure),
-                  $dim.throw,
-                  nqp::if(
-                    nqp::isbig_I($dim) || nqp::isle_i($dim,0),
-                    X::IllegalDimensionInShape.new(:$dim).throw,
-                    nqp::stmts(
-                      nqp::push($types,type),
-                      nqp::push_i($dims,$dim),
-                      nqp::bindpos($spec,$i,$dim)
-                    )
+                  nqp::isbig_I($dim) || nqp::isle_i($dim,0),
+                  X::IllegalDimensionInShape.new(:$dim).throw,
+                  nqp::stmts(
+                    nqp::push($types,type),
+                    nqp::push_i($dims,$dim),
+                    nqp::bindpos($spec,$i,$dim)
                   )
                 )
               )

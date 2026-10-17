@@ -5,13 +5,7 @@ proto sub postcircumfix:<{; }>($, $, Mu $?, *%) is nodal {*}
 # handle the case of %h{|| "a"}, and of an adverb no other candidate takes
 multi sub postcircumfix:<{; }>(\initial-SELF, \value, *%adverbs) is raw {
     if nqp::istype(value,List) {
-        my @nogo = %adverbs<delete exists kv p k v>:delete:k;
-        X::Adverb.new(
-          :what<multi-dimensional slice>,
-          :source((try initial-SELF.VAR.name) // initial-SELF.^name),
-          :unexpected(%adverbs.keys),
-          :@nogo,
-        ).throw
+        MD-UNKNOWN-ADVERBS(initial-SELF, %adverbs)
     }
     else {
         postcircumfix:<{; }>(initial-SELF, value.List, |%adverbs)
@@ -29,14 +23,22 @@ multi sub postcircumfix:<{; }>(\SELF, @indices, Mu \assignee) is raw {
 # subscript of one key does, and a list of elements for a slice. Any adverb
 # goes to that subscript with each list of keys as one key.
 multi sub postcircumfix:<{; }>(Hash::Shaped \SELF, @indices, Mu \assignee) is raw {
+    # An empty list of keys, as %h{||()} gives, is the zen slice %h{}.
+    # SHAPED-WILDCARD reifies them before they are counted.
     my \indices := SHAPED-WILDCARD(SELF, @indices, 0);
-    nqp::isconcrete(my \key := MD-SINGLE-KEYS(indices))
-      ?? SELF.ASSIGN-KEY(key, assignee)
-      !! SHAPED-SLICE(SELF, indices,
-           -> \keys { postcircumfix:<{ }>(SELF, keys, assignee) }, 'assign')
+    nqp::isconcrete(my \reified := nqp::getattr(@indices,List,'$!reified'))
+      && nqp::elems(reified)
+      ?? nqp::isconcrete(my \key := MD-SINGLE-KEYS(indices))
+        ?? SELF.ASSIGN-KEY(key, assignee)
+        !! SHAPED-SLICE(SELF, indices,
+             -> \keys { postcircumfix:<{ }>(SELF, keys, assignee) }, 'assign')
+      !! (postcircumfix:<{ }>(SELF) = assignee)
 }
 multi sub postcircumfix:<{; }>(Hash::Shaped \SELF, @indices, Mu :$BIND! is raw) is raw {
     my \indices := SHAPED-WILDCARD(SELF, @indices, 0);
+    X::Bind::ZenSlice.new(type => SELF.WHAT).throw
+      unless nqp::isconcrete(my \reified := nqp::getattr(@indices,List,'$!reified'))
+        && nqp::elems(reified);
     nqp::isconcrete(my \key := MD-SINGLE-KEYS(indices))
       ?? SELF.BIND-KEY(key, $BIND)
       !! SHAPED-SLICE(SELF, indices,
@@ -45,18 +47,21 @@ multi sub postcircumfix:<{; }>(Hash::Shaped \SELF, @indices, Mu :$BIND! is raw) 
 multi sub postcircumfix:<{; }>(Hash::Shaped \SELF, @indices, *%adverbs) is raw {
     my \indices := SHAPED-WILDCARD(SELF, @indices, 1);
     my \key     := MD-SINGLE-KEYS(indices);
-    nqp::elems(nqp::getattr(%adverbs,Map,'$!storage'))
-      ?? nqp::isconcrete(key)
-        ?? postcircumfix:<{ }>(SELF, key.item, |%adverbs)
-        !! SHAPED-SLICE(SELF, indices,
-             -> \keys { postcircumfix:<{ }>(SELF, keys, |%adverbs) }, '')
-      !! nqp::isconcrete(key)
-        ?? SELF.AT-KEY(key)
-        !! SHAPED-ANY-KEY(indices)
-          ?? SHAPED-SLICE(SELF, indices,
-               -> \keys { MD-VALUES(postcircumfix:<{ }>(SELF, keys)) }, '')
+    nqp::isconcrete(my \reified := nqp::getattr(@indices,List,'$!reified'))
+      && nqp::elems(reified)
+      ?? nqp::elems(nqp::getattr(%adverbs,Map,'$!storage'))
+        ?? nqp::isconcrete(key)
+          ?? postcircumfix:<{ }>(SELF, key.item, |%adverbs)
           !! SHAPED-SLICE(SELF, indices,
-               -> \keys { postcircumfix:<{ }>(SELF, keys) }, '')
+               -> \keys { postcircumfix:<{ }>(SELF, keys, |%adverbs) }, '')
+        !! nqp::isconcrete(key)
+          ?? SELF.AT-KEY(key)
+          !! SHAPED-ANY-KEY(indices)
+            ?? SHAPED-SLICE(SELF, indices,
+                 -> \keys { MD-VALUES(postcircumfix:<{ }>(SELF, keys)) }, '')
+            !! SHAPED-SLICE(SELF, indices,
+                 -> \keys { postcircumfix:<{ }>(SELF, keys) }, '')
+      !! postcircumfix:<{ }>(SELF, |%adverbs)
 }
 
 # Binding through a multidimensional subscript of a hash binds the element
@@ -69,9 +74,34 @@ multi sub postcircumfix:<{; }>(\SELF, @indices, Mu :$BIND! is raw) is raw {
       !! X::Bind::Slice.new(type => SELF.WHAT).throw
 }
 
+# An empty list of keys, as %h{||()} gives, is the zen slice %h{} that
+# takes the whole hash with each adverb given
+sub MD-HASH-ZEN(
+  \SELF,
+  $exists,
+  $delete,
+  $k,
+  $kv,
+  $p,
+  $v
+) is raw is implementation-detail {
+    my %adverbs;
+    %adverbs<exists> := $exists if nqp::isconcrete($exists);
+    %adverbs<delete> := $delete if nqp::isconcrete($delete);
+    %adverbs<k>      := $k      if nqp::isconcrete($k);
+    %adverbs<kv>     := $kv     if nqp::isconcrete($kv);
+    %adverbs<p>      := $p      if nqp::isconcrete($p);
+    %adverbs<v>      := $v      if nqp::isconcrete($v);
+    postcircumfix:<{ }>(SELF, |%adverbs)
+}
+
 multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
   :$exists, :$delete, :$k, :$kv, :$p, :$v
 ) is raw {
+
+    my int $dims = nqp::sub_i(@indices.elems,1);  # .elems reifies
+    return-rw MD-HASH-ZEN(initial-SELF, $exists, $delete, $k, $kv, $p, $v)
+      if nqp::islt_i($dims,0);
 
     # find out what we actually got
     my str $adverbs;
@@ -85,7 +115,6 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
     # set up standard lexical info for recursing subs
     my \target   = nqp::create(IterationBuffer);
     my int $dim;
-    my int $dims = nqp::sub_i(@indices.elems,1);  # .elems reifies
     my $indices := nqp::getattr(@indices,List,'$!reified');
     my int $return-list;
 

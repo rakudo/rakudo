@@ -797,13 +797,10 @@ Consider using a block if any of these are necessary for your mapping code."
           ?? Seq.new($iterator)
           !! nqp::eqaddr(
                $iterator.push-until-lazy(
-                 my \buf := nqp::create(IterationBuffer)),
+                 my \buf := nqp::create(IterationBuffer)
+               ),
                IterationEnd
-             ) ?? Seq.new(
-                    Rakudo::Iterator.ReifiedListMonotonicallyIncreasing(
-                      Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
-                    )
-                  )
+             ) ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
                !! X::Cannot::Lazy.new(:action<sort>).throw
     }
     multi method sort(Any:D: &by) {
@@ -816,16 +813,11 @@ Consider using a block if any of these are necessary for your mapping code."
           X::Cannot::Lazy.new(:action<sort>).throw
         );
 
-        Seq.new(
-          nqp::eqaddr(&by,&infix:<cmp>)
-            ?? Rakudo::Iterator.ReifiedListMonotonicallyIncreasing(
-                 Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
-               )
-            !! Rakudo::Iterator.ReifiedList(&by.count < 2
-                ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(  buf.List,&by)
-                !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(buf.List,&by)
-               )
-        )
+        nqp::eqaddr(&by,&infix:<cmp>)
+          ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
+          !! &by.count < 2
+            ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(  buf.List, &by)
+            !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(buf.List, &by)
     }
 
     proto method collate(|) {*}

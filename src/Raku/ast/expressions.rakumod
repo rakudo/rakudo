@@ -972,7 +972,7 @@ class RakuAST::Infix
     }
 
     method IMPL-ASSIGN-OP(QAST::Node $lhs_ast, QAST::Node $rhs_ast) {
-        my $initialize := 0;
+        my int $initialize;
         # The _i64 and _u64 are only used on backends that emulate int64/uint64
         my constant NATIVE-OPS := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i', 'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
         my $past;
@@ -2824,7 +2824,7 @@ role RakuAST::WhateverApplicable
         return False unless self.IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS;
 
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
-        my int $index := 0;
+        my int $index;
         for @operands {
             my int $primes := self.IMPL-OPERAND-PRIMES($index++);
             if nqp::bitand_i($primes, 1) {
@@ -2842,7 +2842,7 @@ role RakuAST::WhateverApplicable
     method IMPL-OPERAND-PRIMES(int $index) { self.operator.IMPL-PRIMES }
 
     method IMPL-REPLACE-PRIME-OPERANDS() {
-        my int $index := 0;
+        my int $index;
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
         for @operands {
             my $operand := $_;
@@ -2874,7 +2874,7 @@ role RakuAST::WhateverApplicable
         my int $primes-whatevercode := nqp::bitand_i(self.operator.IMPL-PRIMES, 2);
 
         # Re-number WhateverCode arguments
-        my $args := 0;
+        my int $args;
         my @args;
         my $visitor := -> $n {
             if nqp::istype($n, RakuAST::WhateverCode::Argument) {

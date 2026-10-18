@@ -337,15 +337,15 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     # Str.Numeric is calling
     my &parse_win := -> \newval {
         $val-or-fail
-          ?? return newval
-          !! nqp::istype(newval, Num)
-            ?? return NumStr.new(newval, $MAYBEVAL)
-            !! nqp::istype(newval, Rat)
-              ?? return RatStr.new(newval, $MAYBEVAL)
-              !! nqp::istype(newval, Complex)
-                ?? return ComplexStr.new(newval, $MAYBEVAL)
-                !! nqp::istype(newval, Int)
-                  ?? return IntStr.new(newval, $MAYBEVAL)
+          ?? newval
+          !! nqp::istype(newval, Int)
+            ?? IntStr.new(newval, $MAYBEVAL)
+            !! nqp::istype(newval, Num)
+              ?? NumStr.new(newval, $MAYBEVAL)
+              !! nqp::istype(newval, Rat)
+                ?? RatStr.new(newval, $MAYBEVAL)
+                !! nqp::istype(newval, Complex)
+                  ?? ComplexStr.new(newval, $MAYBEVAL)
                   !! die "Unknown type {newval.^name} found in val() processing"
     }
 
@@ -583,7 +583,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     # Parse a real number, magnitude of a pure imaginary number,
     # or real part of a complex number
     my $result := parse-real();
-    parse_win $result if nqp::iseq_i($pos, $eos);
+    return parse_win $result if nqp::iseq_i($pos, $eos);
 
     # Check for 'i' or '\\i' indicating first parsed number was
     # the magnitude of a pure imaginary number
@@ -623,10 +623,9 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     }
 
     # Check for trailing garbage
-    parse_fail "trailing characters after number"
-        if nqp::islt_i($pos, $eos);
-
-    parse_win $result;
+    nqp::islt_i($pos, $eos)
+      ?? parse_fail("trailing characters after number")
+      !! parse_win($result)
 }
 
 my sub GUARDED-NUMERIC(Mu \value) is implementation-detail {

@@ -346,7 +346,7 @@ class RakuAST::QuotedString
                 my $val := $val-lookup.is-resolved
                     ?? $val-lookup.resolution.compile-time-value
                     !! -> $val { $val };
-                $part := $val(nqp::hllizefor($part, 'Raku'));
+                $part := $val($part);
             }
             elsif $_ eq 'heredoc' {
             }

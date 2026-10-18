@@ -270,6 +270,11 @@ multi sub val(\one-thing) is raw {
     one-thing
 }
 
+# This candidate is intended to be accessesd from the RakuAST bootstrap
+# It prevents needing to use an nqp::hllfor() op, and instead lets
+# dispatch take care of HLLization
+multi sub val(str $MAYBEVAL) { val(nqp::box_s($MAYBEVAL,Str)) }
+
 multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
 
     # Unicode vulgar lookup, cannot use .unival at this point in setting

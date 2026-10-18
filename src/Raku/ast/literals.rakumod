@@ -442,6 +442,7 @@ class RakuAST::QuotedString
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+
         # If we can constant fold it, just produce the constant.
         my $literal-value := self.literal-value;
         if nqp::isconcrete($literal-value) {
@@ -451,53 +452,48 @@ class RakuAST::QuotedString
                 my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
                 my $format := $Format.new($literal-value);
                 $context.ensure-sc($format);
-                return QAST::WVal.new(:value($format));
+                QAST::WVal.new(:value($format));
             }
 
-            $context.ensure-sc($literal-value);
-            my $wval := QAST::WVal.new( :value($literal-value) );
-            return nqp::istype($literal-value, Str)
-                ?? QAST::Want.new(
-                     $wval,
-                     'Ss',
-                     QAST::SVal.new( :value(nqp::unbox_s($literal-value)) )
-                   )
-                !! $wval;
+            # other literal string value
+            else {
+                $context.ensure-sc($literal-value);
+                my $wval := QAST::WVal.new( :value($literal-value) );
+                nqp::istype($literal-value, Str)
+                  ?? QAST::Want.new(
+                       $wval,
+                       'Ss',
+                       QAST::SVal.new( :value(nqp::unbox_s($literal-value)) )
+                     )
+                  !! $wval
+            }
         }
 
         # Otherwise, needs compilation.
-        my @segment-asts;
-        for $!segments {
-            if $_.return-type =:= Str || nqp::istype($_, RakuAST::QuoteWordsAtom) {
-                @segment-asts.push($_.IMPL-TO-QAST($context));
-            }
-            else {
-                my $inter-qast := $_.IMPL-TO-QAST($context);
-                if nqp::istype($_, RakuAST::Block) {
-                    $inter-qast := QAST::Op.new( :op('call'), $inter-qast );
-                }
-                @segment-asts.push(QAST::Op.new(
-                    :op('callmethod'), :name('Stringy'),
-                    $inter-qast
-                ));
-            }
-        }
-        my int $seg-count := nqp::elems(@segment-asts);
-        my $qast;
-        if $seg-count == 1 {
-            $qast := @segment-asts[0];
-        }
-        elsif $seg-count == 2 {
-            $qast := QAST::Op.new( :op('concat'), @segment-asts[0], @segment-asts[1] )
-        }
         else {
-            $qast := QAST::Op.new(
-                :op('join'),
-                QAST::SVal.new( :value('') ),
-                QAST::Op.new( :op('list_s'), |@segment-asts )
-            )
+            my @qasts;
+            for $!segments {
+                my $qast := $_.IMPL-TO-QAST($context);
+
+                # Further processing needed
+                unless $_.return-type =:= Str
+                  || nqp::istype($_, RakuAST::QuoteWordsAtom) {
+                    $qast := QAST::Op.new(:op<call>, $qast)
+                      if nqp::istype($_, RakuAST::Block);
+                    $qast := QAST::Op.new(:op<callmethod>, :name<Stringy>, $qast);
+                }
+                @qasts.push($qast);
+            }
+
+            my $qast := nqp::shift(@qasts);
+            while @qasts {
+                $qast := QAST::Op.new(:op<callstatic>, :name('&infix:<~>'),
+                  $qast, nqp::shift(@qasts)
+                );
+            }
+
+            self.IMPL-QAST-PROCESSORS($context, $qast)
         }
-        self.IMPL-QAST-PROCESSORS($context, $qast)
     }
 
     method IMPL-WALK($context, $node, $result) {

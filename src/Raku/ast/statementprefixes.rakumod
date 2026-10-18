@@ -339,7 +339,7 @@ class RakuAST::StatementPrefix::Try
 
         # Otherwise, need to wrap it in exception handler logic.
         else {
-            my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $lookups := self.get-implicit-lookups;
             my $nil     := $lookups[0].IMPL-TO-QAST($context);
             my $bang    := $lookups[1].IMPL-TO-QAST($context);
             my $Failure := $lookups[2].IMPL-TO-QAST($context);
@@ -535,7 +535,7 @@ class RakuAST::StatementPrefix::Start
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         my $qast := QAST::Op.new(
             :op('callmethod'), :name('start'),
             $lookups[0].IMPL-TO-QAST($context),
@@ -692,7 +692,7 @@ class RakuAST::StatementPrefix::Phaser::Sinky
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context);
+        self.get-implicit-lookups[0].IMPL-TO-QAST($context);
     }
 }
 

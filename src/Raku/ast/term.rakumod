@@ -275,7 +275,7 @@ class RakuAST::Term::TopicCall
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $postfix-ast := $!call.IMPL-POSTFIX-QAST(
           $context,
-          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.IMPL-LOOKUP-QAST($context)
+          self.get-implicit-lookups[0].resolution.IMPL-LOOKUP-QAST($context)
         );
         nqp::istype($!call, RakuAST::Call::Methodish) && $!call.IMPL-HLLIZE-RESULT
             ?? QAST::Op.new(:op<hllize>, $postfix-ast)
@@ -293,7 +293,7 @@ class RakuAST::Term::TopicCall
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
         $!call.IMPL-BIND-POSTFIX-QAST(
           $context,
-          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0],
+          self.get-implicit-lookups[0],
           $source-qast
         )
     }
@@ -619,7 +619,7 @@ class RakuAST::Term::Reduce
     }
 
     method IMPL-HOP-INFIX() {
-        my &reducer := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        my &reducer := self.get-implicit-lookups[1].resolution.compile-time-value;
         $!triangle ?? &reducer($!infix.IMPL-HOP-INFIX, True) !! &reducer($!infix.IMPL-HOP-INFIX)
     }
 
@@ -662,8 +662,7 @@ class RakuAST::Term::Reduce
             # Form a List of the arguments and pass it to the reducer. A
             # thunky operator's arguments were already rewritten into thunks
             # by the IMPL-THUNK-ARGUMENTS call at begin time.
-            my $name :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
+            my $name := self.get-implicit-lookups[0].resolution.lexical-name;
             my $form-list := QAST::Op.new(:op('call'), :$name);
             $!args.IMPL-ADD-QAST-ARGS($context, $form-list);
             QAST::Op.new( :op<call>, $form-meta, $form-list )

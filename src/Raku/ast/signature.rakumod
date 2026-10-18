@@ -190,7 +190,7 @@ class RakuAST::Signature
                 }
                 elsif $!is-on-named-method {
                     if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) && $!method-package.can-have-methods {
-                        my $Class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+                        my $Class := self.get-implicit-lookups[0];
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.from-identifier('$?CLASS');
                             $type.set-resolution($Class.resolution);
@@ -1228,7 +1228,7 @@ class RakuAST::Parameter
         my str $sigil := self.IMPL-SIGIL;
         if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
             my $sigil-type :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
+              self.get-implicit-lookups[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
             # Match legacy: store the bare element type and treat `:D`/`:U`
             # as a separate definedness flag. Role parameterisation is
             # invariant, so the wrapped form would reject `my Str @x` defaults.
@@ -1709,7 +1709,7 @@ class RakuAST::Parameter
             }
             elsif !($param-type =:= Mu) {
                 unless $ptype-archetypes.generic {
-                    my $implicit-lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+                    my $implicit-lookups := self.get-implicit-lookups;
                     if $param-type =:= $implicit-lookups[0].resolution.compile-time-value {
                         my $PositionalBindFailover := $implicit-lookups[1].resolution.compile-time-value;
                         $param-qast.push(QAST::Op.new(
@@ -1912,7 +1912,7 @@ class RakuAST::Parameter
             else {
                 my $sigil := $!target.sigil;
                 if (my $is-array := $sigil eq '@') || $sigil eq '%' {
-                    my $role := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
+                    my $role := self.get-implicit-lookups[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
                     my $base-type := $is-array ?? Array !! Hash;
                     my $value := nqp::istype($nominal-type, $role) && nqp::can($nominal-type.HOW, 'role_arguments')
                         ?? $base-type.HOW.parameterize($base-type, |$nominal-type.HOW.role_arguments($nominal-type))
@@ -2012,7 +2012,7 @@ class RakuAST::Parameter
 
                 my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
                 unless $wrap {
-                    my $Iterable := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].resolution.compile-time-value;
+                    my $Iterable := self.get-implicit-lookups[2].resolution.compile-time-value;
                     if $is-coercive {
                         my $coercion_type := $param-type.HOW.wrappee($param-type, :coercion);
                         my $coerce_nom := $coercion_type.HOW.nominal_target($coercion_type);
@@ -2515,7 +2515,7 @@ class RakuAST::ParameterTarget::Var
     }
 
     method IMPL-SIGIL-TYPE() {
-       self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+       self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
     method has-compile-time-value() { False }

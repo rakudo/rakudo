@@ -411,7 +411,7 @@ class RakuAST::Var::Attribute
         # outside a method scope, as an attribute default in a has (...)
         # list does before moving into its initializer method. Retry from
         # the node's final position before reporting, as Term::Self does.
-        my $self-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+        my $self-lookup := self.get-implicit-lookups[0];
         unless $self-lookup.is-resolved {
             my $resolved := $resolver.resolve-lexical('self');
             $self-lookup.set-resolution($resolved) if $resolved;
@@ -428,7 +428,7 @@ class RakuAST::Var::Attribute
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context) {
-        my $class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
+        my $class := self.get-implicit-lookups[1];
         if $class.is-resolved
           && nqp::istype($class.resolution, RakuAST::CompileTimeValue) {
             my $type-object := $class.resolution.compile-time-value;
@@ -452,7 +452,7 @@ class RakuAST::Var::Attribute
             return QAST::Var.new(
                 :scope(nqp::objprimspec($attr-type) ?? 'attributeref' !! 'attribute'),
                 :name($!name), :returns($attr-type),
-                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context),
+                self.get-implicit-lookups[0].IMPL-TO-QAST($context),
                 self.IMPL-QAST-PACKAGE-LOOKUP($context)
             )
         }
@@ -473,7 +473,7 @@ class RakuAST::Var::Attribute
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new(:name($obj-name), :scope('local'), :decl('var')),
-                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+                self.get-implicit-lookups[0].IMPL-TO-QAST($context)
             ),
             QAST::Op.new(
                 :op('bind'),
@@ -585,7 +585,7 @@ class RakuAST::Var::Attribute
                 :op('bind'),
                 QAST::Var.new(
                     :scope('attribute'), :name($!name), :returns($attr-type),
-                    self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context),
+                    self.get-implicit-lookups[0].IMPL-TO-QAST($context),
                     self.IMPL-QAST-PACKAGE-LOOKUP($context)
                 ),
                 $source-qast
@@ -597,7 +597,7 @@ class RakuAST::Var::Attribute
             :op('bind'),
             QAST::Var.new(
                 :scope('attribute'), :name($!name), :returns(Mu),
-                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context),
+                self.get-implicit-lookups[0].IMPL-TO-QAST($context),
                 self.IMPL-QAST-PACKAGE-LOOKUP($context)
             ),
             $source-qast
@@ -857,7 +857,7 @@ class RakuAST::Var::Compiler::Resources
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $resources := nqp::getlexdyn('$*RESOURCES');
         unless $resources {
-            my $Resources := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+            my $Resources := self.get-implicit-lookups[0].resolution.compile-time-value;
             $resources := $Resources.from-precomp();
         }
         if $resources {
@@ -894,7 +894,7 @@ class RakuAST::Var::Compiler::Distribution
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $distribution := nqp::getlexdyn('$*DISTRIBUTION');
         unless $distribution {
-            my $Distribution := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+            my $Distribution := self.get-implicit-lookups[0].resolution.compile-time-value;
             $distribution := $Distribution.from-precomp();
         }
         if $distribution {
@@ -1005,7 +1005,7 @@ class RakuAST::Var::PositionalCapture
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         my $index := $!index;
         $context.ensure-sc($index);
         my $op := QAST::Op.new(
@@ -1076,7 +1076,7 @@ class RakuAST::Var::NamedCapture
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         my $op := QAST::Op.new(
             :op($lookups[0].IMPL-CALL-OP),
             :name($lookups[0].resolution.lexical-name),
@@ -1297,7 +1297,7 @@ class RakuAST::Var::Slang
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
-            :op<callmethod>, :name<new>, :returns(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value),
+            :op<callmethod>, :name<new>, :returns(self.get-implicit-lookups[0].resolution.compile-time-value),
             QAST::Var.new( :name<Slang>, :scope<lexical> ));
         my $g := $!grammar;
         my $a := $!actions;

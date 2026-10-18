@@ -342,7 +342,7 @@ class RakuAST::QuotedString
                 }
             }
             elsif $_ eq 'val' {
-                my $val-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+                my $val-lookup := self.get-implicit-lookups[0];
                 my $val := $val-lookup.is-resolved
                     ?? $val-lookup.resolution.compile-time-value
                     !! -> $val { $val };
@@ -448,7 +448,7 @@ class RakuAST::QuotedString
 
             # format string
             if $!processors && $!processors[0] eq 'format' {
-                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+                my $Format := self.get-implicit-lookups[0].resolution.compile-time-value;
                 my $format := $Format.new($literal-value);
                 $context.ensure-sc($format);
                 return QAST::WVal.new(:value($format));
@@ -564,7 +564,7 @@ class RakuAST::QuotedString
             }
             elsif $_ eq 'val' {
                 my $name :=
-                  self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
+                  self.get-implicit-lookups[0].resolution.lexical-name;
                 $qast := QAST::Op.new(:op('call'), :$name, $qast);
             }
             elsif $_ eq 'exec' {
@@ -581,7 +581,7 @@ class RakuAST::QuotedString
                 );
             }
             elsif $_ eq 'format' {
-                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+                my $Format := self.get-implicit-lookups[0].resolution.compile-time-value;
                 $qast := QAST::Op.new(
                   :op('callmethod'), :name('new'),
                   QAST::WVal.new( :value($Format)),
@@ -657,8 +657,7 @@ class RakuAST::Heredoc
         }
         # Also steal the implicit lookups as any processor related lookups will
         # have been done before we got to stealing those processors.
-        self.IMPL-SET-IMPLICIT-LOOKUPS(
-          self.IMPL-UNWRAP-LIST($source.get-implicit-lookups));
+        self.IMPL-SET-IMPLICIT-LOOKUPS($source.get-implicit-lookups);
     }
 
     method set-stop(Str $stop) {

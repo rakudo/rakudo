@@ -2079,11 +2079,15 @@ role RakuAST::ImplicitLookups {
 
     # Get a list of the implicit lookups.
     method get-implicit-lookups() {
-        self.IMPL-WRAP-LIST(nqp::isconcrete(self)
-            ?? $!implicit-lookups-cache //
-                nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache',
-                    self.PRODUCE-IMPLICIT-LOOKUPS())
-            !! [])
+        nqp::isconcrete(self)
+          ?? $!implicit-lookups-cache
+               // nqp::bindattr(
+                    self,
+                    RakuAST::ImplicitLookups,
+                    '$!implicit-lookups-cache',
+                    self.PRODUCE-IMPLICIT-LOOKUPS
+                  )
+          !! []
     }
 
     # Take over the implicit lookups of another node.
@@ -2093,7 +2097,7 @@ role RakuAST::ImplicitLookups {
 
     # Drive the implicit lookups to their begin time.
     method implicit-lookups-to-begin-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        for self.IMPL-UNWRAP-LIST(self.get-implicit-lookups()) {
+        for self.get-implicit-lookups {
             # We use null to pad out lookup lists so that they always
             # have the same number of elements regardless of whether
             # some lookups can only be conditionally included in the list

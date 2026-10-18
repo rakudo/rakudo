@@ -41,7 +41,7 @@ class RakuAST::StatementModifier::Condition
     }
 
     method IMPL-EMPTY(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+        self.get-implicit-lookups[0].IMPL-TO-QAST($context)
     }
 
     method expression-thunk() {
@@ -295,7 +295,7 @@ class RakuAST::StatementModifier::WhileUntil
             )
         }
         else {
-            my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
+            my $Seq := self.get-implicit-lookups[1].IMPL-TO-QAST($context);
             QAST::Op.new(:op<callmethod>, :name('from-loop'),
                 $Seq,
                 $statement-qast,
@@ -378,7 +378,7 @@ class RakuAST::StatementModifier::For
             ?? nqp::istype($expression, RakuAST::Code)
                  && self.IMPL-CAN-USE-STATEMENT-FORM($expression)
             !! True) {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my @lookups := self.get-implicit-lookups;
             my $Nil := @lookups[1].resolution.compile-time-value;
 
             # An integer range or sequence source the optimize pass approved becomes a

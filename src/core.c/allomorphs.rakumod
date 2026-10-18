@@ -629,10 +629,6 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     parse_win $result;
 }
 
-my sub GUARDED-NUMERIC(Mu \value) is implementation-detail {
-    nqp::handle(value.Numeric, 'CATCH', Nil)
-}
-
 # What the ACCEPTS of a number literal compares an Any topic that is not
 # a Str by. Only core types whose Numeric cannot throw skip the guard, as a
 # handler keeps a routine from inlining. An Int literal compares an Int itself.
@@ -644,7 +640,7 @@ my sub LITERAL-NUMERIC(Mu \value, \literal) is implementation-detail {
       !! nqp::eqaddr(type, IntStr) || nqp::eqaddr(type, NumStr)
            || nqp::eqaddr(type, RatStr)
         ?? value.Numeric
-        !! GUARDED-NUMERIC(value)
+        !! nqp::handle(value.Numeric, 'CATCH', Nil)
 }
 
 my sub LITERAL-EQUALS(Mu \numeric, \literal) is implementation-detail {

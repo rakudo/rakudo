@@ -281,9 +281,13 @@ class RakuAST::QuotedString
     # does, so it takes part in native pairing the same way. A processor
     # changes what the value compiles to, so any processor declines.
     method IMPL-NATIVE-LITERAL-KIND() {
-        return Nil if $!processors && nqp::elems($!processors);
-        my $value := self.literal-value;
-        nqp::isconcrete($value) && nqp::istype($value, Str) ?? 3 !! Nil
+        if $!processors {
+            Nil
+        }
+        else {
+            my $value := self.literal-value;
+            nqp::isconcrete($value) && nqp::istype($value, Str) ?? 3 !! Nil
+        }
     }
 
     method ast-type {

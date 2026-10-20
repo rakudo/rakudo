@@ -656,7 +656,7 @@ is Array.new(:shape(2,*), [1,2], [3]).gist, '[[1 2] [3]]',
     @k[0,1] = @k[1], @k[0];
     is-deeply @k.List.map(*.List), ((3,), (1, 2)),
         'a slice assignment of its own rows swaps them';
-    try { @k[0,5] = (1,2),(3,4) }
+    try @k[0,5] = (1,2),(3,4);
     is-deeply @k.List.map(*.List), ((3,), (1, 2)),
         'a slice assignment past a set length assigns nothing';
     @k[0,1] = (5,6),;

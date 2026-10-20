@@ -111,14 +111,10 @@ my role Hash::Shaped[::TValue, ::TDefault, *@KEYS]
 
     # Sorting safely sorts by the gist of each list of keys, as a junction or
     # a type object among them does not stringify
-    multi method sort(::?CLASS:D: Bool :$safe --> Seq:D) {
-        Seq.new(
-          Rakudo::Iterator.ReifiedList(
-            Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-              self.IterationBuffer.List,
-              $safe ?? { .key.gist } !! { .key }
-            )
-          )
+    multi method sort(::?CLASS:D: Bool :$safe) {
+        Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
+          self.IterationBuffer.List,
+          $safe ?? *.key.gist !! *.key
         )
     }
 

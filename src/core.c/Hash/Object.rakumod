@@ -217,17 +217,17 @@ my role Hash::Object[::TValue, ::TKey, ::TDefault = TValue]
           !! Nil
     }
 
-    multi method sort(::?CLASS:D: Bool :$safe --> Seq:D) {
-        # With :safe we don't sort directly over the keys but stringify them appropriately first. This is necessary
-        # whenever a key could happen to be a Junction, in which case MERGESORT-REIFIED-LIST-AS would throw due to
-        # autothreading.
-        Seq.new(
-          Rakudo::Iterator.ReifiedList(
-            Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-              self.IterationBuffer.List,
-              ($safe
-                ?? { ($_ ~~ Junction ?? .gist !! .Stringy) with .key }
-                !! *.key))))
+    multi method sort(::?CLASS:D: Bool :$safe) {
+        # With :safe we don't sort directly over the keys but stringify them
+        # appropriately first. This is necessary whenever a key could happen
+        # to be a Junction, in which case MERGESORT-REIFIED-LIST-AS would
+        # throw due to autothreading.
+        Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
+          self.IterationBuffer.List,
+          $safe
+            ?? { (nqp::istype($_,Junction) ?? .gist !! .Stringy) given .key }
+            !! *.key
+        )
     }
 
     my class Keys does Rakudo::Iterator::Mappy {

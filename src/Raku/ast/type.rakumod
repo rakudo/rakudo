@@ -652,7 +652,7 @@ class RakuAST::Type::Parameterized
         }
 
         my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
-        my $fail := 0;
+        my int $fail;
         for $args -> $arg {
             if nqp::istype($arg, RakuAST::Lookup) && !$arg.is-resolved && $arg.needs-resolution {
                 $resolver.add-node-unresolved-after-check-time($arg);
@@ -1020,7 +1020,7 @@ class RakuAST::Type::Enum
         nqp::bindattr(self, RakuAST::Type::Enum, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
 
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         my $Pair    := $lookups[0].resolution.compile-time-value;
         my $Stringy := $lookups[1].resolution.compile-time-value;
         my $Numeric := $lookups[2].resolution.compile-time-value;

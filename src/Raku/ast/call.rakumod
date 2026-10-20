@@ -1011,7 +1011,8 @@ class RakuAST::Call::Method
                 # not resolve at compile time (for example a type only loaded
                 # by the consuming program) becomes a runtime lookup rather
                 # than a compile-time failure.
-                my $qualified-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+                my $qualified-qast :=
+                  self.get-implicit-lookups[0].IMPL-EXPR-QAST($context);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
 
@@ -1081,7 +1082,8 @@ class RakuAST::Call::Method
                        QAST::SVal.new( :value($name) );
             }
             else {
-                my $qualified-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+                my $qualified-qast :=
+                  self.get-implicit-lookups[0].IMPL-EXPR-QAST($context);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
 
@@ -1408,7 +1410,7 @@ class RakuAST::Call::PrivateMethod
                 :op('dispatch'),
                 QAST::SVal.new(:value('raku-meth-private')),
                 $!package.HOW.archetypes.parametric
-                  ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context)
+                  ?? self.get-implicit-lookups[0].IMPL-EXPR-QAST($context)
                   !! QAST::WVal.new(:value($!package)),
                 QAST::SVal.new(:value($name)),
                 $invocant-qast,
@@ -1438,7 +1440,7 @@ class RakuAST::Call::PrivateMethod
             $package-qast := self.resolution.IMPL-TO-QAST($context);
         }
         elsif $!package.HOW.archetypes.parametric {
-            $package-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+            $package-qast := self.get-implicit-lookups[0].IMPL-EXPR-QAST($context);
         }
         else {
             $context.ensure-sc($!package);
@@ -1737,7 +1739,7 @@ class RakuAST::Stub
         # comes up empty. Retry now that the whole compilation unit has
         # been parsed, so the emitted code carries the resolved type
         # rather than a run time package walk from GLOBAL.
-        my $lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+        my $lookup := self.get-implicit-lookups[0];
         $lookup.PERFORM-CHECK($resolver, $context) unless $lookup.is-resolved;
         True
     }
@@ -1749,7 +1751,7 @@ class RakuAST::Stub
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
           :op<callmethod>, :name<new>,
-          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+          self.get-implicit-lookups[0].IMPL-TO-QAST($context)
         );
         if $!args {
             my @args := self.IMPL-UNWRAP-LIST($!args.args);

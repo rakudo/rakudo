@@ -627,7 +627,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         Seq.new(CtxSymIterator::Pairs.new(self, $implementation-detail))
     }
 
-    method sort(::?CLASS:D: :$implementation-detail --> Seq:D) {
+    method sort(::?CLASS:D: :$implementation-detail) {
         Seq.new(CtxSymIterator::Pairs.new(self, $implementation-detail)).sort
     }
 

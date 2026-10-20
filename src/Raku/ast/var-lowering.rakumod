@@ -1080,7 +1080,7 @@ class RakuAST::IMPL::VarLowering {
     # call resolves. They count as uses like any other.
     method IMPL-REGISTER-IMPLICIT-LOOKUPS(RakuAST::Node $node) {
         if nqp::istype($node, RakuAST::ImplicitLookups) {
-            for $node.IMPL-UNWRAP-LIST($node.get-implicit-lookups()) {
+            for $node.get-implicit-lookups {
                 next if nqp::isnull($_);
                 self.IMPL-CHECK-NAME-REACHERS($_);
                 self.IMPL-REGISTER-USE($_)

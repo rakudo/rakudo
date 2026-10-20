@@ -468,7 +468,7 @@ class RakuAST::CompUnit
                     $check-phaser();
                 }
                 CATCH {
-                    my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+                    my $lookups := self.get-implicit-lookups;
                     my $exception := $_;
                     my $BeginTime := $lookups[2].resolution.compile-time-value;
                     my $coercer := $lookups[3].resolution.compile-time-value;
@@ -496,7 +496,7 @@ class RakuAST::CompUnit
     }
 
     method IMPL-FATALIZE {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        self.get-implicit-lookups[1].resolution.compile-time-value
     }
 
     # True when this compunit IS the CORE setting (NULL.c / NULL.d / NULL.e).
@@ -733,7 +733,7 @@ class RakuAST::CompUnit
             :post_deserialize($context.post-deserialize()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
-                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context) )),
+                self.get-implicit-lookups[0].IMPL-TO-QAST($context) )),
             # If this unit is loaded as a module, we want it to automatically
             # execute the mainline code above after all other initializations
             # have occurred.

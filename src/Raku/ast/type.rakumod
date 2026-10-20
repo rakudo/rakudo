@@ -1020,7 +1020,7 @@ class RakuAST::Type::Enum
         nqp::bindattr(self, RakuAST::Type::Enum, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
 
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         my $Pair    := $lookups[0].resolution.compile-time-value;
         my $Stringy := $lookups[1].resolution.compile-time-value;
         my $Numeric := $lookups[2].resolution.compile-time-value;

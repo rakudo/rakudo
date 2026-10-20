@@ -2346,7 +2346,7 @@ class RakuAST::Block
         # of the nominal type check: a value that does
         # PositionalBindFailover binds as its cached List, which is
         # how a Seq binds to an '@' parameter.
-        my $lookups := $param.IMPL-UNWRAP-LIST($param.get-implicit-lookups);
+        my $lookups := $param.get-implicit-lookups;
         if $nominal =:= $lookups[0].resolution.compile-time-value {
             my $failover := $lookups[1].resolution.compile-time-value;
             $context.ensure-sc($failover);
@@ -2595,11 +2595,11 @@ class RakuAST::Block
     }
 
     method IMPL-FATALIZE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        self.get-implicit-lookups[1].resolution.compile-time-value;
     }
 
     method IMPL-FATALIZE-RESOLVED() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].is-resolved
+        self.get-implicit-lookups[1].is-resolved
     }
 
     method IMPL-IS-IN-METHOD() {
@@ -2983,7 +2983,7 @@ class RakuAST::PointyBlock
     }
 
     method IMPL-FATALIZE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        self.get-implicit-lookups[1].resolution.compile-time-value;
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
@@ -2991,8 +2991,7 @@ class RakuAST::PointyBlock
         my $signature := self.signature || self.placeholder-signature;
 
         if $signature.meta-object.has_returns {
-            my $Callable :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+            my $Callable := self.get-implicit-lookups[0].compile-time-value;
             # Parameterizations intern by argument identity, so a constant
             # return value would create a distinct Callable parameterization
             # and mixin type per literal. Use its type instead.
@@ -3161,7 +3160,7 @@ class RakuAST::Routine
     }
 
     method IMPL-FATALIZE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        self.get-implicit-lookups[1].resolution.compile-time-value;
     }
 
     method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
@@ -3175,8 +3174,7 @@ class RakuAST::Routine
         nqp::bindattr($signature.meta-object, Signature, '$!code', $routine);
 
         if $signature.meta-object.has_returns {
-            my $Callable :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+            my $Callable := self.get-implicit-lookups[0].compile-time-value;
             # Parameterizations intern by argument identity, so a constant
             # return value would create a distinct Callable parameterization
             # and mixin type per literal. Use its type instead.
@@ -5634,7 +5632,7 @@ class RakuAST::QuotedRegex
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $closure := self.IMPL-CLOSURE-QAST($context, :regex);
         if $!match-immediately {
-            my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $lookups := self.get-implicit-lookups;
             my $topic   := $lookups[0].IMPL-TO-QAST($context);
             my $slash   := $lookups[1].IMPL-TO-QAST($context);
 
@@ -5680,7 +5678,7 @@ class RakuAST::QuotedRegex
     }
 
     method IMPL-TWEAK-REGEX-CLONE(RakuAST::IMPL::QASTContext $context, Mu $clone) {
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         if $context.lang-version lt 'd' {
             my $topic := $lookups[2].IMPL-TO-QAST($context);
             $topic.named('topic');
@@ -5795,7 +5793,7 @@ class RakuAST::Substitution
         # Coerce the topic into a Str before we start (we need to do that for
         # applying the match results anyway, so may as well avoid a double
         # coercion in the call to .match also).
-        my $lookups    := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups    := self.get-implicit-lookups;
         my $topic      := $lookups[0];
         my $slash      := $lookups[1];
         my $Positional := $lookups[2].compile-time-value;
@@ -6003,7 +6001,7 @@ class RakuAST::Transliteration
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $Pair := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+        my $Pair := self.get-implicit-lookups[0].resolution.compile-time-value;
         my $trans := QAST::Op.new:
             QAST::Var.new(:name<$_>, :scope<lexical>),
             :op<callmethod>, :name<trans>,
@@ -6018,7 +6016,7 @@ class RakuAST::Transliteration
             $trans.push($arg);
         }
         if $!destructive {
-            my $StrDistance := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+            my $StrDistance := self.get-implicit-lookups[1].resolution.compile-time-value;
             my $original := QAST::Node.unique: 'original_value_to_trans';
 
             QAST::Stmt.new(
@@ -6127,7 +6125,7 @@ class RakuAST::PrimeThunk
     }
 
     method IMPL-THUNK-OBJECT-TYPE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value
+        self.get-implicit-lookups[0].compile-time-value
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -6153,7 +6151,7 @@ class RakuAST::PrimeThunk
     }
 
     method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {
-        nqp::bindattr($code, self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value, '$!original-expression', $!original-expression)
+        nqp::bindattr($code, self.get-implicit-lookups[0].compile-time-value, '$!original-expression', $!original-expression)
     }
 }
 

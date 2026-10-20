@@ -1728,7 +1728,7 @@ class RakuAST::Node {
             || nqp::istype($expr, RakuAST::Term::Named)
             || nqp::istype($expr, RakuAST::Term::EmptySet)
             || nqp::istype($expr, RakuAST::Term::Rand);
-        return self.IMPL-UNWRAP-LIST($expr.get-implicit-lookups)[0]
+        return $expr.get-implicit-lookups[0]
             if nqp::istype($expr, RakuAST::Var::PositionalCapture)
             || nqp::istype($expr, RakuAST::Var::NamedCapture);
         Nil

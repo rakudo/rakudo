@@ -82,7 +82,7 @@ my class PseudoStash is Map {
           !! Seq.new(self.iterator).map: { $_ if ok-to-include(.value) }
     }
 
-    method sort(:$implementation-detail) {
+    method sort(:$implementation-detail --> Seq:D) {
         $implementation-detail
           ?? (nextsame)
           !! self.pairs.sort

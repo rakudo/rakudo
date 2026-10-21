@@ -159,12 +159,15 @@ my class Rakudo::Sorting is implementation-detail {
         $kind
     }
 
-    # Takes the HLL List to be sorted *in place*, every element of which is
-    # exactly an Int, so cmp reduces to nqp::cmp_I on the two values, which
-    # a Scalar element is decontainerized for.  The left run always sits
-    # entirely before the right, so taking the left of an equal pair is
-    # what the general merge's explicit tie-break amounts to.
-    method !MERGESORT-REIFIED-LIST-Int(\list) {
+#- start of generated part of HLL sorting Int array logic --------------------------
+#- Generated on 2026-10-21T17:11:00+02:00 by tools/build/makeSORTING.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
+    # Sort an Int array and return the result.  Uses the given Int
+    # array as one of the buffers for performance reasons.
+    # Please nqp::clone first if you want to keep the original intact.
+    method !MERGESORT-REIFIED-LIST-Int(Mu \list) {
         # $A has the items to sort; $B is a work array
         my $A := nqp::getattr(list,List,'$!reified');
         my int $n = nqp::elems($A);
@@ -231,10 +234,18 @@ my class Rakudo::Sorting is implementation-detail {
 
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of HLL sorting Intarray logic ----------------------------
 
-    # As MERGESORT-REIFIED-LIST-Int, for a list of exactly Str, where cmp
-    # reduces to nqp::cmp_s on the unboxed strings.
-    method !MERGESORT-REIFIED-LIST-Str(\list) {
+#- start of generated part of HLL sorting Str array logic --------------------------
+#- Generated on 2026-10-21T17:11:00+02:00 by tools/build/makeSORTING.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
+    # Sort a Str array and return the result.  Uses the given Str
+    # array as one of the buffers for performance reasons.
+    # Please nqp::clone first if you want to keep the original intact.
+    method !MERGESORT-REIFIED-LIST-Str(Mu \list) {
         # $A has the items to sort; $B is a work array
         my $A := nqp::getattr(list,List,'$!reified');
         my int $n = nqp::elems($A);
@@ -273,8 +284,8 @@ my class Rakudo::Sorting is implementation-detail {
                     nqp::islt_i($i,$right) && (
                       nqp::isge_i($j,$end)
                         || nqp::isle_i(nqp::cmp_s(
-                             nqp::unbox_s(nqp::decont(nqp::atpos($A,$i))),
-                             nqp::unbox_s(nqp::decont(nqp::atpos($A,$j)))
+                             nqp::decont(nqp::atpos($A,$i)),
+                             nqp::decont(nqp::atpos($A,$j))
                            ),0)
                     ),
                     nqp::stmts(
@@ -301,6 +312,86 @@ my class Rakudo::Sorting is implementation-detail {
 
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of HLL sorting Strarray logic ----------------------------
+
+#- start of generated part of HLL sorting Num array logic --------------------------
+#- Generated on 2026-10-21T17:11:00+02:00 by tools/build/makeSORTING.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
+    # Sort a Num array and return the result.  Uses the given Num
+    # array as one of the buffers for performance reasons.
+    # Please nqp::clone first if you want to keep the original intact.
+    method !MERGESORT-REIFIED-LIST-Num(Mu \list) {
+        # $A has the items to sort; $B is a work array
+        my $A := nqp::getattr(list,List,'$!reified');
+        my int $n = nqp::elems($A);
+        my $B := nqp::setelems(nqp::create(IterationBuffer),$n);
+
+        # Each 1-element run in $A is already "sorted"
+        # Make successively longer sorted runs of length 2, 4, 8, 16...
+        # until $A is wholly sorted
+        my int $width = 1;
+        nqp::while(
+          nqp::islt_i($width,$n),
+          nqp::stmts(
+            (my int $l = 0),
+
+            # $A is full of runs of length $width
+            nqp::while(
+              nqp::islt_i($l,$n),
+
+              nqp::stmts(
+                (my int $left  = $l),
+                (my int $right = nqp::add_i($l,$width)),
+                nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                (my int $i = $left),
+                (my int $j = $right),
+                (my int $k = nqp::sub_i($left,1)),
+
+                # Merge two runs: $A[i       .. i+width-1] and
+                #                 $A[i+width .. i+2*width-1]
+                # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                nqp::while(
+                  nqp::islt_i(++$k,$end),
+                  nqp::if(
+                    nqp::islt_i($i,$right) && (
+                      nqp::isge_i($j,$end)
+                        || nqp::isle_i(nqp::cmp_n(
+                             nqp::decont(nqp::atpos($A,$i)),
+                             nqp::decont(nqp::atpos($A,$j))
+                           ),0)
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
+                      ++$i
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
+                      ++$j
+                    )
+                  )
+                ),
+                ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+              )
+            ),
+
+            # Now work array $B is full of runs of length 2*width.
+            (my $temp := $B),($B := $A),($A := $temp),   # swap
+            # Now array $A is full of runs of length 2*width.
+
+            ($width = nqp::add_i($width,$width))
+          )
+        );
+
+        nqp::p6bindattrinvres(list,List,'$!reified',$A)
+    }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of HLL sorting Numarray logic ----------------------------
 
     # Takes the HLL List to be sorted *in place* using a comparator
     method MERGESORT-REIFIED-LIST-WITH(\list, &comparator) {

@@ -1355,7 +1355,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method !deep-clone() {
         nqp::p6bindattrinvres(
-          nqp::create(List),List,'$!reified',nqp::clone($!reified)
+          nqp::create(self.WHAT),List,'$!reified',nqp::clone($!reified)
         )
     }
 

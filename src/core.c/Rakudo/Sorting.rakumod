@@ -3,31 +3,92 @@ my class Rakudo::Sorting is implementation-detail {
     # Classifying costs a walk before a single comparison is made, which a
     # shorter list does not do enough comparisons to repay.  Sorting
     # elements and sorting by an extracted key cross over alike here.
-    my constant SORT-CLASSIFY-FROM = 16;
+    my constant SORT-CLASSIFY-FROM = 12;
 
-    # helper sub to report whether reading a slot runs no code of its own,
-    # which is true of a plain value and of a Scalar, and not of a
-    # container that answers with a FETCH, such as a Proxy.  The slot is
-    # taken as Mu so that binding it does not read it either.
-    sub slot-reads-the-same(Mu \slot) {
-        nqp::not_i(nqp::iscont(slot))
-          || nqp::eqaddr(nqp::what_nd(slot),Scalar)
+    # Return 1 if all elements are concrete, 0 if not
+    my sub ALL-CONCRETE(Mu \list) {
+        my $A    := nqp::getattr(list,List,'$!reified');
+        my int $n = nqp::elems($A);
+        my int $i;
+        nqp::while(
+          nqp::islt_i($i,$n) && nqp::isconcrete(nqp::atpos($A,$i++)),
+          nqp::null
+        );
+
+        nqp::iseq_i($i,$n)
     }
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # The parameter is the HLL List to be sorted *in place* using simple cmp.
-    method MERGESORT-REIFIED-LIST(\list) {
-        # $A has the items to sort; $B is a work array
-        my $A := nqp::getattr(list,List,'$!reified');
-        my int $n = nqp::elems($A);
+    # If the number of elements exceeds a threshold, will check for a
+    # common type to be able to use optimized sort path if possible.
+    method MERGESORT-REIFIED-LIST(Mu \list) {
+        my \of := list.of;
 
-        my int $kind = nqp::isge_i($n,SORT-CLASSIFY-FROM)
-          ?? self!SORT-ELEMENT-KIND(list)
-          !! 0;
-        return self!MERGESORT-REIFIED-LIST-Int(list)
-          if nqp::iseq_i($kind,1);
-        return self!MERGESORT-REIFIED-LIST-Str(list)
-          if nqp::iseq_i($kind,2);
+        nqp::eqaddr(of,Mu)
+          ?? list.elems >= SORT-CLASSIFY-FROM
+            ?? self!MERGESORT-REIFIED-LIST-untyped(list)  # long enough
+            !! self!MERGESORT-REIFIED-LIST-slow(list)     # too short
+          !! (nqp::eqaddr(of,Int) || nqp::eqaddr(of,Int:D))
+               && ALL-CONCRETE(list)
+            ?? self!MERGESORT-REIFIED-LIST-Int(list)
+            !! (nqp::eqaddr(of,Str) || nqp::eqaddr(of,Str:D))
+                 && ALL-CONCRETE(list)
+              ?? self!MERGESORT-REIFIED-LIST-Str(list)
+              !! nqp::eqaddr(of,Num) || nqp::eqaddr(of,Num:D)
+                   && ALL-CONCRETE(list)
+                ?? self!MERGESORT-REIFIED-LIST-Num(list)
+                !! self!MERGESORT-REIFIED-LIST-slow(list)
+    }
+
+    # The path that checks for a common type in an otherwise
+    # untyped list, and selects an optimized path if possible
+    method !MERGESORT-REIFIED-LIST-untyped(\list) {
+        my $A := nqp::getattr(list,List,'$!reified');
+
+        # Safely determine base type without running any Proxy FETCHes
+        my $slot := nqp::atpos($A,0);
+        my $what := (
+          nqp::not_i(nqp::iscont($slot))               # not a container
+            || nqp::eqaddr(nqp::what_nd($slot),Scalar) # not a Proxy
+        ) && nqp::isconcrete($slot)                    # a value
+          ?? nqp::what($slot)                           # set type
+          !! Mu;                                        # don't bother
+
+        my int $n = nqp::elems($A);
+        my int $i;
+        nqp::if(
+          nqp::eqaddr($what,Int)
+            || nqp::eqaddr($what,Str)
+            || nqp::eqaddr($what,Num),
+          nqp::while(
+            nqp::islt_i(++$i,$n)  # skip first, already checked
+              && nqp::if(
+                   nqp::iscont($slot := nqp::atpos($A,$i)),
+                   nqp::eqaddr(nqp::what_nd($slot),Scalar)
+                     && nqp::eqaddr(nqp::what($slot),$what),
+                   nqp::eqaddr(nqp::what($slot),$what)
+                 )
+              && nqp::isconcrete($slot),
+            nqp::null
+          )
+        );
+
+        nqp::iseq_i($i,$n)
+          ?? nqp::eqaddr($what,Int)
+            ?? self!MERGESORT-REIFIED-LIST-Int(list)
+            !! nqp::eqaddr($what,Str)
+              ?? self!MERGESORT-REIFIED-LIST-Str(list)
+              !! self!MERGESORT-REIFIED-LIST-Num(list)
+          !! self!MERGESORT-REIFIED-LIST-slow(list)  # unknown type or mix
+    }
+
+    # The slow path for sorting, using infix:<cmp>
+    method !MERGESORT-REIFIED-LIST-slow(\list) {
+
+        # $A has the items to sort; $B is a work array
+        my $A    := nqp::getattr(list,List,'$!reified');
+        my int $n = nqp::elems($A);
 
         nqp::if(
           nqp::isgt_i($n,2),
@@ -112,61 +173,14 @@ my class Rakudo::Sorting is implementation-detail {
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 
-    # Report which specialized merge, if any, may sort the given HLL List:
-    # 1 for a list of Int, 2 for a list of Str, 0 for anything else.  Every
-    # element has to be concrete and of exactly that type: an Allomorph
-    # carries both a numeric and a string value and picks the infix:<cmp>
-    # candidate that breaks a numeric tie on the string, where nqp::cmp_I
-    # calls the pair equal, so it would sort differently rather than
-    # complain.
-    method !SORT-ELEMENT-KIND(\list) {
-        # The reified buffer is fetched here rather than passed in.  A list
-        # built from a literal reifies into a bare VM array rather than an
-        # IterationBuffer, and a bare VM array handed to a method call
-        # arrives HLLized into a List, which nqp::elems cannot count.
-        my $A := nqp::getattr(list,List,'$!reified');
-        my int $n = nqp::elems($A);
-        my int $kind = 0;
-
-        # The first slot only says which type to expect.  Every element,
-        # that one included, is then checked by the loop.
-        nqp::if(
-          nqp::isgt_i($n,2)
-            && nqp::isgt_i(
-                 ($kind = nqp::eqaddr(
-                   (my $wanted := slot-reads-the-same(
-                     my $slot := nqp::ifnull(nqp::atpos($A,0),Mu)
-                   ) ?? nqp::what($slot) !! Mu),Int)
-                   ?? 1
-                   !! nqp::eqaddr($wanted,Str) ?? 2 !! 0),
-                 0
-               ),
-          nqp::stmts(
-            (my int $i = -1),
-            nqp::while(
-              nqp::islt_i(++$i,$n)
-                && slot-reads-the-same(
-                     $slot := nqp::ifnull(nqp::atpos($A,$i),Mu)
-                   )
-                && nqp::isconcrete(my $value := nqp::decont($slot))
-                && nqp::eqaddr(nqp::what($value),$wanted),
-              nqp::null
-            ),
-            nqp::unless(nqp::iseq_i($i,$n),($kind = 0))
-          )
-        );
-
-        $kind
-    }
-
-#- start of generated part of HLL sorting Int array logic --------------------------
-#- Generated on 2026-10-21T17:11:00+02:00 by tools/build/makeSORTING.raku
+#- start of generated part of HLL sorting Int array logic ---------------------
+#- Generated on 2026-10-21T20:57:44+02:00 by tools/build/makeSORTING.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # Sort an Int array and return the result.  Uses the given Int
-    # array as one of the buffers for performance reasons.
-    # Please nqp::clone first if you want to keep the original intact.
+    # array as one of the buffers for performance reasons.  Assumes that
+    # only concrete values exist in the array.
     method !MERGESORT-REIFIED-LIST-Int(Mu \list) {
         # $A has the items to sort; $B is a work array
         my $A := nqp::getattr(list,List,'$!reified');
@@ -235,16 +249,16 @@ my class Rakudo::Sorting is implementation-detail {
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
-#- end of generated part of HLL sorting Intarray logic ----------------------------
+#- end of generated part of HLL sorting Int array logic -------------------------
 
-#- start of generated part of HLL sorting Str array logic --------------------------
-#- Generated on 2026-10-21T17:11:00+02:00 by tools/build/makeSORTING.raku
+#- start of generated part of HLL sorting Str array logic ---------------------
+#- Generated on 2026-10-21T20:57:44+02:00 by tools/build/makeSORTING.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # Sort a Str array and return the result.  Uses the given Str
-    # array as one of the buffers for performance reasons.
-    # Please nqp::clone first if you want to keep the original intact.
+    # array as one of the buffers for performance reasons.  Assumes that
+    # only concrete values exist in the array.
     method !MERGESORT-REIFIED-LIST-Str(Mu \list) {
         # $A has the items to sort; $B is a work array
         my $A := nqp::getattr(list,List,'$!reified');
@@ -313,16 +327,16 @@ my class Rakudo::Sorting is implementation-detail {
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
-#- end of generated part of HLL sorting Strarray logic ----------------------------
+#- end of generated part of HLL sorting Str array logic -------------------------
 
-#- start of generated part of HLL sorting Num array logic --------------------------
-#- Generated on 2026-10-21T17:11:00+02:00 by tools/build/makeSORTING.raku
+#- start of generated part of HLL sorting Num array logic ---------------------
+#- Generated on 2026-10-21T20:57:44+02:00 by tools/build/makeSORTING.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # Sort a Num array and return the result.  Uses the given Num
-    # array as one of the buffers for performance reasons.
-    # Please nqp::clone first if you want to keep the original intact.
+    # array as one of the buffers for performance reasons.  Assumes that
+    # only concrete values exist in the array.
     method !MERGESORT-REIFIED-LIST-Num(Mu \list) {
         # $A has the items to sort; $B is a work array
         my $A := nqp::getattr(list,List,'$!reified');
@@ -391,7 +405,7 @@ my class Rakudo::Sorting is implementation-detail {
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
-#- end of generated part of HLL sorting Numarray logic ----------------------------
+#- end of generated part of HLL sorting Num array logic -------------------------
 
     # Takes the HLL List to be sorted *in place* using a comparator
     method MERGESORT-REIFIED-LIST-WITH(\list, &comparator) {
@@ -646,7 +660,7 @@ my class Rakudo::Sorting is implementation-detail {
               )
             ),
             nqp::if(
-              nqp::isgt_i($kind,0),
+              $kind,
               nqp::iseq_i($kind,1)
                 ?? self!MERGESORT-AS-Int(list,$S,$indices)
                 !! self!MERGESORT-AS-Str(list,$S,$indices),

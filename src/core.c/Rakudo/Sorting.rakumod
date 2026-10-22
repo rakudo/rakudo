@@ -1,10 +1,5 @@
 my class Rakudo::Sorting is implementation-detail {
 
-    # Classifying costs a walk before a single comparison is made, which a
-    # shorter list does not do enough comparisons to repay.  Sorting
-    # elements and sorting by an extracted key cross over alike here.
-    my constant SORT-CLASSIFY-FROM = 12;
-
     # Return 1 if all elements are concrete, 0 if not
     my sub ALL-CONCRETE(Mu \list) {
         my $A    := nqp::getattr(list,List,'$!reified');
@@ -20,25 +15,21 @@ my class Rakudo::Sorting is implementation-detail {
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # The parameter is the HLL List to be sorted *in place* using simple cmp.
-    # If the number of elements exceeds a threshold, will check for a
-    # common type to be able to use optimized sort path if possible.
     method MERGESORT-REIFIED-LIST(Mu \list) {
-        my \of := list.of;
-
-        nqp::eqaddr(of,Mu)
-          ?? list.elems >= SORT-CLASSIFY-FROM
-            ?? self!MERGESORT-REIFIED-LIST-untyped(list)  # long enough
-            !! self!MERGESORT-REIFIED-LIST-slow(list)     # too short
-          !! (nqp::eqaddr(of,Int) || nqp::eqaddr(of,Int:D))
-               && ALL-CONCRETE(list)
-            ?? self!MERGESORT-REIFIED-LIST-Int(list)
-            !! (nqp::eqaddr(of,Str) || nqp::eqaddr(of,Str:D))
+        list.elems <= 2
+          ?? self!MERGESORT-REIFIED-LIST-small(list)
+          !! nqp::eqaddr((my \of := list.of),Mu)
+            ?? self!MERGESORT-REIFIED-LIST-untyped(list)
+            !! (nqp::eqaddr(of,Int) || nqp::eqaddr(of,Int:D))
                  && ALL-CONCRETE(list)
-              ?? self!MERGESORT-REIFIED-LIST-Str(list)
-              !! nqp::eqaddr(of,Num) || nqp::eqaddr(of,Num:D)
+              ?? self!MERGESORT-REIFIED-LIST-Int(list)
+              !! (nqp::eqaddr(of,Str) || nqp::eqaddr(of,Str:D))
                    && ALL-CONCRETE(list)
-                ?? self!MERGESORT-REIFIED-LIST-Num(list)
-                !! self!MERGESORT-REIFIED-LIST-slow(list)
+                ?? self!MERGESORT-REIFIED-LIST-Str(list)
+                !! nqp::eqaddr(of,Num) || nqp::eqaddr(of,Num:D)
+                     && ALL-CONCRETE(list)
+                  ?? self!MERGESORT-REIFIED-LIST-Num(list)
+                  !! self!MERGESORT-REIFIED-LIST-slow(list)
     }
 
     # The path that checks for a common type in an otherwise
@@ -83,90 +74,86 @@ my class Rakudo::Sorting is implementation-detail {
           !! self!MERGESORT-REIFIED-LIST-slow(list)  # unknown type or mix
     }
 
+    # The fast path for sorting 0, 1, and 2 element lists
+    method !MERGESORT-REIFIED-LIST-small(\list) {
+        my $A := nqp::getattr(list,List,'$!reified');
+
+        nqp::push($A,nqp::shift($A))  # wrong order, so swap
+          if nqp::iseq_i(nqp::elems($A),2)
+          && nqp::eqaddr(nqp::atpos($A,0) cmp nqp::atpos($A,1),Order::More);
+
+        list
+    }
+
     # The slow path for sorting, using infix:<cmp>
     method !MERGESORT-REIFIED-LIST-slow(\list) {
 
         # $A has the items to sort; $B is a work array
         my $A    := nqp::getattr(list,List,'$!reified');
         my int $n = nqp::elems($A);
+        my $B    := nqp::setelems(nqp::create(IterationBuffer),$n);
 
-        nqp::if(
-          nqp::isgt_i($n,2),
-          nqp::stmts(     # we actually need to sort
-            (my $B := nqp::setelems(nqp::create(IterationBuffer),$n)),
+        # Each 1-element run in $A is already "sorted"
+        # Make successively longer sorted runs of length 2, 4, 8, 16...
+        # until $A is wholly sorted
+        my int $width = 1;
+        nqp::while(
+          nqp::islt_i($width,$n),
+          nqp::stmts(
+            (my int $l = 0),
 
-            # Each 1-element run in $A is already "sorted"
-            # Make successively longer sorted runs of length 2, 4, 8, 16...
-            # until $A is wholly sorted
-            (my int $width = 1),
+            # $A is full of runs of length $width
             nqp::while(
-              nqp::islt_i($width,$n),
+              nqp::islt_i($l,$n),
+
               nqp::stmts(
-                (my int $l = 0),
+                (my int $left  = $l),
+                (my int $right = nqp::add_i($l,$width)),
+                nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                nqp::if(nqp::isge_i($end,$n),($end = $n)),
 
-                # $A is full of runs of length $width
+                (my int $i = $left),
+                (my int $j = $right),
+                (my int $k = nqp::sub_i($left,1)),
+
+                # Merge two runs: $A[i       .. i+width-1] and
+                #                 $A[i+width .. i+2*width-1]
+                # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
                 nqp::while(
-                  nqp::islt_i($l,$n),
-
-                  nqp::stmts(
-                    (my int $left  = $l),
-                    (my int $right = nqp::add_i($l,$width)),
-                    nqp::if(nqp::isge_i($right,$n),($right = $n)),
-                    (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
-                    nqp::if(nqp::isge_i($end,$n),($end = $n)),
-
-                    (my int $i = $left),
-                    (my int $j = $right),
-                    (my int $k = nqp::sub_i($left,1)),
-
-                    # Merge two runs: $A[i       .. i+width-1] and
-                    #                 $A[i+width .. i+2*width-1]
-                    # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
-                    nqp::while(
-                      nqp::islt_i(++$k,$end),
-                      nqp::if(
-                        nqp::islt_i($i,$right) && (
-                          nqp::isge_i($j,$end)
-                            || nqp::eqaddr(
-                                 (my $cmp := nqp::atpos($A,$i) cmp nqp::atpos($A,$j)),
-                                 Order::Less
-                               )
-                            || (nqp::eqaddr($cmp,Order::Same)
-                                 && nqp::iseq_i(nqp::cmp_i($i,$j),-1)
-                               )
-                        ),
-                        nqp::stmts(
-                          (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
-                          ++$i
-                        ),
-                        nqp::stmts(
-                          (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
-                          ++$j
-                        )
-                      )
+                  nqp::islt_i(++$k,$end),
+                  nqp::if(
+                    nqp::islt_i($i,$right) && (
+                      nqp::isge_i($j,$end)
+                        || nqp::eqaddr(
+                             (my $cmp := nqp::atpos($A,$i) cmp nqp::atpos($A,$j)),
+                             Order::Less
+                           )
+                        || (nqp::eqaddr($cmp,Order::Same)
+                             && nqp::iseq_i(nqp::cmp_i($i,$j),-1)
+                           )
                     ),
-                    ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+                    nqp::stmts(
+                      (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
+                      ++$i
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
+                      ++$j
+                    )
                   )
                 ),
-
-                # Now work array $B is full of runs of length 2*width.
-                # Copy array B to array A for next iteration.  A more
-                # efficient implementation would swap the roles of A and B.
-                (my $temp := $B),($B := $A),($A := $temp),   # swap
-                # Now array $A is full of runs of length 2*width.
-
-                ($width = nqp::add_i($width,$width))
+                ($l = nqp::add_i($l,nqp::add_i($width,$width)))
               )
-            )
-          ),
-
-          # N <= 2
-          nqp::if(
-            nqp::iseq_i($n,2) && nqp::eqaddr(
-              nqp::atpos($A,0) cmp nqp::atpos($A,1),
-              Order::More
             ),
-            nqp::push($A,nqp::shift($A))  # wrong order, so swap
+
+            # Now work array $B is full of runs of length 2*width.
+            # Copy array B to array A for next iteration.  A more
+            # efficient implementation would swap the roles of A and B.
+            (my $temp := $B),($B := $A),($A := $temp),   # swap
+            # Now array $A is full of runs of length 2*width.
+
+            ($width = nqp::add_i($width,$width))
           )
         );
 
@@ -635,7 +622,7 @@ my class Rakudo::Sorting is implementation-detail {
             # not qualify at all, whatever it holds: the mapper runs over
             # the whole list before any comparison, so a later call to it
             # can still change a key already classified.
-            (my int $kind = nqp::isge_i($n,SORT-CLASSIFY-FROM) ?? -1 !! 0),
+            (my int $kind = -1),
             nqp::while(  # set up the Schwartz and the initial indexes
               nqp::islt_i(($s = nqp::add_i($s,1)),$n),
               nqp::stmts(

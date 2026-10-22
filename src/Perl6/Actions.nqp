@@ -1616,6 +1616,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Produces a LoL from a semicolon list
     method semilist($/) {
+        sub is-pipe-pipe($ast) {
+            nqp::istype($ast,QAST::Op)
+              && $ast.name eq '&prefix:<|>'
+              && nqp::istype($ast[0],QAST::Op)
+              && $ast[0].name eq '&prefix:<|>'
+        }
+
         if $<statement> -> $statements {
             my $Nil := $*W.find_single_symbol_in_setting('Nil');
             my $past := QAST::Stmts.new( :node($/) );
@@ -1623,6 +1630,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call') );
                 for $statements {
                     my $sast := $_.ast || QAST::WVal.new( :value($Nil) );
+                    $past.annotate('interpolates', 1)
+                      if $*LANGUAGE-REVISION >= 3 && is-pipe-pipe($sast);
                     $l.push(wanted($sast, 'semilist'));
                 }
                 $past.push($l);
@@ -1633,20 +1642,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # an op and 6e or higher?
                 if nqp::istype($ast,QAST::Op) && $*LANGUAGE-REVISION >= 3 {
-                    sub is-pipe-pipe($ast) {
-                        nqp::istype($ast,QAST::Op)
-                          && $ast.name eq '&prefix:<|>'
-                          && nqp::istype($ast[0],QAST::Op)
-                          && $ast[0].name eq '&prefix:<|>'
-                    }
-
                     if is-pipe-pipe($ast) {
                         $ast := $ast[0][0];  # cut out the || ops
                         $past.annotate('multislice', 1);
+                        $past.annotate('interpolates', 1);
                     }
                     elsif $ast.name eq '&infix:<,>' && is-pipe-pipe($ast[0]) {
                         $ast[0] := $ast[0][0][0];  # cut out the || ops
                         $past.annotate('multislice', 1);
+                        $past.annotate('interpolates', 1);
                     }
                 }
 
@@ -8723,12 +8727,23 @@ Did you mean a call like '"
         }
     }
 
+    # A subscript that interpolates a list with || takes its number of
+    # dimensions from its indices, so they go through a check for laziness
+    sub interpolated-indices($ast) {
+        $ast.ann('interpolates')
+          ?? QAST::Op.new(
+               :op('callstatic'), :name('&MD-INTERPOLATED-INDICES'), $ast
+             )
+          !! $ast
+    }
+
     method postcircumfix:sym<[ ]>($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<[ ]>'), :op('call'), :node($/) );
         if $<semilist> {
             my $c := $/;
             my $ast := $<semilist>.ast;
-            $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+            $past.push(interpolated-indices($ast))
+              if nqp::istype($ast, QAST::Stmts);
             if $ast.ann('multislice') {
                 $past.name('&postcircumfix:<[; ]>');
             }
@@ -8746,7 +8761,8 @@ Did you mean a call like '"
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         if $<semilist> {
             my $ast := $<semilist>.ast;
-            $past.push($ast) if nqp::istype($ast, QAST::Stmts);
+            $past.push(interpolated-indices($ast))
+              if nqp::istype($ast, QAST::Stmts);
             if $ast.ann('multislice') {
                 $past.name('&postcircumfix:<{; }>');
             }

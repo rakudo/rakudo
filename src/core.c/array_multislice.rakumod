@@ -48,6 +48,26 @@ sub MD-ARRAY-SLICE-ONE-POSITION(
         }
     }
 }
+
+# The indices of a subscript that interpolates a list with prefix:<||>,
+# refusing a lazy list as their number of dimensions can't be known, and
+# throwing a Failure a hyper subscript over no elements would drop
+sub MD-INTERPOLATED-INDICES(Mu \indices) is raw is implementation-detail {
+    nqp::istype(indices,Failure)
+      ?? indices.self
+      !! nqp::istype(indices,Junction)
+        ?? indices.THREAD(&MD-INTERPOLATED-INDICES)
+        !! indices.is-lazy
+          ?? X::Cannot::Lazy.new(
+               :action('take the dimensions of a subscript from')
+             ).throw
+          !! nqp::istype(indices,Positional)
+               && nqp::isconcrete(indices)
+               && nqp::not_i(nqp::istype(indices,List))
+            ?? indices.List  # a Range, native array or Blob
+            !! indices
+}
+
 # The indices a slice of a shaped or jagged array stands for, or Nil for no
 # change. Each dimension left out takes *, as does a trailing ** for any
 # number of them, and a lazy index takes only those within a set length.

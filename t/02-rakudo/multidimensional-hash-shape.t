@@ -1,6 +1,6 @@
 use Test;
 
-plan 130;
+plan 138;
 
 use MONKEY-SEE-NO-EVAL;
 use nqp;
@@ -119,6 +119,22 @@ is-deeply EVAL($wild ~ q[(%h{'a','b'}:exists).List]), (True, True, True),
     'a slice of the first dimension alone tests each element it takes';
 is EVAL($wild ~ q[(%h{*}:k).elems]), 3,
     'a whatever star alone gives the keys of each element';
+ok EVAL($wild ~ q[%h{} =:= %h]),
+    'a zen slice of a hash of two dimensions without an adverb gives the hash itself';
+is-deeply EVAL($wild ~ q[%h{}:p.sort(*.value).List]), (('a', 1) => 1, ('a', 2) => 2, ('b', 1) => 3),
+    'a zen slice gives a pair of the list of keys and the value of each element for :p';
+is-deeply EVAL($wild ~ q[%h{}:k.sort.List]), (('a', 1), ('a', 2), ('b', 1)),
+    'a zen slice gives the list of keys of each element for :k';
+is-deeply EVAL($wild ~ q[%h{}:kv.batch(2).sort(*.[1]).List]), ((('a', 1), 1), (('a', 2), 2), (('b', 1), 3)),
+    'a zen slice gives the list of keys and the value of each element for :kv';
+is-deeply EVAL($wild ~ q[%h{}:!k.sort.List]), (('a', 1), ('a', 2), ('b', 1)),
+    'a zen slice gives the list of keys of each element for :!k';
+is-deeply EVAL($wild ~ q[(%h{}:delete:k).sort.List, %h.elems]), ((('a', 1), ('a', 2), ('b', 1)), 0),
+    'a zen slice deletes each element and gives its list of keys for :delete:k';
+is-deeply EVAL(q[my %h{Str;Int;Str}; %h{'a';1;'x'} = 1; %h{}:k]), (('a', 1, 'x'),),
+    'a zen slice of a hash of three dimensions gives the list of keys of each element for :k';
+throws-like { EVAL $wild ~ q[my $v; %h{} := $v] }, X::Bind::ZenSlice,
+    'binding a zen slice of a hash of two dimensions is refused';
 is EVAL($wild ~ q[my $a = ('a', 1); my $b = ('b', 1); %h{$a|$b}.raku]), 'any(1, 3)',
     'a junction of lists of keys takes the element of each';
 is-deeply EVAL(q[my %h{Mu;Int}; my $j = 'a'|'b'; %h{$j;1} = 5; %h{'a';1} = 6; %h{$j}.List]), (5,),

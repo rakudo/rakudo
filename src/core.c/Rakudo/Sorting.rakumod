@@ -135,8 +135,8 @@ my class Rakudo::Sorting is implementation-detail {
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 
-#- start of generated part of HLL sorting Int array logic ---------------------
-#- Generated on 2026-10-21T20:57:44+02:00 by tools/build/makeSORTING.raku
+#- start of generated part of HLL sorting Int array logic ----------------------
+#- Generated on 2026-10-23T15:24:01+02:00 by tools/build/makeSORTING.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
@@ -211,10 +211,10 @@ my class Rakudo::Sorting is implementation-detail {
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
-#- end of generated part of HLL sorting Int array logic -------------------------
+#- end of generated part of HLL sorting Int array logic ------------------------
 
-#- start of generated part of HLL sorting Str array logic ---------------------
-#- Generated on 2026-10-21T20:57:44+02:00 by tools/build/makeSORTING.raku
+#- start of generated part of HLL sorting Str array logic ----------------------
+#- Generated on 2026-10-23T15:24:01+02:00 by tools/build/makeSORTING.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
@@ -289,10 +289,14 @@ my class Rakudo::Sorting is implementation-detail {
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
-#- end of generated part of HLL sorting Str array logic -------------------------
+#- end of generated part of HLL sorting Str array logic ------------------------
 
-#- start of generated part of HLL sorting Num array logic ---------------------
-#- Generated on 2026-10-21T20:57:44+02:00 by tools/build/makeSORTING.raku
+    my sub numcmp(num $a, num $b --> int) {
+        nqp::cmp_n($a,$b) || nqp::iseq_s($a,"NaN") - nqp::iseq_s($b,"NaN")
+    }
+
+#- start of generated part of HLL sorting Num array logic ----------------------
+#- Generated on 2026-10-23T15:24:01+02:00 by tools/build/makeSORTING.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
@@ -337,7 +341,7 @@ my class Rakudo::Sorting is implementation-detail {
                   nqp::if(
                     nqp::islt_i($i,$right) && (
                       nqp::isge_i($j,$end)
-                        || nqp::isle_i(nqp::cmp_n(
+                        || nqp::isle_i(numcmp(
                              nqp::decont(nqp::atpos($A,$i)),
                              nqp::decont(nqp::atpos($A,$j))
                            ),0)
@@ -367,7 +371,7 @@ my class Rakudo::Sorting is implementation-detail {
         nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
-#- end of generated part of HLL sorting Num array logic -------------------------
+#- end of generated part of HLL sorting Num array logic ------------------------
 
     # Takes the HLL List to be sorted *in place* using a comparator
     method MERGESORT-REIFIED-LIST-WITH(\list, &comparator) {

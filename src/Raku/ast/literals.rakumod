@@ -183,14 +183,6 @@ class RakuAST::QuotedString
 
     # Allow subclasses to set these attributes transparently
     method SET-SELF(List $segments, List $processors) {
-        nqp::bindattr(self, RakuAST::QuotedString, '$!segments',
-            self.IMPL-UNWRAP-LIST($segments));
-        nqp::bindattr(self, RakuAST::QuotedString, '$!processors',
-            self.IMPL-CHECK-PROCESSORS($processors));
-        self
-    }
-
-    method IMPL-CHECK-PROCESSORS(Mu $processors) {
         my constant VALID := nqp::hash(
           'words',      Mu,
           'quotewords', Mu,
@@ -199,16 +191,21 @@ class RakuAST::QuotedString
           'heredoc',    Mu,
           'format',     Mu
         );
-        my @result;
-        for self.IMPL-UNWRAP-LIST($processors // []) {
-            if nqp::existskey(VALID, $_) {
-                nqp::push(@result, nqp::box_s($_, Str));
-            }
-            else {
-                nqp::die("Unsupported quoted string processor '$_'");
+
+        nqp::bindattr(self, RakuAST::QuotedString, '$!segments',
+          self.IMPL-UNWRAP-LIST($segments)
+        );
+
+        nqp::bindattr(self,RakuAST::QuotedString,'$!processors',my @result);
+        if $processors {
+            for self.IMPL-UNWRAP-LIST($processors) {
+                nqp::existskey(VALID, $_)
+                  ?? nqp::push(@result, nqp::box_s($_, Str))
+                  !! nqp::die("Unsupported quoted string processor '$_'");
             }
         }
-        @result
+
+        self
     }
 
     method segments() {

@@ -436,22 +436,10 @@ sub BRIDGED_POWER(\a, \b) is hidden-from-backtrace is implementation-detail {
 
 # Here we sort NaN in with string "NaN"
 multi sub infix:<cmp>(Num:D $a, Num:D $b) {
-    (my $cmp := nqp::cmp_n($a,$b))
-      ?? ORDER($cmp)
-      !! $a === $b
-        ?? Same # === cares about signed zeros, we don't, so:
-        !! nqp::iseq_n($a,0e0) && nqp::iseq_n($b,0e0)
-          ?? Same
-          !! $a.Stringy cmp $b.Stringy;
+    infix:<cmp>(nqp::unbox_n($a), nqp::unbox_n($b))
 }
 multi sub infix:<cmp>(num $a, num $b) {
-    (my $cmp := nqp::cmp_n($a, $b))
-      ?? ORDER($cmp)
-      !! $a === $b
-        ?? Same # === cares about signed zeros, we don't, so:
-        !! nqp::iseq_n($a, 0e0) && nqp::iseq_n($b, 0e0)
-          ?? Same
-          !! $a.Stringy cmp $b.Stringy;
+    ORDER nqp::cmp_n($a,$b) || nqp::iseq_s($a,"NaN") - nqp::iseq_s($b,"NaN")
 }
 
 # Here we treat NaN as undefined

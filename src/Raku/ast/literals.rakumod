@@ -328,6 +328,7 @@ class RakuAST::QuotedString
 
     method IMPL-PROCESS-PART($result, $part, :$protected) {
         return Nil if $part =:= Nil;
+
         for $!processors {
             if $_ eq 'words' || $_ eq 'quotewords' {
                 # A part that came from a quoted atom is protected: quote
@@ -343,11 +344,10 @@ class RakuAST::QuotedString
                 }
             }
             elsif $_ eq 'val' {
-                my $val-lookup := self.get-implicit-lookups[0];
-                my $val := $val-lookup.is-resolved
-                    ?? $val-lookup.resolution.compile-time-value
-                    !! -> $val { $val };
-                $part := $val($part);
+                my $val-lookup := nqp::atpos(self.get-implicit-lookups, 0);
+                $part := $val-lookup.resolution.compile-time-value()(
+                  nqp::hllizefor($part,'Raku')
+                ) if $val-lookup.is-resolved;
             }
             elsif $_ eq 'heredoc' {
             }

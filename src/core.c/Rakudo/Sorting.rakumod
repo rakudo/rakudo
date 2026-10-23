@@ -1,35 +1,10 @@
 my class Rakudo::Sorting is implementation-detail {
-
-    # Return 1 if all elements are concrete, 0 if not
-    my sub ALL-CONCRETE(Mu \list) {
-        my $A    := nqp::getattr(list,List,'$!reified');
-        my int $n = nqp::elems($A);
-        my int $i;
-        nqp::while(
-          nqp::islt_i($i,$n) && nqp::isconcrete(nqp::atpos($A,$i++)),
-          nqp::null
-        );
-
-        nqp::iseq_i($i,$n)
-    }
-
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # The parameter is the HLL List to be sorted *in place* using simple cmp.
     method MERGESORT-REIFIED-LIST(Mu \list) {
         list.elems <= 2
           ?? self!MERGESORT-REIFIED-LIST-small(list)
-          !! nqp::eqaddr((my \of := list.of),Mu)
-            ?? self!MERGESORT-REIFIED-LIST-untyped(list)
-            !! (nqp::eqaddr(of,Int) || nqp::eqaddr(of,Int:D))
-                 && ALL-CONCRETE(list)
-              ?? self!MERGESORT-REIFIED-LIST-Int(list)
-              !! (nqp::eqaddr(of,Str) || nqp::eqaddr(of,Str:D))
-                   && ALL-CONCRETE(list)
-                ?? self!MERGESORT-REIFIED-LIST-Str(list)
-                !! nqp::eqaddr(of,Num) || nqp::eqaddr(of,Num:D)
-                     && ALL-CONCRETE(list)
-                  ?? self!MERGESORT-REIFIED-LIST-Num(list)
-                  !! self!MERGESORT-REIFIED-LIST-slow(list)
+          !! self!MERGESORT-REIFIED-LIST-untyped(list)
     }
 
     # The path that checks for a common type in an otherwise

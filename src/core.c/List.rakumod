@@ -1360,12 +1360,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
-    multi method sort(List:D:) {
+    multi method sort(List:D: --> Seq:D) {
         self!reify-for-sort;
 
-        nqp::isconcrete($!reified) && nqp::elems($!reified)
-          ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST(self!deep-clone)
-          !! ()
+        Seq.new:
+          nqp::isconcrete($!reified) && nqp::elems($!reified)
+            ?? Rakudo::Iterator.ReifiedList(
+                 Rakudo::Sorting.MERGESORT-REIFIED-LIST(self!deep-clone)
+               )
+            !! Rakudo::Iterator.Empty
     }
     multi method sort(List:D: &by?, :$k!) {
         if $k {
@@ -1387,20 +1390,22 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             &by ?? self.sort(&by) !! self.sort
         }
     }
-    multi method sort(List:D: &by) {
+    multi method sort(List:D: &by --> Seq:D) {
         nqp::eqaddr(&by,&infix:<cmp>)
           ?? (return self.sort)
           !! self!reify-for-sort;
 
-        nqp::isconcrete($!reified) && nqp::elems($!reified)
-          ?? &by.arity < 2
-            ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-                 self.clone, &by
+        Seq.new:
+          nqp::isconcrete($!reified) && nqp::elems($!reified)
+            ?? Rakudo::Iterator.ReifiedList(&by.arity < 2
+              ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
+                   self.clone, &by
+                 )
+              !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
+                   self!deep-clone, &by
+                 )
                )
-            !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
-                 self!deep-clone, &by
-               )
-          !! ()
+            !! Rakudo::Iterator.Empty
     }
 
     multi method tail(List:D:) is raw {

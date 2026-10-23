@@ -139,7 +139,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }
     }
 
-    multi method sort(Map:D:) {
+    multi method sort(Map:D: --> Seq:D) {
         Seq.new(
           Iterate-keys.new(
             map  => self,

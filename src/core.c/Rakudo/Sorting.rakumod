@@ -514,7 +514,7 @@ my class Rakudo::Sorting is implementation-detail {
 
     # Helper sub to create a list_i where the values correspond to the index
     my sub indices_i(int $n) {
-        my $A := nqp::list_i;
+        my $A := nqp::setelems(nqp::list_i,$n);
         my int $i = -1;
         nqp::while(
           nqp::islt_i(++$i,$n),

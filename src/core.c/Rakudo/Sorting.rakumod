@@ -512,171 +512,112 @@ my class Rakudo::Sorting is implementation-detail {
         );
     }
 
-    # Takes the HLL List to be sorted *in place* using the mapper
-    method MERGESORT-REIFIED-LIST-AS(\list, &mapper, :$indices) {
-        nqp::if(
-          nqp::isgt_i((my int $n = nqp::elems(
-            my $O := nqp::getattr(list,List,'$!reified')    # Original
-          )),2),
-          nqp::stmts(     # we actually need to sort
-            (my $S :=                                       # the Schwartz
-              nqp::setelems(nqp::create(IterationBuffer),$n)),
-            (my $A := nqp::setelems(nqp::list_i,$n)),       # indexes to sort
-            (my $B := nqp::setelems(nqp::list_i,$n)),       # work array
-            (my int $s = -1),
-            # $kind reports the one type every key came out as, as
-            # !SORT-ELEMENT-KIND reports it for elements, and stays -1
-            # until the first key is seen.  A key inside a container does
-            # not qualify at all, whatever it holds: the mapper runs over
-            # the whole list before any comparison, so a later call to it
-            # can still change a key already classified.
-            (my int $kind = nqp::isge_i($n,SORT-CLASSIFY-FROM) ?? -1 !! 0),
-            nqp::while(  # set up the Schwartz and the initial indexes
-              nqp::islt_i(($s = nqp::add_i($s,1)),$n),
+    # Helper sub to create a list_i where the values correspond to the index
+    my sub indices_i(int $n) {
+        my $A := nqp::list_i;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$n),
+          nqp::bindpos_i($A,$i,$i)
+        );
+
+        $A
+    }
+
+#- start of generated part of Schwartz sorting Any array logic -----------------
+#- Generated on 2026-10-24T11:03:50+02:00 by tools/build/makeSORTING-BY.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
+    # Schwarz sort an Any array given the Schwarz and an int array
+    # with indices, both will be changed in place
+    my sub MERGESORT-AS-Any($S is raw) {
+        my int $n = nqp::elems($S);
+        my $A    := indices_i($n);
+        my $B    := nqp::setelems(nqp::list_i,$n);  # indexes to sort
+
+        # Each 1-element run in $A is already "sorted"
+        # Make successively longer sorted runs of length 2, 4, 8, 16...
+        # until $A is wholly sorted
+        my int $width = 1;
+        nqp::while(
+          nqp::islt_i($width,$n),
+          nqp::stmts(
+            (my int $l = 0),
+
+            # $A is full of runs of length $width
+            nqp::while(
+              nqp::islt_i($l,$n),
+
               nqp::stmts(
-                nqp::bindpos($S,nqp::bindpos_i($A,$s,$s),
-                  (my $key := mapper(nqp::atpos($O,$s)))),
-                nqp::unless(
-                  nqp::iseq_i($kind,0),
-                  nqp::stmts(
-                    (my $keytype := nqp::isconcrete_nd($key)
-                      ?? nqp::what_nd($key)
-                      !! Mu),
-                    (my int $this = nqp::eqaddr($keytype,Int)
-                      ?? 1
-                      !! nqp::eqaddr($keytype,Str) ?? 2 !! 0),
-                    nqp::if(
-                      nqp::iseq_i($kind,-1),
-                      ($kind = $this),
-                      nqp::unless(nqp::iseq_i($kind,$this),($kind = 0))
+                (my int $left  = $l),
+                (my int $right = nqp::add_i($l,$width)),
+                nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                (my int $i = $left),
+                (my int $j = $right),
+                (my int $k = nqp::sub_i($left,1)),
+
+                # Merge two runs: $A[i       .. i+width-1] and
+                #                 $A[i+width .. i+2*width-1]
+                # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                nqp::while(
+                  nqp::islt_i(++$k,$end),
+                  nqp::if(
+                    nqp::islt_i($i,$right) && (
+                      nqp::isge_i($j,$end)
+                        || nqp::eqaddr(
+                             (my $cmp := nqp::atpos($S,nqp::atpos_i($A,$i))
+                                     cmp nqp::atpos($S,nqp::atpos_i($A,$j))),
+                             Order::Less
+                           )
+                        || (nqp::eqaddr($cmp,Order::Same)
+                             && nqp::iseq_i(nqp::cmp_i($i,$j),-1)
+                           )
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
+                      ++$i
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
+                      ++$j
                     )
                   )
-                )
-              )
-            ),
-            nqp::if(
-              nqp::isgt_i($kind,0),
-              nqp::iseq_i($kind,1)
-                ?? self!MERGESORT-AS-Int(list,$S,$indices)
-                !! self!MERGESORT-AS-Str(list,$S,$indices),
-              nqp::stmts(
-
-            # Each 1-element run in $A is already "sorted"
-            # Make successively longer sorted runs of length 2, 4, 8, 16...
-            # until $A is wholly sorted
-            (my int $width = 1),
-            nqp::while(
-              nqp::islt_i($width,$n),
-              nqp::stmts(
-                (my int $l = 0),
-
-                # $A is full of runs of length $width
-                nqp::while(
-                  nqp::islt_i($l,$n),
-
-                  nqp::stmts(
-                    (my int $left  = $l),
-                    (my int $right = nqp::add_i($l,$width)),
-                    nqp::if(nqp::isge_i($right,$n),($right = $n)),
-                    (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
-                    nqp::if(nqp::isge_i($end,$n),($end = $n)),
-
-                    (my int $i = $left),
-                    (my int $j = $right),
-                    (my int $k = nqp::sub_i($left,1)),
-
-                    # Merge two runs: $A[i       .. i+width-1] and
-                    #                 $A[i+width .. i+2*width-1]
-                    # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
-                    nqp::while(
-                      nqp::islt_i(++$k,$end),
-                      nqp::if(
-                        nqp::islt_i($i,$right) && (
-                          nqp::isge_i($j,$end)
-                            || nqp::eqaddr(
-                                 (my $cmp := nqp::atpos($S,nqp::atpos_i($A,$i))
-                                         cmp nqp::atpos($S,nqp::atpos_i($A,$j))),
-                                 Order::Less
-                               )
-                            || (nqp::eqaddr($cmp,Order::Same)
-                                 && nqp::iseq_i(nqp::cmp_i($i,$j),-1)
-                               )
-                        ),
-                        nqp::stmts(
-                          (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
-                          ++$i
-                        ),
-                        nqp::stmts(
-                          (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
-                          ++$j
-                        )
-                      )
-                    ),
-                    ($l = nqp::add_i($l,nqp::add_i($width,$width)))
-                  )
                 ),
-
-                # Now work array $B is full of runs of length 2*width.
-                # Copy array B to array A for next iteration. A more
-                # efficient implementation would swap the roles of A and B.
-                (my $temp := $B),($B := $A),($A := $temp),   # swap
-                # Now array $A is full of runs of length 2*width.
-
-                ($width = nqp::add_i($width,$width))
+                ($l = nqp::add_i($l,nqp::add_i($width,$width)))
               )
             ),
-            ($s = -1),
-            # repurpose the Schwartz for the result
-            nqp::if(
-              $indices,
-              nqp::while(   # indices only
-                nqp::islt_i(++$s,$n),
-                nqp::bindpos($S,$s,nqp::atpos_i($A,$s))
-              ),
-              nqp::while(   # actual values
-                nqp::islt_i(++$s,$n),
-                nqp::bindpos($S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
-              )
-            ),
-            nqp::bindattr(list,List,'$!reified',$S)
-              )
-            )
-          ),
 
-          # N <= 2
-          nqp::if(
-            nqp::iseq_i($n,2) && nqp::eqaddr(
-              mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),
-              Order::More
-            ),
-            nqp::if(  # wrong order, so swap
-              $indices,
-              degenerate-indices(list, :swap),
-              nqp::push($O,nqp::shift($O))
-            ),
-            nqp::if(  # no swapping needed
-              $indices,
-              degenerate-indices(list)
-            )
+            # Now work array $B is full of runs of length 2*width.
+            # Copy array B to array A for next iteration. A more
+            # efficient implementation would swap the roles of A and B.
+            (my $temp := $B),($B := $A),($A := $temp),   # swap
+            # Now array $A is full of runs of length 2*width.
+
+            ($width = nqp::add_i($width,$width))
           )
         );
 
-        list   # we did changes in place
+        # Return the updated indices
+        $A
     }
-    # Sorts the index array against a Schwartz of Int keys, where cmp reduces to nqp::cmp_I. The left run always
-    # sits entirely before the right, so taking the left of an equal pair is
-    # what the general merge's explicit tie-break amounts to and leaves the
-    # result, or the indices that produced it, in that same buffer.
-    method !MERGESORT-AS-Int(\list, \S, $indices) {
-        my $O := nqp::getattr(list,List,'$!reified');   # Original
-        my int $n = nqp::elems(S);
-        my $A := nqp::setelems(nqp::list_i,$n);         # indexes to sort
-        my $B := nqp::setelems(nqp::list_i,$n);         # work array
-        my int $s = -1;
-        nqp::while(
-          nqp::islt_i(($s = nqp::add_i($s,1)),$n),
-          nqp::bindpos_i($A,$s,$s)
-        );
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of Schwartz sorting Any array logic -------------------
+
+#- start of generated part of Schwartz sorting Int array logic -----------------
+#- Generated on 2026-10-24T11:03:50+02:00 by tools/build/makeSORTING-BY.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
+    # Schwarz sort an Int array given the Schwarz and an int array
+    # with indices, both will be changed in place
+    my sub MERGESORT-AS-Int($S is raw) {
+        my int $n = nqp::elems($S);
+        my $A    := indices_i($n);
+        my $B    := nqp::setelems(nqp::list_i,$n);  # indexes to sort
 
         # Each 1-element run in $A is already "sorted"
         # Make successively longer sorted runs of length 2, 4, 8, 16...
@@ -712,9 +653,11 @@ my class Rakudo::Sorting is implementation-detail {
                       nqp::isge_i($j,$end)
                         || nqp::isle_i(
                              nqp::cmp_I(
-                               nqp::atpos(S,nqp::atpos_i($A,$i)),
-                               nqp::atpos(S,nqp::atpos_i($A,$j))
-                             ),0)
+                               nqp::atpos($S,nqp::atpos_i($A,$i)),
+                               nqp::atpos($S,nqp::atpos_i($A,$j))
+                             ),
+                             0
+                           )
                     ),
                     nqp::stmts(
                       (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
@@ -731,6 +674,8 @@ my class Rakudo::Sorting is implementation-detail {
             ),
 
             # Now work array $B is full of runs of length 2*width.
+            # Copy array B to array A for next iteration. A more
+            # efficient implementation would swap the roles of A and B.
             (my $temp := $B),($B := $A),($A := $temp),   # swap
             # Now array $A is full of runs of length 2*width.
 
@@ -738,34 +683,109 @@ my class Rakudo::Sorting is implementation-detail {
           )
         );
 
-        $s = -1;
-        # repurpose the Schwartz for the result
-        nqp::if(
-          $indices,
-          nqp::while(   # indices only
-            nqp::islt_i(++$s,$n),
-            nqp::bindpos(S,$s,nqp::atpos_i($A,$s))
-          ),
-          nqp::while(   # actual values
-            nqp::islt_i(++$s,$n),
-            nqp::bindpos(S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
-          )
-        );
-        nqp::bindattr(list,List,'$!reified',S)
+        # Return the updated indices
+        $A
+    }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of Schwartz sorting Int array logic -------------------
+
+    my sub numcmp(num $a, num $b --> int) {
+        nqp::cmp_n($a,$b) || nqp::iseq_s($a,"NaN") - nqp::iseq_s($b,"NaN")
     }
 
-    # Sorts the index array against a Schwartz of Str keys, where cmp reduces to nqp::cmp_s on the unboxed strings and leaves the
-    # result, or the indices that produced it, in that same buffer.
-    method !MERGESORT-AS-Str(\list, \S, $indices) {
-        my $O := nqp::getattr(list,List,'$!reified');   # Original
-        my int $n = nqp::elems(S);
-        my $A := nqp::setelems(nqp::list_i,$n);         # indexes to sort
-        my $B := nqp::setelems(nqp::list_i,$n);         # work array
-        my int $s = -1;
+#- start of generated part of Schwartz sorting Num array logic -----------------
+#- Generated on 2026-10-24T11:03:50+02:00 by tools/build/makeSORTING-BY.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
+    # Schwarz sort a Num array given the Schwarz and an int array
+    # with indices, both will be changed in place
+    my sub MERGESORT-AS-Num($S is raw) {
+        my int $n = nqp::elems($S);
+        my $A    := indices_i($n);
+        my $B    := nqp::setelems(nqp::list_i,$n);  # indexes to sort
+
+        # Each 1-element run in $A is already "sorted"
+        # Make successively longer sorted runs of length 2, 4, 8, 16...
+        # until $A is wholly sorted
+        my int $width = 1;
         nqp::while(
-          nqp::islt_i(($s = nqp::add_i($s,1)),$n),
-          nqp::bindpos_i($A,$s,$s)
+          nqp::islt_i($width,$n),
+          nqp::stmts(
+            (my int $l = 0),
+
+            # $A is full of runs of length $width
+            nqp::while(
+              nqp::islt_i($l,$n),
+
+              nqp::stmts(
+                (my int $left  = $l),
+                (my int $right = nqp::add_i($l,$width)),
+                nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                (my int $i = $left),
+                (my int $j = $right),
+                (my int $k = nqp::sub_i($left,1)),
+
+                # Merge two runs: $A[i       .. i+width-1] and
+                #                 $A[i+width .. i+2*width-1]
+                # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                nqp::while(
+                  nqp::islt_i(++$k,$end),
+                  nqp::if(
+                    nqp::islt_i($i,$right) && (
+                      nqp::isge_i($j,$end)
+                        || nqp::isle_i(
+                             numcmp(
+                               nqp::atpos($S,nqp::atpos_i($A,$i)),
+                               nqp::atpos($S,nqp::atpos_i($A,$j))
+                             ),
+                             0
+                           )
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
+                      ++$i
+                    ),
+                    nqp::stmts(
+                      (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
+                      ++$j
+                    )
+                  )
+                ),
+                ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+              )
+            ),
+
+            # Now work array $B is full of runs of length 2*width.
+            # Copy array B to array A for next iteration. A more
+            # efficient implementation would swap the roles of A and B.
+            (my $temp := $B),($B := $A),($A := $temp),   # swap
+            # Now array $A is full of runs of length 2*width.
+
+            ($width = nqp::add_i($width,$width))
+          )
         );
+
+        # Return the updated indices
+        $A
+    }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of Schwartz sorting Num array logic -------------------
+
+#- start of generated part of Schwartz sorting Str array logic -----------------
+#- Generated on 2026-10-24T11:03:50+02:00 by tools/build/makeSORTING-BY.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
+    # Schwarz sort a Str array given the Schwarz and an int array
+    # with indices, both will be changed in place
+    my sub MERGESORT-AS-Str($S is raw) {
+        my int $n = nqp::elems($S);
+        my $A    := indices_i($n);
+        my $B    := nqp::setelems(nqp::list_i,$n);  # indexes to sort
 
         # Each 1-element run in $A is already "sorted"
         # Make successively longer sorted runs of length 2, 4, 8, 16...
@@ -801,9 +821,11 @@ my class Rakudo::Sorting is implementation-detail {
                       nqp::isge_i($j,$end)
                         || nqp::isle_i(
                              nqp::cmp_s(
-                               nqp::unbox_s(nqp::atpos(S,nqp::atpos_i($A,$i))),
-                               nqp::unbox_s(nqp::atpos(S,nqp::atpos_i($A,$j)))
-                             ),0)
+                               nqp::atpos($S,nqp::atpos_i($A,$i)),
+                               nqp::atpos($S,nqp::atpos_i($A,$j))
+                             ),
+                             0
+                           )
                     ),
                     nqp::stmts(
                       (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
@@ -820,6 +842,8 @@ my class Rakudo::Sorting is implementation-detail {
             ),
 
             # Now work array $B is full of runs of length 2*width.
+            # Copy array B to array A for next iteration. A more
+            # efficient implementation would swap the roles of A and B.
             (my $temp := $B),($B := $A),($A := $temp),   # swap
             # Now array $A is full of runs of length 2*width.
 
@@ -827,22 +851,126 @@ my class Rakudo::Sorting is implementation-detail {
           )
         );
 
+        # Return the updated indices
+        $A
+    }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of Schwartz sorting Str array logic -------------------
+
+    # Fast path for Schwartzian sort on 0, 1, 2 element lists
+    method !MERGESORT-REIFIED-LIST-AS-small(\list, &mapper) {
+        my $O := nqp::getattr(list,List,'$!reified');
+
+        nqp::push($O,nqp::shift($O))  # wrong order, so swap
+          if nqp::iseq_i(nqp::elems($O),2)
+          && nqp::eqaddr(
+               mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),
+               Order::More
+             );
+
+        list
+    }
+
+    # Fast path for Schwartzian sort on 0, 1, 2 element lists where
+    # the result is supposed to be the indices
+    method !MERGESORT-REIFIED-LIST-AS-small-indices(\list, &mapper) {
+        my $O := nqp::getattr(list,List,'$!reified');
+
+        nqp::if(
+          nqp::iseq_i(nqp::elems($O),2),
+          nqp::if(
+            nqp::eqaddr(
+              mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),
+              Order::More
+            ),
+            nqp::bindpos($O,nqp::bindpos($O,0,1),0),
+            nqp::stmts(
+              nqp::bindpos($O,0,0),
+              nqp::bindpos($O,1,1)
+            )
+          ),
+          nqp::if(
+            nqp::elems($O),
+            nqp::bindpos($O,0,0)
+          )
+        );
+
+        list
+    }
+
+    # Takes the HLL List to be Schwarzian sorted *in place* using the mapper
+    method MERGESORT-REIFIED-LIST-AS(\list, &mapper, :$indices) {
+        list.elems <= 2
+           ?? $indices
+             ?? self!MERGESORT-REIFIED-LIST-AS-small-indices(list, &mapper)
+             !! self!MERGESORT-REIFIED-LIST-AS-small(list, &mapper)
+           !! self!MERGESORT-REIFIED-LIST-AS-larger(list, &mapper, $indices)
+    }
+
+    # Helper method to set up the Schwartz, perform the appropriately
+    # optimized sort on it, and then return the result in place
+    method !MERGESORT-REIFIED-LIST-AS-larger(\list, &mapper, $indices) {
+        my $O := nqp::getattr(list,List,'$!reified');             # Original
+        my int $n = nqp::elems($O);
+        my $S := nqp::setelems(nqp::create(IterationBuffer),$n);  # the Schwartz
+
+        # Set up first element and initial type to check for
+        my $what := nqp::bindpos($S,0,nqp::decont(mapper(nqp::atpos($O,0))));
+        $what := nqp::isconcrete($what) ?? nqp::what($what) !! Any;
+
+        # Initial run setting up the Schwartz.  This will run until
+        # there is a type mismatch, or it is exhausted.  If there is
+        # a mismatch, that element is already stored so a similar but
+        # simplified loop can just continue where this left off
+        my int $s;  # intentionally skip first element
+        nqp::while(
+          nqp::islt_i(++$s,$n)
+            && nqp::isconcrete(
+                 nqp::bindpos($S,$s,
+                   my $key := nqp::decont(mapper(nqp::atpos($O,$s)))
+                 )
+               )
+            && nqp::eqaddr(nqp::what($key),$what),
+          nqp::null
+        );
+
+        # Setting up the Schwarz interrupted because of mix of types
+        # and/or concreteness, so reset the type and finish setting
+        # up the Schwarz
+        if nqp::isne_i($s,$n) {
+            $what := Mu;
+            nqp::while(
+              nqp::islt_i(++$s,$n),
+              nqp::bindpos($S,$s,nqp::decont(mapper(nqp::atpos($O,$s))))
+            );
+        }
+        my constant HANDLERS = nqp::hash(
+          "Int", &MERGESORT-AS-Int,
+          "Num", &MERGESORT-AS-Num,
+          "Str", &MERGESORT-AS-Str,
+        );
+
+        # Sort $S in place, and return the indices
+        my $A := nqp::ifnull(
+          nqp::atkey(HANDLERS,$what.^name),
+          &MERGESORT-AS-Any
+        )($S);
+
         $s = -1;
         # repurpose the Schwartz for the result
         nqp::if(
           $indices,
           nqp::while(   # indices only
             nqp::islt_i(++$s,$n),
-            nqp::bindpos(S,$s,nqp::atpos_i($A,$s))
+            nqp::bindpos($S,$s,nqp::atpos_i($A,$s))
           ),
           nqp::while(   # actual values
             nqp::islt_i(++$s,$n),
-            nqp::bindpos(S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
+            nqp::bindpos($S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
           )
         );
-        nqp::bindattr(list,List,'$!reified',S)
+        nqp::p6bindattrinvres(list,List,'$!reified',$S)
     }
-
 
     # Takes the HLL List to be sorted *in place* using the comparator
     # and always produce indices

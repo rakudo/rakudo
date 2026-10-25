@@ -1411,8 +1411,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method tail(List:D:) is raw {
         nqp::isconcrete($!todo)
           ?? self.Any::tail
-          !! nqp::isconcrete($!reified) && nqp::elems($!reified)
-            ?? nqp::atpos($!reified,nqp::sub_i(nqp::elems($!reified),1))
+          !! nqp::isconcrete(my $reified := $!reified)
+               && nqp::elems($reified)
+            ?? nqp::atpos($reified,nqp::sub_i(nqp::elems($reified),1))
             !! Nil
     }
     multi method tail(List:D: $n --> Seq:D) {

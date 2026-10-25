@@ -1211,14 +1211,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         nqp::if(
           nqp::isconcrete(my $reified := $!reified)
-            && (my int $elems = nqp::elems($reified)),
+            && (my int $n = nqp::elems($reified)),
           nqp::stmts(                          # something to join
-            (my $strings := nqp::list_s),
+            nqp::setelems(
+              (my $strings := nqp::setelems(nqp::create(IterationBuffer),$n)),0
+            ),
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(++$i,$elems),
+              nqp::islt_i(++$i,$n),
               nqp::stmts(                      # something left to check
-                (my $tmp := nqp::ifnull(
+                (my $tmp := nqp::decont(nqp::ifnull(
                   nqp::atpos($reified,$i),
                   nqp::if(
                     nqp::isconcrete(my $default),
@@ -1229,15 +1231,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                       ''
                     ))
                   )
-                )),
+                ))),
                 nqp::if(
                   nqp::isconcrete($tmp),
                   nqp::if(                     # not a type object
                     nqp::istype($tmp,Junction),
                     (return self!JUNCTIONIZE(  # follow Junction path
-                      $separator, $strings, $i, $elems, $tmp
+                      $separator, $strings, $i, $n, $tmp
                     )),
-                    nqp::push_s(               # no special action needed
+                    nqp::push(               # no special action needed
                       $strings,
                       nqp::if(
                         nqp::istype($tmp,Str),
@@ -1250,11 +1252,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                       )
                     )
                   ),
-                  nqp::push_s($strings,$tmp.Str)   # type object
+                  nqp::push($strings,$tmp.Str)   # type object
                 )
               )
             ),
-            nqp::if($infinite,nqp::push_s($strings,'...')),
+            nqp::if($infinite,nqp::push($strings,'...')),
             nqp::box_s(                            # done
               nqp::join($separator,$strings),
               Str
@@ -1312,7 +1314,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     ),
                     ($junction := infix:<~>($junction, $tmp))
                   ),
-                  nqp::push_s(strings,nqp::if(   # not a Junction
+                  nqp::push(strings,nqp::if(   # not a Junction
                     nqp::istype($tmp,Str),
                     $tmp,
                     nqp::if(
@@ -1322,7 +1324,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     )
                   ))
                 ),
-                nqp::push_s(strings,$tmp.Str)    # type object
+                nqp::push(strings,$tmp.Str)    # type object
               )
             )
           ),

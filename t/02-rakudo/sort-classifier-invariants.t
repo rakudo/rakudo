@@ -43,7 +43,7 @@ sub fetches-sorting(int $n) {
     $reads
 }
 
-is fetches-sorting(15), 25,
+is fetches-sorting(11), 17,
   'a Proxy in a list too short to classify is read only by the merge';
 is fetches-sorting(20), 35,
   'a Proxy in a list long enough to classify is read no more often';

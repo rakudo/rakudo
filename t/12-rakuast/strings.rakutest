@@ -808,7 +808,7 @@ subtest 'Exec processor with a backslash in the text' => {
     is-deeply $deparsed, Q[qx/echo \\$x/], 'deparse';
     is-deeply $deparsed.AST.DEPARSE.chomp, $deparsed,
       'the deparse parses back to itself';
-    is-deeply $_, "\$x\n", @type[$++]
+    is-deeply $_, $*DISTRO.is-win ?? "\\\$x\n" !! "\$x\n", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

@@ -23,6 +23,30 @@
     my constant TRUE  := (Bool.WHO)<True>;
     my constant FALSE := (Bool.WHO)<False>;
 
+    # Set up infra to allow for a "note" debug function that will say
+    # the arguments on STDERR, which can be very handy when trying to
+    # debug precomp issues (as STDOUT will interfere with dependency
+    # recording)
+    nqp::composetype(
+      (my $u8 := nqp::newtype(nqp::knowhow(), 'P6int')),
+      nqp::hash('integer', nqp::hash('unsigned', 1, 'bits', 8))
+    );
+    nqp::composetype(
+      (my $buf-type := nqp::newtype(nqp::knowhow(), 'VMArray')),
+      nqp::hash('array', nqp::hash('type', $u8))
+    );
+    sub note(*@parts) {
+        nqp::writefh(
+          nqp::getstderr,
+          nqp::encode(
+            nqp::concat(nqp::join('',@parts),"\n"),
+            'utf8',
+            nqp::create($buf-type)
+          )
+        );
+        Nil
+    }
+
     sub parent($class, $parent) {
         $class.HOW.add_parent($class, $parent);
     }

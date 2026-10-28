@@ -69,6 +69,15 @@ augment class BagHash {
     }
 }
 
+#- Code ------------------------------------------------------------------------
+augment class Code {
+    method syntax-ok(Str:D $code --> Bool:D) {
+        CATCH { return False }
+        $code.EVAL(:check);
+        True
+    }
+}
+
 #- Complex ---------------------------------------------------------------------
 augment class Complex {
 

@@ -71,9 +71,9 @@ augment class BagHash {
 
 #- Code ------------------------------------------------------------------------
 augment class Code {
-    method syntax-ok(Str:D $code --> Bool:D) {
+    method SYNTAX-OK(Str:D $code --> Bool:D) {
         CATCH { return False }
-        $code.EVAL(:check);
+        EVAL($code, :check);
         True
     }
 }

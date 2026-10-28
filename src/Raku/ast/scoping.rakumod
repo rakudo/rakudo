@@ -1938,8 +1938,9 @@ role RakuAST::Lookup {
         my $info := nqp::getattr($routine, Routine, '$!inline_info');
         return nqp::null() unless nqp::isconcrete($info) && nqp::istype($info, QAST::Node);
         return nqp::null() if nqp::can($routine, 'soft') && $routine.soft;
-        RakuAST::IMPL::VarLowering.IMPL-NOTE("SPLICE " ~ $routine.name)
-            if nqp::existskey(nqp::getenvhash(), 'RAKUDO_INLINE_DEBUG');
+        note("SPLICE " ~ $routine.name)
+          if nqp::existskey(nqp::getenvhash(), 'RAKUDO_INLINE_DEBUG');
+
         my $sig := nqp::getattr($routine, Code, '$!signature');
         my @params := nqp::isconcrete($sig)
             ?? nqp::getattr($sig, Signature, '@!params')

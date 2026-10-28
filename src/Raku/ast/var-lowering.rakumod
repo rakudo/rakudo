@@ -757,8 +757,11 @@ class RakuAST::IMPL::VarLowering {
                             $where := ' at ' ~ $source.original-file
                                 ~ ':' ~ $source.original-line($origin.from);
                         }
-                        self.IMPL-NOTE('lex2local: flatten '
-                            ~ $frame.node.HOW.name($frame.node) ~ $where);
+                        note(
+                          'lex2local: flatten ',
+                          $frame.node.HOW.name($frame.node),
+                          $where
+                        );
                     }
                 }
                 # A use that crossed only this pending body settles now:
@@ -1376,19 +1379,6 @@ class RakuAST::IMPL::VarLowering {
         Nil
     }
 
-    # This code runs where the NQP setting's IO subs are not reachable,
-    # so stderr output is spelled out in ops, including the byte buffer
-    # type to encode into.
-    method IMPL-NOTE(str $message) {
-        my $u8 := nqp::newtype(nqp::knowhow(), 'P6int');
-        nqp::composetype($u8, nqp::hash('integer', nqp::hash('unsigned', 1, 'bits', 8)));
-        my $buf-type := nqp::newtype(nqp::knowhow(), 'VMArray');
-        nqp::composetype($buf-type, nqp::hash('array', nqp::hash('type', $u8)));
-        nqp::writefh(nqp::getstderr(),
-            nqp::encode($message ~ "\n", 'utf8', nqp::create($buf-type)));
-        Nil
-    }
-
     method IMPL-POISON-ALL() {
         my int $i := nqp::elems($!frames);
         while --$i >= 0 {
@@ -1427,6 +1417,8 @@ class RakuAST::IMPL::VarLowering {
         my $candidates := $frame.candidates;
         return Nil unless nqp::elems($candidates);
         my int $poisoned := $frame.is-poisoned;
+        my int $debug    := $!debug;
+
         for $candidates -> $record {
             my $decl := nqp::atkey($record, 'decl');
             my str $declined := nqp::atkey($record, 'declined');
@@ -1443,12 +1435,13 @@ class RakuAST::IMPL::VarLowering {
             if $declined eq '' {
                 $decl.IMPL-SET-LOWERED-TO-LOCAL($!sentinel);
             }
-            if $!debug {
+            if $debug {
+                my str $name  := $decl.lexical-name;
                 my str $where := $frame.node.HOW.name($frame.node);
-                self.IMPL-NOTE($declined eq ''
-                    ?? "lex2local: lower '" ~ $decl.lexical-name ~ "' in " ~ $where
-                    !! "lex2local: keep '" ~ $decl.lexical-name ~ "' in "
-                        ~ $where ~ " (" ~ $declined ~ ")");
+                note($declined eq ''
+                  ?? "lex2local: lower '$name' in $where"
+                  !! "lex2local: keep '$name' in $where ($declined)"
+                );
             }
         }
         Nil

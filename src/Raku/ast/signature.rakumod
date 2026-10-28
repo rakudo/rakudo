@@ -2571,6 +2571,7 @@ class RakuAST::ParameterTarget::Term
         nqp::bindattr_s(self, RakuAST::ParameterTarget::Term,
             '$!lowered-local-name',
             QAST::Node.unique('__lowered_' ~ $!name.canonicalize));
+
         if nqp::atkey(nqp::getenvhash(), 'RAKUDO_LOWERING_DEBUG') {
             my str $where := '';
             my $origin := self.origin;
@@ -2579,9 +2580,13 @@ class RakuAST::ParameterTarget::Term
                 $where := ' at ' ~ $source.original-file
                     ~ ':' ~ $source.original-line($origin.from);
             }
-            RakuAST::IMPL::VarLowering.IMPL-NOTE(
-                'lex2local: minted ' ~ $!lowered-local-name ~ ' for term '
-                    ~ $!name.canonicalize ~ $where);
+            note(
+              'lex2local: minted ',
+              $!lowered-local-name,
+              ' for term ',
+              $!name.canonicalize,
+              $where
+            );
         }
         $!lowered-local-name
     }

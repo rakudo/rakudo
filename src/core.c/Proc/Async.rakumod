@@ -341,7 +341,8 @@ my class Proc::Async {
     method !win-quote-CommandLineToArgvW(*@args) {
         my @quoted_args;
         for @args -> $arg {
-            if !$arg.contains(' ') && !$arg.contains('"') && !$arg.contains('\t') && !$arg.contains('\n') && !$arg.contains('\v') {
+            # empty args must be quoted too, or they would disappear
+            if $arg.chars && !$arg.contains(' ') && !$arg.contains('"') && !$arg.contains("\t") && !$arg.contains("\n") && !$arg.contains("\x0B") {
                 @quoted_args.push: $arg;
             }
             else {

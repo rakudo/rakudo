@@ -104,10 +104,6 @@ class RakuAST::StatementPrefix::Race
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "race" }
-
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # Avoid worries about sink context
-    }
 }
 
 # The `hyper` statement prefix.
@@ -115,10 +111,6 @@ class RakuAST::StatementPrefix::Hyper
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "hyper" }
-
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # Avoid worries about sink context
-    }
 }
 
 # The `lazy` statement prefix.
@@ -133,15 +125,15 @@ class RakuAST::StatementPrefix::Eager
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "eager" }
-
     method allowed-on-for-statement() { True }
 }
 
-# The `eager` statement prefix.
+# The `sink` statement prefix.
 class RakuAST::StatementPrefix::Sink
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "sink" }
+    method allowed-on-for-statement() { True }
 }
 
 # Done by statement prefixes that insist on thunking expressions into a code

@@ -715,11 +715,8 @@ my class IO::Path is Cool does IO {
         # Reading from path
         else {
             my $PIO := nqp::open(self.absolute,'r');
-            {
-                CATCH { try nqp::closefh($PIO) }    # don't leak it on error
-                $blob := self!slurp-PIO($PIO);
-            }
-            nqp::closefh($PIO);
+            LEAVE nqp::closefh($PIO) if nqp::isconcrete($PIO);
+            $blob := self!slurp-PIO($PIO);
         }
 
         # Wants a blob

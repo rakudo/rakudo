@@ -848,8 +848,8 @@ See http://design.raku.org/S22.html#provides for more information.\n";
     ) {
         my @call-parts = "exec";
 
-        sub sh-escape(Str $text) {
-            S/ ( \$ | \` | \" | \\ | \n ) / \\$1 / given $text;
+        sub sh-escape(Str:D $text) {
+            $text.subst: / <[$`"\\\n]> /, { "\\$/" }, :g
         }
 
         sub process-path(Str() $path) {

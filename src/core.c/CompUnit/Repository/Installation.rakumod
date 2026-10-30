@@ -21,7 +21,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         '.bat', '-m.bat', '-j.bat', '-js.bat';
 
     my constant $raku-wrapper-code = 'sub MAIN(*@, *%) {
-    CompUnit::RepositoryRegistry.run-script("#name#");
+    CompUnit::RepositoryRegistry.run-script(#name#);
 }';
 
     submethod TWEAK(Str :$wrapper-mode, Str :$wrapper-rakudo-dir) {
@@ -410,7 +410,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         my $ext = Rakudo::Internals.IS-WIN ?? '.exe' !! '';
         for @script-postfixes -> $be {
             $.prefix.add("$withoutext$be.raku").spurt:
-                $raku-wrapper-code.subst('#name#', $name, :g);
+                $raku-wrapper-code.subst('#name#', $name.raku, :g);
             my $prog-conf = do given self.config<wrapper-mode> {
                 when 'absolute' {
                     "<plat-sep>"

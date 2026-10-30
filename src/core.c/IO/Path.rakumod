@@ -713,10 +713,9 @@ my class IO::Path is Cool does IO {
         }
 
         # Reading from path
-        else {
-            my $PIO := nqp::open(self.absolute,'r');
-            LEAVE nqp::closefh($PIO) if nqp::isconcrete($PIO);
-            $blob := self!slurp-PIO($PIO);
+        elsif nqp::open(self.absolute,'r') -> \PIO {
+            LEAVE nqp::closefh(PIO);
+            $blob := self!slurp-PIO(PIO);
         }
 
         # Wants a blob

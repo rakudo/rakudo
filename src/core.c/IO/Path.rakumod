@@ -654,7 +654,9 @@ my class IO::Path is Cool does IO {
     # Slurp contents of low level handle.  If the initial slurp size is
     # completely used, ask the OS for the size of the file.  If that is
     # known, slurp directly for that number of bytes.  If that failed
-    # or is more than what can be read in one go, take the slow path
+    # or is more than what can be read in one go, take the slow path.
+    # If the size says there is nothing left (a file of exactly the
+    # initial slurp size), keep what was read: asking for 0 bytes dies.
     method !slurp-PIO(Mu \PIO is raw) {
         my $blob := nqp::readfh(PIO,nqp::create(buf8.^pun),$slurp-size);
 
@@ -666,7 +668,11 @@ my class IO::Path is Cool does IO {
               nqp::istype((my $s := self.s),Failure)              # size unknown
                 || (my int $size = $s - $slurp-size) > $max-size, # too large
               slurp-PIO-uncertain(PIO, $max-size),                # slow path
-              nqp::readfh(PIO,nqp::create(buf8.^pun),$size)       # read rest
+              nqp::if(
+                nqp::isgt_i($size,0),
+                nqp::readfh(PIO,nqp::create(buf8.^pun),$size),    # read rest
+                nqp::create(buf8.^pun)                            # nothing left
+              )
             ),
             nqp::elems($blob),
             0
@@ -709,7 +715,10 @@ my class IO::Path is Cool does IO {
         # Reading from path
         else {
             my $PIO := nqp::open(self.absolute,'r');
-            $blob   := self!slurp-PIO($PIO);
+            {
+                CATCH { try nqp::closefh($PIO) }    # don't leak it on error
+                $blob := self!slurp-PIO($PIO);
+            }
             nqp::closefh($PIO);
         }
 

@@ -654,9 +654,7 @@ my class IO::Path is Cool does IO {
     # Slurp contents of low level handle.  If the initial slurp size is
     # completely used, ask the OS for the size of the file.  If that is
     # known, slurp directly for that number of bytes.  If that failed
-    # or is more than what can be read in one go, take the slow path.
-    # If the size says there is nothing left (a file of exactly the
-    # initial slurp size), keep what was read: asking for 0 bytes dies.
+    # or is more than what can be read in one go, take the slow path
     method !slurp-PIO(Mu \PIO is raw) {
         my $blob := nqp::readfh(PIO,nqp::create(buf8.^pun),$slurp-size);
 

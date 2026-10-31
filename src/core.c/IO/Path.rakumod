@@ -360,20 +360,24 @@ my class IO::Path is Cool does IO {
         )
     }
 
-    # Return whether the resolved path of the invocant is inside the
+    # Return the resolved path of the invocant if it is inside the
     # the resolved path of the given IO::Path object (which needs to
-    # be an existing directory)
-    method is-inside(IO::Path:D: IO::Path:D $io --> Bool:D) {
+    # be an existing directory), or Nil if it is not inside
+    method is-inside(IO::Path:D: IO::Path:D $io --> IO::Path:D) {
         if $io.d {
             with $io.resolve(:completely) -> $root {
                 with self.resolve(:completely) -> $target {
-                    return $target.absolute.starts-with(
-                      $root.absolute ~ $!SPEC.dir-sep
-                    );
+                    my $sep  := $!SPEC.dir-sep;
+                    my $base := $root.absolute;
+
+                    return $target
+                      if $target.absolute.starts-with(
+                        $base.ends-with($sep) ?? $base !! $base ~ $sep
+                      );
                 }
             }
         }
-        False
+        Nil
     }
 
     proto method parent(|) {*}

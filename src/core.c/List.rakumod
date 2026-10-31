@@ -377,14 +377,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           nqp::if(
             (my int $elems = self.elems), # reify
             nqp::stmts(
-              (my $sum  := 0),
-              (my int $i = -1),
+              (my $reified := $!reified),
+              (my $sum     := 0),
+              (my int $i    = -1),
               nqp::while(
                 nqp::islt_i(++$i,$elems),
-                ($sum := $sum + nqp::ifnull(nqp::atpos($!reified,$i),0))
+                ($sum := $sum + nqp::ifnull(nqp::atpos($reified,$i),0))
               ),
               $sum
             )
+            # no else, 0 of condition propagates
           )
         )
     }

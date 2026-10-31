@@ -14,6 +14,8 @@ my %with-rakuast = %*ENV;
 %with-rakuast<RAKUDO_RAKUAST> = 1;
 my %without-rakuast = %*ENV;
 %without-rakuast<RAKUDO_RAKUAST> = 0;
+# Silence the legacy frontend deprecation notice.
+%without-rakuast<RAKUDO_NO_DEPRECATIONS> = 1;
 
 my $rakuast-id = run($*EXECUTABLE.absolute, '-e', $code, :env(%with-rakuast), :out)
     .out.slurp(:close);

@@ -3038,10 +3038,12 @@ class Perl6::Optimizer {
         my $target := $call[0];
         my $qast;
         $call.name: ''; # second kid already is the method name the op will use
+        # map the result into Raku land as the dispatcher does
+        my $result := QAST::Op.new: :op<hllize>, $call;
 
         if nqp::istype($target, QAST::Var) {
             # we have a plain variable as target. Safe to Just Use It™
-            $qast := QAST::Op.new: :op<p6store>, $target, $call
+            $qast := QAST::Op.new: :op<p6store>, $target, $result
         }
         else {
             # we have something more complex as target. Use a temp var to
@@ -3055,7 +3057,7 @@ class Perl6::Optimizer {
                 $target),
               QAST::Op.new: :op<p6store>,
                 QAST::Var.new(:$name, :scope<local>),
-                $call
+                $result
         }
 
         $qast

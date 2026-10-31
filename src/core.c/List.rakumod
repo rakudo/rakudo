@@ -532,19 +532,19 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         X::Bind.new.throw
     }
 
-    multi method EXISTS-POS(List:D: uint $pos --> Bool:D) {
+    multi method EXISTS-POS(List:D: uint $pos) {
         nqp::hllbool(
           nqp::if(
-            nqp::isconcrete($!reified)
-              && nqp::islt_i($pos,nqp::elems($!reified)),
-            nqp::existspos($!reified,$pos),
-            nqp::if(
-              nqp::isconcrete($!todo),
-              nqp::stmts(
-                $!todo.reify-at-least(nqp::add_i($pos,1)),
-                nqp::existspos($!reified,$pos)
-              )
+            nqp::isconcrete(my $reified := $!reified),
+            nqp::stmts(
+              nqp::if(
+                nqp::isconcrete($!todo)
+                  && nqp::isge_i($pos,nqp::elems($reified)),
+                $!todo.reify-at-least(nqp::add_i($pos,1))
+              ),
+              nqp::existspos($reified,$pos)
             )
+            # no else, 0 propagates
           )
         )
     }

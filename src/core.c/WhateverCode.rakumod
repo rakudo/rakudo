@@ -5,7 +5,7 @@ my class WhateverCode is Code {
     proto method POSITIONS(|) {*}
     multi method POSITIONS(WhateverCode:D: Failure:D \failure) { failure }
     multi method POSITIONS(WhateverCode:D $self: \list) {
-        nqp::isconcrete(list)
+        nqp::isconcrete(list) || nqp::istype(list,Array::JaggedRow)
           ?? nqp::iseq_i(
                (my \count := nqp::getattr(
                  nqp::getattr($self,Code,'$!signature'),

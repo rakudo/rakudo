@@ -3966,7 +3966,7 @@ my class X::ArrayShapeMismatch is Exception {
     has $.target-shape;
     has $.source-shape;
     method message() {
-        "Cannot assign an array of shape $.source-shape to an array of shape $.target-shape"
+        "Cannot $.action an array of shape $.source-shape to an array of shape $.target-shape"
     }
 }
 my class X::Assignment::ArrayShapeMismatch is X::ArrayShapeMismatch {

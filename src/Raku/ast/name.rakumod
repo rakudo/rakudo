@@ -372,7 +372,7 @@ class RakuAST::Name
     method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil, str :$twigil) {
         my @parts := self.IMPL-LOOKUP-PARTS;
         my $final := @parts[nqp::elems(@parts) - 1];
-        my $PseudoStash-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
+        my $PseudoStash-lookup := self.get-implicit-lookups[1];
         my $result := QAST::Op.new(
           :op<callmethod>,
           :name<new>,
@@ -438,7 +438,7 @@ class RakuAST::Name
         # so drop the empty final part.
         nqp::pop(@parts) if nqp::istype(@parts[nqp::elems(@parts) - 1], RakuAST::Name::Part::EmptyEdge);
         my $final   := @parts[nqp::elems(@parts) - 1];
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         my $result  := QAST::Op.new(
             :op<call>,
             $lookups[0].IMPL-TO-QAST($context),

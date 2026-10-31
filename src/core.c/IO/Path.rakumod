@@ -666,7 +666,11 @@ my class IO::Path is Cool does IO {
               nqp::istype((my $s := self.s),Failure)              # size unknown
                 || (my int $size = $s - $slurp-size) > $max-size, # too large
               slurp-PIO-uncertain(PIO, $max-size),                # slow path
-              nqp::readfh(PIO,nqp::create(buf8.^pun),$size)       # read rest
+              nqp::if(
+                nqp::isgt_i($size,0),
+                nqp::readfh(PIO,nqp::create(buf8.^pun),$size),    # read rest
+                nqp::create(buf8.^pun)                            # nothing left
+              )
             ),
             nqp::elems($blob),
             0
@@ -707,10 +711,9 @@ my class IO::Path is Cool does IO {
         }
 
         # Reading from path
-        else {
-            my $PIO := nqp::open(self.absolute,'r');
-            $blob   := self!slurp-PIO($PIO);
-            nqp::closefh($PIO);
+        elsif nqp::open(self.absolute,'r') -> \PIO {
+            LEAVE nqp::closefh(PIO);
+            $blob := self!slurp-PIO(PIO);
         }
 
         # Wants a blob

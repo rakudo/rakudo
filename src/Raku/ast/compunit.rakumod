@@ -93,7 +93,6 @@ class RakuAST::CompUnit
 
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
           $precompilation-mode ?? 1 !! 0);
-        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!explicit-ctxsave', 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-content', nqp::create(Array));
         nqp::bindattr($obj, RakuAST::CompUnit, '$!data-content', nqp::null);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
@@ -469,7 +468,7 @@ class RakuAST::CompUnit
                     $check-phaser();
                 }
                 CATCH {
-                    my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+                    my $lookups := self.get-implicit-lookups;
                     my $exception := $_;
                     my $BeginTime := $lookups[2].resolution.compile-time-value;
                     my $coercer := $lookups[3].resolution.compile-time-value;
@@ -497,7 +496,7 @@ class RakuAST::CompUnit
     }
 
     method IMPL-FATALIZE {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        self.get-implicit-lookups[1].resolution.compile-time-value
     }
 
     # True when this compunit IS the CORE setting (NULL.c / NULL.d / NULL.e).
@@ -734,7 +733,7 @@ class RakuAST::CompUnit
             :post_deserialize($context.post-deserialize()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
-                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context) )),
+                self.get-implicit-lookups[0].IMPL-TO-QAST($context) )),
             # If this unit is loaded as a module, we want it to automatically
             # execute the mainline code above after all other initializations
             # have occurred.
@@ -995,7 +994,7 @@ class RakuAST::LiteralBuilder {
     # Convert an optionally signed decimal literal, single underscores
     # between digits allowed, to an Int. Returns null on anything else.
     method IMPL-DECIMAL-INT(str $source) {
-        my int $from := 0;
+        my int $from;
         my int $negate;
         if nqp::eqat($source, '-', 0) || nqp::eqat($source, '−', 0) {
             $negate := 1;

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 23;
+plan 24;
 
 my $ast;
 my $deparsed;
@@ -615,6 +615,50 @@ CODE
     is-deeply $ast.EVAL, 42, 'a row whose | is not a column divider compiles';
     is-deeply $deparsed.AST.DEPARSE, $deparsed,
       'the deparse of that row parses back to itself';
+}
+
+subtest 'A | or + without whitespace around it is not a column divider' => {
+    # =begin table
+    # Name  Info
+    # plus  1+2
+    # link  L<a|b>
+    # =end table
+    #
+    # 42
+    ast Q:to/SOURCE/.AST;
+    =begin table
+    Name  Info
+    plus  1+2
+    link  L<a|b>
+    =end table
+
+    42
+    SOURCE
+    is-deeply $ast.EVAL, 42, 'do we get the final result';
+    is-deeply $ast.statements.head.paragraphs.map({ .cells.map(*.Str).List }).List,
+      (<Name Info>, <plus 1+2>, ("link", "L<a|b>")),
+      'rows after a row without any divider keep their columns';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    # =begin table
+    # a|b  c
+    # d+e  f
+    # =end table
+    #
+    # 42
+    ast Q:to/SOURCE/.AST;
+    =begin table
+    a|b  c
+    d+e  f
+    =end table
+
+    42
+    SOURCE
+    is-deeply $ast.EVAL, 42, 'a table with such a | or + in every row compiles';
+    is-deeply $ast.statements.head.paragraphs.map({ .cells.map(*.Str).List }).List,
+      (<a|b c>, <d+e f>),
+      'every row with such a | or + keeps its columns';
 }
 
 

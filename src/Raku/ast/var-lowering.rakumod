@@ -253,22 +253,19 @@ class RakuAST::IMPL::VarLowering {
         # frame nesting nor the resolutions here can show. A use in such
         # a subtree escapes unless a code node the unit alone forms
         # declares what it names.
-        my int $begin-entered;
         if nqp::istype($node, RakuAST::Trait)
             || nqp::istype($node, RakuAST::Type::Parameterized)
             || nqp::istype($node, RakuAST::VarDeclaration::Constant) {
             nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!begin-context',
                 $!begin-context + 1);
-            $begin-entered := 1;
-        }
-        if $begin-entered {
             self.IMPL-WALK-INNER($node);
             nqp::bindattr_i(self, RakuAST::IMPL::VarLowering, '$!begin-context',
                 $!begin-context - 1);
-            return Nil;
         }
-        self.IMPL-WALK-INNER($node);
-        self.IMPL-NOTE-LOOP-FINISHED() if self.IMPL-EMITS-LOOP($node);
+        else {
+            self.IMPL-WALK-INNER($node);
+            self.IMPL-NOTE-LOOP-FINISHED() if self.IMPL-EMITS-LOOP($node);
+        }
         Nil
     }
 
@@ -463,8 +460,7 @@ class RakuAST::IMPL::VarLowering {
             if nqp::eqaddr($expression.WHAT, RakuAST::Block)
                 && $expression.bare-block
                 && (!nqp::isconcrete($cond)
-                    || nqp::istype($cond, RakuAST::StatementModifier::If)
-                    || nqp::istype($cond, RakuAST::StatementModifier::Unless)) {
+                    || nqp::istype($cond, RakuAST::StatementModifier::IfUnless)) {
                 self.IMPL-REGISTER-IMPLICIT-LOOKUPS($node);
                 self.IMPL-WALK($cond) if nqp::isconcrete($cond);
                 self.IMPL-WALK-FLATTEN-CANDIDATE($expression);
@@ -1081,7 +1077,7 @@ class RakuAST::IMPL::VarLowering {
     # call resolves. They count as uses like any other.
     method IMPL-REGISTER-IMPLICIT-LOOKUPS(RakuAST::Node $node) {
         if nqp::istype($node, RakuAST::ImplicitLookups) {
-            for $node.IMPL-UNWRAP-LIST($node.get-implicit-lookups()) {
+            for $node.get-implicit-lookups {
                 next if nqp::isnull($_);
                 self.IMPL-CHECK-NAME-REACHERS($_);
                 self.IMPL-REGISTER-USE($_)
@@ -1179,8 +1175,7 @@ class RakuAST::IMPL::VarLowering {
             my $loop := $node.loop-modifier;
             self.IMPL-MARK-MAGICAL-USED('$_')
                 if (nqp::isconcrete($cond)
-                    && !nqp::istype($cond, RakuAST::StatementModifier::If)
-                    && !nqp::istype($cond, RakuAST::StatementModifier::Unless))
+                    && !nqp::istype($cond, RakuAST::StatementModifier::IfUnless))
                 || (nqp::isconcrete($loop)
                     && !nqp::istype($loop, RakuAST::StatementModifier::WhileUntil));
         }

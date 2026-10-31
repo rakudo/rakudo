@@ -364,6 +364,10 @@ class RakuAST::Infixish
 
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
+        $expression.IMPL-SET-PRIME-CALLED
+          if $type eq 'b'
+          && nqp::istype($expression, RakuAST::WhateverApplicable)
+          && $expression.IMPL-PRIMED;
         return Nil if self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $expression);
         # 'b', 't' and the no-thunk '.' the caller skips are the entire
         # thunky vocabulary of OperatorProperties.
@@ -968,9 +972,9 @@ class RakuAST::Infix
     }
 
     method IMPL-ASSIGN-OP(QAST::Node $lhs_ast, QAST::Node $rhs_ast) {
-        my $initialize := 0;
+        my int $initialize;
         # The _i64 and _u64 are only used on backends that emulate int64/uint64
-        my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i', 'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
+        my constant NATIVE-OPS := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i', 'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
         my $past;
         my $var_sigil;
         if nqp::istype($lhs_ast, QAST::Var) {
@@ -992,7 +996,7 @@ class RakuAST::Infix
         }
 
         if nqp::istype($lhs_ast, QAST::Var)
-                && (my $spec := nqp::objprimspec($lhs_ast.returns)) {
+                && (my int $spec := nqp::objprimspec($lhs_ast.returns)) {
             # Native assignment is only possible to a reference; complain now
             # rather than at runtime since we'll inevitably fail.
             my $scope := $lhs_ast.scope;
@@ -1002,7 +1006,7 @@ class RakuAST::Infix
                     variable => $lhs_ast.name);
             }
             $past := QAST::Op.new(
-                :op(@native_assign_ops[$spec]), :returns($lhs_ast.returns),
+                :op(nqp::atpos(NATIVE-OPS,$spec)), :returns($lhs_ast.returns),
                 $lhs_ast, $rhs_ast);
         }
         elsif $var_sigil eq '@' || $var_sigil eq '%' {
@@ -1098,11 +1102,10 @@ class RakuAST::Infix
             && (!nqp::can($right, 'match-immediately') || $right.match-immediately)
         {
             my $match-type :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+              self.get-implicit-lookups[0].resolution.compile-time-value;
             my $result-local := QAST::Node.unique('!sm-result');
             my $rhs := $right.IMPL-EXPR-QAST($context);
 
-            my $boolify := 0;
             my $sm-call := QAST::Op.new(
                 :op<bind>,
                 QAST::Var.new( :name($result-local), :scope('local'), :decl('var') ),
@@ -1111,7 +1114,7 @@ class RakuAST::Infix
                     QAST::SVal.new( :value<raku-smartmatch> ),
                     QAST::Var.new( :name('$_'), :scope('lexical') ),
                     $rhs,
-                    QAST::IVal.new( :value( $negate ?? -1 !! $boolify ) )
+                    QAST::IVal.new( :value($negate ?? -1 !! 0) )
                 )
             );
             $sm-call[1].annotate('smartmatch_accepts', 1);
@@ -1149,7 +1152,7 @@ class RakuAST::Infix
             }
             $op.push(QAST::WVal.new(
                 :named('false'),
-                :value(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value))
+                :value(self.get-implicit-lookups[1].resolution.compile-time-value))
             );
             $op
         }
@@ -1179,30 +1182,29 @@ class RakuAST::Infix
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
         if self.short-circuit { # Only final part of short-circuiting operators can be sunk
-            my $i := 0;
-            while $i < nqp::elems($operands) - 1 {
-                $operands[$i].apply-sink(False);
-                $i++;
-            }
-            $operands[$i].apply-sink($is-sunk);
-        }
-        elsif self.operator eq ',' {
-            for $operands {
-                $_.apply-sink($is-sunk);
-            }
+            my int $i;
+            my int $last := nqp::elems($operands) - 1;
+            nqp::while(
+              $i < $last,
+              nqp::atpos($operands,$i++).apply-sink(False)
+            );
+            nqp::atpos($operands,$i).apply-sink($is-sunk);
         }
         elsif self.operator eq 'xor' {
-            $operands[0].apply-sink(False);
-            my $i := 1;
-            while $i < nqp::elems($operands) {
-                $operands[$i].apply-sink($is-sunk);
-                $i++;
-            }
+            nqp::atpos($operands,0).apply-sink(False);
+            my int $i;
+            nqp::while(
+              ++$i < nqp::elems($operands),  # skip first
+              nqp::atpos($operands,$i).apply-sink($is-sunk)
+            );
         }
         else {
-            for $operands {
-                $_.apply-sink(False);
-            }
+            my $sink := self.operator eq ',' ?? $is-sunk !! False;
+            my int $i;
+            nqp::while(
+              $i < nqp::elems($operands),
+              nqp::atpos($operands,$i++).apply-sink($sink)
+            );
         }
     }
 
@@ -1230,7 +1232,7 @@ class RakuAST::Infix
             while $i < $elems {
                 $value := self.IMPL-BOX-VM-VALUE(self.IMPL-INTERPRET-OPERAND($ctx, @operands[$i++]));
                 if nqp::istrue($value) {
-                    return self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value
+                    return self.get-implicit-lookups[1].resolution.compile-time-value
                       unless nqp::isnull($true);
                     $true := $value;
                 }
@@ -1492,7 +1494,7 @@ class RakuAST::FlipFlop
                               Mu $rhs
     ) {
         # Need various constants.
-        my $Int   := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[3].compile-time-value;
+        my $Int   := self.get-implicit-lookups[3].compile-time-value;
         my $Int-zero := $Int.new(0);
         my $Int-one  := $Int.new(1);
         $context.ensure-sc($Int-zero);
@@ -1500,13 +1502,13 @@ class RakuAST::FlipFlop
 
         my $zero  := QAST::Want.new( QAST::WVal.new(:value($Int-zero), :returns($Int-zero.WHAT)), 'Ii', QAST::IVal.new(:value(0)) );
         my $one   := QAST::Want.new( QAST::WVal.new(:value($Int-one), :returns($Int-one.WHAT)), 'Ii', QAST::IVal.new(:value(1)) );
-        my $nil   := QAST::WVal.new( :value(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value) );
-        my $true  := QAST::WVal.new( :value(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].compile-time-value) );
-        my $false := QAST::WVal.new( :value(self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].compile-time-value) );
+        my $nil   := QAST::WVal.new( :value(self.get-implicit-lookups[0].compile-time-value) );
+        my $true  := QAST::WVal.new( :value(self.get-implicit-lookups[1].compile-time-value) );
+        my $false := QAST::WVal.new( :value(self.get-implicit-lookups[2].compile-time-value) );
         my $topic := QAST::Var.new( :name<$_>, :scope<lexical> );
 
         # Twiddle to make special-case RHS * work.
-        my $Whatever := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[4].compile-time-value;
+        my $Whatever := self.get-implicit-lookups[4].compile-time-value;
         if nqp::istype($rhs.returns, $Whatever) {
             $rhs := $false;
         }
@@ -1646,11 +1648,11 @@ class RakuAST::Assignment
     method item { $!item ?? True !! False }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
-        my $i := 0;
-        while $i < nqp::elems($operands) {
-            $operands[$i].apply-sink(False);
-            $i++;
-        }
+        my int $i;
+        nqp::while(
+          $i < nqp::elems($operands),
+          nqp::atpos($operands,$i++).apply-sink(False)
+        );
     }
 
     method is-pure() { False }
@@ -1803,7 +1805,7 @@ class RakuAST::MetaInfix
     }
 
     method IMPL-HOP-INFIX() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
+        self.get-implicit-lookups[0].resolution.compile-time-value()(
             self.infix.IMPL-HOP-INFIX
         )
     }
@@ -1899,8 +1901,7 @@ class RakuAST::MetaInfix::Assign
     method is-pure() { False }
 
     method IMPL-RESULT-NEEDS-ITERATION() {
-        nqp::istype($!infix, RakuAST::MetaInfix::Zip)
-          || nqp::istype($!infix, RakuAST::MetaInfix::Cross)
+        nqp::istype($!infix, RakuAST::MetaInfix::CrossZip)
     }
 
     # The assign form of a plain short-circuit operator takes a Whatever or
@@ -1954,7 +1955,7 @@ class RakuAST::MetaInfix::Assign
     }
 
     method IMPL-OPERATOR() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+        self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
     method IMPL-SET-NATIVE-STEP(int $primspec) {
@@ -2095,10 +2096,10 @@ class RakuAST::MetaInfix::Assign
     # written through.
     method IMPL-NATIVE-ASSIGN-QAST(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right, int $spec) {
-        my @assign := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i',
+        my constant OPS := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i',
             'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
         my $var := $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context));
-        QAST::Op.new(:op(@assign[$spec]), :returns($var.returns), $var,
+        QAST::Op.new(:op(nqp::atpos(OPS,$spec)), :returns($var.returns), $var,
             $!infix.IMPL-INFIX-COMPILE($context, $left, $right))
     }
 
@@ -2255,7 +2256,7 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-OPERATOR() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+        self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
     method IMPL-CALLS-OPERATOR() { $!negate-not ?? True !! False }
@@ -2337,7 +2338,7 @@ class RakuAST::MetaInfix::Reverse
     }
 
     method IMPL-OPERATOR() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+        self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
     method IMPL-CALLS-OPERATOR() { True }
@@ -2481,32 +2482,30 @@ class RakuAST::MetaInfix::Sequence
     }
 }
 
-# A cross meta-operator.
-class RakuAST::MetaInfix::Cross
+# A cross or zip meta-operator.
+class RakuAST::MetaInfix::CrossZip
   is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::MetaInfix::Cross, '$!infix', $infix);
+        nqp::bindattr($obj, RakuAST::MetaInfix::CrossZip, '$!infix', $infix);
         $obj
     }
-
-    method action { 'cross with' }
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
 
-    # The cross produces a lazy sequence, so when the wrapped operator
+    # The zip/cross produces a lazy sequence, so when the wrapped operator
     # has side effects a sunk result must still be iterated to run
     # those effects.
     method IMPL-RESULT-NEEDS-ITERATION() {
         !$!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION
     }
 
-    method properties() { OperatorProperties.infix('X') }
+    method properties() { OperatorProperties.infix(self.metaop) }
 
     method reducer-name() {
         self.properties.reducer-name
@@ -2514,17 +2513,17 @@ class RakuAST::MetaInfix::Cross
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-          RakuAST::Type::Setting.from-identifier('&METAOP_CROSS'),
+          RakuAST::Type::Setting.from-identifier(self.handler),
           RakuAST::Type::Setting.from-identifier($!infix.reducer-name),
         ]
     }
 
     method IMPL-OPERATOR() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+        self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+        my $op := QAST::Op.new( :op<call>, self.IMPL-HOP-INFIX-QAST($context) );
         for $operands {
             $op.push($_);
         }
@@ -2535,7 +2534,7 @@ class RakuAST::MetaInfix::Cross
         nqp::ifnull(
           self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
           QAST::Op.new(:op<callstatic>,
-            :name<&METAOP_CROSS>,
+            :name(self.handler),
             $!infix.IMPL-HOP-INFIX-QAST($context),
             QAST::Var.new(:name($!infix.reducer-name), :scope<lexical>)
           )
@@ -2543,7 +2542,7 @@ class RakuAST::MetaInfix::Cross
     }
 
     method IMPL-HOP-INFIX() {
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         $lookups[0].resolution.compile-time-value()(
             self.infix.IMPL-HOP-INFIX,
             $lookups[1].resolution.compile-time-value,
@@ -2584,107 +2583,22 @@ class RakuAST::MetaInfix::Cross
     }
 }
 
+# A cross meta-operator.
+class RakuAST::MetaInfix::Cross
+  is RakuAST::MetaInfix::CrossZip
+{
+    method action  { 'cross with'    }
+    method metaop  { 'X'             }
+    method handler { '&METAOP_CROSS' }
+}
+
 # A zip meta-operator.
 class RakuAST::MetaInfix::Zip
-  is RakuAST::MetaInfix
+  is RakuAST::MetaInfix::CrossZip
 {
-    has RakuAST::Infixish $.infix;
-
-    method new(RakuAST::Infixish $infix) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::MetaInfix::Zip, '$!infix', $infix);
-        $obj
-    }
-
-    method action { 'zip with' }
-
-    method visit-children(Code $visitor) {
-        $visitor($!infix);
-    }
-
-    # The zip produces a lazy sequence, so when the wrapped operator
-    # has side effects a sunk result must still be iterated to run
-    # those effects.
-    method IMPL-RESULT-NEEDS-ITERATION() {
-        !$!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION
-    }
-
-    method properties() { OperatorProperties.infix('Z') }
-
-    method reducer-name() {
-        self.properties.reducer-name
-    }
-
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-          RakuAST::Type::Setting.from-identifier('&METAOP_ZIP'),
-          RakuAST::Type::Setting.from-identifier($!infix.reducer-name),
-        ]
-    }
-
-    method IMPL-OPERATOR() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
-    }
-
-    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
-        for $operands {
-            $op.push($_);
-        }
-        $op
-    }
-
-    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        nqp::ifnull(
-          self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
-          QAST::Op.new(:op<callstatic>,
-            :name<&METAOP_ZIP>,
-            $!infix.IMPL-HOP-INFIX-QAST($context),
-            QAST::Var.new(:name($!infix.reducer-name), :scope<lexical>)
-          )
-        )
-    }
-
-    method IMPL-HOP-INFIX() {
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        $lookups[0].resolution.compile-time-value()(
-            self.infix.IMPL-HOP-INFIX,
-            $lookups[1].resolution.compile-time-value,
-        )
-    }
-
-    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                               RakuAST::Expression $expression, str $type) {
-        # Circumfix::Parentheses  ⎡((say(\"ooh\"),),)⎤
-        #   SemiList  ⎡(say(\"ooh\"),),⎤
-        #     Statement::Expression  ⎡(say(\"ooh\"),),⎤
-        #       ApplyListInfix  ⎡,⎤
-        #         Infix 【,】  ⎡,⎤
-        if nqp::istype($expression, RakuAST::Circumfix::Parentheses) {
-            my $semilist := $expression.semilist;
-            if $semilist.IMPL-IS-SINGLE-EXPRESSION {
-                my $expr := $semilist.code-statements[0].expression;
-                if nqp::istype($expr, RakuAST::ApplyListInfix) && $expr.IMPL-IS-LIST-LITERAL {
-                    for $expr.IMPL-UNWRAP-LIST($expr.operands) {
-                        self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
-                    }
-                }
-            }
-        }
-    }
-
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
-        my $thunky := self.infix.properties.thunky;
-        my int $i;
-        for @operands {
-            my $type := nqp::substr($thunky, $i, $i + 1);
-            if $type && $type ne '.' {
-                self.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
-            }
-            ++$i if $i < nqp::chars($thunky) - 1;
-        }
-    }
+    method action  { 'zip with'    }
+    method metaop  { 'Z'           }
+    method handler { '&METAOP_ZIP' }
 }
 
 # An infix hyper operator.
@@ -2718,7 +2632,7 @@ class RakuAST::MetaInfix::Hyper
     }
 
     method IMPL-OPERATOR() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+        self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -2759,7 +2673,7 @@ class RakuAST::MetaInfix::Hyper
     }
 
     method IMPL-HOP-INFIX() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
+        self.get-implicit-lookups[0].resolution.compile-time-value()(
             self.infix.IMPL-HOP-INFIX,
             :dwim-left($!dwim-left),
             :dwim-right($!dwim-right)
@@ -2787,6 +2701,7 @@ role RakuAST::WhateverApplicable
 {
     has int $!must-not-prime;
     has int $!hyperwhatever;
+    has int $!prime-called;
 
     # The worry about a Whatever or WhateverCode that a short-circuit operator
     # tests first once it is added, or True once a sorry covers it.
@@ -2795,6 +2710,24 @@ role RakuAST::WhateverApplicable
     method IMPL-MUST-NOT-PRIME() {
         nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!must-not-prime', 1);
     }
+
+    # Set when the operator holding this expression calls its WhateverCode,
+    # as andthen does, rather than taking the WhateverCode as a value.
+    method IMPL-SET-PRIME-CALLED() {
+        nqp::bindattr_i(self, RakuAST::WhateverApplicable, '$!prime-called', 1);
+    }
+
+    # A primed expression evaluates to its WhateverCode and nothing else, so
+    # a sunk one is a useless use unless the operator holding it calls it.
+    method IMPL-CHECK-SUNK(RakuAST::Resolver $resolver) {
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+          if self.sunk
+          && (!$!prime-called && self.IMPL-PRIMED || self.IMPL-SUNK-OPERATOR-USELESS);
+    }
+
+    # Whether the operator computes a value and nothing else, so that a sunk
+    # application of it is a useless use.
+    method IMPL-SUNK-OPERATOR-USELESS() { False }
 
     method IMPL-PRIME(@params) {
         my $expr := self.origin ?? self.origin.Str !! self.DEPARSE;
@@ -2876,13 +2809,22 @@ role RakuAST::WhateverApplicable
         False
     }
 
+    # The WhateverCode in a parenthesized operand whose prime this takes over.
+    # A parenthesized WhateverCode is a value to xx, so that `(* > 1) xx 3`
+    # and `(* > 1) xx *.succ` both repeat `* > 1`.
+    method IMPL-PARENTHESIZED-PRIMED-EXPRESSION(Mu $operand) {
+        nqp::istype($operand, RakuAST::Circumfix::Parentheses) && !self.IMPL-IS-XX
+            ?? $operand.IMPL-SINGULAR-PRIMED-EXPRESSION
+            !! Nil
+    }
+
     method IMPL-SHOULD-PRIME() {
         return False if $!must-not-prime;
         return False unless self.operator.IMPL-PRIMES;
         return False unless self.IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS;
 
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
-        my int $index := 0;
+        my int $index;
         for @operands {
             my int $primes := self.IMPL-OPERAND-PRIMES($index++);
             if nqp::bitand_i($primes, 1) {
@@ -2891,8 +2833,7 @@ role RakuAST::WhateverApplicable
             }
             if nqp::bitand_i($primes, 2) {
                 return True if nqp::istype($_, RakuAST::Expression) && $_.IMPL-PRIMED;
-                return True if nqp::istype($_, RakuAST::Circumfix::Parentheses)
-                                        && $_.IMPL-SINGULAR-PRIMED-EXPRESSION && !self.IMPL-IS-XX;
+                return True if self.IMPL-PARENTHESIZED-PRIMED-EXPRESSION($_);
             }
         }
         False
@@ -2901,7 +2842,7 @@ role RakuAST::WhateverApplicable
     method IMPL-OPERAND-PRIMES(int $index) { self.operator.IMPL-PRIMES }
 
     method IMPL-REPLACE-PRIME-OPERANDS() {
-        my int $index := 0;
+        my int $index;
         my @operands := self.IMPL-UNWRAP-LIST(self.operands);
         for @operands {
             my $operand := $_;
@@ -2921,9 +2862,7 @@ role RakuAST::WhateverApplicable
                 if $_.IMPL-PRIMED {
                     $_.IMPL-UNPRIME;
                 }
-                elsif nqp::istype($_, RakuAST::Circumfix::Parentheses)
-                      && (my $expression := $_.IMPL-SINGULAR-PRIMED-EXPRESSION)
-                {
+                elsif (my $expression := self.IMPL-PARENTHESIZED-PRIMED-EXPRESSION($_)) {
                     $expression.IMPL-UNPRIME;
                 }
             }
@@ -2932,11 +2871,10 @@ role RakuAST::WhateverApplicable
         }
         self.set-operands(@operands);
 
-        my $self-is-xx := self.IMPL-IS-XX;
         my int $primes-whatevercode := nqp::bitand_i(self.operator.IMPL-PRIMES, 2);
 
         # Re-number WhateverCode arguments
-        my $args := 0;
+        my int $args;
         my @args;
         my $visitor := -> $n {
             if nqp::istype($n, RakuAST::WhateverCode::Argument) {
@@ -2954,33 +2892,12 @@ role RakuAST::WhateverApplicable
                 # no WhateverCode, or when it primed on its own and so keeps its
                 # own parameters.
                 || (nqp::istype($n, RakuAST::WhateverApplicable)
-                      && (!$primes-whatevercode || $n.IMPL-PRIMED))
-                || ($self-is-xx && nqp::istype($n, RakuAST::ApplyInfix) && $n.IMPL-SHOULD-PRIME-DIRECTLY))
+                      && (!$primes-whatevercode || $n.IMPL-PRIMED)))
         };
         self.visit-dfs($visitor, :strict);
 
         # Return WhateverCode arguments as they will be used to construct the signature
         @args
-    }
-
-    method IMPL-SHOULD-PRIME-DIRECTLY() {
-        return False unless nqp::bitand_i(self.operator.IMPL-PRIMES, 1);
-        return False unless self.IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS;
-        for self.IMPL-UNWRAP-LIST(self.operands) {
-            return True if nqp::istype($_, RakuAST::Term::Whatever)
-                        || nqp::istype($_, RakuAST::Term::HyperWhatever);
-            return True if nqp::istype($_, RakuAST::WhateverCode::Argument);
-        }
-        False
-    }
-
-    method IMPL-OPERANDS-SHOULD-PRIME-DIRECTLY() {
-        my $should-so := False;
-        for self.IMPL-UNWRAP-LIST(self.operands) {
-            $should-so := $should-so || (nqp::istype($_, RakuAST::WhateverApplicable) && $_.IMPL-SHOULD-PRIME-DIRECTLY)
-                                     || (nqp::istype($_, RakuAST::Circumfix::Parentheses) && $_.IMPL-CONTAINS-SINGULAR-PRIMEABLE-EXPRESSION)
-        }
-        $should-so
     }
 
     # Override this to ask questions about the self when it comes to the should-prime question
@@ -3194,14 +3111,15 @@ class RakuAST::ApplyInfix
             }
         }
 
-        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.sunk
-            && !self.infix.short-circuit
-            && self.IMPL-SUNK-OPERATOR-PURE(self.infix);
+        self.IMPL-CHECK-SUNK($resolver);
 
         self.IMPL-RECORD-NATIVE-RETURN-TYPE($resolver);
 
         True
+    }
+
+    method IMPL-SUNK-OPERATOR-USELESS() {
+        !self.infix.short-circuit && self.IMPL-SUNK-OPERATOR-PURE(self.infix)
     }
 
     # Record the native return type when the operator settles on a single
@@ -3244,8 +3162,9 @@ class RakuAST::ApplyInfix
     }
 
     method return-type() {
-        my $type := $!native-return-type;
-        !nqp::isnull($type) && nqp::objprimspec($type) ?? $type !! Mu
+        nqp::objprimspec($!native-return-type)
+          ?? $!native-return-type
+          !! Mu
     }
 
     # An assignment to a native variable yields the value it stored, so as
@@ -3273,13 +3192,11 @@ class RakuAST::ApplyInfix
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $adverb := $!args.arg-at-pos(2) // RakuAST::ColonPairish;
         my $qast := $!infix.IMPL-INFIX-COMPILE($context, self.left, self.right, :$adverb);
-        my $type := $!native-return-type;
-        if !nqp::isnull($type) && nqp::objprimspec($type)
+        nqp::objprimspec($!native-return-type)
           && nqp::istype($qast, QAST::Op)
-          && ($qast.op eq 'call' || $qast.op eq 'callstatic') {
-            $qast := $!infix.IMPL-NATIVE-RETURN-WANT($qast, $type);
-        }
-        $qast
+          && ($qast.op eq 'call' || $qast.op eq 'callstatic')
+          ?? $!infix.IMPL-NATIVE-RETURN-WANT($qast, $!native-return-type)
+          !! $qast
     }
 
     method visit-children(Code $visitor) {
@@ -3458,11 +3375,13 @@ class RakuAST::ApplyListInfix
             }
         }
 
-        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.sunk
-            && !self.infix.short-circuit
-            && !self.IMPL-IS-LIST-LITERAL
-            && self.IMPL-SUNK-OPERATOR-PURE(self.infix);
+        self.IMPL-CHECK-SUNK($resolver);
+    }
+
+    method IMPL-SUNK-OPERATOR-USELESS() {
+        !self.infix.short-circuit
+          && !self.IMPL-IS-LIST-LITERAL
+          && self.IMPL-SUNK-OPERATOR-PURE(self.infix)
     }
 
     # The operands of a feed in flow order, with the source operand
@@ -3809,7 +3728,7 @@ class RakuAST::MetaPrefix::Hyper
     }
 
     method IMPL-HOP-INFIX() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
+        self.get-implicit-lookups[0].resolution.compile-time-value()(
             self.prefix.IMPL-HOP-PREFIX
         )
     }
@@ -3889,11 +3808,12 @@ class RakuAST::ApplyPrefix
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
-            if self.sunk && self.IMPL-SUNK-OPERATOR-PURE(self.prefix);
+        self.IMPL-CHECK-SUNK($resolver);
 
         self.IMPL-RECORD-NATIVE-RETURN-TYPE($resolver);
     }
+
+    method IMPL-SUNK-OPERATOR-USELESS() { self.IMPL-SUNK-OPERATOR-PURE(self.prefix) }
 
     # Record the native return type when the operator settles on a single
     # candidate, so a native-typed target coerces with the matching unbox
@@ -3902,38 +3822,46 @@ class RakuAST::ApplyPrefix
     # operand reads as the boxed value it is, which matches the boxed form
     # the emission passes.
     method IMPL-RECORD-NATIVE-RETURN-TYPE(RakuAST::Resolver $resolver) {
-        my $prefix := $!prefix;
-        return Nil unless nqp::istype($prefix, RakuAST::Prefix) && $prefix.is-resolved;
-        return Nil unless nqp::can($prefix.resolution, 'compile-time-value');
-        my $routine := $prefix.resolution.compile-time-value;
-        return Nil unless nqp::isconcrete($routine) && nqp::istype($routine, Code);
-
-        my $operand := $!operand;
-        return Nil unless nqp::isconcrete($operand);
-        my @info := self.IMPL-CT-ARG-TYPES($resolver, [$operand]);
-        return Nil unless nqp::elems(@info);
-
-        my $ret := $prefix.IMPL-NATIVE-RETURN-TYPE($routine, @info[0], @info[1]);
-        nqp::bindattr(self, RakuAST::ApplyPrefix, '$!native-return-type', $ret)
-            unless nqp::isnull($ret);
+        if nqp::isconcrete($!operand)
+          && nqp::istype((my $prefix := $!prefix), RakuAST::Prefix)
+          && $prefix.is-resolved
+          && nqp::can((my $resolved := $prefix.resolution),'compile-time-value')
+          && nqp::isconcrete(my $routine := $resolved.compile-time-value)
+          && nqp::istype($routine,Code)
+          && (my @info := self.IMPL-CT-ARG-TYPES($resolver, [$!operand])) {
+            nqp::bindattr(
+              self,RakuAST::ApplyPrefix,'$!native-return-type',
+              nqp::ifnull(
+                $prefix.IMPL-NATIVE-RETURN-TYPE(
+                  $routine, nqp::atpos(@info,0), nqp::atpos(@info,1)
+                ),
+                Mu
+              )
+            )
+        }
         Nil
     }
 
     method return-type() {
-        my $type := $!native-return-type;
-        !nqp::isnull($type) && nqp::objprimspec($type) ?? $type !! Mu
+        nqp::objprimspec($!native-return-type)
+          ?? $!native-return-type
+          !! Mu
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        return self.IMPL-NATIVE-INCDEC-QAST($context) if $!native-incdec;
-        my $qast := $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context));
-        my $type := $!native-return-type;
-        if !nqp::isnull($type) && nqp::objprimspec($type)
-          && nqp::istype($qast, QAST::Op)
-          && ($qast.op eq 'call' || $qast.op eq 'callstatic') {
-            $qast := $!prefix.IMPL-NATIVE-RETURN-WANT($qast, $type);
+        if $!native-incdec {
+            self.IMPL-NATIVE-INCDEC-QAST($context);
         }
-        $qast
+        else {
+            my $qast := $!prefix.IMPL-PREFIX-QAST(
+              $context, $!operand.IMPL-TO-QAST($context)
+            );
+            nqp::objprimspec($!native-return-type)
+              && nqp::istype($qast, QAST::Op)
+              && ($qast.op eq 'call' || $qast.op eq 'callstatic')
+              ?? $!prefix.IMPL-NATIVE-RETURN-WANT($qast, $!native-return-type)
+              !! $qast
+        }
     }
 
     # A native int/num ++ or -- the optimize pass marked: emit the raw op on
@@ -4720,7 +4648,7 @@ class RakuAST::MetaPostfix::Hyper
     method IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS { $!postfix.IMPL-CUSTOM-SHOULD-PRIME-CONDITIONS }
 
     method IMPL-HOP-INFIX() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].resolution.compile-time-value()(
+        self.get-implicit-lookups[0].resolution.compile-time-value()(
             self.postfix.IMPL-HOP-POSTFIX
         )
     }
@@ -4808,6 +4736,7 @@ class RakuAST::ApplyPostfix
         #      ArgList  ⎡...⎤
         self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!operand, $resolver, $context)
           if nqp::istype($!postfix, RakuAST::Call::Term);
+        self.IMPL-CHECK-SUNK($resolver);
     }
 
     method IMPL-SET-NATIVE-INCDEC(int $primspec) {
@@ -4861,12 +4790,29 @@ class RakuAST::ApplyPostfix
     method IMPL-CAN-INTERPRET() {
         self.IMPL-PRIMED-CAN-INTERPRET
           || $!operand.IMPL-CAN-INTERPRET && $!postfix.IMPL-CAN-INTERPRET
+            && !self.IMPL-CALLS-CALLFRAME
+    }
+
+    # Whether this calls callframe or CallFrame.new, which find a frame by
+    # counting from the one that calls them, so the call must compile rather
+    # than run in the interpreter.
+    method IMPL-CALLS-CALLFRAME() {
+        nqp::istype($!operand, RakuAST::Lookup)
+          && (nqp::istype($!postfix, RakuAST::Call::Term)
+                && $!operand.IMPL-RESOLVES-TO-SETTING('&callframe')
+              || nqp::istype($!postfix, RakuAST::Call::Method)
+                && $!postfix.name.canonicalize eq 'new'
+                && $!operand.IMPL-RESOLVES-TO-SETTING('CallFrame'))
+          ?? True
+          !! False
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.IMPL-PRIMED-CAN-INTERPRET
-          ?? self.IMPL-PRIMED-INTERPRET($ctx)
-          !! $!postfix.IMPL-INTERPRET($ctx, -> { $!operand.IMPL-INTERPRET($ctx) })
+        return self.IMPL-PRIMED-INTERPRET($ctx) if self.IMPL-PRIMED-CAN-INTERPRET;
+        my $result := $!postfix.IMPL-INTERPRET($ctx, -> { $!operand.IMPL-INTERPRET($ctx) });
+        nqp::istype($!postfix, RakuAST::Call::Methodish) && $!postfix.IMPL-HLLIZE-RESULT
+            ?? nqp::hllizefor($result, 'Raku')
+            !! $result
     }
 }
 
@@ -5044,7 +4990,7 @@ class RakuAST::Statement::For
         # source directly rather than delegating to its map method.
         if $mode eq 'serial' && $after-mode eq 'sink'
             && self.IMPL-CAN-USE-STATEMENT-FORM($!body) {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my @lookups := self.get-implicit-lookups;
             my $Nil := @lookups[1].resolution.compile-time-value;
             my int $flatten := $!body.IMPL-FLATTEN-APPROVED;
             my $flatten-body := $flatten ?? $!body !! Mu;

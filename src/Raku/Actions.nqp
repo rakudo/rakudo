@@ -1159,8 +1159,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     # Helper method to connect any leading declarator doc that was
-    # collected already to the given declarand.
-    method set-declarand($/, $it) {
+    # collected already to the given declarand, after any doc it has. A doc
+    # after the expression a declaration ends with is left for the next one.
+    method set-declarand($/, $it, :$expression) {
 
         # Ignoring this one
         if $*IGNORE-NEXT-DECLARAND {
@@ -1184,11 +1185,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.adopt-declarand-docs($/, $it);
 
             if @*LEADING-DOC -> @leading {
-                my @texts;
-                nqp::push(@texts, ~$_) for @leading;
-                $it.set-leading(@texts);
-                self.WIDEN-DOC-ORIGIN($it, $_) for @leading;
-                @*LEADING-DOC := [];
+                my $origin := nqp::isconcrete($expression)
+                  ?? $expression.origin
+                  !! Mu;
+                my int $end := nqp::isconcrete($origin) ?? $origin.to !! -1;
+                my @after;
+                for @leading {
+                    if $end < 0 || $_.from < $end {
+                        $it.add-leading(~$_);
+                        self.WIDEN-DOC-ORIGIN($it.WHY, $_);
+                    }
+                    else {
+                        nqp::push(@after, $_);
+                    }
+                }
+                @*LEADING-DOC := @after;
             }
             $*IGNORE-NEXT-DECLARAND := nqp::istype($it,Nodify('Package'));
         }
@@ -1242,7 +1253,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         while $first < $n {
             my $doc := @inside[$first++];
             $it.add-trailing(~$doc);
-            self.WIDEN-DOC-ORIGIN($it, $doc);
+            self.WIDEN-DOC-ORIGIN($it.WHY, $doc);
             ++$*FROM-SEEN{$doc.from};
             nqp::deletekey($worries, $doc.from);
             $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($doc.from);
@@ -1267,16 +1278,71 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         1
     }
 
-    # Helper methof to steal the information of the current declarand
-    # into the given declarand, and make *that* the declarand.  Needed
-    # for cases like subsets with a where, where the where block is
-    # seen *before* the subset, causing leading declarator doc to be
-    # attached to the where block, rather than to the subset.
-    method steal-declarand($/, $it, $from) {
-        $it.set-WHY($from.cut-WHY);
-        $*DECLARAND          := $it;
-        $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
-        self.adopt-declarand-docs($/, $it);
+    # A subset or an enum is made after the expression it holds, so it
+    # claims the leading doc collected before it and before the expression,
+    # or a block or other declarand in the expression would take the doc.
+    method claim-leading-doc($/) {
+        if @*LEADING-DOC -> @leading {
+            my $WHY := $*CLAIMED-DOC;
+            $WHY := $*CLAIMED-DOC := Nodify('Doc::Declarator').new
+              unless nqp::isconcrete($WHY);
+            for @leading {
+                $WHY.add-leading(~$_);
+                self.WIDEN-DOC-ORIGIN($WHY, $_);
+            }
+            @*LEADING-DOC := [];
+        }
+    }
+
+    # Makes a subset or an enum the declarand once the expression it holds
+    # is parsed, with the doc it claimed. The expression ends it, so a
+    # trailing doc is accepted on the line where the expression ends.
+    method set-claimed-declarand($/, $it, $expression) {
+        $it.set-WHY($*CLAIMED-DOC) if nqp::isconcrete($*CLAIMED-DOC);
+        my $origin := nqp::isconcrete($expression) ?? $expression.origin !! Mu;
+        if nqp::isconcrete($origin) {
+            my int $end := $origin.to;
+            self.take-back-doc($/, $it, $expression, $end);
+            self.set-declarand($/, $it, :$expression);
+            my int $line := +$*ORIGIN-SOURCE.original-line($end - 1);
+            $*LAST-TRAILING-LINE := $line if $line > $*LAST-TRAILING-LINE;
+        }
+        else {
+            self.set-declarand($/, $it);
+        }
+    }
+
+    # A subset takes the doc of a block that is its where clause. A declarand
+    # in the expression of a subset or an enum that takes a trailing doc
+    # after the expression gives it back, as the doc is meant for them.
+    method take-back-doc($/, $it, $expression, int $end) {
+        my $from := $expression;
+        unless nqp::istype($from, Nodify('Block')) {
+            $from := $*DECLARAND;
+            return Nil
+              unless nqp::istype($from, Nodify('Doc::DeclaratorTarget'));
+            my $origin := $from.origin;
+            return Nil
+              unless nqp::isconcrete($origin) && $origin.from >= $/.from;
+            my $WHY := $from.WHY;
+            return Nil
+              unless $WHY && nqp::isconcrete($WHY.origin)
+              && $WHY.origin.from >= $end;
+        }
+        my $WHY := $from.WHY;
+        return Nil unless $WHY;
+
+        $from.cut-WHY;
+        if $it.WHY -> $into {
+            $into.add-leading($_)  for $WHY.IMPL-UNWRAP-LIST($WHY.leading);
+            $into.add-trailing($_) for $WHY.IMPL-UNWRAP-LIST($WHY.trailing);
+            my $span := $WHY.origin;
+            self.WIDEN-NODE-ORIGIN($into, $span.from, $span.to)
+              if nqp::isconcrete($span);
+        }
+        else {
+            $it.set-WHY($WHY);
+        }
     }
 
     method you_are_here($/) {
@@ -2995,7 +3061,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                      ).new($key);
         }
         elsif $<fakesignature> -> $signature {
-            make $signature.ast;
+            self.signature-literal($/, $signature);
         }
         else {
             make $<coloncircumfix>.ast;
@@ -3004,6 +3070,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method Nil() {
         Nodify('Term::Name').new(Nodify('Name').from-identifier('Nil'))
+    }
+
+    # A signature literal and the block of its parameters cover its
+    # delimiters, as the signature is parsed inside them
+    method signature-literal($/, $fakesignature) {
+        my $ast := $fakesignature.ast;
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to);
+        self.WIDEN-NODE-ORIGIN($ast.block, $/.from, $/.to);
+        make $ast;
+    }
+
+    method sigterm($/) {
+        self.signature-literal($/, $<fakesignature>);
     }
 
     method coloncircumfix($/) {
@@ -3544,7 +3623,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # seen within its own initializer; here we just complete it.
             $ast := $*TERM-DECL;
             $ast.set-initializer($<term-init>.ast);
-            self.set-declarand($/, $ast);
+            self.set-declarand($/, $ast, :expression($<term-init>.ast));
         }
         else {
             nqp::die('Unimplemented declarator');
@@ -3838,7 +3917,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         my $decl := Nodify('VarDeclaration::Constant').new(|%args);
-        self.set-declarand($/, $decl);
+        self.set-declarand($/, $decl, :expression(%args<initializer>));
         $/.typed-panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);
         self.attach: $/, $decl;
@@ -3858,7 +3937,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :scope($*SCOPE),
             :of($base-type)
         );
-        self.set-declarand($/, $decl);
+        self.set-claimed-declarand($/, $decl, $<term>.ast);
         for $<trait> {
             $decl.add-trait($_.ast)
         }
@@ -3873,18 +3952,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :scope($*SCOPE),
             :of($*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type'))
         );
-
-        # a where block is parsed before the subset, so leading doc meant
-        # for the subset lands on the block and is taken back from it. Mu.WHY
-        # of any other node parameterizes a role on it, which precomp serializes
-        $where && nqp::istype($where, Nodify('Doc::DeclaratorTarget')) && $where.WHY
-          ?? self.steal-declarand($/, $decl, $where)
-          !! self.set-declarand($/, $decl);
-        # the block ends the declaration, so a trailing doc is accepted
-        # on the line where it closes
-        $*LAST-TRAILING-LINE :=
-          +$*ORIGIN-SOURCE.original-line($where.origin.to - 1)
-          if nqp::istype($where, Nodify('Block'));
+        # without a where clause the subset ends with its last trait or name
+        my $last := $<EXPR>
+          ?? $where
+          !! $<trait>
+            ?? nqp::atpos($<trait>, nqp::elems($<trait>) - 1).ast
+            !! $<longname>.ast;
+        self.set-claimed-declarand($/, $decl, $last);
 
         for $<trait> {
             $decl.add-trait($_.ast);
@@ -4684,7 +4758,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         if $<param-var><name><sigterm> || $<param-var><sigterm> -> $sig {
-            my $signature := $sig<fakesignature>.ast;
+            my $signature := $sig.ast;
             if $parameter.type && $signature.signature.set-returns($parameter.type) {
                 $/.typed-panic('X::Redeclaration',
                     what    => 'return type for',
@@ -4977,10 +5051,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         nqp::push(@*LEADING-DOC,$/) unless $*FROM-SEEN{$/.from}++;
     }
 
-    # Widens the origin of a declarand's doc over a doc comment, given the
+    # Widens the origin of a declarator doc over a doc comment, given the
     # match of the comment's text, which follows its #| or #= and openers.
-    method WIDEN-DOC-ORIGIN($it, $doc) {
-        my $WHY := $it.WHY;
+    method WIDEN-DOC-ORIGIN($WHY, $doc) {
         if nqp::isconcrete($WHY) {
             my str $orig := $doc.orig;
             my int $from := $doc.from - 2;
@@ -5029,7 +5102,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         sub accept($/) {
             $*DECLARAND.add-trailing(~$/);
             $*DECLARAND.IMPL-UPDATE-WHY;
-            $actions.WIDEN-DOC-ORIGIN($*DECLARAND, $/);
+            $actions.WIDEN-DOC-ORIGIN($*DECLARAND.WHY, $/);
             ++$*FROM-SEEN{$from};
             nqp::deletekey($*DECLARAND-WORRIES,$from);
         }

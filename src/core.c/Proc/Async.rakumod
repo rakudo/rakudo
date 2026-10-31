@@ -338,20 +338,15 @@ my class Proc::Async {
         $promise
     }
 
-    method !win-quote-CommandLineToArgvW(*@args) {
-        my @quoted_args;
-        for @args -> $arg {
-            if !$arg.contains(' ') && !$arg.contains('"') && !$arg.contains('\t') && !$arg.contains('\n') && !$arg.contains('\v') {
-                @quoted_args.push: $arg;
-            }
-            else {
-                my $quoted_arg = $arg;
-                $quoted_arg ~~ s:g/ ( \\* ) \" /$0$0\\\"/;
-                $quoted_arg ~~ s/ ( \\+ ) $ /$0$0/;
-                @quoted_args.push: '"' ~ $quoted_arg ~ '"';
-            }
-        }
-        @quoted_args.join: ' '
+    method !win-quote-CommandLineToArgvW(@args) {
+        @args.map({
+            $_ && !.contains(/ \s | '"' /)
+              ?? $_              # no quoting needed
+              !! '"'             # needs quoting
+                   ~ .subst(/ ( \\* ) \" /, { qq/$0$0\\"/ }, :g)
+                     .subst(/ ( \\+ ) $ /,  { "$0$0" } )
+                   ~ '"'
+        }).join(' ');
     }
 
     method start(Proc::Async:D:

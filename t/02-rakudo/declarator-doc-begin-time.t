@@ -1,7 +1,7 @@
 use Test;
 use nqp;
 
-plan 28;
+plan 33;
 
 # Declarator docs are set as the .WHY of what they document from BEGIN time
 # on. A trait of the declaration sees them, as does any BEGIN time code
@@ -186,6 +186,29 @@ S.WHY.Str ~ '|' ~ (S.^refinement.WHY // 'none')
 CODE
     'the doc of a subset moves off its where routine';
 
+is EVAL(q:to/CODE/), 'lead',
+#| lead
+my subset S of Int where ({ $_ > 0 });
+BEGIN S.WHY.Str
+CODE
+    'BEGIN time code after a subset with a parenthesized where block sees its leading doc';
+
+is EVAL(q:to/CODE/), 'lead',
+#| lead
+my enum E (do { my sub f() { <a b> }; f() });
+BEGIN E.WHY.Str
+CODE
+    'BEGIN time code after an enum whose term declares a sub sees its leading doc';
+
+todo 'the legacy frontend drops the doc'
+  unless nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast';
+is EVAL(q:to/CODE/), 'sig',
+my subset S of Signature where :($p) #= sig
+;
+S.WHY.Str
+CODE
+    'a subset takes a trailing doc after its where clause from a parameter in it';
+
 # The legacy frontend documents a type or a regex after applying its traits.
 if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     is EVAL(q:to/CODE/), 'lead',
@@ -196,6 +219,24 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
     $seen
     CODE
         'a trait of a class sees its leading doc';
+
+    is EVAL(q:to/CODE/), 'lead',
+    my $seen;
+    multi trait_mod:<is>(Mu:U $type, :$peek!) { $seen = ($type.HOW.WHY // '').Str }
+    #| lead
+    my subset S of Int is peek where ({ $_ > 0 });
+    $seen
+    CODE
+        'a trait of a subset with a parenthesized where block sees its leading doc';
+
+    is EVAL(q:to/CODE/), 'lead',
+    my $seen;
+    multi trait_mod:<is>(Mu:U $type, :$peek!) { $seen = ($type.HOW.WHY // '').Str }
+    #| lead
+    my enum E is peek (do { my sub f() { <a b> }; f() });
+    $seen
+    CODE
+        'a trait of an enum whose term declares a sub sees its leading doc';
 
     is EVAL(q:to/CODE/), 'lead',
     my $seen;
@@ -272,7 +313,7 @@ if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
         'the doc a trait of a class holds is the doc of the class';
 }
 else {
-    skip 'the legacy frontend documents a type or a regex after applying its traits', 9;
+    skip 'the legacy frontend documents a type or a regex after applying its traits', 11;
 }
 
 # vim: expandtab shiftwidth=4

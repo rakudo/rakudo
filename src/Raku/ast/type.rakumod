@@ -652,7 +652,7 @@ class RakuAST::Type::Parameterized
         }
 
         my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
-        my $fail := 0;
+        my int $fail;
         for $args -> $arg {
             if nqp::istype($arg, RakuAST::Lookup) && !$arg.is-resolved && $arg.needs-resolution {
                 $resolver.add-node-unresolved-after-check-time($arg);
@@ -1020,7 +1020,7 @@ class RakuAST::Type::Enum
         nqp::bindattr(self, RakuAST::Type::Enum, '$!how', $how[0]) if $how;
         nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
 
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         my $Pair    := $lookups[0].resolution.compile-time-value;
         my $Stringy := $lookups[1].resolution.compile-time-value;
         my $Numeric := $lookups[2].resolution.compile-time-value;
@@ -1101,12 +1101,10 @@ class RakuAST::Type::Enum
                             }
                             nqp::push(@values, [$_.key, $_.value]);
                         }
-                        elsif nqp::istype($_, Str) {
-                            # A bare key without a declared base type makes
-                            # this an Int enum counting from 0, like the
-                            # legacy frontend. With a declared base type the
-                            # keys still take the incrementing values, and
-                            # conformance is the composition's problem.
+                        else {
+                            # Any other item is a key, made a Str below, that
+                            # takes the next value. Without a declared base
+                            # type this is an Int enum, like the legacy frontend.
                             unless $has-base-type {
                                 $base-type := Int;
                                 $has-base-type := True;

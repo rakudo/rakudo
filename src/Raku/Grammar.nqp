@@ -1679,6 +1679,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Helper token to mark the end of the traits of a package
     token leave-package-header { <?> }
 
+    # Helper token to claim the leading doc of a declaration that is made
+    # after the expression it holds
+    token claim-leading-doc() { <?> }
+
     # Helper token to make the actions handle the end of a scope
     token enter-block-body()  { <?> }
     token leave-block-body()  { <?> }
@@ -1783,9 +1787,34 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?before 'my'? '$'\w+\s+'(' >
           <.typed-panic: 'X::Syntax::P5'>
         ]?
-        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
-          <.obs: 'C-style "for (;;)" loop', '"loop (;;)"'>
-        ]?
+        <?MARKER('for-source')>
+    }
+
+    # A for source that starts with a parenthesized list of three expressions
+    # separated by semicolons, any of them empty, is a C-style loop. Checking
+    # it in a lookahead would parse it twice and declare everything in it twice.
+    method vet-c-style-for(int $from, $semilist) {
+        my int $semicolons;
+        my int $part-statements;
+        for $semilist<statement> {
+            if $_.to > $_.from {
+                my $ast := $_.ast;
+                return self unless ++$part-statements == 1
+                  && nqp::istype($ast, self.Nodify('Statement::Expression'))
+                  && !nqp::isconcrete($ast.condition-modifier)
+                  && !nqp::isconcrete($ast.loop-modifier)
+                  && !nqp::elems($ast.IMPL-UNWRAP-LIST($ast.labels));
+            }
+            if nqp::eqat(self.orig, ';', $_.to) {
+                ++$semicolons;
+                $part-statements := 0;
+            }
+        }
+        if $semicolons == 2 && !$*LANG.pragma('p5isms') {
+            self.'!clear_highwater'();
+            self.new-cursor-at($from).obs('C-style "for (;;)" loop', '"loop (;;)"');
+        }
+        self
     }
 
     # Handle "for"
@@ -3177,8 +3206,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto token circumfix {*}
     token circumfix:sym<( )> {
         :my $*ADVERB-AS-INFIX := 0;
+        :my $for-source := self.MARKED('for-source') ?? 1 !! 0;
         :dba('parenthesized expression')
         '(' ~ ')' <semilist>
+        { $/.vet-c-style-for(self.pos, $<semilist>) if $for-source }
     }
 
     token circumfix:sym<[ ]> {
@@ -4514,6 +4545,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.typer-enum>
         <.kok>
         :my $*IN-DECL := 'enum';
+        :my $*CLAIMED-DOC;
+        <.claim-leading-doc>
         [
           | <longname>
           | <variable>
@@ -4525,6 +4558,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait>*
 
         [ <?[<(«]>
+          <.claim-leading-doc>
           <term>
           <.ws>
             || <.panic: 'An enum must supply an expression using <>, «», or ()'>
@@ -4534,12 +4568,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule type-declarator:sym<subset> {
         <.typer-subset><.kok>
         :my $*IN-DECL := 'subset';
+        :my $*CLAIMED-DOC;
+        <.claim-leading-doc>
         [
           [
             [ <longname> ]
             { $*IN-DECL := '' }
             <trait>*
-            [ <.constraint-where> <EXPR('e=')> ]?
+            [ <?before <.constraint-where>> <.claim-leading-doc>
+              <.constraint-where> <EXPR('e=')> ]?
           ] || <.malformed: 'subset'>
         ]
     }

@@ -26,11 +26,6 @@ class RakuAST::Signature
           self.IMPL-UNWRAP-LIST($parameters)
         ) if nqp::isconcrete($parameters);
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-named-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-meta-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!invocant-type-check', 1);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-array', ?$is-array);
         $obj
@@ -57,7 +52,7 @@ class RakuAST::Signature
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $!implicit-invocant.to-begin-time($resolver, $context) if $!implicit-invocant;
-        my $has-slurpy-pos := 0;
+        my int $has-slurpy-pos;
         if $!parameters {
             for $!parameters {
                 $_.to-begin-time($resolver, $context);
@@ -79,7 +74,7 @@ class RakuAST::Signature
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my %seen;
         if $!parameters {
-            my int $prev-kind := 0;
+            my int $prev-kind;
             for $!parameters {
                 my int $kind := $_.named ?? 1 !!
                             $_.is-optional ?? 2 !!
@@ -195,7 +190,7 @@ class RakuAST::Signature
                 }
                 elsif $!is-on-named-method {
                     if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) && $!method-package.can-have-methods {
-                        my $Class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+                        my $Class := self.get-implicit-lookups[0];
                         if $!is-on-role-method && $Class.is-resolved {
                             $type := RakuAST::Type::Simple.from-identifier('$?CLASS');
                             $type.set-resolution($Class.resolution);
@@ -456,8 +451,8 @@ class RakuAST::Signature
     }
 
     method IMPL-PARAM-POSITION(RakuAST::Parameter $param) {
-        my $i := 0;
-        my $found := 0;
+        my int $i;
+        my int $found;
         if $!implicit-invocant {
             if $!implicit-invocant =:= $param {
                 $found := 1;
@@ -1233,7 +1228,7 @@ class RakuAST::Parameter
         my str $sigil := self.IMPL-SIGIL;
         if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
             my $sigil-type :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
+              self.get-implicit-lookups[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
             # Match legacy: store the bare element type and treat `:D`/`:U`
             # as a separate definedness flag. Role parameterisation is
             # invariant, so the wrapped form would reject `my Str @x` defaults.
@@ -1580,7 +1575,7 @@ class RakuAST::Parameter
         nqp::die('RakuAST::Parameter::IMPL-TO-QAST reached for a sub-signature parameter. The owning routine must have custom-args True so dispatch routes through Signature::IMPL-QAST-BINDINGS.')
             if $!sub-signature;
         # Flag constants we need to pay attention to.
-        my @iscont-ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
+        my constant OPS := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
 
         # Get the parameter meta-object, since traits can change some things.
         my $param-obj := self.meta-object;
@@ -1651,7 +1646,7 @@ class RakuAST::Parameter
         if !$is-generic && $spec {
             if $is-rw {
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                    :op(@iscont-ops[$spec]),
+                    :op(nqp::atpos(OPS,$spec)),
                     $temp-qast-var
                 )));
             }
@@ -1714,7 +1709,7 @@ class RakuAST::Parameter
             }
             elsif !($param-type =:= Mu) {
                 unless $ptype-archetypes.generic {
-                    my $implicit-lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+                    my $implicit-lookups := self.get-implicit-lookups;
                     if $param-type =:= $implicit-lookups[0].resolution.compile-time-value {
                         my $PositionalBindFailover := $implicit-lookups[1].resolution.compile-time-value;
                         $param-qast.push(QAST::Op.new(
@@ -1917,7 +1912,7 @@ class RakuAST::Parameter
             else {
                 my $sigil := $!target.sigil;
                 if (my $is-array := $sigil eq '@') || $sigil eq '%' {
-                    my $role := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
+                    my $role := self.get-implicit-lookups[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
                     my $base-type := $is-array ?? Array !! Hash;
                     my $value := nqp::istype($nominal-type, $role) && nqp::can($nominal-type.HOW, 'role_arguments')
                         ?? $base-type.HOW.parameterize($base-type, |$nominal-type.HOW.role_arguments($nominal-type))
@@ -2017,7 +2012,7 @@ class RakuAST::Parameter
 
                 my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
                 unless $wrap {
-                    my $Iterable := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].resolution.compile-time-value;
+                    my $Iterable := self.get-implicit-lookups[2].resolution.compile-time-value;
                     if $is-coercive {
                         my $coercion_type := $param-type.HOW.wrappee($param-type, :coercion);
                         my $coerce_nom := $coercion_type.HOW.nominal_target($coercion_type);
@@ -2520,7 +2515,7 @@ class RakuAST::ParameterTarget::Var
     }
 
     method IMPL-SIGIL-TYPE() {
-       self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+       self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
     method has-compile-time-value() { False }

@@ -104,10 +104,6 @@ class RakuAST::StatementPrefix::Race
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "race" }
-
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # Avoid worries about sink context
-    }
 }
 
 # The `hyper` statement prefix.
@@ -115,10 +111,6 @@ class RakuAST::StatementPrefix::Hyper
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "hyper" }
-
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # Avoid worries about sink context
-    }
 }
 
 # The `lazy` statement prefix.
@@ -133,15 +125,15 @@ class RakuAST::StatementPrefix::Eager
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "eager" }
-
     method allowed-on-for-statement() { True }
 }
 
-# The `eager` statement prefix.
+# The `sink` statement prefix.
 class RakuAST::StatementPrefix::Sink
   is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "sink" }
+    method allowed-on-for-statement() { True }
 }
 
 # Done by statement prefixes that insist on thunking expressions into a code
@@ -339,7 +331,7 @@ class RakuAST::StatementPrefix::Try
 
         # Otherwise, need to wrap it in exception handler logic.
         else {
-            my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $lookups := self.get-implicit-lookups;
             my $nil     := $lookups[0].IMPL-TO-QAST($context);
             my $bang    := $lookups[1].IMPL-TO-QAST($context);
             my $Failure := $lookups[2].IMPL-TO-QAST($context);
@@ -535,7 +527,7 @@ class RakuAST::StatementPrefix::Start
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         my $qast := QAST::Op.new(
             :op('callmethod'), :name('start'),
             $lookups[0].IMPL-TO-QAST($context),
@@ -692,7 +684,7 @@ class RakuAST::StatementPrefix::Phaser::Sinky
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context);
+        self.get-implicit-lookups[0].IMPL-TO-QAST($context);
     }
 }
 

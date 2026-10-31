@@ -698,8 +698,6 @@ class RakuAST::Call::Name
             $call.push(QAST::WVal.new(:value($ret.maybe-compile-time-value)));
         }
 
-        my $qast := self.IMPL-SIMPLIFY-REF-ARGS($call);
-
         # A call the check-time analysis settled on one candidate carries
         # that candidate's native return type. This takes precedence over
         # the callstatic return copy: the copy's Want offers the raw return
@@ -708,14 +706,12 @@ class RakuAST::Call::Name
         # Want widens across native kinds. A dispatcher leaves its return to
         # its candidates, which the copy declines to guess at, so a settled
         # multi is covered here as well.
-        my $native-return := $!native-return-type;
-        if !nqp::isnull($native-return) && nqp::objprimspec($native-return) {
-            $qast := self.IMPL-NATIVE-RETURN-WANT($qast, $native-return);
-        }
-        elsif $!callstatic {
-            $qast := self.IMPL-COPY-RETURNS($qast);
-        }
-        $qast
+        my $qast := self.IMPL-SIMPLIFY-REF-ARGS($call);
+        nqp::objprimspec($!native-return-type)
+          ?? self.IMPL-NATIVE-RETURN-WANT($qast, $!native-return-type)
+          !! $!callstatic
+            ?? self.IMPL-COPY-RETURNS($qast)
+            !! $qast
     }
 
     # Copy the resolved callee's declared return type onto the call node, so
@@ -765,10 +761,13 @@ class RakuAST::Call::Name
         $call
     }
 
+    # A call to callframe compiles, since the frame calling it would otherwise
+    # be the interpreter's own.
     method IMPL-CAN-INTERPRET() {
         (
             $!name.is-identifier && $!name.canonicalize ne 'EVAL' && self.is-resolved
                 && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+                && !self.IMPL-RESOLVES-TO-SETTING('&callframe')
         )
         && self.args.IMPL-CAN-INTERPRET
     }
@@ -1012,7 +1011,8 @@ class RakuAST::Call::Method
                 # not resolve at compile time (for example a type only loaded
                 # by the consuming program) becomes a runtime lookup rather
                 # than a compile-time failure.
-                my $qualified-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+                my $qualified-qast :=
+                  self.get-implicit-lookups[0].IMPL-EXPR-QAST($context);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
 
@@ -1082,7 +1082,8 @@ class RakuAST::Call::Method
                        QAST::SVal.new( :value($name) );
             }
             else {
-                my $qualified-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+                my $qualified-qast :=
+                  self.get-implicit-lookups[0].IMPL-EXPR-QAST($context);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
 
@@ -1116,7 +1117,22 @@ class RakuAST::Call::Method
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, Mu $invocant-compiler) {
         my $invocant := $invocant-compiler();
         my $name := $!name.canonicalize;
-        if $name eq 'WHAT' {
+        my $dispatcher := self.dispatcher;
+        if $dispatcher {
+            my @args := self.args.IMPL-INTERPRET($ctx);
+            my @pos := @args[0];
+            my %named := @args[1];
+            if $dispatcher eq 'dispatch:<.?>' {
+                my $obj := nqp::decont($invocant);
+                nqp::isconcrete(nqp::decont(nqp::how_nd($obj).find_method($obj, $name)))
+                  ?? $invocant."$name"(|@pos, |%named)
+                  !! Nil
+            }
+            else {
+                $invocant."$dispatcher"($name, |@pos, |%named)
+            }
+        }
+        elsif $name eq 'WHAT' {
             $invocant.WHAT
         }
         elsif $name eq 'HOW' {
@@ -1125,10 +1141,18 @@ class RakuAST::Call::Method
         elsif $name eq 'WHO' {
             $invocant.WHO
         }
+        elsif $name eq 'WHERE' {
+            nqp::box_i(nqp::where($invocant), Int)
+        }
         elsif $name eq 'VAR' {
-            my $var := nqp::create(Scalar);
-            nqp::bindattr_s($var, Scalar, '$!value', $invocant);
-            $var
+            if nqp::isconcrete_nd($invocant) && nqp::iscont($invocant) {
+                my $var := nqp::create(ScalarVAR);
+                nqp::bindattr($var, Scalar, '$!value', $invocant);
+                $var
+            }
+            else {
+                $invocant
+            }
         }
         elsif $name eq 'REPR' {
             nqp::box_s(nqp::reprname($invocant), Str)
@@ -1386,7 +1410,7 @@ class RakuAST::Call::PrivateMethod
                 :op('dispatch'),
                 QAST::SVal.new(:value('raku-meth-private')),
                 $!package.HOW.archetypes.parametric
-                  ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context)
+                  ?? self.get-implicit-lookups[0].IMPL-EXPR-QAST($context)
                   !! QAST::WVal.new(:value($!package)),
                 QAST::SVal.new(:value($name)),
                 $invocant-qast,
@@ -1416,7 +1440,7 @@ class RakuAST::Call::PrivateMethod
             $package-qast := self.resolution.IMPL-TO-QAST($context);
         }
         elsif $!package.HOW.archetypes.parametric {
-            $package-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+            $package-qast := self.get-implicit-lookups[0].IMPL-EXPR-QAST($context);
         }
         else {
             $context.ensure-sc($!package);
@@ -1715,7 +1739,7 @@ class RakuAST::Stub
         # comes up empty. Retry now that the whole compilation unit has
         # been parsed, so the emitted code carries the resolved type
         # rather than a run time package walk from GLOBAL.
-        my $lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+        my $lookup := self.get-implicit-lookups[0];
         $lookup.PERFORM-CHECK($resolver, $context) unless $lookup.is-resolved;
         True
     }
@@ -1727,7 +1751,7 @@ class RakuAST::Stub
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
           :op<callmethod>, :name<new>,
-          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+          self.get-implicit-lookups[0].IMPL-TO-QAST($context)
         );
         if $!args {
             my @args := self.IMPL-UNWRAP-LIST($!args.args);

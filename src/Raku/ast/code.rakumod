@@ -800,7 +800,7 @@ role RakuAST::Code
 
         # A flattened body block lands in the frame as a statement list
         # rather than a block of its own, and a run may skip it.
-        my int $flattened := 0;
+        my int $flattened;
 
         # A native return Want holds a call and a clone of it that repeats
         # across its alternatives, and both share the argument subtrees. A
@@ -1049,7 +1049,7 @@ role RakuAST::Code
     # context. These survive serialization and thus point at what
     # has to be fixed up.
     method IMPL-BEGIN-TIME-LEXICAL-FIXUP(RakuAST::IMPL::QASTContext $context, Mu $block, RakuAST::LexicalFixup $lexical-fixup) {
-        my $has_nested_blocks := 0;
+        my int $has_nested_blocks;
         my $todo := nqp::list($block);
         while $todo {
             my $stmts := nqp::shift($todo);
@@ -1204,6 +1204,15 @@ class RakuAST::ExpressionThunk
     }
 
     method IMPL-USER-TAKES-VALUE() { $!user-takes-value }
+
+    # Set when the thunk evaluates to its expression's `.not`, as the
+    # condition of an until loop does.
+    has int $!negated;
+
+    method IMPL-SET-NEGATED() {
+        nqp::bindattr_i(self, RakuAST::ExpressionThunk, '$!negated', 1);
+        Nil
+    }
 
     # Whether the thunk declares the implicit state of a node of its
     # expression. A state guard, and a `once` outside a curry, which is code of
@@ -1467,7 +1476,7 @@ class RakuAST::ExpressionThunk
         if $!next {
             $!next.IMPL-THUNK-CODE-QAST($context, $block[nqp::elems($block) - 1], $expression);
             my $value := $!next.IMPL-THUNK-VALUE-QAST($context);
-            $block.push($value) if $value;
+            $block.push(self.IMPL-NEGATE-IF-SET($value)) if $value;
         }
 
         # Otherwise, we evaluate to the expression.
@@ -1475,10 +1484,21 @@ class RakuAST::ExpressionThunk
             my $qast := self.IMPL-THUNK-TWEAK-EXPRESSION($context,
                 $expression.IMPL-EXPR-QAST($context));
             $qast := QAST::Op.new( :op('p6sink'), $qast ) if $expression.needs-sink-call && $expression.sunk;
-            $block.push($qast);
+            $qast := self.IMPL-NEGATE-IF-SET($qast);
+            # A thunk compiled on its own at BEGIN time is located at the start
+            # of its expression, so its frame reports the file and line of it.
+            $block.push($!compiled-alone
+              ?? $expression.IMPL-SET-NODE(QAST::Stmts.new($qast), :start)
+              !! $qast);
         }
 
         $block
+    }
+
+    method IMPL-NEGATE-IF-SET(Mu $qast) {
+        $!negated
+          ?? QAST::Op.new( :op('callmethod'), :name('not'), $qast )
+          !! $qast
     }
 
     # Produces a Code object that corresponds to the thunk.
@@ -2012,7 +2032,7 @@ role RakuAST::ScopePhaser {
             if nqp::isconcrete($block) && nqp::ishash($phasers) && nqp::existskey($phasers, 'ENTER') {
                 my $enter-phasers := nqp::atkey($phasers, 'ENTER');
                 if nqp::isconcrete($enter-phasers) {
-                    my int $i := 0;
+                    my int $i;
                     my int $n := nqp::elems($enter-phasers);
                     while $i < $n {
                         my $p := nqp::atpos($enter-phasers, $i);
@@ -2326,7 +2346,7 @@ class RakuAST::Block
         # of the nominal type check: a value that does
         # PositionalBindFailover binds as its cached List, which is
         # how a Seq binds to an '@' parameter.
-        my $lookups := $param.IMPL-UNWRAP-LIST($param.get-implicit-lookups);
+        my $lookups := $param.get-implicit-lookups;
         if $nominal =:= $lookups[0].resolution.compile-time-value {
             my $failover := $lookups[1].resolution.compile-time-value;
             $context.ensure-sc($failover);
@@ -2471,7 +2491,6 @@ class RakuAST::Block
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
-        nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
         nqp::bindattr_i($obj, RakuAST::Block, '$!may-have-signature', $may-have-signature ?? 1 !! 0);
         $obj.set-implicit-topic($implicit-topic // True, :required($required-topic), :$exception);
         $obj.set-WHY($WHY);
@@ -2576,11 +2595,11 @@ class RakuAST::Block
     }
 
     method IMPL-FATALIZE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        self.get-implicit-lookups[1].resolution.compile-time-value;
     }
 
     method IMPL-FATALIZE-RESOLVED() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].is-resolved
+        self.get-implicit-lookups[1].is-resolved
     }
 
     method IMPL-IS-IN-METHOD() {
@@ -2767,7 +2786,7 @@ class RakuAST::Block
           !! LATER-OPERANDS{$infix.IMPL-SHORT-CIRCUIT-KIND} // '';
         return False unless $later;
         my int $last := nqp::elems(@operands) - 1;
-        my int $i := 0;
+        my int $i;
         for @operands {
             my int $decides := $later eq 'tested'
               || $i < $last && !($i && $later eq 'called' && $infix.IMPL-CALLS-OPERAND($_));
@@ -2924,7 +2943,6 @@ class RakuAST::PointyBlock
           $signature // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Block, '$!body',
           $body // RakuAST::Blockoid.new);
-        nqp::bindattr_i($obj, RakuAST::Block, '$!is-in-method', 0);
         $obj.set-WHY($WHY);
         $obj
     }
@@ -2965,7 +2983,7 @@ class RakuAST::PointyBlock
     }
 
     method IMPL-FATALIZE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        self.get-implicit-lookups[1].resolution.compile-time-value;
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
@@ -2973,8 +2991,7 @@ class RakuAST::PointyBlock
         my $signature := self.signature || self.placeholder-signature;
 
         if $signature.meta-object.has_returns {
-            my $Callable :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+            my $Callable := self.get-implicit-lookups[0].compile-time-value;
             # Parameterizations intern by argument identity, so a constant
             # return value would create a distinct Callable parameterization
             # and mixin type per literal. Use its type instead.
@@ -3143,7 +3160,7 @@ class RakuAST::Routine
     }
 
     method IMPL-FATALIZE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        self.get-implicit-lookups[1].resolution.compile-time-value;
     }
 
     method PRODUCE-STUBBED-META-OBJECT(:$resolver, :$context) {
@@ -3157,8 +3174,7 @@ class RakuAST::Routine
         nqp::bindattr($signature.meta-object, Signature, '$!code', $routine);
 
         if $signature.meta-object.has_returns {
-            my $Callable :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+            my $Callable := self.get-implicit-lookups[0].compile-time-value;
             # Parameterizations intern by argument identity, so a constant
             # return value would create a distinct Callable parameterization
             # and mixin type per literal. Use its type instead.
@@ -3522,7 +3538,7 @@ class RakuAST::Routine
         # exceeds it keeps the call, and the amount of code any single
         # call site can splice stays small.
         my $info;
-        my int $walked := 0;
+        my int $walked;
         my @budget := [64];
         try {
             $info := self.IMPL-INLINE-INFO-NODE($block.list[2], %placeholders, @budget);
@@ -3597,7 +3613,7 @@ class RakuAST::Routine
         elsif nqp::istype($node, QAST::Want) {
             my $replacement := $node.shallow_clone;
             my int $n := nqp::elems($node.list);
-            my int $i := 0;
+            my int $i;
             while $i < $n {
                 nqp::bindpos($replacement.list, $i,
                     self.IMPL-INLINE-INFO-NODE($node.list[$i], %placeholders, @budget));
@@ -3692,7 +3708,7 @@ class RakuAST::Routine
         # A native return coerces the value the routine ends with, unless
         # that value is already native, or is a Nil or a Failure, which
         # every return type lets through.
-        my int $native-return := nqp::objprimspec(nqp::ifnull($signature.returns, Mu));
+        my int $native-return := nqp::objprimspec($signature.returns);
         if $native-return && !$routine.rw {
             my str $deref := self.IMPL-RETURN-NATIVE-DEREF($body);
             if $deref {
@@ -5616,7 +5632,7 @@ class RakuAST::QuotedRegex
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $closure := self.IMPL-CLOSURE-QAST($context, :regex);
         if $!match-immediately {
-            my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $lookups := self.get-implicit-lookups;
             my $topic   := $lookups[0].IMPL-TO-QAST($context);
             my $slash   := $lookups[1].IMPL-TO-QAST($context);
 
@@ -5662,7 +5678,7 @@ class RakuAST::QuotedRegex
     }
 
     method IMPL-TWEAK-REGEX-CLONE(RakuAST::IMPL::QASTContext $context, Mu $clone) {
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         if $context.lang-version lt 'd' {
             my $topic := $lookups[2].IMPL-TO-QAST($context);
             $topic.named('topic');
@@ -5777,7 +5793,7 @@ class RakuAST::Substitution
         # Coerce the topic into a Str before we start (we need to do that for
         # applying the match results anyway, so may as well avoid a double
         # coercion in the call to .match also).
-        my $lookups    := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups    := self.get-implicit-lookups;
         my $topic      := $lookups[0];
         my $slash      := $lookups[1];
         my $Positional := $lookups[2].compile-time-value;
@@ -5985,7 +6001,7 @@ class RakuAST::Transliteration
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $Pair := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+        my $Pair := self.get-implicit-lookups[0].resolution.compile-time-value;
         my $trans := QAST::Op.new:
             QAST::Var.new(:name<$_>, :scope<lexical>),
             :op<callmethod>, :name<trans>,
@@ -6000,7 +6016,7 @@ class RakuAST::Transliteration
             $trans.push($arg);
         }
         if $!destructive {
-            my $StrDistance := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+            my $StrDistance := self.get-implicit-lookups[1].resolution.compile-time-value;
             my $original := QAST::Node.unique: 'original_value_to_trans';
 
             QAST::Stmt.new(
@@ -6109,7 +6125,7 @@ class RakuAST::PrimeThunk
     }
 
     method IMPL-THUNK-OBJECT-TYPE() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value
+        self.get-implicit-lookups[0].compile-time-value
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -6135,7 +6151,7 @@ class RakuAST::PrimeThunk
     }
 
     method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {
-        nqp::bindattr($code, self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value, '$!original-expression', $!original-expression)
+        nqp::bindattr($code, self.get-implicit-lookups[0].compile-time-value, '$!original-expression', $!original-expression)
     }
 }
 
@@ -6273,7 +6289,7 @@ class FixupList {
         nqp::bindattr(self, FixupList, '$!resolved', $resolved);
         nqp::scwbenable();
         my $do-list := nqp::list();
-        my int $i := 0;
+        my int $i;
         my int $n := nqp::elems($!list);
         while $i < $n {
             nqp::bindpos($do-list, $i, nqp::getattr(nqp::atpos($!list, $i), Code, '$!do'));

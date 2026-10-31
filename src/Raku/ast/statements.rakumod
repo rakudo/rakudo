@@ -37,7 +37,7 @@ class RakuAST::Label
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         my $label-type :=
-          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+          self.get-implicit-lookups[0].resolution.compile-time-value;
         my int $line;
         my str $prematch  := '';
         my str $postmatch := '';
@@ -284,7 +284,7 @@ role RakuAST::ForLoopImplementation {
     method IMPL-TO-QAST-RANGE(RakuAST::IMPL::QASTContext $context,
             Mu $source, Mu $body-qast, Mu $Nil, :$flatten-body) {
         my $expr := self.IMPL-UNWRAP-RANGE-EXPRESSION($source);
-        my int $reverse := 0;
+        my int $reverse;
         if nqp::istype($expr, RakuAST::ApplyPostfix)
             && nqp::istype($expr.postfix, RakuAST::Call::Method)
             && $expr.postfix.name.canonicalize eq 'reverse'
@@ -295,9 +295,9 @@ role RakuAST::ForLoopImplementation {
 
         my $start-node;
         my $end-node;
-        my int $start-extra := 0;
-        my int $end-extra   := 0;
-        my int $sequence    := 0;
+        my int $start-extra;
+        my int $end-extra;
+        my int $sequence;
         if nqp::istype($expr, RakuAST::ApplyInfix)
             && nqp::istype($expr.infix, RakuAST::Infix) {
             my str $op := $expr.infix.operator;
@@ -620,7 +620,6 @@ class RakuAST::StatementList
     method new(*@statements, Bool :$trace) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StatementList, '$!statements',@statements);
-        nqp::bindattr_i($obj, RakuAST::StatementList, '$!is-sunk', 0);
 
         # make sure any code statements are known in the internal code-only list
         my @code;
@@ -709,8 +708,8 @@ class RakuAST::StatementList
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $catch-seen := 0;
-        my $control-seen := 0;
+        my int $catch-seen;
+        my int $control-seen;
         for $!code-statements {
             if nqp::istype($_, RakuAST::Statement::Catch) {
                 if $catch-seen {
@@ -740,7 +739,7 @@ class RakuAST::StatementList
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
         my @statements := self.IMPL-NON-EMPTY-CODE-STATEMENTS;
-        my $Nil := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
+        my $Nil := self.get-implicit-lookups[1];
         for @statements {
             my $qast := $_.IMPL-TO-QAST($context);
             my $stmt-orig := $_.origin;
@@ -751,8 +750,7 @@ class RakuAST::StatementList
                 );
             }
             if $_.trace && nqp::isconcrete($stmt-orig) && !$*CU.precompilation-mode {
-                my $Blob :=
-                  self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+                my $Blob := self.get-implicit-lookups[0].compile-time-value;
                 $context.ensure-sc($Blob);
                 my $line := $stmt-orig.source.original-line($stmt-orig.from);
                 my $file := $stmt-orig.source.original-file;
@@ -851,7 +849,7 @@ class RakuAST::StatementList
         $!is-sunk
           || !@statements
           || @statements[nqp::elems(@statements) - 1].IMPL-DISCARD-RESULT
-            ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].compile-time-value
+            ?? self.get-implicit-lookups[1].compile-time-value
             !! $result
     }
 }
@@ -900,7 +898,7 @@ class RakuAST::SemiList
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
         }
         else {
-            my $comma := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+            my $comma := self.get-implicit-lookups[0];
             my $name := $comma.is-resolved ?? $comma.resolution.lexical-name !! '&infix:<,>';
             my $list := QAST::Op.new(:op('call'), :$name);
             for @statements {
@@ -950,8 +948,7 @@ class RakuAST::StatementSequence
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
         }
         elsif $n == 0 {
-            my $name :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
+            my $name := self.get-implicit-lookups[0].resolution.lexical-name;
             QAST::Op.new(:op('call'), :$name);
         }
         else {
@@ -978,7 +975,7 @@ class RakuAST::StatementSequence
         }
         elsif $n == 0 {
             my $empty-list :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+              self.get-implicit-lookups[0].resolution.compile-time-value;
             $empty-list()
         }
         else {
@@ -1000,7 +997,7 @@ role RakuAST::ProducesNil
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+        self.get-implicit-lookups[0].IMPL-TO-QAST($context)
     }
 }
 
@@ -1170,17 +1167,12 @@ class RakuAST::Statement::Expression
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        # If there is a condition modifier, and the expression is a block
-        # with either an explicit signature or a placeholder signature,
-        # we should compile it immediate in order that the arity is set
-        # right and things like `{ say $^x } if $y` work. Blocks with no
-        # signature aren't handled this way, since the $_ should not be
-        # counted.
+        # A condition modifier wraps the statement here unless it went into
+        # the thunk a loop modifier puts around the expression.
+        my int $wrap-condition := $!condition-modifier && !$!condition-thunk ?? 1 !! 0;
         my $qast;
-        if $!condition-modifier && nqp::istype($!expression, RakuAST::Block) &&
-                ($!expression.signature || $!expression.placeholder-signature) {
-            $qast := $!condition-modifier.IMPL-WRAP-QAST($context,
-                $!expression.IMPL-TO-QAST($context, :immediate));
+        if $wrap-condition && $!condition-modifier.IMPL-IMMEDIATE-BLOCK($!expression) {
+            $qast := $!expression.IMPL-TO-QAST($context, :immediate);
         }
         elsif self.sunk && !$!condition-modifier && !$!loop-modifier
                 && nqp::istype($!expression, RakuAST::Routine)
@@ -1223,16 +1215,21 @@ class RakuAST::Statement::Expression
                     $qast := QAST::Op.new( :op('p6sink'), $qast );
                 }
             }
-            $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast)
-                if $!condition-modifier && (!$!loop-modifier || !$!loop-modifier.handles-condition);
         }
+        $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $wrap-condition;
         if $!loop-modifier {
             my $sink := self.IMPL-DISCARD-RESULT;
             $qast := $!loop-modifier.IMPL-WRAP-QAST($context, $qast, :$sink,
-                :block(nqp::istype(self.expression, RakuAST::Block)),
+                :block(self.IMPL-BLOCK-IS-LOOP-BODY),
                 :expression($!expression));
         }
         $qast
+    }
+
+    # A loop modifier takes a block as its body, unless a condition modifier
+    # has to be tested before the block runs.
+    method IMPL-BLOCK-IS-LOOP-BODY() {
+        nqp::istype($!expression, RakuAST::Block) && !$!condition-modifier ?? True !! False
     }
 
     # StatementModifier::WhileUntil needs us to thunk loop-condition, condition-modifier and expression
@@ -1242,17 +1239,13 @@ class RakuAST::Statement::Expression
     # we thunk just in case and if it turns out we're sunk, we have to undo that thunking again.
     method IMPL-UNTHUNK() {
         if $!loop-modifier && nqp::istype($!loop-modifier, RakuAST::StatementModifier::WhileUntil) && nqp::defined($!loop-thunk) {
-            $!loop-modifier.expression.IMPL-REMOVE-THUNK($!loop-thunk)
-                unless $!loop-modifier.IMPL-UNNEGATE-IF-NEEDED;
+            $!loop-modifier.expression.IMPL-REMOVE-THUNK($!loop-thunk);
             nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-thunk', RakuAST::ExpressionThunk);
-            if $!condition-modifier {
-                nqp::die('cond thunk not defined?') unless nqp::defined($!condition-thunk);
+            if nqp::defined($!condition-thunk) {
                 $!expression.IMPL-REMOVE-THUNK($!condition-thunk);
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-thunk', RakuAST::ExpressionThunk);
             }
-
-            unless nqp::istype($!expression, RakuAST::Block) {
-                nqp::die('expr thunk not defined') unless nqp::defined($!expression-thunk);
+            if nqp::defined($!expression-thunk) {
                 $!expression.IMPL-REMOVE-THUNK($!expression-thunk);
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression-thunk', RakuAST::ExpressionThunk);
             }
@@ -1283,41 +1276,50 @@ class RakuAST::Statement::Expression
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # A bare block under a condition or given modifier runs where it
+        # stands, as a block statement does.
+        $!expression.mark-block-statement
+            if nqp::istype($!expression, RakuAST::Block)
+            && ($!condition-modifier
+                || nqp::istype($!loop-modifier, RakuAST::StatementModifier::Given));
+
         if $!loop-modifier {
             my $thunk := $!loop-modifier.expression-thunk;
-            if $thunk && !nqp::istype($!expression, RakuAST::Block) {
-                # only need to thunk the condition if we also have a loop thunk
-                if $!condition-modifier {
-                    my $thunk := $!condition-modifier.expression-thunk;
-                    $!expression.wrap-with-thunk($thunk);
-                    $thunk.ensure-begin-performed($resolver, $context);
-                }
-                $!expression.wrap-with-thunk($thunk);
-                $thunk.ensure-begin-performed($resolver, $context);
-            }
+            self.IMPL-THUNK-LOOP-BODY($resolver, $context, $thunk)
+                if $thunk && !self.IMPL-BLOCK-IS-LOOP-BODY;
 
             # See IMPL-UNTHUNK for important information
             if (nqp::istype($!loop-modifier, RakuAST::StatementModifier::WhileUntil)) {
-                $!loop-modifier.IMPL-NEGATE-IF-NEEDED($resolver, $context);
                 my $loop-thunk := RakuAST::ExpressionThunk.new;
+                $loop-thunk.IMPL-SET-NEGATED if $!loop-modifier.negate;
                 $!loop-modifier.expression.wrap-with-thunk($loop-thunk);
                 $loop-thunk.ensure-begin-performed($resolver, $context);
                 nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-thunk', $loop-thunk);
 
-                unless nqp::istype($!expression, RakuAST::Block) {
-                    if $!condition-modifier {
-                        my $thunk := $!condition-modifier.expression-thunk;
-                        $!expression.wrap-with-thunk($thunk);
-                        $thunk.ensure-begin-performed($resolver, $context);
-                        nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-thunk', $thunk);
-                    }
-                    my $thunk := RakuAST::ExpressionThunk.new;
-                    $!expression.wrap-with-thunk($thunk);
-                    $thunk.ensure-begin-performed($resolver, $context);
-                    nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression-thunk', $thunk);
+                unless self.IMPL-BLOCK-IS-LOOP-BODY {
+                    my $expression-thunk := RakuAST::ExpressionThunk.new;
+                    self.IMPL-THUNK-LOOP-BODY($resolver, $context, $expression-thunk);
+                    nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression-thunk', $expression-thunk);
                 }
             }
         }
+    }
+
+    # Wraps the expression in the thunk a loop runs on each iteration, with
+    # any condition modifier inside it so the condition is tested there.
+    method IMPL-THUNK-LOOP-BODY(
+        RakuAST::Resolver $resolver,
+        RakuAST::IMPL::QASTContext $context,
+        RakuAST::ExpressionThunk $thunk
+    ) {
+        if $!condition-modifier {
+            my $condition-thunk := $!condition-modifier.expression-thunk;
+            $!expression.wrap-with-thunk($condition-thunk);
+            $condition-thunk.ensure-begin-performed($resolver, $context);
+            nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-thunk', $condition-thunk);
+        }
+        $!expression.wrap-with-thunk($thunk);
+        $thunk.ensure-begin-performed($resolver, $context);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1461,8 +1463,7 @@ class RakuAST::Statement::IfWith
             $cur-end := self.IMPL-BRANCH-QAST($context, $!else);
         }
         else {
-            $cur-end :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context);
+            $cur-end := self.get-implicit-lookups[0].IMPL-TO-QAST($context);
         }
 
         # Add the branches.
@@ -1617,7 +1618,7 @@ class RakuAST::Statement::Unless
             :op('unless'),
             $cond-qast,
             $body-qast,
-            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+            self.get-implicit-lookups[0].IMPL-TO-QAST($context)
         )
     }
 
@@ -1670,7 +1671,7 @@ class RakuAST::Statement::Without
             :op('without'),
             $!condition.IMPL-TO-QAST($context),
             $!body.IMPL-TO-QAST($context, :immediate),
-            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+            self.get-implicit-lookups[0].IMPL-TO-QAST($context)
         )
     }
 
@@ -1796,13 +1797,7 @@ class RakuAST::Statement::Loop
     # we're sunk, we have to undo that thunking again.
     method IMPL-UNTHUNK() {
         if nqp::defined($!condition-thunk) {
-            if self.negate && !self.IMPL-BODY-TAKES-CONDITION {
-                # No need to unthunk as we're throwing away the thunked ApplyPostfix
-                nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', $!condition.operand);
-            }
-            else {
-                $!condition.IMPL-REMOVE-THUNK($!condition-thunk)
-            }
+            $!condition.IMPL-REMOVE-THUNK($!condition-thunk);
             nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition-thunk', RakuAST::ExpressionThunk);
         }
         if nqp::defined($!increment-thunk) {
@@ -1822,18 +1817,10 @@ class RakuAST::Statement::Loop
         nqp::bindattr_i(self, RakuAST::Statement::Loop, '$!unconditional', $unconditional);
         unless $unconditional {
             if ($!condition) {
+                my $thunk := RakuAST::ExpressionThunk.new;
                 # A body taking the condition gets its value, so from-loop
                 # negates it for an until loop instead.
-                if self.negate && !self.IMPL-BODY-TAKES-CONDITION {
-                    nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition', RakuAST::ApplyPostfix.new(
-                        :postfix(
-                            RakuAST::Call::Method.new(:name(RakuAST::Name.from-identifier('not')))
-                        ),
-                        :operand($!condition),
-                    ));
-                    $!condition.ensure-begin-performed($resolver, $context);
-                }
-                my $thunk := RakuAST::ExpressionThunk.new;
+                $thunk.IMPL-SET-NEGATED if self.negate && !self.IMPL-BODY-TAKES-CONDITION;
                 $!condition.wrap-with-thunk($thunk);
                 $thunk.ensure-begin-performed($resolver, $context);
                 nqp::bindattr(self, RakuAST::Statement::Loop, '$!condition-thunk', $thunk);
@@ -1982,14 +1969,14 @@ class RakuAST::Statement::Loop
             }
             unless self.sunk {
                 $wrapper.push(
-                  self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+                  self.get-implicit-lookups[0].IMPL-TO-QAST($context)
                 );
             }
 
             $wrapper
         }
         elsif ($!condition || $!increment) {
-            my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
+            my $Seq := self.get-implicit-lookups[1].IMPL-TO-QAST($context);
             if $!unconditional {
                 my $loop-qast := QAST::Op.new(:op('callmethod'), :name('from-loop'),
                     $Seq,
@@ -2045,7 +2032,7 @@ class RakuAST::Statement::Loop
             }
         }
         else {
-            my $Seq := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].IMPL-TO-QAST($context);
+            my $Seq := self.get-implicit-lookups[1].IMPL-TO-QAST($context);
             # In theory we could use the from-loop candidate without condition
             # for plain loop but that would create a lazy loop and for unknown
             # reason the old implementation didn't go that route.
@@ -2295,7 +2282,7 @@ class RakuAST::Statement::When
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $topic-qast :=
-            self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context);
+            self.get-implicit-lookups[0].IMPL-TO-QAST($context);
         my $sm-qast := $!typematch
             ?? self.IMPL-WHEN-TYPEMATCH-QAST($context, $topic-qast,
                 $!typematch-type, $!typematch-junction)
@@ -2976,7 +2963,7 @@ class RakuAST::Statement::Import
         my $arglist := self.IMPL-BEGIN-TIME-ARGLIST($!argument, $resolver, $context);
 
         my $module := self.resolution.compile-time-value;
-        my $CompUnitHandle := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].compile-time-value;
+        my $CompUnitHandle := self.get-implicit-lookups[0].compile-time-value;
         my $handle := $CompUnitHandle.from-unit($module.WHO);
         self.IMPL-IMPORT($resolver, $handle, $arglist, :module($!module-name.canonicalize));
         self.IMPL-IMPORT-EXPORTHOW($resolver, $handle);
@@ -3088,7 +3075,7 @@ class RakuAST::Statement::Require
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $lookups  := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups  := self.get-implicit-lookups;
         my $depspec  := $lookups[0].compile-time-value;
         my $registry := $lookups[1].compile-time-value;
 
@@ -3109,14 +3096,14 @@ class RakuAST::Statement::Require
             # constraint into the dependency specification. Without this the
             # adverbs stay in the short-name and the module is looked up under a
             # name like "Foo:ver<...>", which never resolves.
-            my @adverb-keys   := ['ver', 'auth', 'api', 'from'];
-            my @matcher-names := ['version-matcher', 'auth-matcher', 'api-matcher', 'from'];
+            my constant ADVERBS  := ['ver', 'auth', 'api', 'from'];
+            my constant MATCHERS := ['version-matcher', 'auth-matcher', 'api-matcher', 'from'];
             my int $i := 0;
             while $i < 4 {
-                my $cp := $!module-name.first-colonpair(@adverb-keys[$i]);
+                my $cp := $!module-name.first-colonpair(nqp::atpos(ADVERBS,$i));
                 if $cp {
                     my $matcher := $cp.IMPL-VALUE-QAST($context);
-                    $matcher.named(@matcher-names[$i]);
+                    $matcher.named(nqp::atpos(MATCHERS,$i));
                     $spec.push($matcher);
                 }
                 $i := $i + 1;

@@ -476,33 +476,31 @@ my class Array { # declared in BOOTSTRAP
     method FLATTENABLE_LIST() is implementation-detail {
         nqp::if(
           nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-          nqp::stmts(
+          nqp::stmts(                                    # Need to reify
             nqp::getattr(self,List,'$!todo').reify-all,
             nqp::getattr(self,List,'$!reified')
           ),
-          nqp::if(
+          nqp::if(                                       # null or reified
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
-            nqp::stmts(
-              nqp::if(
-                (my int $elems = nqp::elems($reified)),
-                nqp::stmts(
-                  (my int $i = -1),
-                  nqp::while(
-                    nqp::islt_i(++$i,$elems),
-                    nqp::if(
-                      nqp::isnull(nqp::atpos($reified,$i)),
-                      nqp::bindpos(
-                        $reified,
-                        $i,
-                        nqp::p6scalarfromcertaindesc($!descriptor)
-                      )
-                    )
+            nqp::stmts(                                  # check for holes
+              (my int $elems = nqp::elems($reified)),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i(++$i,$elems),
+                nqp::ifnull(
+                  nqp::atpos($reified,$i),
+                  nqp::bindpos(
+                    $reified,
+                    $i,
+                    nqp::p6scalarfromcertaindesc($!descriptor)
                   )
                 )
               ),
-              nqp::getattr(self,List,'$!reified')
+              $reified
             ),
-            nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+            nqp::bindattr(self,List,'$!reified',         # absent, create
+              nqp::create(IterationBuffer)
+            )
           )
         )
     }

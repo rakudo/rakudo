@@ -925,18 +925,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
     }
     method FLATTENABLE_LIST() is implementation-detail {
-        nqp::if(
-          nqp::isconcrete($!todo),
-          nqp::stmts(
-            $!todo.reify-all,
-            $!reified
-          ),
-          nqp::if(
-            nqp::isconcrete($!reified),
-            $!reified,
-            nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
-          )
-        )
+        $!todo.reify-all if nqp::isconcrete($!todo);
+
+        nqp::isconcrete($!reified)
+          ?? $!reified
+          !! nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
     }
     method FLATTENABLE_HASH() is implementation-detail { nqp::hash() }
 

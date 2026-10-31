@@ -760,10 +760,6 @@ my class Rakudo::Sorting is implementation-detail {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of Schwartz sorting Int array logic -------------------
 
-    my sub numcmp(num $a, num $b --> int) {
-        nqp::cmp_n($a,$b) || nqp::iseq_s($a,"NaN") - nqp::iseq_s($b,"NaN")
-    }
-
 #- start of generated part of Schwartz sorting Num array logic -----------------
 #- Generated on 2026-10-24T11:03:50+02:00 by tools/build/makeSORTING-BY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE

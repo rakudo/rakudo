@@ -264,8 +264,7 @@ my class IO::Path is Cool does IO {
 
     method resolve (IO::Path:D: :$completely) {
         my str $volume;
-        my str @resolved;
-        my str $sep = Rakudo::Internals.IS-WIN ?? '\\' !! '/';
+        my str $sep = $!SPEC.dir-sep;
 
         # In this bit, we work with bytes, converting $sep (and assuming it's
         # 1-char long) in the path to nul bytes and then splitting the path
@@ -311,8 +310,10 @@ my class IO::Path is Cool does IO {
         }
 
         # Prefix CWD if not absolute
-        my $parts := safe-split($!path);
-        @resolved  = safe-split($!CWD) if nqp::atpos($parts,0);
+        my $parts       := safe-split($!path);
+        my str @resolved = nqp::atpos($parts,0)
+          ?? safe-split($!CWD)    # relative, so prefix with cwd
+          !! nqp::shift($parts);  # absolute, make absolute + no check on 1st
 
         # Process all parts
         nqp::while(

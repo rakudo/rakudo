@@ -255,107 +255,129 @@ my class IO::Path is Cool does IO {
     method cleanup (IO::Path:D:) {
         nqp::clone(self).cloned-with-path($!SPEC.canonpath($!path))
     }
+
+    my int $max-depth  = 256;
+    my int $ord-slash  = "/".ord;
+    my int $ord-bslash = "\\".ord;
+    my str $curdir = ".";
+    my str $updir  = "..";
+
     method resolve (IO::Path:D: :$completely) {
-        # XXXX: Not portable yet; assumes POSIX semantics
-        my int $max-depth = 256;
-        my str $sep       = $!SPEC.dir-sep;
-        my str $cur       = $!SPEC.curdir;
-        my str $up        = $!SPEC.updir;
-        my str $empty     = '';
-        my Mu  $res-list := nqp::list_s();
+        my str $volume;
+        my str @resolved;
+        my str $sep = Rakudo::Internals.IS-WIN ?? '\\' !! '/';
 
-        my $vdb          := $!SPEC.split: self.absolute;
-        my str $volume    = $vdb.volume;
-        my str $resolved  = $volume;
-        my $path         := $!SPEC.catpath: '', $vdb.dirname, $vdb.basename;
-
-#?if jvm
-        # Apparently JVM doesn't know how to decode to utf8-c8 yet
-        # so it's still afflicted by the bug that, say, "/\[x308]" in the path
-        # doesn't get recognized as a path separator
-        my $parts := nqp::split($sep, nqp::unbox_s($path));
-#?endif
-#?if !jvm
         # In this bit, we work with bytes, converting $sep (and assuming it's
         # 1-char long) in the path to nul bytes and then splitting the path
         # on nul bytes. This way, even if we get some weird paths like
         # "/\x[308]", we still split on the /, leaving the lone combiner as
-        # part of the path part.
-        nqp::stmts(
-          (my $p := nqp::encode(
-            nqp::unbox_s($path), 'utf8-c8', nqp::create(buf8.^pun))),
-          (my int $ord-sep = nqp::ord($sep)),
-          (my int $els = nqp::elems($p)),
-          (my int $i = -1),
-          nqp::while(
-            nqp::isne_i($els,++$i),
-            nqp::if(
-              nqp::iseq_i(nqp::atpos_u($p, $i), $ord-sep),
-              nqp::atposref_u($p, $i) = 0)),
-          my $parts := nqp::split("\0", nqp::decode($p, 'utf8-c8')));
+        # part of the path part.  If the result has a drive letter, store
+        # that in $volume.
+        my sub safe-split(str $path) {
+#?if jvm
+            my $parts := nqp::split($sep, nqp::unbox_s($path));
+#?endif
+#?if !jvm
+            my $ords := nqp::encode($path,'utf8-c8',nqp::create(buf8.^pun));
+            my int $n = nqp::elems($ords);
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(++$i,$n),
+              nqp::if(
+                nqp::iseq_i((my int $ord = nqp::atpos_u($ords,$i)),$ord-slash)
+                  || nqp::iseq_i($ord,$ord-bslash),
+                nqp::bindpos_i($ords,$i,0)
+              )
+            );
+            my $parts := nqp::split("\0", nqp::decode($ords,'utf8-c8'));
 #?endif
 
-        while $parts {
-            fail "Resolved path too deep!"
-                if $max-depth < nqp::elems($res-list) + nqp::elems($parts);
+            # Take care of any drive letter indication, make that the
+            # volume.
+            if nqp::atpos($parts,0) -> $first {
+                if $first.contains(/^ <[A..Z]> ":" /) {
+                    $volume = $first.substr(0,2);
 
-            # Grab next unprocessed part, check for '', '.', '..'
-            my str $part = nqp::shift($parts);
-
-            next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
-            if nqp::iseq_s($part, $up) {
-                next unless $res-list;
-                nqp::pop_s($res-list);
-                $resolved = $res-list
-                  ?? nqp::concat(nqp::concat($volume, $sep), nqp::join($sep, $res-list))
-                  !! $empty;
-                next;
-            }
-
-            # Normal part, set as next path to test
-            my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
-
-            # Path part doesn't exist...
-            if nqp::not_i(nqp::stat($next, nqp::const::STAT_EXISTS)) {
-                # fail() if we were asked for complete resolution and we still
-                # have further parts to resolve. If it's the last part,
-                # don't fail; it can be a yet-to-be-created file or dir
-                $completely
-                  && nqp::elems($parts)
-                  && X::IO::Resolve.new(:path(self)).fail;
-
-                # ...or handle rest in non-resolving mode if not
-                $resolved = $next;
-                while $parts {
-                    $part = nqp::shift($parts);
-                    next if nqp::iseq_s($part, $empty) || nqp::iseq_s($part, $cur);
-                    $resolved = nqp::concat($resolved, nqp::concat($sep, $part));
+                    # make sure start from root
+                    nqp::unshift($parts,"")
+                      if nqp::bindpos($parts,0,$first.substr(2));
                 }
             }
-            # Symlink; read it and act on absolute or relative link
-            elsif nqp::fileislink($next) {
-                my str $link        = nqp::readlink($next);
-                my Mu  $link-parts := nqp::split($sep, $link);
-                next unless $link-parts;
-
-                # Symlink to absolute path
-                if nqp::iseq_s($link-parts[0], $empty) {
-                    $resolved  = nqp::shift($link-parts);
-                    $res-list := nqp::list_s();
-                }
-
-                nqp::unshift($parts, nqp::pop($link-parts))
-                    while $link-parts;
-            }
-            # Just a plain old path part, so append it and go on
             else {
-                $resolved = $next;
-                nqp::push_s($res-list, $part);
+                $volume = "";
             }
+
+            $parts
         }
-        $resolved = $volume ~ $sep if $resolved eq $volume;
+
+        # Prefix CWD if not absolute
+        my $parts := safe-split($!path);
+        @resolved  = safe-split($!CWD) if nqp::atpos($parts,0);
+
+        # Process all parts
+        nqp::while(
+          nqp::elems($parts),
+          nqp::if(                                   # something to check
+            nqp::isge_i(
+              nqp::add_i(nqp::elems($parts),nqp::elems(@resolved)),
+              $max-depth
+            ),
+            fail("Resolved path too deep!"),         # too deep
+            nqp::unless(                             # not too deep
+              nqp::iseq_s((my str $part = nqp::shift($parts)),"")
+                || nqp::iseq_s($part,$curdir),
+              nqp::if(                               # not ignorable
+                nqp::iseq_s($part,$updir),
+                nqp::if(                             # going up
+                  nqp::elems(@resolved),
+                  nqp::pop_s(@resolved)              # can pop
+                ),
+                nqp::stmts(                          # need to check
+                  nqp::push_s(@resolved,$part),
+                  nqp::if(
+                    nqp::stat(
+                      (my str $next = nqp::join($sep,@resolved)),
+                      nqp::const::STAT_EXISTS
+                    ),
+                    nqp::if(                         # exists
+                      nqp::fileislink($next),
+                      nqp::stmts(                    # is a link
+                        (my $link := safe-split(nqp::readlink($next))),
+                        nqp::if(
+                          nqp::atpos($link,0),
+                          nqp::stmts(                # relative link
+                            nqp::pop_s(@resolved),
+                            nqp::splice($parts,$link,0,0)
+                          ),
+                          (@resolved = $link)        # absolute link
+                        )
+                      )
+                    ),
+                    nqp::stmts(                      # does not exist
+                      nqp::if(
+                        $completely && nqp::elems($parts),
+                        X::IO::Resolve.new(:path(self)).fail # must quit
+                      ),
+                      nqp::while(                    # rest without check
+                        nqp::elems($parts),
+                        nqp::unless(                 # still something to check
+                          nqp::iseq_s(($part = nqp::shift($parts)),"")
+                            || nqp::iseq_s($part,$curdir),
+                          nqp::push_s(@resolved,$part)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+
         nqp::p6bindattrinvres(
-          nqp::create(self)!SET-SELF($resolved, $!SPEC, $volume ~ $sep),
+          nqp::create(self)!SET-SELF(
+            nqp::join($sep,@resolved), $!SPEC, nqp::concat($volume,$sep)
+          ),
           IO::Path,'$!is-absolute',True
         )
     }

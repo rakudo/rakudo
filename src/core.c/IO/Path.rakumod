@@ -367,12 +367,14 @@ my class IO::Path is Cool does IO {
         if $io.d {
             with $io.resolve(:completely) -> $root {
                 with self.resolve(:completely) -> $target {
-                    my $sep  := $!SPEC.dir-sep;
-                    my $base := $root.absolute;
+                    my $sep     := $!SPEC.dir-sep;
+                    my $outside := $root.absolute;
+                    my $inside  := $target.absolute;
 
                     return $target
-                      if $target.absolute.starts-with(
-                        $base.ends-with($sep) ?? $base !! $base ~ $sep
+                      if $inside ne $outside
+                      && $inside.starts-with(
+                        $outside.ends-with($sep) ?? $outside !! $outside ~ $sep
                       );
                 }
             }

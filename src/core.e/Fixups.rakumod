@@ -354,7 +354,7 @@ augment class Str {
     method !lowercase-only() {
         nqp::iseq_i(
           nqp::chars(self),
-          nqp::findcclass(                      #?js: NFG
+          nqp::findcclass(
             nqp::const::CCLASS_UPPERCASE,
             self,0,nqp::chars(self)
           )

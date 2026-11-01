@@ -1519,7 +1519,6 @@ class Perl6::World is HLL::World {
                 QAST::VM.new(
                     :jvm(QAST::SVal.new( :value('ModuleLoader.class') )),
                     :moar(QAST::SVal.new( :value('ModuleLoader.moarvm') )),
-                    :js(QAST::SVal.new( :value('ModuleLoader') ))
                 )),
             QAST::Op.new(
                 :op('callmethod'), :name('load_module'),
@@ -2758,8 +2757,6 @@ class Perl6::World is HLL::World {
             }
 
             my $code_obj := nqp::getcodeobj(nqp::curcode());
-#?if !js
-            # Temporarily disabled for js until we figure the bug out
             unless nqp::isnull($code_obj) {
                 my $result := $code_obj(|@pos, |%named);
                 # This stub is NQP code, so a native return arrives boxed
@@ -2772,7 +2769,6 @@ class Perl6::World is HLL::World {
                     ?? nqp::hllizefor($result, 'Raku')
                     !! $result;
             }
-#?endif
 
             $precomp(|@pos, |%named);
         });

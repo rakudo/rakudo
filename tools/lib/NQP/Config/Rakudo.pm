@@ -103,7 +103,7 @@ sub configure_backends {
                 $self->sorry(
                     "No suitable nqp executables found! ",
                     "Please specify some --backends, ",
-                    "or a --prefix that contains nqp-{js,j,m} executables\n\n",
+                    "or a --prefix that contains nqp-{j,m} executables\n\n",
                     "Example to build for all backends ",
                     "(which will take a while):\n",
                     "\tperl Configure.pl --backends=ALL --gen-moar\n\n",
@@ -500,37 +500,6 @@ sub configure_moar_backend {
         $nqp_config->{perl6_ops_dll} =
           sprintf( $nqp_config->{'moar::dll'}, 'perl6_ops_moar' );
     }
-}
-
-sub configure_js_backend {
-    my $self   = shift;
-    my $ijs    = $self->{impls}{js};
-    my $config = $self->{config};
-    my $slash  = $self->slash;
-    my $nqp_config;
-    $config->{js_nqp} = $ijs->{bin};
-    $config->{'perl6_runtime'} =
-      File::Spec->rel2abs( $self->nfp('src/vm/js/perl6-runtime') );
-    $config->{'rakudo_js_runner'} =
-      $self->batch_file( File::Spec->rel2abs('rakudo-js') );
-
-    if ( $ijs->{ok} ) {
-        $nqp_config = $ijs->{config};
-    }
-    elsif ( $ijs->{config} ) {
-        $self->backend_errors( js => "The nqp-js binary is too old" );
-    }
-    else {
-        $self->backend_errors(
-            js => "Unable to read configuration from NQP on JS" );
-    }
-
-    $self->backend_config(
-        'js',
-        js_build_dir => File::Spec->catdir( $config->{base_dir}, qw<gen js> ),
-        js_blib => File::Spec->catdir( $config->{base_dir}, "node_modules" ),
-        static_nqp_home => $nqp_config->{'nqp::static-nqp-home'},
-    );
 }
 
 sub configure_active_backends {

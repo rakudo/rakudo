@@ -77,7 +77,7 @@ my class IO::Path is Cool does IO {
     }
     multi method new(IO::Path:) { empty-path-message }
 
-    method is-absolute() {
+    method is-absolute(--> Bool:D) {
         nqp::ifnull(
           $!is-absolute,
           $!is-absolute := nqp::hllbool($!SPEC.is-absolute: $!path)

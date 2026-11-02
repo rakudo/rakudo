@@ -1,8 +1,7 @@
 my class RakuAST::HTML::Entities {
 
-    my constant $entity2ord = nqp::hash(
-
 #?if !jvm
+    my constant $entity2ord = nqp::hash(
 
 #- start of generated part of HTML entities ------------------------------------
 #- Generated on 2023-04-16T18:26:45+02:00 by tools/build/makeHTML-ENTITIES.raku
@@ -2157,7 +2156,7 @@ my class RakuAST::HTML::Entities {
 #?endif
 
 #?if jvm
-    method parse(Str:D: --> Nil) { }
+    method parse(Str:D $ --> Nil) { }
 #?endif
 }
 

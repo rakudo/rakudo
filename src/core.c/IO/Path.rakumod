@@ -293,27 +293,34 @@ my class IO::Path is Cool does IO {
 
             # Take care of any drive letter indication, make that the
             # volume.
-            if nqp::atpos($parts,0) -> $first {
-                if $first.contains(/^ <[A..Z]> ":" /) {
-                    $volume = $first.substr(0,2);
-
-                    # make sure start from root
-                    nqp::unshift($parts,"")
-                      if nqp::bindpos($parts,0,$first.substr(2));
-                }
-            }
-            else {
-                $volume = "";
-            }
+            nqp::if(
+              (my $first := nqp::atpos($parts,0)),
+              nqp::if(                              # possibly relative
+                $first.contains(/^ <[A..Z]> ":" /),
+                nqp::stmts(                         # drive letter
+                  ($volume = $first.substr(0,2)),
+                  nqp::if(
+                    nqp::bindpos($parts,0,$first.substr(2)),
+                    nqp::unshift($parts,"")         # relative, make absolute
+                  )
+                )
+              ),
+              ($volume = "")                        # already absolute
+            );
 
             $parts
         }
 
         # Prefix CWD if not absolute
-        my $parts       := safe-split($!path);
-        my str @resolved = nqp::atpos($parts,0)
-          ?? safe-split($!CWD)    # relative, so prefix with cwd
-          !! nqp::shift($parts);  # absolute, make absolute + no check on 1st
+        my $parts := safe-split($!path);
+        my str @resolved = nqp::if(
+          nqp::atpos($parts,0),
+          safe-split($!CWD),      # relative, so prefix with cwd
+          nqp::stmts(
+            nqp::shift($parts),   # absolute, no check on 1st
+            $volume               # set volume indication
+          )
+        );
 
         # Process all parts
         nqp::while(
@@ -350,7 +357,10 @@ my class IO::Path is Cool does IO {
                             nqp::pop_s(@resolved),
                             nqp::splice($parts,$link,0,0)
                           ),
-                          (@resolved = $link)        # absolute link
+                          nqp::stmts(                # absolute link
+                            (@resolved = $link),
+                            nqp::bindpos_s(@resolved,0,$volume)
+                          )
                         )
                       )
                     ),

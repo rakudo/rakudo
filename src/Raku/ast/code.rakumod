@@ -3545,7 +3545,7 @@ class RakuAST::Routine
             $walked := 1;
         }
         if $walked && nqp::istype($info, QAST::Node) {
-            RakuAST::IMPL::VarLowering.IMPL-NOTE("INLINE-INFO " ~ self.name.canonicalize)
+            self.note("INLINE-INFO ", self.name.canonicalize)
                 if nqp::existskey(nqp::getenvhash(), 'RAKUDO_INLINE_DEBUG');
             nqp::bindattr($code, Routine, '$!inline_info', $info);
         }

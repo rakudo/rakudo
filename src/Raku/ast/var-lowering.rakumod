@@ -757,8 +757,11 @@ class RakuAST::IMPL::VarLowering {
                             $where := ' at ' ~ $source.original-file
                                 ~ ':' ~ $source.original-line($origin.from);
                         }
-                        self.IMPL-NOTE('lex2local: flatten '
-                            ~ $frame.node.HOW.name($frame.node) ~ $where);
+                        RakuAST::Noder.note(
+                          'lex2local: flatten ',
+                          $frame.node.HOW.name($frame.node),
+                          $where
+                        );
                     }
                 }
                 # A use that crossed only this pending body settles now:
@@ -1445,10 +1448,11 @@ class RakuAST::IMPL::VarLowering {
             }
             if $!debug {
                 my str $where := $frame.node.HOW.name($frame.node);
-                self.IMPL-NOTE($declined eq ''
-                    ?? "lex2local: lower '" ~ $decl.lexical-name ~ "' in " ~ $where
-                    !! "lex2local: keep '" ~ $decl.lexical-name ~ "' in "
-                        ~ $where ~ " (" ~ $declined ~ ")");
+                my str $name   := $decl.lexical-name;
+                RakuAST::Node.note($declined eq ''
+                  ?? "lex2local: lower '$name' in $where"
+                  !! "lex2local: keep '$name' in $where ($declined)"
+                );
             }
         }
         Nil

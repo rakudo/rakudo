@@ -122,36 +122,38 @@ my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 # native type's box type wherever the instantiation decides storage or
 # checks values.
 my class NativeInstantiation {
+
+    # Map primspec values to types they need to be boxed into if necessary
+    my constant BOXTYPES := nqp::list(
+      #       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10
+      nqp::null, Int, Num, Str, Int, Int, Int, Int, Int, Int, Int
+    );
+
     # Returns the box type for a native type, rewrapped for a definite type
-    # over a native type, or null when no boxing applies. Callers pass
-    # values as well as types through this. Container descriptor defaults
-    # and auto_viv container values arrive here, and a concrete value
-    # reports null. The box is selected by primitive spec, so a native
-    # type with unrelated object ancestors still constrains its values to
-    # what the storage can hold.
+    # over a native type, or null when no boxing applies.
     method box($type) {
-        return nqp::null()
-          if nqp::isnull($type) || nqp::isconcrete_nd($type);
 
-        my $prim_type    := $type;
-        my $how          := $type.HOW;
-        my int $definite := 0;
-        if nqp::can($how, 'archetypes')
-          && $how.archetypes($type).definite
-          && nqp::can($how, 'base_type') {
-            $prim_type := $how.base_type($type);
-            $definite  := 1;
+        if nqp::isnull($type) || nqp::isconcrete_nd($type) {
+            nqp::null                                       # no need to box
         }
+        else {
+            my $how          := $type.HOW;
+            my int $definite := nqp::can($how,'archetypes')
+              && $how.archetypes($type).definite
+              && nqp::can($how,'base_type');
 
-        my int $spec := nqp::objprimspec($prim_type);
-        if $spec {
-            my $box := $spec == 2 ?? Num !! $spec == 3 ?? Str !! Int;
-            return $definite
-              ?? Perl6::Metamodel::DefiniteHOW.new_type(
-                   :base_type($box), :definite($how.definite($type)))
-              !! $box;
+            my int $primspec := nqp::objprimspec($definite
+              ?? $how.base_type($type)
+              !! $type
+            );
+
+            $definite && $primspec
+              ?? Perl6::Metamodel::DefiniteHOW.new_type(    # box with :D
+                  :base_type(nqp::atpos(BOXTYPES,$primspec)),
+                  :definite($how.definite($type))
+                )
+              !! nqp::atpos(BOXTYPES,$primspec)             # just box or not
         }
-        nqp::null()
     }
 
     # Returns the box type when boxing applies and the type itself

@@ -393,6 +393,28 @@ my class IO::Path is Cool does IO {
         )
     }
 
+    # Return the resolved path of the invocant if it is inside the
+    # the resolved path of the given IO::Path object (which needs to
+    # be an existing directory), or Nil if it is not inside
+    method resolve-inside(IO::Path:D: IO::Path:D $io --> IO::Path:D) {
+        if $io.d {
+            with $io.resolve(:completely) -> $root {
+                with self.resolve(:completely) -> $target {
+                    my $sep     := $!SPEC.dir-sep;
+                    my $outside := $root.absolute;
+                    my $inside  := $target.absolute;
+
+                    return $target
+                      if $inside ne $outside
+                      && $inside.starts-with(
+                        $outside.ends-with($sep) ?? $outside !! $outside ~ $sep
+                      );
+                }
+            }
+        }
+        Nil
+    }
+
     proto method parent(|) {*}
     multi method parent(IO::Path:D: Int:D $depth is copy) {
         if $depth > 0 {

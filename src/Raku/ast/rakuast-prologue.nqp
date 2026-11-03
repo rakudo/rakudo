@@ -2,17 +2,48 @@
     ## Various utility subs to help us produce types that look Raku-like.
     ##
 
+    # The metamodel reads Raku's bools, null and Scalar type from the HLL
+    # when it composes a class, and the bootstrap only gives the HLL those
+    # when it is loaded, so they are given here as well. The VM does not
+    # keep the values in the configuration from moving and does not update
+    # them when they do, so they must already be in the old generation
+    # here. Nothing enforces that. It holds because this block runs after
+    # the generator's type stubs, which precede it in the generated file,
+    # have been compiled, and an early collection of the bools would show
+    # as a stale pointer rather than an error.
+    nqp::sethllconfig('Raku', nqp::hash(
+      'null_value',  Mu,
+      'true_value',  (Bool.WHO)<True>,
+      'false_value', (Bool.WHO)<False>,
+    ));
+    nqp::bindhllsym('Raku', 'Scalar', Scalar);
+
+    # Naming TRUE or FALSE compiles to a reference spesh treats as a constant,
+    # whereas reading the Bool stash costs a hash lookup on every call.
+    my constant TRUE  := (Bool.WHO)<True>;
+    my constant FALSE := (Bool.WHO)<False>;
+
     sub parent($class, $parent) {
         $class.HOW.add_parent($class, $parent);
     }
 
-    sub add-attribute($class, $type, $name) {
-        $class.HOW.add_attribute($class, Attribute.new(
-            :$name, :$type, :package($class), :auto_viv_primitive($type)
-        ));
+    sub does($type, $role) {
+        $type.HOW.add_role($type, $role);
     }
 
-    sub add-method($class, $name, @parameters, $impl) {
+    sub add-attribute($class, $type, $name) {
+        my $attribute := Attribute.new(
+            :$name, :$type, :package($class), :auto_viv_primitive($type)
+        );
+        # The generator makes the accessors, so there is nothing left to
+        # compose. Saying so keeps the setting's Attribute.compose from
+        # rebinding the package to a class that is augmented or that does
+        # a role, which the layout and a role's methods key on.
+        nqp::bindattr_i($attribute, Attribute, '$!composed', 1);
+        $class.HOW.add_attribute($class, $attribute);
+    }
+
+    sub make-method($package, $name, @parameters, $do, $returns, $yada) {
         # Assemble a signature object for introspection purposes.
         my @params;
         my $first := 1;
@@ -29,23 +60,91 @@
                     nqp::list_s(nqp::substr($name, 1)));
             }
             nqp::push(@params, $param);
+            $first := 0;
         }
         my $signature := nqp::create(Signature);
         nqp::bindattr($signature, Signature, '@!params', @params);
-        nqp::bindattr($signature, Signature, '$!returns', Mu);
+        nqp::bindattr($signature, Signature, '$!returns',
+            nqp::eqaddr($returns, NQPMu) ?? Mu !! $returns);
 
         # Wrap code up in a Method object.
-        my $static-code := nqp::getstaticcode($impl);
         my $wrapper := nqp::create(Method);
-        nqp::bindattr($wrapper, Code, '$!do', $static-code);
+        nqp::bindattr($wrapper, Code, '$!do', $do);
         nqp::bindattr($wrapper, Code, '$!signature', $signature);
-        nqp::bindattr($wrapper, Routine, '$!package', $class);
+        nqp::bindattr($wrapper, Routine, '$!package', $package);
         $wrapper.set_name($name);
-        $class.HOW.add_method($class, $name, $wrapper);
+        $wrapper.set_yada if $yada;
+        $wrapper
+    }
+
+    sub add-method($package, $name, @parameters, $impl, $returns?, :$yada) {
+        $package.HOW.add_method($package, $name,
+            make-method($package, $name, @parameters, nqp::getstaticcode($impl), $returns, $yada));
+    }
+
+    # The checks the generator emits for a declared return type call these,
+    # which keeps a checked method small enough to inline. They are methods
+    # of a class because a node method runs as static code, which can reach
+    # a type but not a sub of this block. MoarVM inlines a frame only below
+    # a bytecode size limit, so each method here has to stay under it for a
+    # checked method to cost what an unchecked one does. Running with
+    # MVM_SPESH_INLINE_LOG=1 says whether bool and a checked method such as
+    # sunk still inline.
+    my class ReturnCheck {
+        method failure($value, $type, str $name) {
+            Perl6::Metamodel::Configuration.throw_or_die('X::TypeCheck::Return',
+                "Type check failed for return value of '$name'; expected "
+                    ~ $type.HOW.name($type) ~ " but got "
+                    ~ (nqp::isnull($value) ?? 'null' !! $value.HOW.name($value)),
+                :got(nqp::isnull($value) ?? Mu !! $value), :expected($type));
+        }
+
+        # A VM integer becomes a Bool, as it does for a Bool parameter.
+        #
+        # Spesh has to be able to fold the test for a VM integer to a constant,
+        # so that a method whose body is an integer is left with only the
+        # conversion. Otherwise the bool-object path stays in the specialized
+        # bool and makes it too large to inline. Spesh cannot fold nqp::isint,
+        # which it turns into a runtime null check, nor a comparison with ==.
+        # It does fold nqp::objprimspec, which is 1 for a VM integer box, and
+        # the bitwise ops, so this tests whether objprimspec xor 1 is 0. Any
+        # other value, a VM string or number box among them, goes on to
+        # bool-object.
+        #
+        # A body that mixes integers with calls returning a Bool gives spesh no
+        # single type to fold the test for, so such a body prefixes those calls
+        # with ? to keep its value an integer. That also stops checking what the
+        # call returns, so a body whose value was checked already keeps it.
+        method bool($value, str $name) {
+            !nqp::bitxor_i(nqp::objprimspec($value), 1)
+              ?? (nqp::unbox_i($value) ?? TRUE !! FALSE)
+              !! self.bool-object($value, $name)
+        }
+
+        # The NQPMu that NQP code returns for an absent value becomes the
+        # Bool type object.
+        method bool-object($value, str $name) {
+            nqp::istype($value, Bool)
+              ?? $value
+              !! nqp::eqaddr($value, NQPMu)
+                ?? Bool
+                !! self.failure($value, Bool, $name)
+        }
     }
 
     sub compose($type) {
-        $type.HOW.compose_repr($type);
-        $type.HOW.publish_type_cache($type);
-        $type.HOW.publish_method_cache($type);
+        # A role's methods are static code with the role as their invocant
+        # type, shared by every class doing the role, so its body only has
+        # to say which class it is being composed into. The attributes it
+        # composes stay keyed on the role in the class's layout.
+        if $type.HOW.archetypes($type).parametric {
+            $type.HOW.set_body_block($type, sub ($class, *@_, *%_) {
+                [$type, nqp::hash('$?CLASS', $class)]
+            });
+        }
+        # The node types are 6.c types. Left unset, the revision would be
+        # taken from whatever Raku compiler is registered while this runs,
+        # and role specialization refuses a type without one.
+        $type.HOW.set_language_revision($type, 1);
+        $type.HOW.compose($type);
     }

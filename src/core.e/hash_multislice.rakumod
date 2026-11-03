@@ -1,10 +1,72 @@
 # all 6.e specific sub postcircumfix {; } candidates here please
 
-proto sub postcircumfix:<{; }>($, $, *%) is nodal {*}
+proto sub postcircumfix:<{; }>($, $, Mu $?, *%) is nodal {*}
 
-# handle the case of %h{|| "a"}
-multi sub postcircumfix:<{; }>(\initial-SELF, \value, *%_) is raw {
-    postcircumfix:<{; }>(initial-SELF, value.List, |%_)
+# handle the case of %h{|| "a"}, and of an adverb no other candidate takes
+multi sub postcircumfix:<{; }>(\initial-SELF, \value, *%adverbs) is raw {
+    if nqp::istype(value,List) {
+        my @nogo = %adverbs<delete exists kv p k v>:delete:k;
+        X::Adverb.new(
+          :what<multi-dimensional slice>,
+          :source((try initial-SELF.VAR.name) // initial-SELF.^name),
+          :unexpected(%adverbs.keys),
+          :@nogo,
+        ).throw
+    }
+    else {
+        postcircumfix:<{; }>(initial-SELF, value.List, |%adverbs)
+    }
+}
+multi sub postcircumfix:<{; }>(\initial-SELF, \value, Mu \assignee) is raw {
+    postcircumfix:<{; }>(initial-SELF, value.List, assignee)
+}
+multi sub postcircumfix:<{; }>(\SELF, @indices, Mu \assignee) is raw {
+    my \target := postcircumfix:<{; }>(SELF, @indices);
+    target = assignee
+}
+
+# A shaped hash gives the element itself for one key per dimension, as the
+# subscript of one key does, and a list of elements for a slice. Any adverb
+# goes to that subscript with each list of keys as one key.
+multi sub postcircumfix:<{; }>(Hash::Shaped \SELF, @indices, Mu \assignee) is raw {
+    my \indices := SHAPED-WILDCARD(SELF, @indices, 0);
+    nqp::isconcrete(my \key := MD-SINGLE-KEYS(indices))
+      ?? SELF.ASSIGN-KEY(key, assignee)
+      !! SHAPED-SLICE(SELF, indices,
+           -> \keys { postcircumfix:<{ }>(SELF, keys, assignee) }, 'assign')
+}
+multi sub postcircumfix:<{; }>(Hash::Shaped \SELF, @indices, Mu :$BIND! is raw) is raw {
+    my \indices := SHAPED-WILDCARD(SELF, @indices, 0);
+    nqp::isconcrete(my \key := MD-SINGLE-KEYS(indices))
+      ?? SELF.BIND-KEY(key, $BIND)
+      !! SHAPED-SLICE(SELF, indices,
+           -> \keys { postcircumfix:<{ }>(SELF, keys, :$BIND) }, 'bind')
+}
+multi sub postcircumfix:<{; }>(Hash::Shaped \SELF, @indices, *%adverbs) is raw {
+    my \indices := SHAPED-WILDCARD(SELF, @indices, 1);
+    my \key     := MD-SINGLE-KEYS(indices);
+    nqp::elems(nqp::getattr(%adverbs,Map,'$!storage'))
+      ?? nqp::isconcrete(key)
+        ?? postcircumfix:<{ }>(SELF, key.item, |%adverbs)
+        !! SHAPED-SLICE(SELF, indices,
+             -> \keys { postcircumfix:<{ }>(SELF, keys, |%adverbs) }, '')
+      !! nqp::isconcrete(key)
+        ?? SELF.AT-KEY(key)
+        !! SHAPED-ANY-KEY(indices)
+          ?? SHAPED-SLICE(SELF, indices,
+               -> \keys { MD-VALUES(postcircumfix:<{ }>(SELF, keys)) }, '')
+          !! SHAPED-SLICE(SELF, indices,
+               -> \keys { postcircumfix:<{ }>(SELF, keys) }, '')
+}
+
+# Binding through a multidimensional subscript of a hash binds the element
+# of its innermost hash.
+multi sub postcircumfix:<{; }>(\SELF, @indices, Mu :$BIND! is raw) is raw {
+    nqp::isconcrete(my \keys := MD-SINGLE-KEYS(@indices))
+      ?? @indices.elems
+        ?? MD-HASH-BIND(SELF, keys, 0, $BIND)
+        !! X::Bind::ZenSlice.new(type => SELF.WHAT).throw
+      !! X::Bind::Slice.new(type => SELF.WHAT).throw
 }
 
 multi sub postcircumfix:<{; }>(\initial-SELF, @indices,

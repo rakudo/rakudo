@@ -27,6 +27,15 @@ class RakuAST::IMPL::QASTContext {
     has int $.is-nested;
     has Mu $.language-revision; # Same type as in CORE-SETTING-REV
 
+    # Set once the optimize stage has walked this unit, so emission can
+    # tell a QAST block cached ahead of the walk from one that reflects
+    # the marks the walk decided.
+    has int $.optimize-performed;
+
+    method set-optimize-performed() {
+        nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!optimize-performed', 1)
+    }
+
     # Optional nested Perl6::World; when set, add-code-ref delegates
     # to it so the shared $!num_code_refs counter advances.
     has Mu $.world-bridge;
@@ -41,6 +50,19 @@ class RakuAST::IMPL::QASTContext {
     has Hash $!cuid-to-parse-time-resolver;
     has Bool $!parse-time-resolver-cleanup-scheduled;
 
+    # Identity token for this compilation. Dynamically-compiled frames
+    # carry it as a lexical, and a begin-time effect leaves it in a
+    # dynamic, so a begin-time indirect lookup can tell code belonging
+    # to the unit being compiled from foreign code it merely runs. An
+    # inert instance: frames carrying it can be serialized, which a
+    # frame holding the resolver could not.
+    has Mu $!begin-time-marker;
+
+    # The POPULATE method shared by every class in this compilation
+    # unit whose build plan is empty. Lives here rather than on the
+    # compiler services, which are released after each composition.
+    has Mu $!empty-buildplan-method;
+
     # Code objects whose IMPL-STUB-CODE bound a freshcoderef to
     # Code.$!do but whose IMPL-LINK-META-OBJECT has not yet registered
     # that coderef with the SC. If the owning AST is discarded before
@@ -54,22 +76,22 @@ class RakuAST::IMPL::QASTContext {
     # that either node's finalize call clears.
     has Hash $!stubbed-code-objects;
 
-    method new(Mu :$sc!, int :$precompilation-mode, :$setting, :$language-revision) {
+    method new(Mu :$sc!, Bool :$precompilation-mode, :$setting, :$language-revision) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
-        nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!precompilation-mode', $precompilation-mode);
+        nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!precompilation-mode', ?$precompilation-mode);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!post-deserialize', []);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!code-ref-blocks', []);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-code-object', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-cloned-code-objects', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-sc-idx', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!cleanup-tasks', []);
-        nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!is-nested', 0);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!language-revision', $language-revision);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!world-bridge', Mu);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!cuid-to-parse-time-resolver', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!stubbed-code-objects', {});
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!begin-time-marker', nqp::create(Mu));
         $obj
     }
 
@@ -91,7 +113,22 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr_i($context, RakuAST::IMPL::QASTContext, '$!is-nested', 1);
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!cuid-to-parse-time-resolver', {});
         nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!stubbed-code-objects', {});
+        nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!begin-time-marker', nqp::create(Mu));
+        # A nested compunit serializes on its own, so it cannot reuse a
+        # method object rooted in the outer unit's context.
+        nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!empty-buildplan-method', Mu);
+        # The nested unit has not run its own optimize walk yet, whatever
+        # the state of the unit this context was cloned from.
+        nqp::bindattr_i($context, RakuAST::IMPL::QASTContext, '$!optimize-performed', 0);
         $context
+    }
+
+    method begin-time-marker() { $!begin-time-marker }
+
+    method empty-buildplan-method() { $!empty-buildplan-method }
+    method set-empty-buildplan-method(Mu $method) {
+        nqp::bindattr(self, RakuAST::IMPL::QASTContext, '$!empty-buildplan-method', $method);
+        Nil
     }
 
     # Get the handle of the serialization context.
@@ -114,7 +151,7 @@ class RakuAST::IMPL::QASTContext {
 #?endif
     }
 
-    method is-precompilation-mode() {
+    method is-precompilation-mode(--> Bool) {
         $!precompilation-mode
     }
 
@@ -133,6 +170,10 @@ class RakuAST::IMPL::QASTContext {
         my str $key := ~nqp::objectid($code-obj);
         $!stubbed-code-objects{$key} := $code-obj;
         Nil
+    }
+
+    method has-stubbed-code-object(Mu $code-obj --> Bool) {
+        nqp::existskey($!stubbed-code-objects, ~nqp::objectid($code-obj))
     }
 
     method mark-code-object-finalized(Mu $code-obj) {
@@ -234,7 +275,7 @@ class RakuAST::IMPL::QASTContext {
     # passed, returns the matching code ref; otherwise returns Mu.
     method IMPL-FIXUP-COMPILED-CODEREFS(Mu $coderefs, $block-cuid?, :$drain-compstuff-fixups) {
         my int $n := nqp::elems($coderefs);
-        my int $i := 0;
+        my int $i;
         my $result;
         while $i < $n {
             my $coderef := nqp::atpos($coderefs, $i);
@@ -301,6 +342,39 @@ class RakuAST::IMPL::InterpContext {
     }
 }
 
+# Takes the place of an operand's thunks while BEGIN time evaluation compiles
+# the application around it, so the operand compiles to the value it has.
+class RakuAST::IMPL::BeginTimeValue {
+    has Mu $!value;
+
+    method new(Mu $value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::IMPL::BeginTimeValue, '$!value', $value);
+        $obj
+    }
+
+    method next() { Mu }
+
+    method thunk-kind() { 'BEGIN time value' }
+
+    method thunk-details() { '' }
+
+    method visit-children(Code $visitor) { Nil }
+
+    method IMPL-QAST-BLOCK(*@pos, *%named) { Nil }
+
+    method IMPL-THUNK-CODE-QAST(*@pos) { Nil }
+
+    method IMPL-DECLARES-EVALUATED-CODE() { False }
+
+    method IMPL-COMPILED-ALONE() { False }
+
+    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        $context.ensure-sc($!value);
+        QAST::WVal.new(:value($!value))
+    }
+}
+
 # Shared metamodel-archetype helpers, called from RakuAST nodes anywhere
 # that needs to inspect a type object's archetypes. archetypes() must be
 # called with the type as argument: DefiniteHOW and CoercionHOW stash the
@@ -310,7 +384,7 @@ class RakuAST::IMPL::InterpContext {
 # through these helpers keeps callers from having to remember the
 # argument form.
 class RakuAST::IMPL::Archetypes {
-    method is-generic(Mu $v) {
+    method generic(Mu $v) {
         nqp::can($v.HOW, 'archetypes')
             && $v.HOW.archetypes($v).generic
     }
@@ -320,9 +394,19 @@ class RakuAST::IMPL::Archetypes {
 # nominals so STORE accepts NQP-typed values. Emulates create_container_descriptor
 # in src/Perl6/World.nqp.
 class RakuAST::IMPL::Containers {
-    method create-descriptor(Mu :$of!, Mu :$default, int :$dynamic, :$name) {
+    method create-descriptor(Mu :$of!, Mu :$default, int :$dynamic, :$name, int :$isolated-match) {
         my $d := nqp::eqaddr($default, Mu) ?? $of !! $default;
-        my $cd-type := nqp::eqaddr($of, Mu) ?? ContainerDescriptor::Untyped !! ContainerDescriptor;
+        # An untyped $/ in a 6.e scope is isolated no matter how it was
+        # declared: an explicit `my $/` gets the same marker descriptor as
+        # the implicit one, so method forms treat both alike. The marker
+        # is untyped, so a typed declaration such as `my Match $/` keeps
+        # the plain descriptor even when the flag is passed, and method
+        # forms write into it as they do for earlier revisions.
+        my $cd-type := nqp::eqaddr($of, Mu)
+            ?? $isolated-match
+                ?? ContainerDescriptor::IsolatedMatch
+                !! ContainerDescriptor::Untyped
+            !! ContainerDescriptor;
         $cd-type.new(:$of, :default($d), :$dynamic, :$name)
     }
 }

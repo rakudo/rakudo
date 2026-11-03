@@ -106,14 +106,16 @@ my role NumericStringyEnumeration {
     }
 }
 
-sub ENUM_VALUES(*@args --> Map:D) is implementation-detail {
+sub ENUM_VALUES(Mu \term --> Map:D) is implementation-detail {
     my Mu $prev = -1;
     my $res := nqp::hash;
 
+    # The items and keys are made the way the enum makes its own
+    my sub key(Mu \key) { nqp::istype(key,Str) ?? key !! key.Str }
     nqp::istype($_,Pair)
-      ?? nqp::bindkey($res, .key, nqp::decont($prev = .value))
-      !! nqp::bindkey($res,   $_, nqp::decont($prev = $prev.succ))
-      for @args;
+      ?? nqp::bindkey($res, key(.key), nqp::decont($prev = .value))
+      !! nqp::bindkey($res, key($_),   nqp::decont($prev = $prev.succ))
+      for term.List;
 
     nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$res)
 }

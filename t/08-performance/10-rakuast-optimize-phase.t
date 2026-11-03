@@ -3,6 +3,7 @@ use Test::Helpers;
 use Test;
 use experimental :rakuast;
 
+plan :skip-all('these tests observe the optimize phase') unless optimizer-enabled;
 plan 7;
 
 # The optimize phase transforms the tree between check and QAST generation.

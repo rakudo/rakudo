@@ -6,6 +6,11 @@ class RakuAST::Resolver {
     # Our outer context. When not an EVAL, this is the same as $!setting.
     has Mu $!outer;
 
+    # For an EVAL run by begin-time effects of enclosing compilations, pairs
+    # of the token marking the frames of such a compilation and the context
+    # that compilation is compiled in.
+    has Mu $!begin-time-outers;
+
     # Our current idea of the global symbol table.
     has Mu $!global;
 
@@ -25,6 +30,21 @@ class RakuAST::Resolver {
     # The current comp unit's EXPORT package.
     has Mu $!export-package;
 
+    # The EXPORT package of an enclosing compilation, for a nested EVAL.
+    has Mu $!enclosing-export-package;
+
+    # Set while the optimize walk runs over a code object ahead of the
+    # unit's optimize phase. The scopes enclosing the code object are
+    # still being parsed then, so a rewrite, which cannot be undone,
+    # waits for the unit's own walk, and a mark is one that walk
+    # settles again.
+    has int $!ahead-of-unit-walk;
+
+    # Set while such a walk runs and the core setting is compiling
+    # itself. The setting's routines are stubs then, so the marks that
+    # probe one wait for the unit's own walk as well.
+    has int $!structural-walk;
+
     # In-source `our` package decls seen in this compunit's BEGIN
     # walk. Keyed by install target's `nqp::objectid` plus the final
     # name part so the same trailing name under different `my`-scoped
@@ -34,11 +54,21 @@ class RakuAST::Resolver {
     # Parametric role groups created in this compunit, keyed by object id.
     has Mu $!compunit-role-groups;
 
+    # Sorries and worries produced by the compiler.
+    has Mu $!sorries;
+    has Mu $!worries;
+
+    # The declarators use statements took from a module's EXPORTHOW,
+    # keyed by the object id of the lexical scope of the use statement. Each
+    # value maps a declarator, or its `-attr` companion, to the type the
+    # module gave it.
+    has Mu $!exporthow;
+
     method register-compunit-role-group(Mu $group) {
         $!compunit-role-groups{nqp::objectid($group)} := $group;
         Nil
     }
-    method is-compunit-role-group(Mu $group) {
+    method is-compunit-role-group(Mu $group --> Bool) {
         nqp::existskey($!compunit-role-groups, nqp::objectid($group))
     }
 
@@ -63,7 +93,7 @@ class RakuAST::Resolver {
         0
     }
 
-    method declare-our-package(Mu $target, str $final, RakuAST::Package $pkg) {
+    method declare-our-package(Mu $target, str $final, RakuAST::Declaration $pkg) {
         # Skip the 6.d `module Foo::Bar { class Foo::Bar { } }`
         # pattern: silent-replace at install time, no tracker entry.
         # Canonical name is only needed when we have an enclosing
@@ -88,9 +118,29 @@ class RakuAST::Resolver {
             !! NQPMu
     }
 
+    # The outermost package body between the current scope and the one that
+    # declares the name, or among all active scopes when none does, leaving out
+    # the body of the declaring package. With $wrapped each entry wraps its scope.
+    method IMPL-PACKAGE-BODY-AROUND-IN(Mu $scopes, Str $name, int $wrapped) {
+        my @bodies;
+        my int $i := nqp::elems($scopes);
+        while $i-- {
+            my $scope := $wrapped ?? $scopes[$i].scope !! $scopes[$i];
+            if nqp::isconcrete($scopes[$i].find-lexical($name)) {
+                nqp::pop(@bodies) if nqp::elems(@bodies)
+                  && nqp::eqaddr(@bodies[nqp::elems(@bodies) - 1].IMPL-HEADER, $scope);
+                last;
+            }
+            nqp::push(@bodies, $scope) if nqp::isconcrete($scope.IMPL-HEADER);
+        }
+        nqp::elems(@bodies) ?? @bodies[nqp::elems(@bodies) - 1] !! Mu
+    }
+
     # Create a shallow clone, but deep clone attach targets and packages
     method clone() {
         my $clone := nqp::clone(self);
+        nqp::bindattr_i($clone, RakuAST::Resolver, '$!ahead-of-unit-walk', 0);
+        nqp::bindattr_i($clone, RakuAST::Resolver, '$!structural-walk', 0);
         nqp::bindattr($clone,RakuAST::Resolver,'$!attach-targets',
           nqp::clone($!attach-targets));
         nqp::bindattr($clone,RakuAST::Resolver,'$!packages',
@@ -99,6 +149,8 @@ class RakuAST::Resolver {
           nqp::clone($!our-package-decl-map));
         nqp::bindattr($clone,RakuAST::Resolver,'$!compunit-role-groups',
           nqp::clone($!compunit-role-groups));
+        nqp::bindattr($clone,RakuAST::Resolver,'$!exporthow',
+          nqp::clone($!exporthow));
         $clone
     }
 
@@ -135,14 +187,62 @@ class RakuAST::Resolver {
         Nil
     }
 
+    # Find the innermost enclosing block that `&?BLOCK` refers to: the nearest
+    # pushed 'block' target that is not an inlined control-flow branch. Returns
+    # Nil if there is none (for example at compilation-unit top level).
+    method find-block-variable-target() {
+        my @stack := $!attach-targets<block>;
+        if nqp::isconcrete(@stack) {
+            my int $i := nqp::elems(@stack);
+            while $i-- {
+                my $target := @stack[$i];
+                return $target unless $target.is-immediate-block-user-body;
+            }
+        }
+        Nil
+    }
+
     # Find the current (most recently pushed) attachment target with the
     # specified name, or return Nil if there is no target by the given name,
     # or no targets left for the given name.
     method find-attach-target(str $name, Bool :$skip-first) {
         my @stack := $!attach-targets{$name};
-        nqp::isconcrete(@stack) && nqp::elems(@stack) > +$skip-first
-          ?? @stack[nqp::elems(@stack) - (1 + $skip-first)]
+        my int $skip := ?$skip-first;
+        nqp::isconcrete(@stack) && nqp::elems(@stack) > $skip
+          ?? @stack[nqp::elems(@stack) - (1 + $skip)]
           !! Nil
+    }
+
+    # Makes a declarator known in the current lexical scope and the scopes
+    # inside it, or with :unit in the whole compilation unit, below what a
+    # use statement makes known.
+    method declare-exporthow(str $declarator, Mu $how, Bool :$unit) {
+        my str $key := $unit ?? '' !! nqp::objectid(self.current-scope);
+        my $declarators := nqp::atkey($!exporthow, $key);
+        $!exporthow{$key} := $declarators := nqp::hash
+          unless nqp::isconcrete($declarators);
+        $declarators{$declarator} := $how;
+        Nil
+    }
+
+    # The type a use statement in an active scope declared for the name,
+    # nearest scope first, else the one the compilation unit declared, in a
+    # one element list. The list keeps find-scope-property from skipping a
+    # type object. Nil when nothing declared it.
+    method resolve-exporthow(str $declarator) {
+        my $declarators := $!exporthow;
+        my $found := self.find-scope-property(-> $scope {
+            my $known := nqp::atkey($declarators, nqp::objectid($scope));
+            nqp::isconcrete($known) && nqp::existskey($known, $declarator)
+              ?? nqp::list($known{$declarator})
+              !! Nil
+        });
+        unless $found {
+            my $unit := nqp::atkey($declarators, '');
+            $found := nqp::list($unit{$declarator})
+              if nqp::isconcrete($unit) && nqp::existskey($unit, $declarator);
+        }
+        $found
     }
 
     # Set the global package when we're starting a fresh compilation unit.
@@ -154,6 +254,27 @@ class RakuAST::Resolver {
     }
 
     method get-global() { $!global }
+
+    method IMPL-AHEAD-OF-UNIT-WALK() { $!ahead-of-unit-walk }
+    method IMPL-STRUCTURAL-WALK() { $!structural-walk }
+    method IMPL-SET-AHEAD-OF-UNIT-WALK(int $ahead, int $structural) {
+        nqp::bindattr_i(self, RakuAST::Resolver, '$!ahead-of-unit-walk', $ahead);
+        nqp::bindattr_i(self, RakuAST::Resolver, '$!structural-walk', $structural);
+        Nil
+    }
+
+    # The package stack's depth, and a pop back to a depth recorded
+    # earlier, for a walk that may throw between its pushes and pops.
+    method IMPL-PACKAGE-DEPTH() { nqp::elems($!packages) }
+    method IMPL-UNWIND-PACKAGES(int $depth) {
+        self.pop-package() while nqp::elems($!packages) > $depth;
+        Nil
+    }
+
+    method export-package() { $!export-package }
+
+    # The EXPORT package of the compilation an EVAL is nested in, if any.
+    method enclosing-export-package() { $!enclosing-export-package }
 
     # Set the EXPORT package when we're starting a fresh compilation unit.
     method set-export-package(Mu $package) {
@@ -171,14 +292,18 @@ class RakuAST::Resolver {
     }
 
     # Obtains the current package. This is not a RakuAST::Package node, but
-    # rather the type object of the package we are currently in.
+    # rather the type object of the package we are currently in. The walk
+    # over the outer contexts ends at the first one declaring $?PACKAGE, at
+    # the setting itself, or when the contexts run out, and falls back to
+    # GLOBAL. A context reached by walking is a fresh object, so the
+    # setting check only matches when the outer context is the setting.
     method current-package() {
         if nqp::elems($!packages) {
             $!packages[nqp::elems($!packages) - 1].compile-time-value
         }
         else {
             my $current := $!outer;
-            until nqp::eqaddr($current, $!setting) {
+            until nqp::isnull($current) || nqp::eqaddr($current, $!setting) {
                 return nqp::atkey($current, '$?PACKAGE')
                   if nqp::existskey($current, '$?PACKAGE');
                 $current := nqp::ctxouterskipthunks($current);
@@ -228,6 +353,13 @@ class RakuAST::Resolver {
         )
     }
 
+    # Why the heredoc body being parsed may not use the name. Only a resolver
+    # that parses source has heredoc bodies.
+    method IMPL-HEREDOC-REFUSED(Str $name) { '' }
+    method IMPL-CHECK-HEREDOC-WATCHES() { Nil }
+    method IMPL-HEREDOCS-AWAITING-BODY() { 0 }
+    method IMPL-HEREDOC-SCOPE-CLOSED(Mu $scope) { False }
+
     # Resolve a RakuAST::Name, optionally adding the specified sigil to the
     # final component.
     method resolve-name(RakuAST::Name $Rname, str :$sigil) {
@@ -238,7 +370,8 @@ class RakuAST::Resolver {
 
             # Single-part name, so look lexically.
             $name  := $sigil ~ $name if $sigil;
-            $found := self.resolve-lexical($name)
+            $found := self.resolve-lexical($name);
+            return Nil if !$found && self.IMPL-HEREDOC-REFUSED($name);
         }
         elsif !$Rname.is-empty {
             # All package name installations happen via the symbol table as
@@ -250,9 +383,12 @@ class RakuAST::Resolver {
     }
 
     # Resolve a RakuAST::Name to a constant.
-    method resolve-name-constant(RakuAST::Name $Rname, str :$sigil, :$current-scope-only) {
+    method resolve-name-constant(RakuAST::Name $Rname, str :$sigil, Bool :$current-scope-only) {
         self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :$sigil, :$current-scope-only)
-          // ($current-scope-only ?? Nil !! self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil))
+          // ($current-scope-only
+                || $Rname.is-identifier && self.IMPL-HEREDOC-REFUSED($sigil ~ $Rname.canonicalize)
+                ?? Nil
+                !! self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil))
     }
 
     # Resolve a RakuAST::Name to a constant looking only in the setting.
@@ -265,7 +401,7 @@ class RakuAST::Resolver {
         self.resolve-name-constant-in-setting(
           +@parts == 1
             ?? RakuAST::Name.from-identifier(@parts[0])
-            !! RakuAST::Name.from-identifier-parts(|@parts)
+            !! RakuAST::Name.from-identifier-list(@parts)
         ).compile-time-value
     }
 
@@ -337,7 +473,7 @@ class RakuAST::Resolver {
         nqp::die('Empty name lookup not possible as a constant')
             if $constant.is-empty;
         my @parts := nqp::clone($constant.IMPL-UNWRAP-LIST($constant.parts));
-        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
+        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::EmptyEdge);
 
         my $root := @parts.shift;
         # Only CORE, GLOBAL and EXPORT roots get special treatment here; any
@@ -345,7 +481,7 @@ class RakuAST::Resolver {
         # not final: the code generation of an unresolved name falls back to
         # a run time lookup, which is where pseudo-package roots and symbols
         # only present in GLOBAL's stash are found, as in the legacy frontend.
-        if nqp::istype($root, RakuAST::Name::Part::Empty) {
+        if nqp::istype($root, RakuAST::Name::Part::EmptyEdge) {
             return Nil;
         }
         elsif nqp::istype($root, RakuAST::Name::Part::Expression) && !$root.has-compile-time-name {
@@ -358,7 +494,7 @@ class RakuAST::Resolver {
         if ($name eq 'CORE') {
             return Nil unless @parts;  # bare CORE has nothing to resolve
             $root := nqp::shift(@parts);
-            if nqp::istype($root, RakuAST::Name::Part::Empty) {
+            if nqp::istype($root, RakuAST::Name::Part::EmptyEdge) {
                 return Nil;
             }
             elsif nqp::istype($root, RakuAST::Name::Part::Expression) && !$root.has-compile-time-name {
@@ -458,16 +594,24 @@ class RakuAST::Resolver {
         # Look through the contexts for the name.
         my $context := $!outer;
         my int $seen-setting;
+        my int $walked-past-begin-time;
         until nqp::isnull($context) {
             $seen-setting := 1 if nqp::existskey($context,'CORE-SETTING-REV');
 
             # found it!
             if nqp::existskey($context,$name) {
                 my $prim-spec := nqp::lexprimspec($context,$name);
+                # A native holds no object. A null value says so, where an
+                # unset one would read as the NQPMu type object.
                 if $prim-spec {
+                    # Compiled code reaches a native only along its own outer
+                    # chain, which leads from the frame of a begin-time effect
+                    # to the setting rather than here.
+                    return Nil if $walked-past-begin-time;
                     return RakuAST::Declaration::External.new(
                       :lexical-name($name),
-                      :native-type(PRIMSPEC-TO-TYPE[$prim-spec])
+                      :native-type(PRIMSPEC-TO-TYPE[$prim-spec]),
+                      :maybe-compile-time-value(nqp::null())
                     );
                 }
 
@@ -492,7 +636,14 @@ class RakuAST::Resolver {
                 return Nil;
             }
 
-            $context := nqp::ctxouter($context);
+            my $jump := self.IMPL-BEGIN-TIME-JUMP($context);
+            if nqp::isnull($jump) {
+                $context := nqp::ctxouter($context);
+            }
+            else {
+                $walked-past-begin-time := 1;
+                $context := $jump;
+            }
         }
 
         # Nothing found.
@@ -504,7 +655,7 @@ class RakuAST::Resolver {
     method setting-constant(*@name) {
         nqp::isconcrete(
           my $resolved := self.resolve-name-constant-in-setting(
-              RakuAST::Name.from-identifier-parts(|@name)
+              RakuAST::Name.from-identifier-list(@name)
             )
         ) ?? $resolved.compile-time-value
           !! $resolved
@@ -516,15 +667,54 @@ class RakuAST::Resolver {
         until nqp::isnull($context) {
             nqp::existskey($context, $name)
               ?? (return self.external-constant($context, $name))
-              !! ($context := nqp::ctxouter($context));
+              !! ($context := self.IMPL-OUTER-OF($context));
         }
         Nil
+    }
+
+    # Past the frame a begin-time effect of an enclosing compilation runs in,
+    # a lexical lookup goes on in the context the compilation is compiled in
+    # rather than the setting. Null for any other frame.
+    method IMPL-BEGIN-TIME-JUMP(Mu $context) {
+        if nqp::isconcrete($!begin-time-outers)
+          && nqp::existskey($context, '!BEGIN_TIME_MARKER') {
+            my $marker := nqp::atkey($context, '!BEGIN_TIME_MARKER');
+            for $!begin-time-outers {
+                return nqp::atpos($_, 1) if nqp::eqaddr(nqp::atpos($_, 0), $marker);
+            }
+        }
+        nqp::null()
+    }
+
+    # The context to walk to from the given one when looking for a lexical.
+    method IMPL-OUTER-OF(Mu $context) {
+        nqp::ifnull(self.IMPL-BEGIN-TIME-JUMP($context), nqp::ctxouter($context))
+    }
+
+    method outer-context() { $!outer }
+
+    method IMPL-BEGIN-TIME-OUTERS() {
+        nqp::isconcrete($!begin-time-outers) ?? $!begin-time-outers !! []
     }
 
     # Resolves a lexical using the outer contexts. The declaration must have a
     # compile-time value.
     method resolve-lexical-constant-in-outer(Str $name) {
         self.resolve-lexical-constant-in-context($!outer, $name)
+    }
+
+    # Resolves a lexical of the outer contexts to a constant, for an indirect
+    # lookup at BEGIN time. A native holds no object and one not yet bound
+    # holds nothing, so neither is found.
+    method IMPL-BEGIN-TIME-CONSTANT-IN-OUTER(Str $name) {
+        my $found := self.resolve-lexical-in-outer($name);
+        nqp::istype($found, RakuAST::CompileTimeValue)
+          ?? $found
+          !! nqp::isconcrete($found) && !nqp::isnull($found.maybe-compile-time-value)
+            ?? RakuAST::Declaration::External::Constant.new(
+                 :lexical-name($name),
+                 :compile-time-value($found.maybe-compile-time-value))
+            !! Nil
     }
 
     # Resolves a lexical using the outer contexts. The declaration must have a
@@ -585,18 +775,39 @@ class RakuAST::Resolver {
 
     # Check if a name is a known type.
     method is-name-type(RakuAST::Name $Rname) {
+        # An indirect lookup is a term, not a type name, even when its
+        # constant string names a known type: the symbol is looked up at
+        # run time.
+        return False if $Rname.is-indirect-lookup;
+
         my $constant := self.resolve-name($Rname);
+        my $meta-object;
         if nqp::istype($constant, RakuAST::CompileTimeValue) {
-            # Name resolves, but is it an instance or a type object?
-            my $meta-object := $constant.compile-time-value;
-            nqp::isnull($meta-object) || nqp::isconcrete_nd($meta-object)
-                ?? False
-                !! True
+            $meta-object := $constant.compile-time-value;
+        }
+        # A lexical from the outer context of an EVAL or REPL line is not
+        # assumed constant, so check the value it holds now.
+        elsif nqp::istype($constant, RakuAST::Declaration::External) {
+            $meta-object := $constant.maybe-compile-time-value;
         }
         else {
-             # Name doesn't resolve to a constant at all, so can't be a type.
-            False
+            # Name doesn't resolve to a constant or an outer lexical, so
+            # can't be a type.
+            return False;
         }
+
+        # Name resolves, but is it an instance or a type object?
+        nqp::isnull($meta-object) || nqp::isconcrete_nd($meta-object)
+            ?? False
+            !! True
+    }
+
+    # Check if a name resolves to a lexical from the outer context of an
+    # EVAL or REPL line, which is not assumed constant.
+    method is-name-outer-lexical(RakuAST::Name $Rname) {
+        my $found := self.resolve-name($Rname);
+        nqp::istype($found, RakuAST::Declaration::External)
+          && !nqp::istype($found, RakuAST::CompileTimeValue)
     }
 
     # Check if an identifier is known (declared) at all.
@@ -611,15 +822,14 @@ class RakuAST::Resolver {
     }
 
     # Check if a name is known (declared) at all.
-    method is-name-known(RakuAST::Name $Rname) {
-        $Rname.is-pseudo-package || nqp::isconcrete(self.resolve-name($Rname.base-name))
-          ?? True
-          !! False
+    method is-name-known(RakuAST::Name $Rname --> Bool) {
+        $Rname.is-pseudo-package
+          || nqp::isconcrete(self.resolve-name($Rname.base-name))
     }
 
     # Build an exception object for a check-time exception.
     method build-exception(Str $type-name, *%opts) {
-        my $name := RakuAST::Name.from-identifier-parts(|nqp::split('::', $type-name));
+        my $name := RakuAST::Name.from-identifier-list(nqp::split('::', $type-name));
         my $type-res := self.resolve-name-constant-in-setting($name);
         my $XComp-res := self.resolve-name-constant-in-setting:
             RakuAST::Name.from-identifier-parts('X', 'Comp');
@@ -660,11 +870,7 @@ class RakuAST::Resolver {
 
         # Could not find or use exception type, so build a fake
         # (typically happens during CORE.setting compilation).
-        my $message := $type-name;
-        for %opts {
-            $message := $message ~ $_.key ~ " => " ~ ((try $_.value.gist) // (try $_.value.Str) // '<unknown>') ~ ", ";
-        }
-        RakuAST::BOOTException.new($message, %opts);
+        RakuAST::BOOTException.new($type-name, %opts);
     }
 
     method convert-exception(Mu $ex) {
@@ -699,6 +905,11 @@ class RakuAST::Resolver {
     method add-node-with-check-time-problems(RakuAST::CheckTime $node) {
         unless $!nodes-with-check-time-problems {
             nqp::bindattr(self, RakuAST::Resolver, '$!nodes-with-check-time-problems', []);
+        }
+        # A node's sorries and worries are gathered once per entry, so a node
+        # more than one check reaches is listed once.
+        for $!nodes-with-check-time-problems {
+            return Nil if nqp::eqaddr($_, $node);
         }
         nqp::push($!nodes-with-check-time-problems, $node);
         Nil
@@ -747,7 +958,7 @@ class RakuAST::Resolver {
                     nqp::push(@others, $stubbed);
                 }
                 $sorries := RakuAST::Node.IMPL-WRAP-LIST(@others);
-                $num-sorries := $sorries.elems;
+                $num-sorries := nqp::elems(@others);
             }
         }
 
@@ -783,10 +994,34 @@ class RakuAST::Resolver {
     }
 
     # Returns True if there are any compilation errors (worries don't count).
-    method has-compilation-errors() { self.all-sorries.Bool }
+    method has-compilation-errors() {
+        nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST(self.all-sorries)) ?? True !! False
+    }
 
-    # Gathers all sorries (from check time, if performed, and any specific to
-    # a given resolver).
+    # Add a sorry check-time problem produced by the compiler.
+    method add-sorry(Any $exception) {
+        nqp::push($!sorries, $exception);
+        Nil
+    }
+    method has-sorries(--> Bool) { nqp::elems($!sorries) > 0 }
+
+    # Add a worry check-time problem produced by the compiler.
+    method add-worry(Any $exception) {
+        my $worries := self.find-scope-property(-> $scope { $scope.tell-worries });
+        if !nqp::isconcrete($worries) || $worries {
+            nqp::push($!worries, $exception);
+        }
+        Nil
+    }
+    method has-worries(--> Bool) { nqp::elems($!worries) > 0 }
+
+    # Panic with the specified exception. This immediately throws it,
+    # incorporating any sorries and worries.
+    method panic(Any $exception) {
+        self.produce-compilation-exception(:panic($exception)).throw
+    }
+
+    # Gathers the sorries of check time, the unresolved symbols and add-sorry.
     method all-sorries() {
         my @sorries;
         if $!nodes-with-check-time-problems {
@@ -799,11 +1034,13 @@ class RakuAST::Resolver {
         for RakuAST::Node.IMPL-UNWRAP-LIST(self.unresolved-symbol-exceptions) {
             @sorries.push($_);
         }
+        for $!sorries {
+            @sorries.push($_);
+        }
         RakuAST::Node.IMPL-WRAP-LIST(@sorries)
     }
 
-    # Gathers all worries (from check time, if performed, and any specific to
-    # a given resolver).
+    # Gathers the worries of check time and add-worry.
     method all-worries() {
         my @worries;
         if $!nodes-with-check-time-problems {
@@ -812,6 +1049,9 @@ class RakuAST::Resolver {
                     @worries.push($_);
                 }
             }
+        }
+        for $!worries {
+            @worries.push($_);
         }
         RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }
@@ -888,480 +1128,6 @@ class RakuAST::Resolver {
             }
         }
         RakuAST::Node.IMPL-WRAP-LIST(@exceptions)
-    }
-}
-
-#-------------------------------------------------------------------------------
-# The EVAL resolver is used when we are given an AST as a whole, and visit it
-# to perform resolutions. We expect a context and GLOBAL to be provided in this
-# mode.
-class RakuAST::Resolver::EVAL
-  is RakuAST::Resolver
-{
-    # The stack of scopes we are in (an array of RakuAST::LexicalScope).
-    has Mu $!scopes;
-
-    method new(Mu :$global!, Mu :$context!, Mu :$setting) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $context);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!setting',
-            nqp::defined($setting)
-              ?? $setting
-              !! self.IMPL-SETTING-FROM-CONTEXT($context));
-        nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
-        nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
-        nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
-        my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
-        nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
-            $cur-package ?? [$cur-package] !! []);
-        nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!scopes', []);
-        $obj
-    }
-
-    # Return a clone, with a clone of all scopes
-    method clone() {
-        my $clone := nqp::findmethod(RakuAST::Resolver, 'clone')(self);
-        nqp::bindattr($clone, RakuAST::Resolver::EVAL, '$!scopes', nqp::clone($!scopes));
-        $clone
-    }
-
-    method suggest-routines(str $name) { [] }  # for now
-    method suggest-lexicals(str $name) { [] }  # for now
-
-    # Pushes an active lexical scope to be considered in lookup.
-    method push-scope(RakuAST::LexicalScope $scope) {
-        $!scopes.push($scope);
-        if nqp::istype($scope, RakuAST::AttachTarget) {
-            self.push-attach-target($scope);
-        }
-        Nil
-    }
-
-    # Gets the current RakuAST::LexicalScope we are in during resolution.
-    method current-scope() {
-        $!scopes[nqp::elems($!scopes) - 1]
-    }
-    method outer-scope() {
-        $!scopes[nqp::elems($!scopes) - 2]
-    }
-
-    # Pops the top active lexical scope.
-    method pop-scope() {
-        my $scope := $!scopes.pop;
-        self.pop-attach-target($scope)
-          if nqp::istype($scope, RakuAST::AttachTarget);
-        Nil
-    }
-
-    # Walks scopes from inner to outer and returns the first concrete value
-    # returned from the evaluator.
-    method find-scope-property(Code $evaluator) {
-        # Walk active scopes, most nested first.
-        my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            my $res := $evaluator($scope);
-            return $res if nqp::isconcrete($res);
-        }
-        Nil
-    }
-
-    # Resolves a lexical to its declaration. The declaration need not have a
-    # compile-time value.
-    method resolve-lexical(Str $name, Bool :$current-scope-only) {
-        my @scopes := $!scopes;
-
-        # If it's in the current scope only, just look at the top one, if any
-        if $current-scope-only {
-            return nqp::elems(@scopes)
-              ?? @scopes[nqp::elems(@scopes) - 1].find-lexical($name)
-              !! Nil;
-        }
-
-        # No need to look further
-        if $name eq 'GLOBAL' {
-            self.global-package;
-        }
-
-        # Walk active scopes, most nested first.
-        else {
-            my int $i := nqp::elems(@scopes);
-            while $i-- {
-                my $found := @scopes[$i].find-lexical($name);
-                return $found if nqp::isconcrete($found);
-            }
-
-            # Fallback: try the captured outer context, and if that doesn't
-            # reach the setting (e.g. EVAL from inside a BEGIN block whose
-            # outer chain isn't yet linked to CORE), walk $!setting directly.
-            my $found := self.resolve-lexical-in-outer($name);
-            return $found if nqp::isconcrete($found);
-            my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
-            nqp::isnull($setting) || !$setting
-              ?? Nil
-              !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
-        }
-    }
-
-    # Walk a given setting context for $name, returning an External::Setting
-    # on a hit. Setting-only walk: no native/primspec handling, since callers
-    # pass a real setting context. Mirrors the setting branch of
-    # resolve-lexical-in-outer on the base class.
-    method IMPL-RESOLVE-LEXICAL-IN-SETTING(Mu $setting, Str $name) {
-        my $context := $setting;
-        until nqp::isnull($context) {
-            if nqp::existskey($context, $name) {
-                return RakuAST::Declaration::External::Setting.new(
-                  :lexical-name($name),
-                  :compile-time-value(nqp::atkey($context, $name))
-                );
-            }
-            $context := nqp::ctxouter($context);
-        }
-        Nil
-    }
-
-    # Resolves a name to its lexical declaration if that declaration has a
-    # compile-time value, otherwise Nil. A name bound to a non-constant
-    # (e.g. `my \t := $runtime`) is not a compile-time constant, so the
-    # innermost such binding yields Nil rather than an outer constant.
-    method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
-
-        # No need to look further
-        if $name eq 'GLOBAL' {
-            self.global-package;
-        }
-
-        # If it's in the current scope only, just look at the top one, if any
-        elsif $current-scope-only {
-            my @scopes := $!scopes;
-            my $found := nqp::elems(@scopes)
-                ?? @scopes[nqp::elems(@scopes) - 1].find-lexical($name)
-                !! Nil;
-            nqp::isconcrete($found) && nqp::istype($found, RakuAST::CompileTimeValue)
-              ?? $found
-              !! Nil
-        }
-
-        # Walk active scopes, most nested first.
-        else {
-            my @scopes := $!scopes;
-            my int $i  := nqp::elems(@scopes);
-            while $i-- {
-                my $found := @scopes[$i].find-lexical($name);
-                if nqp::isconcrete($found) {
-                    return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
-                }
-            }
-
-            # Fallback: same shape as resolve-lexical above. Try the captured
-            # outer context; if that doesn't reach the setting (BEGIN-time
-            # EVAL cases), walk $!setting directly. Needed here because
-            # IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK asks for constants via
-            # this method when baking &routine / Nil / Mu etc. into
-            # dynamically-compiled Code bodies.
-            my $found := self.resolve-lexical-constant-in-outer($name);
-            return $found if nqp::isconcrete($found);
-            my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
-            nqp::isnull($setting) || !$setting
-              ?? Nil
-              !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
-        }
-    }
-}
-
-#-------------------------------------------------------------------------------
-# The compiler resolver is used in the situation we are parsing code and
-# building up a RakuAST as we go. We thus need to provide symbol resolutions
-# for the sake of parse disambiguation, as well as to handle BEGIN-time code.
-# A resolver may be created using an existing context, or it may be for a
-# compilation unit whose outer scope is some version of the setting.
-class RakuAST::Resolver::Compile
-  is RakuAST::Resolver
-{
-    # Scopes stack; an array of RakuAST::Resolver::Compile::Scope.
-    has Mu $!scopes;
-
-    # Sorries and worries produced by the compiler.
-    has Mu $!sorries;
-    has Mu $!worries;
-
-    # Create a resolver from given arguments
-    method new(Mu :$setting!, Mu :$outer!, Mu :$global!, Mu :$scopes, Mu :$attach-targets) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $setting);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $outer);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', $attach-targets // nqp::hash());
-        nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
-        nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
-
-        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes',
-          $scopes // []);
-        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!sorries', []);
-        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!worries', []);
-        $obj
-    }
-
-    # Create a resolver from a context and existing global. Used when we are
-    # compiling a textual EVAL.
-    method from-context(Mu :$context!, Mu :$global!, RakuAST::Resolver :$resolver) {
-        my $setting := $resolver
-            ?? nqp::getattr($resolver, RakuAST::Resolver, '$!setting')
-            !! self.IMPL-SETTING-FROM-CONTEXT($context);
-        # The cloned scopes of an enclosing compilation are consulted
-        # first, but lexicals living in an already-running caller frame
-        # (like $/ and $!) are only reachable through the runtime context
-        # chain, which also ends in the setting.
-        self.new(
-            :$setting,
-            :outer($context),
-            :$global,
-            :scopes($resolver ?? nqp::clone(nqp::getattr($resolver, RakuAST::Resolver::Compile, '$!scopes')) !! Mu),
-            :attach-targets($resolver ?? $resolver.IMPL-CLONE-ATTACH-TARGETS !! Mu),
-        )
-    }
-
-    method clone() {
-        my $clone := nqp::findmethod(RakuAST::Resolver, 'clone')(self);
-        nqp::bindattr($clone, RakuAST::Resolver::Compile, '$!scopes', nqp::clone($!scopes));
-        $clone
-    }
-
-    # Create a resolver for a fresh compilation unit of the specified language
-    # version.
-    method from-setting(Str :$setting-name!) {
-        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
-        my $setting := $setting-name eq 'NULL.c' ?? nqp::null !! $loader.load_setting($setting-name);
-        # We can't actually have the global yet, since the resolver is
-        # needed in order to look up the package meta-object used to
-        # create it. Thus it's set later.
-        self.new(:$setting, :outer($setting), :global(Mu))
-    }
-
-    method set-setting(Str :$setting-name!) {
-        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
-        my $setting := $loader.load_setting($setting-name);
-        nqp::bindattr(self, RakuAST::Resolver, '$!setting', $setting);
-        nqp::bindattr(self, RakuAST::Resolver, '$!outer', $setting);
-    }
-
-    # Pushes an active lexical scope to be considered in lookup. Used only in
-    # batch resolve mode.
-    method push-scope(RakuAST::LexicalScope $scope) {
-        nqp::push($!scopes, RakuAST::Resolver::Compile::Scope.new(:$scope, :batch-mode));
-        if nqp::istype($scope, RakuAST::AttachTarget) {
-            self.push-attach-target($scope);
-        }
-        Nil
-    }
-
-    # Gets the current RakuAST::LexicalScope we are in during resolution.
-    method current-scope() {
-        $!scopes[nqp::elems($!scopes) - 1].scope
-    }
-    method outer-scope() {
-        $!scopes[nqp::elems($!scopes) - 2].scope
-    }
-
-    # Pops the top active lexical scope. Used only in batch resolve mode.
-    method pop-scope() {
-        my $scope := nqp::pop($!scopes);
-        $scope.batch-mode ||
-            nqp::die('pop-scope should only be used on batch mode scopes');
-        if nqp::istype($scope.scope, RakuAST::AttachTarget) {
-            self.pop-attach-target($scope.scope);
-        }
-        Nil
-    }
-
-    # Enters a new scope. Used in compilation mode. In this case, declarations
-    # are registered as they are made, so we don't have to have them immediately
-    # linked into the tree.
-    method enter-scope(RakuAST::LexicalScope $scope) {
-        nqp::push($!scopes, RakuAST::Resolver::Compile::Scope.new(:$scope, :!batch-mode));
-        if nqp::istype($scope, RakuAST::AttachTarget) {
-            self.push-attach-target($scope);
-        }
-        Nil
-    }
-
-    method re-enter-scope(RakuAST::Resolver::Compile::Scope $scope) {
-        nqp::push($!scopes, $scope);
-        if nqp::istype($scope.scope, RakuAST::AttachTarget) {
-            self.push-attach-target($scope.scope);
-        }
-        Nil
-    }
-
-    # Indicates that any implicit declarations for the current scope should now
-    # come into force. Only used in compilation mode. Called by the compiler at
-    # the appropriate point.
-    method create-scope-implicits() {
-        $!scopes[nqp::elems($!scopes) - 1].create-implicits();
-        Nil
-    }
-
-    # Leaves a lexical scope. Used in compilation mode.
-    method leave-scope() {
-        my $scope := nqp::pop($!scopes);
-        $scope.batch-mode &&
-            nqp::die('leave-scope should never be used on batch mode scopes');
-        if nqp::istype($scope.scope, RakuAST::AttachTarget) {
-            self.pop-attach-target($scope.scope);
-        }
-        $scope
-    }
-
-    # Walks scopes from inner to outer and returns the first concrete value
-    # returned from the evaluator.
-    method find-scope-property(Code $evaluator) {
-        # Walk active scopes, most nested first.
-        my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            my $res := $evaluator($scope.scope);
-            return $res if nqp::isconcrete($res);
-        }
-        Nil
-    }
-
-    # Add a lexical declaration. Used when the compiler produces the
-    # declaration, so that we can resolve it without requiring it to be
-    # linked into the tree.
-    method declare-lexical(RakuAST::Declaration $decl) {
-        CATCH {
-            if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
-                self.build-exception('X::Syntax::Extension::TooComplex', name => nqp::getpayload($_).name).throw;
-            }
-            nqp::rethrow($_);
-        }
-        $!scopes[nqp::elems($!scopes) - 1].declare-lexical($decl)
-    }
-
-    # Add a lexical declaration in the outer scope relative to the current one.
-    # Used when the compiler produces the declaration, but already entered into
-    # that declaration's inner scope.
-    method declare-lexical-in-outer(RakuAST::Declaration $decl) {
-        CATCH {
-            if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
-                self.build-exception('X::Syntax::Extension::TooComplex', name => nqp::getpayload($_).name).throw;
-            }
-            nqp::rethrow($_);
-        }
-        $!scopes[nqp::elems($!scopes) - 2].declare-lexical($decl)
-    }
-
-    # Resolves a lexical to its declaration. The declaration need not have a
-    # compile-time value.
-    method resolve-lexical(Str $name, Bool :$current-scope-only) {
-        # If it's in the current scope only, we just look at the top one.
-        if $current-scope-only {
-            my @scopes := $!scopes;
-            my int $i := nqp::elems(@scopes);
-            return $i > 0 ?? @scopes[$i - 1].find-lexical($name) !! Nil;
-        }
-
-        if $name eq 'GLOBAL' {
-            return self.global-package;
-        }
-
-        # Walk active scopes, most nested first.
-        my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            my $found := $scope.find-lexical($name);
-            return $found if nqp::isconcrete($found);
-        }
-
-        self.resolve-lexical-in-outer($name)
-    }
-
-    # Resolves a name to its lexical declaration if that declaration has a
-    # compile-time value, otherwise Nil. A name bound to a non-constant
-    # (e.g. `my \t := $runtime`) is not a compile-time constant, so the
-    # innermost such binding yields Nil rather than an outer constant.
-    method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
-
-        # Only one GLOBAL
-        if $name eq 'GLOBAL' {
-            self.global-package
-        }
-
-        # If it's in the current scope only, just look at the top one, if any
-        elsif $current-scope-only {
-            (my @scopes := $!scopes)
-              && (my $found := @scopes[nqp::elems(@scopes) - 1].find-lexical($name))
-              && nqp::isconcrete($found)
-              && nqp::istype($found, RakuAST::CompileTimeValue)
-              ?? $found
-              !! Nil
-        }
-
-        # Walk active scopes, most nested first
-        else {
-            my @scopes := $!scopes;
-            my int $i  := nqp::elems(@scopes);
-            while $i-- {
-                my $found := @scopes[$i].find-lexical($name);
-                if nqp::isconcrete($found) {
-                    return nqp::istype($found, RakuAST::CompileTimeValue)
-                      ?? $found
-                      !! Nil;
-                }
-            }
-
-            # Fall back to looking in outer scopes
-            self.resolve-lexical-constant-in-outer($name)
-        }
-    }
-
-    # Add a sorry check-time problem produced by the compiler.
-    method add-sorry(Any $exception) {
-        nqp::push($!sorries, $exception);
-        Nil
-    }
-    method has-sorries() { nqp::elems($!sorries) > 0 }
-
-    # Add a worry check-time problem produced by the compiler.
-    method add-worry(Any $exception) {
-        my $worries := self.find-scope-property(-> $scope { $scope.tell-worries });
-        if !nqp::isconcrete($worries) || $worries {
-            nqp::push($!worries, $exception);
-        }
-        Nil
-    }
-    method has-worries() { nqp::elems($!worries) > 0 }
-
-    # Panic with the specified exception. This immediately throws it,
-    # incorporating any sorries and worries.
-    method panic(Any $exception) {
-        self.produce-compilation-exception(:panic($exception)).throw
-    }
-
-    # Gathers all sorries (from check time, if performed, and syntactic).
-    method all-sorries() {
-        my @sorries := RakuAST::Node.IMPL-UNWRAP-LIST:
-            nqp::findmethod(RakuAST::Resolver,'all-sorries')(self);
-        for $!sorries {
-            @sorries.push($_);
-        }
-        RakuAST::Node.IMPL-WRAP-LIST(@sorries)
-    }
-
-    # Gathers all worries (from check time, if performed, and syntactic).
-    method all-worries() {
-        my @worries := RakuAST::Node.IMPL-UNWRAP-LIST:
-            nqp::findmethod(RakuAST::Resolver,'all-worries')(self);
-        for $!worries {
-            @worries.push($_);
-        }
-        RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }
 
     # this levenshtein implementation is used to suggest good alternatives
@@ -1482,39 +1248,6 @@ class RakuAST::Resolver::Compile
         }
     }
 
-    method walk-scopes(Hash $seen, Code $inner-evaluator) {
-        # Walk active scopes, most nested first.
-        my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            for $scope.lexical-declarations {
-                my $name := $_.lexical-name;
-                next if nqp::existskey($seen, $name);
-                $seen{$name} := 1;
-                $inner-evaluator($name);
-            }
-            if nqp::istype($scope.scope, RakuAST::Package::Attachable) {
-                for $scope.scope.attached-attributes {
-                    my $name := $_.lexical-name;
-                    next if nqp::existskey($seen, $name);
-                    $seen{$name} := 1;
-                    $inner-evaluator($name);
-                }
-            }
-        }
-
-        my $ctx := nqp::getattr(self, RakuAST::Resolver, '$!outer');
-        while !nqp::isnull($ctx) {
-            for $ctx -> $name {
-                next if nqp::existskey($seen, $name);
-                $seen{$name} := 1;
-                $inner-evaluator($name);
-            }
-            $ctx := nqp::ctxouter($ctx);
-        }
-    }
-
     method suggest-lexicals(Str $name) {
         my @suggestions;
         my @candidates := [[], [], []];
@@ -1548,7 +1281,7 @@ class RakuAST::Resolver::Compile
         self.walk-scopes(%seen, &inner-evaluator);
 
         self.levenshtein_candidate_heuristic(@candidates, @suggestions);
-        if !$with_sigil {
+        unless $with_sigil {
             my @no_sigils;  # can't do in-place $_ alteration
             for @suggestions {
                 nqp::push( @no_sigils, nqp::substr($_,1,nqp::chars($_) - 1) );
@@ -1574,7 +1307,7 @@ class RakuAST::Resolver::Compile
             @suggestions.push: 'proceed';
             @suggestions.push: 'succeed';
         }
-        return @suggestions;
+        @suggestions
     }
 
     method suggest-typename(Str $name) {
@@ -1616,6 +1349,1053 @@ class RakuAST::Resolver::Compile
 
         @suggestions
     }
+
+    # Walk the lexicals of the outer context chain. Subclasses that model
+    # compile-time scopes extend this with those scopes' declarations.
+    method walk-scopes(Hash $seen, Code $inner-evaluator) {
+        my $ctx := $!outer;
+        until nqp::isnull($ctx) {
+            for $ctx -> $name {
+                unless nqp::existskey($seen, $name) {
+                    $seen{$name} := 1;
+                    $inner-evaluator($name);
+                }
+            }
+            $ctx := self.IMPL-OUTER-OF($ctx);
+        }
+    }
+}
+
+#-------------------------------------------------------------------------------
+# The EVAL resolver is used when we are given an AST as a whole, and visit it
+# to perform resolutions. We expect a context and GLOBAL to be provided in this
+# mode.
+class RakuAST::Resolver::EVAL
+  is RakuAST::Resolver
+{
+    # The stack of scopes we are in (an array of RakuAST::LexicalScope).
+    has Mu $!scopes;
+
+    method new(Mu :$global!, Mu :$context!, Mu :$setting, Mu :$outer-resolver) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $context);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!setting',
+            nqp::defined($setting)
+              ?? $setting
+              !! self.IMPL-SETTING-FROM-CONTEXT($context));
+        nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!sorries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!worries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!exporthow', nqp::hash());
+        my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
+        nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
+            $cur-package
+              ?? [$cur-package]
+              !! nqp::isconcrete($outer-resolver)
+                ?? nqp::clone(nqp::getattr($outer-resolver, RakuAST::Resolver, '$!packages'))
+                !! []);
+        nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!scopes', []);
+        $obj
+    }
+
+    # Return a clone, with a clone of all scopes
+    method clone() {
+        my $clone := nqp::findmethod(RakuAST::Resolver, 'clone')(self);
+        nqp::bindattr($clone, RakuAST::Resolver::EVAL, '$!scopes', nqp::clone($!scopes));
+        $clone
+    }
+
+    method IMPL-PACKAGE-BODY-AROUND(Str $name) {
+        self.IMPL-PACKAGE-BODY-AROUND-IN($!scopes, $name, 0)
+    }
+
+    method walk-scopes(Hash $seen, Code $inner-evaluator) {
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            for @scopes[$i].lexical-declarations {
+                my $name := $_.lexical-name;
+                next if nqp::existskey($seen, $name)
+                  || @scopes[$i].IMPL-HIDES-META-NAME($name);
+                $seen{$name} := 1;
+                $inner-evaluator($name);
+            }
+        }
+
+        nqp::findmethod(RakuAST::Resolver, 'walk-scopes')(
+          self, $seen, $inner-evaluator);
+    }
+
+    # Pushes an active lexical scope to be considered in lookup.
+    method push-scope(RakuAST::LexicalScope $scope) {
+        $!scopes.push($scope);
+        if nqp::istype($scope, RakuAST::AttachTarget) {
+            self.push-attach-target($scope);
+        }
+        Nil
+    }
+
+    # Gets the current RakuAST::LexicalScope we are in during resolution.
+    method current-scope() {
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 1)
+    }
+    method outer-scope() {
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 2)
+    }
+
+    # Pops the top active lexical scope.
+    method pop-scope() {
+        my $scope := $!scopes.pop;
+        self.pop-attach-target($scope)
+          if nqp::istype($scope, RakuAST::AttachTarget);
+        Nil
+    }
+
+    # Walks scopes from inner to outer and returns the first concrete value
+    # returned from the evaluator.
+    method find-scope-property(Code $evaluator) {
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my $res    := Nil;
+        my int $i  := nqp::elems(@scopes);
+        nqp::until(  # XXX do we really skip the outermost intentionally?
+          $i-- == 0 || nqp::isconcrete(
+            $res := $evaluator(nqp::atpos(@scopes,$i))
+          ),
+          nqp::null
+        );
+        $res
+    }
+
+    # Whether the nearest active scope declaring the name is the outermost
+    # one and declares it as the given declaration. A routine's own scope
+    # finding the routine itself is skipped, since that lookup runs in the
+    # enclosing frame.
+    method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return nqp::eqaddr(@scopes[$i], @scopes[0]) && nqp::eqaddr($found, $decl) ?? 1 !! 0
+                if nqp::isconcrete($found)
+                && !(nqp::eqaddr($found, $decl) && nqp::eqaddr(@scopes[$i], $decl));
+        }
+        0
+    }
+
+    method IMPL-SCOPE-DEPTH() { nqp::elems($!scopes) }
+    method IMPL-UNWIND-SCOPES(int $depth) {
+        self.pop-scope() while nqp::elems($!scopes) > $depth;
+        Nil
+    }
+
+    # Resolves a lexical to its declaration. The declaration need not have a
+    # compile-time value.
+    method resolve-lexical(Str $name, Bool :$current-scope-only) {
+        my @scopes := $!scopes;
+
+        # If it's in the current scope only, just look at the top one, if any
+        if $current-scope-only {
+            nqp::elems(@scopes)
+              ?? @scopes[nqp::elems(@scopes) - 1].find-lexical($name)
+              !! Nil;
+        }
+
+        # No need to look further
+        elsif $name eq 'GLOBAL' {
+            self.global-package;
+        }
+
+        # Walk active scopes, most nested first.
+        else {
+            my int $i := nqp::elems(@scopes);
+            my $found;
+
+            nqp::until(
+              nqp::not_i($i) || nqp::isconcrete(
+                $found := @scopes[--$i].find-lexical($name)
+              ),
+              nqp::null
+            );
+
+            # Found it
+            if nqp::isconcrete($found) {
+                $found
+            }
+
+            # Fallback: try the captured outer context, and if that doesn't
+            # reach the setting (e.g. EVAL from inside a BEGIN block whose
+            # outer chain isn't yet linked to CORE), walk $!setting directly.
+            elsif nqp::isconcrete($found := self.resolve-lexical-in-outer($name)) {
+                $found
+            }
+            else {
+                my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
+                nqp::isconcrete($setting)
+                  ?? self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
+                  !! Nil
+            }
+        }
+    }
+
+    # Walk a given setting context for $name, returning an External::Setting
+    # on a hit. Setting-only walk: no native/primspec handling, since callers
+    # pass a real setting context. Mirrors the setting branch of
+    # resolve-lexical-in-outer on the base class.
+    method IMPL-RESOLVE-LEXICAL-IN-SETTING(Mu $setting, Str $name) {
+        my $context := $setting;
+        until nqp::isnull($context) {
+            if nqp::existskey($context, $name) {
+                return RakuAST::Declaration::External::Setting.new(
+                  :lexical-name($name),
+                  :compile-time-value(nqp::atkey($context, $name))
+                );
+            }
+            $context := nqp::ctxouter($context);
+        }
+        Nil
+    }
+
+    # Resolves a name to the lexical constant it refers to in the
+    # enclosing scope, consulting only the compilation unit's own
+    # scopes. The innermost scope is not searched. Neither the outer
+    # context nor the setting is consulted. This finds the declaration
+    # that a same-named declaration in the current scope shadows.
+    method resolve-shadowed-lexical-constant-in-scopes(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        if $i > 1 {
+            $i := $i - 1;
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+                }
+            }
+        }
+        Nil
+    }
+
+    # Resolves a name to the lexical constant it refers to in the
+    # enclosing scope: the innermost scope is not searched. This finds
+    # the declaration that a same-named declaration in the current
+    # scope shadows. The fallback chain matches resolve-lexical-constant
+    # below.
+    method resolve-shadowed-lexical-constant(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        if $i > 1 {
+            $i := $i - 1;
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+                }
+            }
+        }
+        my $found := self.resolve-lexical-constant-in-outer($name);
+        return $found if nqp::isconcrete($found);
+        my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
+        nqp::isnull($setting) || !$setting
+          ?? Nil
+          !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
+    }
+
+    # Resolves a name for an indirect lookup at BEGIN time. The innermost
+    # declaration in the unit hides the context around it, and is found only
+    # with a compile-time value. The context is asked when the unit has none.
+    method IMPL-RESOLVE-BEGIN-TIME-CONSTANT(Str $name) {
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            if nqp::isconcrete($found) {
+                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+            }
+        }
+        self.IMPL-BEGIN-TIME-CONSTANT-IN-OUTER($name)
+    }
+
+    # Resolves a name to the lexical declared in the compilation unit's
+    # scopes, of any kind. The outer context is not consulted.
+    method resolve-lexical-in-scopes(Str $name) {
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return $found if nqp::isconcrete($found);
+        }
+        Nil
+    }
+
+    # Resolves a name to the lexical constant declared in the
+    # compilation unit's own scopes. The outer context and setting are
+    # not consulted.
+    method resolve-lexical-constant-in-scopes(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            if nqp::isconcrete($found) {
+                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+            }
+        }
+        Nil
+    }
+
+    # Resolves a name to its lexical declaration if that declaration has a
+    # compile-time value, otherwise Nil. A name bound to a non-constant
+    # (e.g. `my \t := $runtime`) is not a compile-time constant, so the
+    # innermost such binding yields Nil rather than an outer constant.
+    method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
+
+        # No need to look further
+        if $name eq 'GLOBAL' {
+            self.global-package;
+        }
+
+        # If it's in the current scope only, just look at the top one, if any
+        elsif $current-scope-only {
+            my @scopes := $!scopes;
+            my $found := nqp::elems(@scopes)
+                ?? @scopes[nqp::elems(@scopes) - 1].find-lexical($name)
+                !! Nil;
+            nqp::isconcrete($found) && nqp::istype($found, RakuAST::CompileTimeValue)
+              ?? $found
+              !! Nil
+        }
+
+        # Walk active scopes, most nested first.
+        else {
+            my @scopes := $!scopes;
+            my int $i  := nqp::elems(@scopes);
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+                }
+            }
+
+            # Fallback: same shape as resolve-lexical above. Try the captured
+            # outer context; if that doesn't reach the setting (BEGIN-time
+            # EVAL cases), walk $!setting directly. Needed here because
+            # IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK asks for constants via
+            # this method when baking &routine / Nil / Mu etc. into
+            # dynamically-compiled Code bodies.
+            my $found := self.resolve-lexical-constant-in-outer($name);
+            return $found if nqp::isconcrete($found);
+            my $setting := nqp::getattr(self, RakuAST::Resolver, '$!setting');
+            nqp::isnull($setting) || !$setting
+              ?? Nil
+              !! self.IMPL-RESOLVE-LEXICAL-IN-SETTING($setting, $name)
+        }
+    }
+}
+
+#-------------------------------------------------------------------------------
+# The compiler resolver is used in the situation we are parsing code and
+# building up a RakuAST as we go. We thus need to provide symbol resolutions
+# for the sake of parse disambiguation, as well as to handle BEGIN-time code.
+# A resolver may be created using an existing context, or it may be for a
+# compilation unit whose outer scope is some version of the setting.
+class RakuAST::Resolver::Compile
+  is RakuAST::Resolver
+{
+    # Scopes stack; an array of RakuAST::Resolver::Compile::Scope.
+    has Mu $!scopes;
+
+    # The heredoc body being parsed, if any, as IMPL-ENTER-HEREDOC-BODY
+    # records it.
+    has Mu $!heredoc-body;
+
+    # The names heredoc bodies used, each with the scopes opened later on
+    # the heredoc's line that must not declare it after the body.
+    has Mu $!heredoc-watches;
+
+    # How many heredocs await their body, and what runs once they have it.
+    has int $!heredocs-awaiting-body;
+    has Mu $!after-heredoc-bodies;
+
+    # Create a resolver from given arguments
+    method new(Mu :$setting!, Mu :$outer!, Mu :$global!, Mu :$scopes, Mu :$attach-targets) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $setting);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $outer);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', $attach-targets // nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!our-package-decl-map', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!compunit-role-groups', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!exporthow', nqp::hash());
+
+        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes',
+          $scopes // []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!sorries', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!worries', []);
+        $obj
+    }
+
+    # Create a resolver from a context and existing global. Used when we are
+    # compiling a textual EVAL.
+    method from-context(Mu :$context!, Mu :$global!, RakuAST::Resolver :$resolver) {
+        my $setting := $resolver
+            ?? nqp::getattr($resolver, RakuAST::Resolver, '$!setting')
+            !! self.IMPL-SETTING-FROM-CONTEXT($context);
+        # The cloned scopes of an enclosing compilation are consulted
+        # first, but lexicals living in an already-running caller frame
+        # (like $/ and $!) are only reachable through the runtime context
+        # chain, which also ends in the setting.
+        my $obj := self.new(
+            :$setting,
+            :outer($context),
+            :$global,
+            :scopes($resolver ?? nqp::clone(nqp::getattr($resolver, RakuAST::Resolver::Compile, '$!scopes')) !! Mu),
+            :attach-targets($resolver ?? $resolver.IMPL-CLONE-ATTACH-TARGETS !! Mu),
+        );
+        nqp::bindattr($obj, RakuAST::Resolver, '$!enclosing-export-package',
+          $resolver.export-package) if $resolver;
+        # The EVAL is in the package its context declares, and otherwise in
+        # the package of the enclosing compilation, which a setting context
+        # cannot name.
+        if $resolver {
+            my $package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
+            nqp::bindattr($obj, RakuAST::Resolver, '$!packages', $package
+                ?? [RakuAST::Declaration::External::Package.new(
+                      lexical-name => '$?PACKAGE',
+                      compile-time-value => $package.compile-time-value
+                    )]
+                !! nqp::clone(nqp::getattr($resolver, RakuAST::Resolver, '$!packages')));
+        }
+        $obj
+    }
+
+    # An EVAL nested in a compilation running a begin-time effect walks out
+    # of the frames of that compilation into the context the compilation is
+    # compiled in. Only a nested EVAL binds what it finds there into its code.
+    method IMPL-WALK-PAST-BEGIN-TIME() {
+        my $state := nqp::getlexdyn('$*BEGIN-TIME-LOOKUP');
+        unless nqp::isnull($state) {
+            my $compiling := nqp::atpos($state, 0);
+            my @outers    := nqp::clone($compiling.IMPL-BEGIN-TIME-OUTERS);
+            nqp::unshift(@outers,
+              nqp::list(nqp::atpos($state, 1), $compiling.outer-context));
+            nqp::bindattr(self, RakuAST::Resolver, '$!begin-time-outers', @outers);
+        }
+        Nil
+    }
+
+    method clone() {
+        my $clone := nqp::findmethod(RakuAST::Resolver, 'clone')(self);
+        nqp::bindattr($clone, RakuAST::Resolver::Compile, '$!scopes', nqp::clone($!scopes));
+        $clone
+    }
+
+    method IMPL-PACKAGE-BODY-AROUND(Str $name) {
+        self.IMPL-PACKAGE-BODY-AROUND-IN($!scopes, $name, 1)
+    }
+
+    # Create a resolver for a fresh compilation unit of the specified language
+    # version.
+    method from-setting(Str :$setting-name!) {
+        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+        my $setting := $setting-name eq 'NULL.c' ?? nqp::null !! $loader.load_setting($setting-name);
+        # We can't actually have the global yet, since the resolver is
+        # needed in order to look up the package meta-object used to
+        # create it. Thus it's set later.
+        self.new(:$setting, :outer($setting), :global(Mu))
+    }
+
+    method set-setting(Str :$setting-name!) {
+        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+        my $setting := $loader.load_setting($setting-name);
+        nqp::bindattr(self, RakuAST::Resolver, '$!setting', $setting);
+        nqp::bindattr(self, RakuAST::Resolver, '$!outer', $setting);
+    }
+
+    # Pushes an active lexical scope to be considered in lookup. Used only in
+    # batch resolve mode.
+    method push-scope(RakuAST::LexicalScope $scope) {
+        nqp::push($!scopes, RakuAST::Resolver::Compile::Scope.new(:$scope, :batch-mode));
+        if nqp::istype($scope, RakuAST::AttachTarget) {
+            self.push-attach-target($scope);
+        }
+        Nil
+    }
+
+    # Gets the current RakuAST::LexicalScope we are in during resolution.
+    method current-scope() {
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 1).scope
+    }
+    method outer-scope() {
+        nqp::atpos($!scopes,nqp::elems($!scopes) - 2).scope
+    }
+
+    # Pops the top active lexical scope. Used only in batch resolve mode.
+    method pop-scope() {
+        my $scope := nqp::pop($!scopes);
+        $scope.batch-mode ||
+            nqp::die('pop-scope should only be used on batch mode scopes');
+        if nqp::istype($scope.scope, RakuAST::AttachTarget) {
+            self.pop-attach-target($scope.scope);
+        }
+        Nil
+    }
+
+    # Enters a new scope. Used in compilation mode. In this case, declarations
+    # are registered as they are made, so we don't have to have them immediately
+    # linked into the tree.
+    method enter-scope(RakuAST::LexicalScope $scope) {
+        nqp::push($!scopes, RakuAST::Resolver::Compile::Scope.new(:$scope, :!batch-mode));
+        if nqp::istype($scope, RakuAST::AttachTarget) {
+            self.push-attach-target($scope);
+        }
+        Nil
+    }
+
+    method re-enter-scope(RakuAST::Resolver::Compile::Scope $scope) {
+        nqp::push($!scopes, $scope);
+        if nqp::istype($scope.scope, RakuAST::AttachTarget) {
+            self.push-attach-target($scope.scope);
+        }
+        Nil
+    }
+
+    # Indicates that any implicit declarations for the current scope should now
+    # come into force. Only used in compilation mode. Called by the compiler at
+    # the appropriate point.
+    method create-scope-implicits() {
+        $!scopes[nqp::elems($!scopes) - 1].create-implicits();
+        Nil
+    }
+
+    # Leaves a lexical scope. Used in compilation mode.
+    method leave-scope() {
+        my $scope := nqp::pop($!scopes);
+        $scope.batch-mode &&
+            nqp::die('leave-scope should never be used on batch mode scopes');
+        if nqp::istype($scope.scope, RakuAST::AttachTarget) {
+            self.pop-attach-target($scope.scope);
+        }
+        $scope
+    }
+
+    # Walks scopes from inner to outer and returns the first concrete value
+    # returned from the evaluator.
+    method find-scope-property(Code $evaluator) {
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my $res    := Nil;
+        my int $i  := nqp::elems(@scopes);
+        nqp::until(  # XXX do we really skip the outermost intentionally?
+          $i-- == 0 || nqp::isconcrete(
+            $res := $evaluator(nqp::atpos(@scopes,$i).scope)
+          ),
+          nqp::null
+        );
+        $res
+    }
+
+    # Whether the nearest active scope declaring the name is the outermost
+    # one and declares it as the given declaration. A scope still being
+    # parsed answers from its live declaration map, so its AST lexical
+    # lookup table is not cached before its declarations are complete.
+    # The outermost scope can be on the stack twice, entered by the parse
+    # and pushed again by a batch walk, so scopes compare by node. A
+    # routine's own scope finding the routine itself is skipped, since
+    # that lookup runs in the enclosing frame.
+    method IMPL-DECLARED-ONLY-IN-OUTERMOST-SCOPE(Str $name, Mu $decl) {
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return nqp::eqaddr(@scopes[$i].scope, @scopes[0].scope) && nqp::eqaddr($found, $decl) ?? 1 !! 0
+                if nqp::isconcrete($found)
+                && !(nqp::eqaddr($found, $decl) && nqp::eqaddr(@scopes[$i].scope, $decl));
+        }
+        0
+    }
+
+    method IMPL-SCOPE-DEPTH() { nqp::elems($!scopes) }
+    method IMPL-UNWIND-SCOPES(int $depth) {
+        self.pop-scope() while nqp::elems($!scopes) > $depth;
+        Nil
+    }
+
+    # The scopes, attachment targets and packages that code at this point
+    # compiles in, as they stand now. A heredoc records them where it starts,
+    # so its body binds names, attaches and declares as code there would.
+    method IMPL-HEREDOC-STATE() {
+        nqp::bindattr_i(self, RakuAST::Resolver::Compile, '$!heredocs-awaiting-body',
+          $!heredocs-awaiting-body + 1);
+        my @scopes;
+        nqp::push(@scopes, $_.IMPL-SNAPSHOT) for $!scopes;
+        nqp::hash(
+          'scopes', @scopes,
+          'attach-targets', self.IMPL-CLONE-ATTACH-TARGETS,
+          'packages', nqp::clone(nqp::getattr(self, RakuAST::Resolver, '$!packages')))
+    }
+
+    # Switches to the state a heredoc recorded where it starts, for parsing
+    # its body. The body notes the scopes where it is parsed, how many scopes
+    # it runs in, and what IMPL-LEAVE-HEREDOC-BODY restores.
+    method IMPL-ENTER-HEREDOC-BODY(Mu $state) {
+        nqp::bindattr_i(self, RakuAST::Resolver::Compile, '$!heredocs-awaiting-body',
+          $!heredocs-awaiting-body - 1);
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!heredoc-watches', nqp::hash())
+          unless nqp::isconcrete($!heredoc-watches);
+        my @scopes := $state<scopes>;
+        $_.IMPL-TAKE-BODY-DECLARATIONS for @scopes;
+        my int $shared;
+        $shared++ while $shared < nqp::elems(@scopes) && $shared < nqp::elems($!scopes)
+          && nqp::eqaddr(@scopes[$shared].scope, $!scopes[$shared].scope);
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!heredoc-body', nqp::hash(
+          'outer', $!heredoc-body,
+          'scopes', $!scopes,
+          'parse-scopes', nqp::clone($!scopes),
+          'depth', nqp::elems(@scopes),
+          'shared', $shared,
+          'attach-targets', nqp::getattr(self, RakuAST::Resolver, '$!attach-targets'),
+          'packages', nqp::getattr(self, RakuAST::Resolver, '$!packages')));
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!scopes', @scopes);
+        nqp::bindattr(self, RakuAST::Resolver, '$!attach-targets', $state<attach-targets>);
+        nqp::bindattr(self, RakuAST::Resolver, '$!packages', $state<packages>);
+        Nil
+    }
+
+    method IMPL-LEAVE-HEREDOC-BODY() {
+        my %body := $!heredoc-body;
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!scopes', %body<scopes>);
+        nqp::bindattr(self, RakuAST::Resolver, '$!attach-targets', %body<attach-targets>);
+        nqp::bindattr(self, RakuAST::Resolver, '$!packages', %body<packages>);
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!heredoc-body', %body<outer>);
+        Nil
+    }
+
+    method IMPL-HEREDOCS-AWAITING-BODY() { $!heredocs-awaiting-body }
+
+    # Whether the heredoc body being parsed starts in the scope but is written
+    # after its closing brace.
+    method IMPL-HEREDOC-SCOPE-CLOSED(Mu $scope) {
+        my $body := $!heredoc-body;
+        return False unless nqp::isconcrete($body);
+        my int $i := $body<depth>;
+        my int $starts-in;
+        while $i-- {
+            $starts-in := 1 if nqp::eqaddr($!scopes[$i].scope, $scope);
+        }
+        return False unless $starts-in;
+        for $body<parse-scopes> {
+            return False if nqp::eqaddr($_.scope, $scope);
+        }
+        True
+    }
+
+    # Runs the code once the queued heredocs have their bodies.
+    method IMPL-AFTER-HEREDOC-BODIES(Mu $code) {
+        nqp::bindattr(self, RakuAST::Resolver::Compile, '$!after-heredoc-bodies', [])
+          unless nqp::isconcrete($!after-heredoc-bodies);
+        nqp::push($!after-heredoc-bodies, $code);
+        Nil
+    }
+
+    # Called by the parser once it attached the queued heredoc bodies.
+    method IMPL-HEREDOC-BODIES-ATTACHED() {
+        my $after := $!after-heredoc-bodies;
+        if nqp::isconcrete($after) && !$!heredocs-awaiting-body {
+            nqp::bindattr(self, RakuAST::Resolver::Compile, '$!after-heredoc-bodies', Mu);
+            $_() for $after;
+        }
+        Nil
+    }
+
+    # How code where the heredoc starts finds the name. Returns why the body
+    # may not use it, or the empty string, and the declaration it finds. A
+    # lookup notes why on the lookup node being parsed.
+    method IMPL-HEREDOC-LOOKUP(Str $name, :$note) {
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        my $found := Nil;
+        # The names the compiler declares for the code a body runs in are
+        # exempt, such as self, the topic and those with a ? twigil.
+        if $name eq 'self' || $name eq '$_' || $name eq '$/'
+          || $name eq '$!' || $name eq '$¢'
+          || nqp::eqat($name, '?', 1) || nqp::eqat($name, '::?', 0) {
+            while $i-- {
+                $found := @scopes[$i].find-lexical($name);
+                return ['', $found] if nqp::isconcrete($found);
+            }
+            return ['', Nil];
+        }
+        my int $later;
+        while $i-- {
+            my $scope := @scopes[$i];
+            $found := $scope.find-lexical($name);
+            last if nqp::isconcrete($found);
+            # A routine is visible in all of its scope, so one declared after
+            # the heredoc starts is what code there calls. Anything else
+            # declared then would be used before its declaration.
+            $found := $scope.IMPL-FIND-LATER-LEXICAL($name);
+            last if nqp::istype($found, RakuAST::Routine);
+            $later := 1 if nqp::isconcrete($found);
+            $found := Nil;
+        }
+        my str $refusal := self.IMPL-HEREDOC-REFUSAL($name, $i);
+        if $later && $refusal eq '' {
+            $refusal := $i >= 0 || nqp::isconcrete(self.resolve-lexical-in-outer($name))
+              ?? 'ambiguous'
+              !! 'undeclared';
+        }
+        # Where the body is written a package name not in scope is looked up
+        # in the packages, which can reach the same package an our declared.
+        elsif $refusal eq 'hidden' && nqp::istype($found, RakuAST::CompileTimeValue)
+          && nqp::index('$@%&', nqp::substr($name, 0, 1)) < 0 {
+            my $packages := nqp::getattr(self, RakuAST::Resolver, '$!packages');
+            nqp::bindattr(self, RakuAST::Resolver, '$!packages', $!heredoc-body<packages>);
+            my $in-packages := self.IMPL-RESOLVE-NAME-IN-PACKAGES(
+              RakuAST::Name.from-identifier($name));
+            nqp::bindattr(self, RakuAST::Resolver, '$!packages', $packages);
+            if nqp::isconcrete($in-packages) {
+                $refusal := nqp::eqaddr(nqp::decont($in-packages.compile-time-value),
+                  nqp::decont($found.compile-time-value)) ?? '' !! 'ambiguous';
+            }
+        }
+        if $refusal && $note {
+            my $node := nqp::getlexdyn('$*IMPL-LOOKUP-NODE');
+            $node.IMPL-HEREDOC-REFUSE($refusal, $name)
+              if !nqp::isnull($node) && nqp::istype($node, RakuAST::Lookup);
+        }
+        [$refusal, $found]
+    }
+
+    # A body may only use a name meaning the same declaration where it starts,
+    # in the scope at the index or none at -1, and where it is written. Hidden
+    # is a name only in a block closed before the body.
+    method IMPL-HEREDOC-REFUSAL(Str $name, int $found-at) {
+        my $scopes := $!scopes;
+        my $declaring := $found-at >= 0 ?? $scopes[$found-at].scope !! Mu;
+        my $body := $!heredoc-body;
+        my int $i := $found-at;
+        while nqp::isconcrete($body) {
+            return '' if $i >= $body<depth>
+              || $i >= 0 && $scopes[$i].IMPL-DECLARED-THROUGH($name);
+            my $start := $scopes;
+            $scopes := $body<parse-scopes>;
+            $i := nqp::elems($scopes);
+            repeat { --$i } until $i < 0 || nqp::isconcrete($scopes[$i].find-lexical($name));
+            if ($i >= 0 ?? !nqp::eqaddr($scopes[$i].scope, $declaring) !! nqp::isconcrete($declaring)) {
+                return $i >= 0 && nqp::isconcrete($declaring)
+                  || nqp::isconcrete(self.resolve-lexical-in-outer($name))
+                  ?? 'ambiguous'
+                  !! nqp::isconcrete($declaring) ?? 'hidden' !! 'undeclared';
+            }
+            self.IMPL-WATCH-LATER-SCOPES($name, $start, $scopes, $body<depth>, $i);
+            $body := $body<outer>;
+        }
+        ''
+    }
+
+    # Notes the name on the scopes opened later on the heredoc's line that the
+    # body is written in, and that do not declare it. One that declares it
+    # after the body makes the body text mean another declaration.
+    method IMPL-WATCH-LATER-SCOPES(Str $name, Mu $start, Mu $parse, int $depth, int $found-at) {
+        my int $elems := nqp::elems($parse);
+        my int $shared;
+        while $shared < $depth && $shared < $elems
+          && nqp::eqaddr($start[$shared].scope, $parse[$shared].scope) {
+            ++$shared;
+        }
+        my int $i := $elems;
+        while --$i > $found-at && $i >= $shared {
+            my $scope := $parse[$i];
+            $!heredoc-watches{nqp::objectid($scope) ~ ' ' ~ $name} := [$scope, $name];
+        }
+        Nil
+    }
+
+    # Reports a name a heredoc body used that a scope opened later on its line
+    # declares after the body.
+    method IMPL-CHECK-HEREDOC-WATCHES() {
+        return Nil unless nqp::isconcrete($!heredoc-watches);
+        for $!heredoc-watches {
+            my $scope := $_.value[0];
+            my $decl := $scope.find-lexical($_.value[1]);
+            if nqp::isconcrete($decl) {
+                my $ex := self.build-exception('X::Syntax::Heredoc::AmbiguousName',
+                  :symbol($_.value[1]));
+                (nqp::isconcrete($decl.origin) ?? $decl !! $scope.scope).IMPL-LOCATE-EXCEPTION($ex);
+                self.add-sorry($ex);
+            }
+        }
+        Nil
+    }
+
+    # Why the heredoc body being parsed may not use the name, or the empty
+    # string when it may or no body is being parsed.
+    method IMPL-HEREDOC-REFUSED(Str $name) {
+        nqp::isconcrete($!heredoc-body) ?? self.IMPL-HEREDOC-LOOKUP($name)[0] !! ''
+    }
+
+    # Add a lexical declaration. Used when the compiler produces the
+    # declaration, so that we can resolve it without requiring it to be
+    # linked into the tree.
+    method declare-lexical(RakuAST::Node $decl) {
+        CATCH {
+            if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
+                self.build-exception('X::Syntax::Extension::TooComplex', name => nqp::getpayload($_).name).throw;
+            }
+            nqp::rethrow($_);
+        }
+        my int $top := nqp::elems($!scopes) - 1;
+        my $body := $!heredoc-body;
+        # A heredoc body written after a closing brace declares in the
+        # innermost scope also open where it is written, which code where the
+        # heredoc starts reaches by name too.
+        if nqp::isconcrete($body) && $top == $body<depth> - 1 && $body<shared> < $body<depth>
+          && nqp::istype($decl, RakuAST::Declaration) {
+            $top := $body<shared> - 1;
+            my $scope := $!scopes[$top].scope;
+            $decl.set-hoisted-to($scope);
+            $scope.add-generated-lexical-declaration($decl)
+              if $decl.is-simple-lexical-declaration;
+        }
+        $!scopes[$top].declare-lexical($decl)
+    }
+
+    # Add a lexical declaration in the outer scope relative to the current one.
+    # Used when the compiler produces the declaration, but already entered into
+    # that declaration's inner scope.
+    method declare-lexical-in-outer(RakuAST::Declaration $decl) {
+        CATCH {
+            if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
+                self.build-exception('X::Syntax::Extension::TooComplex', name => nqp::getpayload($_).name).throw;
+            }
+            nqp::rethrow($_);
+        }
+        $!scopes[nqp::elems($!scopes) - 2].declare-lexical($decl)
+    }
+
+    # Resolves a lexical to its declaration. The declaration need not have a
+    # compile-time value.
+    method resolve-lexical(Str $name, Bool :$current-scope-only) {
+        my @scopes := $!scopes;
+
+        # If it's in the current scope only, we just look at the top one.
+        if $current-scope-only {
+            (my int $i := nqp::elems(@scopes))
+              ?? @scopes[$i - 1].find-lexical($name)
+              !! Nil
+        }
+
+        elsif $name eq 'GLOBAL' {
+            self.global-package;
+        }
+
+        elsif nqp::isconcrete($!heredoc-body) {
+            my @lookup := self.IMPL-HEREDOC-LOOKUP($name, :note);
+            @lookup[0] ne ''
+              ?? Nil
+              !! nqp::isconcrete(nqp::atpos(@lookup,1))
+                ?? nqp::atpos(@lookup,1)
+                !! self.resolve-lexical-in-outer($name)
+        }
+
+        # Walk active scopes, most nested first.
+        else {
+            my int $i := nqp::elems(@scopes);
+            my $found;
+
+            nqp::until(
+              nqp::not_i($i) || nqp::isconcrete(
+                $found := @scopes[--$i].find-lexical($name)
+              ),
+              nqp::null
+            );
+
+            nqp::isconcrete($found)
+              ?? $found
+              !! self.resolve-lexical-in-outer($name)
+        }
+    }
+
+    # Resolves a name to the lexical constant it refers to in the
+    # enclosing scope, consulting only the compilation unit's own
+    # scopes. The innermost scope is not searched and the outer
+    # context is not consulted. This finds the declaration that a
+    # same-named declaration in the current scope shadows.
+    method resolve-shadowed-lexical-constant-in-scopes(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        if $i > 1 {
+            $i := $i - 1;
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+                }
+            }
+        }
+        Nil
+    }
+
+    # Resolves a name to the lexical constant it refers to in the
+    # enclosing scope: the innermost scope is not searched. This finds
+    # the declaration that a same-named declaration in the current
+    # scope shadows. The fallback matches resolve-lexical-constant
+    # below.
+    method resolve-shadowed-lexical-constant(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        if $i > 1 {
+            $i := $i - 1;
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+                }
+            }
+        }
+        self.resolve-lexical-constant-in-outer($name)
+    }
+
+    # Resolves a name for an indirect lookup at BEGIN time. The innermost
+    # declaration in the unit hides the context around it, and is found only
+    # with a compile-time value. The context is asked when the unit has none.
+    method IMPL-RESOLVE-BEGIN-TIME-CONSTANT(Str $name) {
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            if nqp::isconcrete($found) {
+                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+            }
+        }
+        self.IMPL-BEGIN-TIME-CONSTANT-IN-OUTER($name)
+    }
+
+    # Resolves a name to the lexical declared in the compilation unit's
+    # scopes, of any kind. The outer context is not consulted.
+    method resolve-lexical-in-scopes(Str $name) {
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            return $found if nqp::isconcrete($found);
+        }
+        Nil
+    }
+
+    # Resolves a name to the lexical constant declared in the
+    # compilation unit's own scopes. The outer context is not
+    # consulted.
+    method resolve-lexical-constant-in-scopes(Str $name) {
+        if $name eq 'GLOBAL' {
+            return self.global-package;
+        }
+        my @scopes := $!scopes;
+        my int $i  := nqp::elems(@scopes);
+        while $i-- {
+            my $found := @scopes[$i].find-lexical($name);
+            if nqp::isconcrete($found) {
+                return nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil;
+            }
+        }
+        Nil
+    }
+
+    # Resolves a name to its lexical declaration if that declaration has a
+    # compile-time value, otherwise Nil. A name bound to a non-constant
+    # (e.g. `my \t := $runtime`) is not a compile-time constant, so the
+    # innermost such binding yields Nil rather than an outer constant.
+    method resolve-lexical-constant(Str $name, Bool :$current-scope-only) {
+
+        # Only one GLOBAL
+        if $name eq 'GLOBAL' {
+            self.global-package
+        }
+
+        # If it's in the current scope only, just look at the top one, if any
+        elsif $current-scope-only {
+            (my @scopes := $!scopes)
+              && (my $found := @scopes[nqp::elems(@scopes) - 1].find-lexical($name))
+              && nqp::isconcrete($found)
+              && nqp::istype($found, RakuAST::CompileTimeValue)
+              ?? $found
+              !! Nil
+        }
+
+        elsif nqp::isconcrete($!heredoc-body) {
+            my @lookup := self.IMPL-HEREDOC-LOOKUP($name, :note);
+            my $found := @lookup[1];
+            @lookup[0] ne '' ?? Nil
+              !! nqp::isconcrete($found)
+              ?? (nqp::istype($found, RakuAST::CompileTimeValue) ?? $found !! Nil)
+              !! self.resolve-lexical-constant-in-outer($name)
+        }
+
+        # Walk active scopes, most nested first
+        else {
+            my @scopes := $!scopes;
+            my int $i  := nqp::elems(@scopes);
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    return nqp::istype($found, RakuAST::CompileTimeValue)
+                      ?? $found
+                      !! Nil;
+                }
+            }
+
+            # Fall back to looking in outer scopes
+            self.resolve-lexical-constant-in-outer($name)
+        }
+    }
+
+    method walk-scopes(Hash $seen, Code $inner-evaluator) {
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $scope := @scopes[$i];
+            for $scope.lexical-declarations {
+                my $name := $_.lexical-name;
+                next if nqp::existskey($seen, $name)
+                  || $scope.scope.IMPL-HIDES-META-NAME($name);
+                $seen{$name} := 1;
+                $inner-evaluator($name);
+            }
+            if nqp::istype($scope.scope, RakuAST::Package::Attachable) {
+                for $scope.scope.attached-attributes {
+                    my $name := $_.lexical-name;
+                    next if nqp::existskey($seen, $name);
+                    $seen{$name} := 1;
+                    $inner-evaluator($name);
+                }
+            }
+        }
+
+        nqp::findmethod(RakuAST::Resolver, 'walk-scopes')(
+          self, $seen, $inner-evaluator);
+    }
+
 }
 
 #-------------------------------------------------------------------------------
@@ -1634,6 +2414,18 @@ class RakuAST::Resolver::Compile::Scope
     # The live declaration map, used when not in batch mode.
     has Mu $!live-decl-map;
 
+    # For a snapshot, the scope it was taken of, which declarations made
+    # through the snapshot also reach.
+    has Mu $!snapshot-of;
+
+    # For a snapshot, the names heredoc bodies declared, which a body may use
+    # though they are not visible where it is parsed.
+    has Mu $!declared-through;
+
+    # The declarations that heredoc bodies made through snapshots of this
+    # scope, which a later heredoc body sees.
+    has Mu $!declared-by-bodies;
+
     method new(RakuAST::LexicalScope :$scope!, int :$batch-mode) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver::Compile::Scope, '$!scope', $scope);
@@ -1648,9 +2440,67 @@ class RakuAST::Resolver::Compile::Scope
         $!batch-mode ?? True !! False
     }
 
+    # A copy of the scope holding only the declarations made so far. A scope
+    # in batch mode is returned as it is.
+    method IMPL-SNAPSHOT() {
+        return self if $!batch-mode;
+        my $snapshot := nqp::clone(self);
+        nqp::bindattr($snapshot, RakuAST::Resolver::Compile::Scope,
+          '$!live-decl-map', nqp::clone($!live-decl-map));
+        nqp::bindattr($snapshot, RakuAST::Resolver::Compile::Scope,
+          '$!snapshot-of', self);
+        nqp::bindattr($snapshot, RakuAST::Resolver::Compile::Scope,
+          '$!declared-through', nqp::hash());
+        nqp::bindattr($snapshot, RakuAST::Resolver::Compile::Scope,
+          '$!declared-by-bodies', Mu);
+        $snapshot
+    }
+
+    # Declares on behalf of a heredoc body parsed in a snapshot of this scope.
+    method IMPL-DECLARE-FROM-BODY(RakuAST::Node $decl) {
+        my $existed := self.declare-lexical($decl);
+        nqp::bindattr(self, RakuAST::Resolver::Compile::Scope,
+          '$!declared-by-bodies', nqp::hash())
+          unless nqp::isconcrete($!declared-by-bodies);
+        nqp::bindkey($!declared-by-bodies, $decl.lexical-name, $decl);
+        $existed
+    }
+
+    # Takes in what earlier heredoc bodies declared through snapshots of the
+    # same scope, as a body that starts later on the line runs after them.
+    method IMPL-TAKE-BODY-DECLARATIONS() {
+        return Nil unless nqp::isconcrete($!snapshot-of);
+        $!snapshot-of.IMPL-TAKE-BODY-DECLARATIONS;
+        my $declared := nqp::getattr($!snapshot-of,
+          RakuAST::Resolver::Compile::Scope, '$!declared-by-bodies');
+        if nqp::isconcrete($declared) {
+            for $declared {
+                my str $name := $_.key;
+                unless nqp::existskey($!live-decl-map, $name) {
+                    $!live-decl-map{$name} := $_.value;
+                    nqp::bindkey($!declared-through, $name, 1);
+                }
+            }
+        }
+        Nil
+    }
+
+    # For a snapshot, a declaration its scope made after the snapshot.
+    method IMPL-FIND-LATER-LEXICAL(Str $name) {
+        nqp::isconcrete($!snapshot-of) ?? $!snapshot-of.find-lexical($name) !! Nil
+    }
+
+    method IMPL-DECLARED-THROUGH(Str $name) {
+        nqp::isconcrete($!declared-through)
+          && nqp::existskey($!declared-through, $name)
+    }
+
     method find-lexical(Str $name) {
         if $!batch-mode {
             $!scope.find-lexical($name) // Nil
+        }
+        elsif $!scope.IMPL-HIDES-META-NAME($name) {
+            Nil
         }
         else {
             $!live-decl-map{$name} // $!scope.find-generated-lexical($name) // Nil
@@ -1668,12 +2518,18 @@ class RakuAST::Resolver::Compile::Scope
         @declarations
     }
 
-    method declare-lexical(RakuAST::Declaration $decl) {
+    method declare-lexical(RakuAST::Node $decl) {
         nqp::die('Should not be calling declare-lexical in batch mode')
           if $!batch-mode;
         my $name    := $decl.lexical-name;
         my $existed := nqp::atkey($!live-decl-map, $name);
         $!live-decl-map{$decl.lexical-name} := $decl;
+        if nqp::isconcrete($!snapshot-of) {
+            # The original scope may hold a declaration made after the snapshot.
+            my $original := $!snapshot-of.IMPL-DECLARE-FROM-BODY($decl);
+            $existed := $original if nqp::isnull($existed);
+            nqp::bindkey($!declared-through, $name, 1);
+        }
         $existed
     }
 

@@ -68,6 +68,18 @@ my class Thread {
                     nqp::getcomp('Raku').handle-control($vm-ex);
                 }
             }
+            CATCH {
+                default {
+#?if !jvm
+                    ++⚛$aborted;
+#?endif
+#?if jvm
+                    ++$aborted;
+#?endif
+                    my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                    nqp::getcomp('Raku').handle-exception($vm-ex);
+                }
+            }
             my $*STACK-ID = Rakudo::Internals.NEXT-ID;
             code();
 #?if !jvm
@@ -159,15 +171,6 @@ my class Thread {
     method usage(Thread:U:) is raw {
         nqp::list_i($started,$aborted,$completed,$joined,$yields,$highest_id)
     }
-}
-
-Rakudo::Internals.REGISTER-DYNAMIC: '$*THREAD', {
-    my $init_thread := nqp::create(Thread);
-    nqp::bindattr($init_thread, Thread, '$!vm_thread',
-      Rakudo::Internals.INITTHREAD);
-    nqp::bindattr($init_thread, Thread, '$!app_lifetime', False);
-    nqp::bindattr($init_thread, Thread, '$!name', 'Initial thread');
-    PROCESS::<$THREAD> := $init_thread;
 }
 
 # vim: expandtab shiftwidth=4

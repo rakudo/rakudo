@@ -1,8 +1,11 @@
 use Test;
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
+use nqp;
 
-plan 126;
+plan 171;
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 # t/spec/S03-sequence/misc.t
 # https://github.com/rakudo/rakudo/issues/5520
@@ -15,7 +18,7 @@ plan 126;
 # ???
 # https://github.com/rakudo/rakudo/issues/5546
 {
-    is-run 'Q| use trace; my %a{Str} |.AST.EVAL', :err("2 (EVAL_0 line 1)\nmy \%a\{Str} \n"),
+    is-run 'Q| use trace; my %a{Str} |.AST.EVAL', :err("2 (EVAL_0 line 1)\nmy \%a\{Str}\n"),
         "trace pragma works with hash shapes";
 }
 
@@ -25,6 +28,51 @@ plan 126;
     my @a;
     Q| for () { FIRST @a.push: 'first'; ENTER @a.push: 'enter'; NEXT @a.push: 'next'; LEAVE @a.push: 'leave'; LAST @a.push: 'last'; } |.AST.EVAL;
     is-deeply @a, [], "phasers do not fire for loop that did not run";
+}
+
+# src/Raku/ast/statements.rakumod
+# A pre-test loop (while/until, or a C-style loop with a condition) fired its
+# LAST phaser even when the condition was false at once and the body never ran,
+# unlike FIRST. LAST now only runs when the body ran at least once.
+{
+    my @a;
+    Q| while 0 { FIRST @a.push: 'first'; LAST @a.push: 'last' } |.AST.EVAL;
+    is-deeply @a, [], "while whose body never runs fires neither FIRST nor LAST";
+}
+{
+    my @a;
+    Q| until 1 { LAST @a.push: 'last' } |.AST.EVAL;
+    is-deeply @a, [], "until whose body never runs does not fire LAST";
+}
+{
+    my @a;
+    Q| loop (my $i = 0; $i > 5; $i++) { LAST @a.push: 'last' } |.AST.EVAL;
+    is-deeply @a, [], "C-style loop whose body never runs does not fire LAST";
+}
+{
+    my @a;
+    Q| my $i = 0; while $i++ < 3 { LAST @a.push: 'last' } |.AST.EVAL;
+    is-deeply @a, ['last'], "while that runs fires LAST exactly once";
+}
+{
+    my @a;
+    Q| while 1 { LAST @a.push: 'last'; last } |.AST.EVAL;
+    is-deeply @a, ['last'], "an immediate last on the first iteration still fires LAST";
+}
+{
+    my @a;
+    Q| repeat { LAST @a.push: 'last' } while 0 |.AST.EVAL;
+    is-deeply @a, ['last'], "repeat runs its body once and fires LAST";
+}
+{
+    my @a;
+    Q| my @x = (while 0 { LAST @a.push: 'last' }); @x.elems |.AST.EVAL;
+    is-deeply @a, [], "an empty while used for its value does not fire LAST";
+}
+{
+    my @a;
+    Q| my $i = 0; my @x = (while $i++ < 2 { LAST @a.push: 'last'; $i }); @x.elems |.AST.EVAL;
+    is-deeply @a, ['last'], "a while used for its value fires LAST once when it runs";
 }
 
 # t/spec/S05-match/basics.t
@@ -78,15 +126,19 @@ plan 126;
 # increment that no longer increments loops forever. Each wrap is
 # therefore applied, exercised and removed within a single EVAL whose
 # code was compiled before the wrap took effect, and the assertions
-# run only once the operator is restored.
+# run only once the operator is restored. Counting handler calls does not
+# work. Every other caller that dispatches the operator during that window
+# runs the handler too, and whether a given caller dispatches it at all
+# depends on precomp state. The increment is checked by its effect on the
+# variable instead.
 {
     my @result;
     Q§ my $handle = &infix:<|>.wrap: -> | { @result.push("ok"); True }; -> $ where {$_ ~~ Int|Num} {}(42); &infix:<|>.unwrap($handle) §.AST.EVAL;
     is-deeply @result, ["ok"], "wrapping infix:<|> works";
 
-    @result = [];
-    Q§ use soft; my $handle = &postfix:<++>.wrap: -> | { @result.push("ok2") }; my int $x; $x++; &postfix:<++>.unwrap($handle) §.AST(:compunit).EVAL;
-    is-deeply @result, ["ok2"], "wrapping postfix:<++> works under soft";
+    my $x;
+    Q§ use soft; my $handle = &postfix:<++>.wrap: -> | { }; my int $i; $i++; &postfix:<++>.unwrap($handle); $x = $i §.AST(:compunit).EVAL;
+    is-deeply $x, 0, "wrapping postfix:<++> works under soft";
 }
 
 # ???
@@ -198,7 +250,6 @@ plan 126;
             .subst( /    ">" $ /,          :global)  # Strip out the final prompt
     }
 
-    todo "Fails in legacy grammar";
     is-run-repl "use lib <t/packages/12-rakuast/lib>;\nuse Depth::One;\nuse Depth;\nDepth.new\n",
         :out("Nil\nNil\nNil\nDepth.new\n"),
         "repl can successfully use and instantiate a class ('Depth') that is shadowed and surpassed by an earlier used class ('Depth::One')";
@@ -229,7 +280,7 @@ plan 126;
 
 # https://github.com/rakudo/rakudo/issues/5649
 {
-    todo "compilation error in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "compilation error in legacy grammar" unless $rakuast;
     is (try 'our Str $a = "foo"'.EVAL), "foo", 'can have constraint on "our" variable';
 }
 
@@ -240,7 +291,7 @@ plan 126;
         my $div = @r[0];
         @r X/= $div;
     }
-    todo "handling of X/= when sunk" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "handling of X/= when sunk" unless $rakuast;
     is-deeply @m, [[1.0, 2.0, 3.0], [1.0, 3.0, 5.0], [1.0, 4.0, 7.0]],
       'handled X/= correctly';
 }
@@ -257,23 +308,23 @@ plan 126;
 {
     my $a;
     try Q/42 R[||]= $a/.EVAL;
-    todo "R[||]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "R[||]= doesn't compile" unless $rakuast;
     is $a, 42, 'did R[||]= work';
 
-    my $b;
+    my $b = 1;
     try Q/666 R[&&]= $b/.EVAL;
-    todo "R[&&]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "R[&&]= doesn't compile" unless $rakuast;
     is $b, 666, 'did R[&&]= work';
 
     my $c;
     try Q|137 R[//]= $c|.EVAL;
-    todo "R[//]= doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "R[//]= doesn't compile" unless $rakuast;
     is $c, 137, 'did R[//]= work';
 }
 
 # https://github.com/rakudo/rakudo/issues/2034
 {
-    todo "signature smartmatch doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "signature smartmatch doesn't compile" unless $rakuast;
     is-deeply (try ":(<a>) ~~ :()".EVAL), False, 'signature smartmatch ok';
 }
 
@@ -287,7 +338,7 @@ my class B is A {
 B.new
 CODE
 
-    todo "doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "doesn't compile" unless $rakuast;
     my $B = try $code.EVAL;
     is-deeply ($B && $B.h<b>), 1, 'did the object get built';
 }
@@ -295,7 +346,7 @@ CODE
 # https://github.com/rakudo/rakudo/issues/2360
 {
     try my %*FOO is Set = <a b c>;
-    todo "dies" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "dies" unless $rakuast;
     is-deeply %*FOO, <a b c>.Set, 'is Set on dynvar works';
 }
 
@@ -353,11 +404,11 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my int8  $a = 127;
     my int16 $b = 32767;
 
-    todo "incorrect value for int8" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "incorrect value for int8" unless $rakuast;
     is $a++, 127, 'did post increment int8 return correct value';
     is $a,  -128, 'did int8 get correct value';
 
-    todo "incorrect value for int16" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "incorrect value for int16" unless $rakuast;
     is $b++, 32767, 'did post increment int16 return correct value';
     is $b,  -32768, 'did int16 get correct value';
 }
@@ -371,7 +422,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         }
     }
     my $b = B.new;
-    todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    todo "dies", 2 unless $rakuast;
     is (try $b.b(42)), 42, 'is the value being bound returned';
     is $b.a, 42, 'did the value get bound';
 }
@@ -383,7 +434,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         $ran = True;
     }
     try Q|role :: { has $.a is bla{;} }|.EVAL;
-    todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    todo "dies", 2 unless $rakuast;
     is-deeply $ran, True, 'did the trait get run';
 }
 
@@ -392,8 +443,8 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my $i = 0;
     my $last;
     my sub runner { loop { last if $i == 7; $i++; LAST $last = True } }
-    runner if  %*ENV<RAKUDO_RAKUAST>;  # uncatchable crash
-    todo "dies", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    runner if  $rakuast;  # uncatchable crash
+    todo "dies", 2 unless $rakuast;
     is $i, 7, 'loop completed successfully';
     is-deeply $last, True, 'did LAST run';
 }
@@ -402,7 +453,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 {
     my $fired;
     try '$fired = True if !! 42'.EVAL;
-    todo "dies" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "dies" unless $rakuast;
     is-deeply $fired, True, 'was the syntax valid and did it fire';
 }
 
@@ -411,7 +462,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my sub foo {
         %( foobar => { &?ROUTINE.name => "bar" } )
     }
-    todo "name is missing" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "name is missing" unless $rakuast;
     is-deeply foo(), { foobar => {foo => "bar"} },
       'Routine name properly codegenned';
 }
@@ -419,12 +470,12 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # https://github.com/rakudo/rakudo/issues/3574
 {
     my @a = (state $ = rand) xx 5;
-    todo "returned value is Any" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "returned value is Any" unless $rakuast;
     ok @a[0], 'got a random value with state';
     is-deeply ([==] @a), True, 'all values the same with state';
 
     @a = (once rand) xx 5;
-    todo "returned value is VMNull", 2 unless %*ENV<RAKUDO_RAKUAST>;
+    todo "returned value is VMNull", 2 unless $rakuast;
     ok @a[0], 'got a random value with once';
     is-deeply (try [==] @a), True, 'all values the same with once';
 }
@@ -441,13 +492,13 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
         }
     }
     foo;
-    todo "state variable appears undefined" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "state variable appears undefined" unless $rakuast;
     is-deeply $defined, True, 'LAST can see the state variable';
 }
 
 # https://github.com/rakudo/rakudo/issues/3786
 {
-    todo "dispatch error"; # unless %*ENV<RAKUDO_RAKUAST>;
+    todo "dispatch error" unless $rakuast;
     is-deeply
       (try 'my class C { has $.sig = :(); }; C.new.sig'.EVAL),
       :(), 'can have a signature as a default for an attribute';
@@ -462,7 +513,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my sub b(\b --> uint64) is raw {
         my uint64 $ = nqp::bitand_I(b, 0xffffffffffffffff, Int)
     }
-    todo "becomes signed", 2; # unless %*ENV<RAKUDO_RAKUAST>;
+    todo "becomes signed", 2; # unless $rakuast;
     is a(18446744073709551615), 18446744073709551615, 'uint ok';
     is b(18446744073709551615), 18446744073709551615, 'uint64 ok';
 }
@@ -478,7 +529,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
            }
         }
     }';
-    todo "doesn't compile" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "doesn't compile" unless $rakuast;
     is $handled, 1, 'did the code run and handle the exception';
 }
 
@@ -487,7 +538,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my $seen = 0;
     role Foo[|c] { $seen++ }
     Foo[42].new;
-    todo "runs 0 times or 2 times" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "runs 0 times or 2 times" unless $rakuast;
     is $seen, 1, 'role body only ran once';
 }
 
@@ -496,17 +547,17 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my $proc = run $*EXECUTABLE, '-e',
       'for 1, 2, 3, 4, 5 -> $n { (print $n for ^5) xx 2 }', :out, :err;
 
-    todo "optimizer stales variable" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "optimizer stales variable" unless $rakuast;
     is $proc.out.slurp, '11111111112222222222333333333344444444445555555555',
       'was the variable not stale';
-    todo "worries about RHS of xx" if %*ENV<RAKUDO_RAKUAST>;
+    todo "worries about RHS of xx" if $rakuast;
     is $proc.err.slurp, '', 'no worries';
 }
 
 # https://github.com/rakudo/rakudo/issues/4198
 {
     my $rx = /\w+/;
-    todo "doesn't interpolate correctly" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "doesn't interpolate correctly" unless $rakuast;
     is ('"foo".match: / $rx /'.EVAL).gist, '｢foo｣', 'regex interpolated ok';
 }
 
@@ -514,7 +565,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 {
     my $a = 42;
     for 1 .. 3 {
-        todo "doesn't return correctly" unless %*ENV<RAKUDO_RAKUAST>;
+        todo "doesn't return correctly" unless $rakuast;
         is-deeply (FIRST $a++), 42, 'Do we always get the first value';
     }
 }
@@ -523,7 +574,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 {
     multi b(Int:D $x) { $x + 1 }
     multi b(int $x)   { $x     }
-    todo "selects the wrong candidate" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "selects the wrong candidate" unless $rakuast;
     is b(0), 1, 'Int:D candidate selected';
 
     multi d(Int:D $x) { $x     }
@@ -539,8 +590,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     is-deeply ([foo]  1, 2, 3, 4), "(1,(2,(3,4)))", 'foo';
     is-deeply ([Rfoo] 1, 2, 3, 4), "(4,(3,(2,1)))", 'Rfoo';
     is-deeply ([bar]  1, 2, 3, 4), "(((1,2),3),4)", 'bar';
-    todo "gets associativity wrong" unless %*ENV<RAKUDO_RAKUAST>;
-    is-deeply ([Rbar] 1, 2, 3, 4), "(4,(3,(2,1)))", 'Rbar';
+    is-deeply ([Rbar] 1, 2, 3, 4), "(((4,3),2),1)", 'Rbar';
 }
 
 # https://github.com/rakudo/rakudo/issues/4797
@@ -558,7 +608,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/4847
 {
-    todo "does not compile" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "does not compile" unless $rakuast;
     lives-ok { 'if 42 { } elsif "/knorkator".IO andthen .f && .r { }'.EVAL },
       'can have andthen as part of an elseif';
 }
@@ -571,9 +621,9 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     }
     my $c = C.new;
     is-deeply $c.x, 0, 'can access attribute';
-    todo "throws error" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "throws error" unless $rakuast;
     lives-ok { $c.add(1) }, 'can add to the attribute';
-    todo "did not get updated" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "did not get updated" unless $rakuast;
     is-deeply $c.x, 1, 'attribute got incremented';
 }
 
@@ -584,7 +634,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     multi foo(Hash:D) { "yes" };
     multi foo(Value(Any:D)) { "no" };
 
-    todo "dispatch error"; # unless %*ENV<RAKUDO_RAKUAST>;
+    todo "dispatch error"; # unless $rakuast;
     is (try foo { :foo }), "yes", "dispatch worked ok";
 }
 
@@ -593,13 +643,13 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my $proc := run $*EXECUTABLE, '-e', 'sub MAIN( $a, $b = $a, #= boom
 ) {}', :out, :err;
     is $proc.out.slurp, "", 'no output';
-    todo "execution error" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "execution error" unless $rakuast;
     ok $proc.err.slurp.starts-with("Usage"), 'error message is about usage';
 }
 
 # https://github.com/rakudo/rakudo/issues/5147
 {
-    todo "no val processing" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "no val processing" unless $rakuast;
     is-deeply qq:v:to/FOO/, IntStr.new(42, "42\n"), "val processing kept";
     42
     FOO
@@ -610,7 +660,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my %m = "a" => 1, "b" => 2, "c" => 3;
     my subset X2 of Str() where * (elem) %m;
     sub t2 (X2 $x) { }
-    if %*ENV<RAKUDO_RAKUAST> {
+    if $rakuast {
         lives-ok { ("a" .. "c").hyper(:batch(1), :degree(2)).map(&t2) },
           "should not crash with typecheck error";
     }
@@ -622,37 +672,37 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/5391
 {
-    todo "compilation error" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "compilation error" unless $rakuast;
     lives-ok { 'use variables :D; my int $a'.EVAL },
       'native integers do not require an initializer with variables:D';
-    todo "typecheck error" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "typecheck error" unless $rakuast;
     lives-ok { 'use variables :D; my int $a = 42'.EVAL },
       'native integers can be initialized  with variables:D';
 }
 
 # https://github.com/rakudo/rakudo/issues/1616
 {
-    todo "does not compile" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "does not compile" unless $rakuast;
     isa-ok (try Q|&[RRRRRRRRZZZZZZZZZZZZZZZZZZRRRRRRRRRSSSSSSSS+]|.EVAL), Block,
       'auto generated Callable ok';
 }
 
 # https://github.com/rakudo/rakudo/issues/1691
 {
-    todo "throws execution error" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "throws execution error" unless $rakuast;
     lives-ok { eager do loop { last } }, 'exits loop as expected';
 }
 
 # https://github.com/rakudo/rakudo/issues/1768
 {
     my sub z { is &?ROUTINE.name, "z", 'name is ok' for ^1 }
-    todo "name empty" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "name empty" unless $rakuast;
     z;
 }
 
 # https://github.com/rakudo/rakudo/issues/1871
 {
-    todo "throws wrong error" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "throws wrong error" unless $rakuast;
     throws-like { Q|1.::(1)|.EVAL }, X::Syntax::Number::IllegalDecimal,
       "throws an illegal decimal error";
 }
@@ -662,7 +712,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # subtest, producing the wrong number of tests and generally not working.
 # Also, the second test is broken in RakuAST.
 #{
-#    todo "throws wrong error", 2 unless %*ENV<RAKUDO_RAKUAST>;
+#    todo "throws wrong error", 2 unless $rakuast;
 #    try throws-like { Q|role R { }; &R|.EVAL }, X::Undeclared::Symbols,
 #      unk_routines => { '&R' => (1,) },
 #      "throws undeclared error";
@@ -673,7 +723,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 # https://github.com/rakudo/rakudo/issues/5249
 {
-    todo "throws compilation error" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "throws compilation error" unless $rakuast;
     is-deeply (try Q|"@.x"|.EVAL), '@.x', 'interpolation of non-existing @!x';
 }
 
@@ -687,7 +737,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # without running any tests in this file
 {
     todo "Having a submethod that accesses an attribute dies, even if never called"
-        unless %*ENV<RAKUDO_RAKUAST>;
+        unless $rakuast;
     eval-lives-ok(q[{
         role A {
             has $.a = 1;
@@ -699,24 +749,10 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     }], "Submethods can access attributes");
 }
 
-{
-    todo q|subsets on named parameters will worry without usable defaults|
-        unless %*ENV<RAKUDO_RAKUAST>;
-
-    my $default-missing = q:to/DEFAULT-MISSING/;
-        use fatal;
-        subset X where /"x"/;
-        sub foo(X :$x) { :$x };
-    DEFAULT-MISSING
-    throws-like $default-missing,
-                X::Parameter::Named::SubsetTypeWithoutDefault,
-                "Missing default value results in useful feedback";
-}
-
 # https://irclogs.raku.org/raku-dev/2025-05-22.html#09:32
 {
     todo "improper QASTing of infix:<,>(42) to just 42"
-        unless %*ENV<RAKUDO_RAKUAST>;
+        unless $rakuast;
     is-deeply (run $*EXECUTABLE, '-e', 'dd infix:<,>(42)', :err).err.slurp,
       "(42,)\n",
       'no special quasting for infix:<,>(1)';
@@ -724,7 +760,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 
 {
     todo q|ensure that hyper operators prime as expected|
-        unless %*ENV<RAKUDO_RAKUAST>;
+        unless $rakuast;
     ok *>>.fmt("%02x")(42) eq "2a", "postfix hyper primes properly";
 }
 
@@ -848,7 +884,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my int $c = 5;
     keep($c);
     $c = 8;
-    todo "undecided multi leaks the native reference in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "undecided multi leaks the native reference in legacy grammar" unless $rakuast;
     is $s, 5, 'a native argument to a multi where no candidate is rw is a snapshot';
 }
 
@@ -858,7 +894,7 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     my int $c = 5;
     hold(k => 1, $c);
     $c = 8;
-    todo "mixed named and positional args leak the native reference in legacy grammar" unless %*ENV<RAKUDO_RAKUAST>;
+    todo "mixed named and positional args leak the native reference in legacy grammar" unless $rakuast;
     is $s, 5, 'a native argument following a named argument is a snapshot';
 }
 
@@ -868,22 +904,36 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
 # The legacy grammar instead silently drops the adverbs and loads by base
 # name, so an unsatisfiable constraint is only enforced under RakuAST.
 {
-    lives-ok { require Test:ver<6.0.0+> },
-        'require loads a module through a satisfiable :ver constraint';
-    lives-ok { require Test:api },
-        'require loads a module with a bare boolean adverb';
-    is (do { require Test:ver<6.0.0+> }).^name, 'Test',
-        'a require with an adverb used as a block value returns the module';
+    # The constraints are tested against a fixture distribution whose
+    # META6.json declares a version, auth, and api, prepended to the
+    # repository chain. A repository only enforces a constraint the
+    # distribution declares something for, so requiring an installed
+    # module here would depend on what the environment happens to
+    # provide: the harness resolves Test to rakudo's own lib/, a bare
+    # source that satisfies any constraint.
+    my $fixture-repo = CompUnit::Repository::FileSystem.new(
+        :prefix($*PROGRAM.parent.parent.add('packages/12-rakuast/require-fixture').absolute),
+        :next-repo($*REPO),
+    );
     {
-        require Test:ver<6.0.0+> <&pass>;
-        ok &pass ~~ Sub, 'a require with an adverb still imports the requested symbol';
+        my $*REPO = $fixture-repo;
+        lives-ok { require Require::Fixture:ver<1.0+> },
+            'require loads a module through a satisfiable :ver constraint';
+        lives-ok { require Require::Fixture:api },
+            'require loads a module with a bare boolean adverb';
+        is (do { require Require::Fixture:ver<1.0+> }).^name, 'Require::Fixture',
+            'a require with an adverb used as a block value returns the module';
+        {
+            require Require::Fixture:ver<1.0+> <&fixture-sub>;
+            ok &fixture-sub ~~ Sub, 'a require with an adverb still imports the requested symbol';
+        }
+        todo "the legacy grammar ignores an unsatisfiable :ver on require" unless $rakuast;
+        dies-ok { require Require::Fixture:ver<999999.1> },
+            'require fails on an unsatisfiable :ver constraint';
+        todo "the legacy grammar ignores an unsatisfiable :auth on require" unless $rakuast;
+        dies-ok { require Require::Fixture:auth<nobody> },
+            'require fails on an unsatisfiable :auth constraint';
     }
-    todo "the legacy grammar ignores an unsatisfiable :ver on require" unless %*ENV<RAKUDO_RAKUAST>;
-    dies-ok { require Test:ver<999999.1> },
-        'require fails on an unsatisfiable :ver constraint';
-    todo "the legacy grammar ignores an unsatisfiable :auth on require" unless %*ENV<RAKUDO_RAKUAST>;
-    dies-ok { require Test:auth<nobody> },
-        'require fails on an unsatisfiable :auth constraint';
 }
 
 # src/Raku/ast/regex.rakumod
@@ -908,6 +958,191 @@ subtest 'use of &?ROUTINE and &?BLOCK' => {
     is Q| 1 S+ 2 |.AST.EVAL, 3, 'S applies the base operator';
     is Q| 1 S- 2 S- 3 |.AST.EVAL, -4, 'chained S keeps the base associativity';
     is Q| [S+] 1, 2, 3 |.AST.EVAL, 6, 'a sequenced operator can be reduced';
+}
+
+# A custom postcircumfix parsed a single statement between its delimiters,
+# so a semicolon separated subscript (and an empty one) failed to parse in
+# the legacy grammar. The subscript is now a semilist like the core
+# postcircumfix operators use.
+{
+    my $decl = Q| sub postcircumfix:<⌊ ⌋>($obj, *@i) { $obj => @i }; |;
+    is-deeply ($decl ~ Q| 10⌊1;2⌋ |).AST.EVAL, 10 => [1, 2],
+        'a custom postcircumfix parses a semicolon separated subscript';
+    is-deeply ($decl ~ Q| 10⌊⌋ |).AST.EVAL, 10 => [],
+        'a custom postcircumfix parses an empty subscript';
+    is-deeply ($decl ~ Q| 10⌊3⌋ |).AST.EVAL, 10 => [3],
+        'a custom postcircumfix passes the operand as the first argument';
+}
+
+# src/Raku/ast/code.rakumod
+# A signature literal inside a WhateverCode reached runtime with no code
+# linked to it, so smart-matching against it died in the binder.
+{
+    is Q| (* ~~ :(Int))(\(42)) |.AST.EVAL, True,
+        'a plain signature literal inside a WhateverCode links its code';
+    is Q| (* ~~ :($ where { $^n > 0 }))(\(42)) |.AST.EVAL, True,
+        'a where-constrained signature literal inside a WhateverCode links its code';
+}
+
+# https://github.com/rakudo/rakudo/issues/6074
+# A when/default body was always compiled as wanted for being the succeed
+# payload, so the last statement of a CATCH handler escaped the useless-use
+# warning its earlier statements produced. The body is now sunk when the
+# scope taking the payload discards it.
+{
+    is-run ｢Q| sub f { CATCH { default { 42; 43 } }; die 'nope' }; print f.raku |.AST.EVAL｣,
+        :out<Nil>, :err(/'Useless use of constant integer 42'
+            .*? 'Useless use of constant integer 43'/),
+        'the last statement of a CATCH default block also warns as useless';
+}
+
+# ???
+# A rw parameter of a sized native type made the legacy frontend read
+# the bound reference back at full width into the sized register, which
+# died with a bytecode validation error on decont_i. The reference
+# binds and writes back cleanly.
+{
+    is-deeply Q| my int8 @a = 1, 2, 3; for @a <-> int8 $i { $i++ }; @a |.AST.EVAL,
+        array[int8].new(2, 3, 4),
+        'a for loop over a sized native array writes back through <->';
+}
+
+# ???
+# The legacy frontend left an is rw trait inside a has declaration
+# list on the parameter, so the accessor stayed read only and an
+# assignment to it died. The trait lands on the attribute declaration
+# and the accessor is writable.
+{
+    is Q| class C { has ($.a is rw) }; my $c = C.new(a => 1); $c.a = 9; $c.a |.AST.EVAL,
+        9, 'an is rw trait inside a has declaration list gives a writable accessor';
+}
+
+# ???
+# The legacy frontend dropped an is default trait inside a declaration
+# list, leaving the variable's container with its bare type default.
+# The trait lands on the variable declaration and takes effect.
+{
+    is Q| my ($a is default(42)); $a |.AST.EVAL, 42,
+        'an is default trait inside a declaration list reaches the variable';
+}
+
+# ???
+# The legacy frontend silently discarded an unknown trait inside a
+# declaration list. It is rejected at compile time.
+{
+    throws-like { Q| my ($a is nonesuch) |.AST.EVAL },
+        Exception, message => /'nonesuch'/,
+        'an unknown trait inside a declaration list is rejected';
+}
+
+# A method built inside a BEGIN block compiles before a native attribute
+# declared further down the class body exists, so the access cannot be
+# typed at compile time. The legacy frontend emits an object access whose
+# read boxes to the raw native type and cannot be written. The access
+# switches on the attribute's primitive spec at runtime and takes a
+# native reference for native storage, the unsigned flavor for unsigned
+# storage.
+{
+    is Q| class B1 { BEGIN B1.^add_method("w", method () { $!x++; $!x }); has int $!x = 1; }; B1.new.w |.AST.EVAL,
+        2, 'a BEGIN-built method steps a later declared int attribute';
+    is Q| class B2 { BEGIN B2.^add_method("w", method ($v) { $!x = $v; $!x }); has int $!x = 1; }; B2.new.w(9) |.AST.EVAL,
+        9, 'a BEGIN-built method assigns a later declared int attribute';
+    is Q| class B3 { BEGIN B3.^add_method("w", method () { $!n += 1.5e0; $!n }); has num $!n = 1e0; }; B3.new.w |.AST.EVAL,
+        2.5e0, 'a BEGIN-built method compound assigns a later declared num attribute';
+    is Q| class B4 { BEGIN B4.^add_method("w", method () { $!s ~= "b"; $!s }); has str $!s = "a"; }; B4.new.w |.AST.EVAL,
+        'ab', 'a BEGIN-built method concatenates onto a later declared str attribute';
+    is Q| class B5 { BEGIN B5.^add_method("w", method () { $!u = 200; $!u }); has uint8 $!u; }; B5.new.w |.AST.EVAL,
+        200, 'a BEGIN-built method stores a high uint8 value without sign extension';
+    is Q| class B6 { BEGIN B6.^add_method("w", method () { $!u = 4000000000; $!u }); has uint32 $!u; }; B6.new.w |.AST.EVAL,
+        4000000000, 'a BEGIN-built method stores a high uint32 value without sign extension';
+}
+
+# ???
+{
+    is Q| sub a(--> "x") { }; a |.AST.EVAL, "x",
+        'a constant return value is returned from a call';
+    ok Q| sub a(--> "x") { }; &a ~~ Callable[Str] |.AST.EVAL,
+        'a constant return value parameterizes Callable with its type';
+    ok Q| sub a(--> "x") { }; sub b(--> "y") { }; &a.WHAT =:= &b.WHAT |.AST.EVAL,
+        'subs with different constant return values share their Callable mixin type';
+}
+
+# ???
+{
+    use nqp;
+    Q| my role RequireStubHolder { my $x = try require NoSuchTestModule } |.AST.EVAL;
+    is nqp::getattr_s(nqp::decont(Scalar.WHO), Stash, '$!longname'), 'Scalar',
+        'a require stub declared inside a role does not rename Scalar';
+}
+
+# src/Raku/Grammar.nqp
+# A worry raised after the parse had gone on past its cursor, such as the
+# TEMP phaser worry once the whitespace after the phaser is consumed, was
+# reported at the line the parse had reached rather than the line of the
+# cursor. The legacy frontend still reports the line the parse reached.
+{
+    is-run Q:to/CODE/,
+    q:to/SOURCE/.AST;
+    my $a = 1;
+    TEMP { 1 }
+
+    say 3;
+    SOURCE
+    CODE
+      :err(/'The TEMP phaser will never be implemented.' \n .*? 'at ' \N+ ':2' \n/),
+      'a worry is reported on the line of its cursor';
+}
+
+# src/Raku/ast/expressions.rakumod
+# A bracketed infix behaves as the infix it brackets. The legacy frontend
+# evaluates the left side of a bracketed `xx` only once, runs the right
+# side of a bracketed `andthen` or `orelse` without setting the topic,
+# rejects a bracketed feed or bind as an undeclared routine, reports a
+# bad bracketed assignment only at run time, and ignores an adverb on a
+# reversed bracketed infix.
+{
+    is-deeply Q| my $c = 0; ((++$c) [xx] 3).List |.AST.EVAL, (1, 2, 3),
+        '`[xx]` evaluates its left side once per repetition';
+    is Q| my $c = 0; (++$c) [xx] 3; $c |.AST.EVAL, 3,
+        'a sunk `[xx]` evaluates its left side once per repetition';
+    is (try Q| ((* + 1) [xx] 3).elems |.AST.EVAL), 3,
+        '`[xx]` repeats a primed left side rather than priming itself';
+    is Q| 42 [andthen] $_ + 1 |.AST.EVAL, 43,
+        '`[andthen]` topicalizes its right side';
+    is Q| Int [orelse] .^name |.AST.EVAL, 'Int',
+        '`[orelse]` topicalizes its right side';
+    is-deeply (try Q| my @a = 1, 2, 3; (@a [==>] map(* * 2)).List |.AST.EVAL), (2, 4, 6),
+        '`[==>]` feeds its left side into its right side';
+    throws-like { Q| 5 [:=] 3 |.AST.EVAL }, X::Bind,
+        '`[:=]` rejects a left side that cannot be bound';
+    is-deeply (try Q| my @a = 1, 2, 3; (map(* * 2) [<==] @a).List |.AST.EVAL), (2, 4, 6),
+        '`[<==]` feeds its right side into its left side';
+    throws-like { Q| my @a = 1, 2; @a [==>] &say |.AST.EVAL }, X::Comp,
+        message => /'may not sink values into a code object'/,
+        '`[==>]` rejects a code object as a stage';
+    throws-like { Q| sub f(int $x) { $x [=] 5 } |.AST.EVAL }, X::Assignment::RO::Comp,
+        '`[=]` rejects a readonly native parameter as its left side';
+    throws-like { Q| my Int $x; $x [=] 1.5 |.AST.EVAL }, X::Syntax::Number::LiteralType,
+        '`[=]` rejects a literal of the wrong numeric type for its left side';
+    throws-like { Q| 1 R[&&] 2 :foo |.AST.EVAL }, X::Syntax::Adverb,
+        'a reversed bracketed `&&` rejects an adverb';
+}
+
+# src/Raku/Grammar.nqp
+# A bracketed list infix chains with itself and after its bare spelling.
+# The legacy frontend compares the earlier infix without its brackets
+# against the later one with them and rejects the chain.
+{
+    is-deeply (try Q| 1 [,] 2 [,] 3 |.AST.EVAL), (1, 2, 3),
+        'a bracketed list infix chains with itself';
+    is-deeply (try Q| 1, 2 [,] 3 |.AST.EVAL), (1, 2, 3),
+        'a bracketed list infix chains after its bare spelling';
+    is (try Q| 1 [andthen] $_ + 1 [andthen] $_ * 10 |.AST.EVAL), 20,
+        'a bracketed `andthen` chains with itself and topicalizes each link';
+    is-deeply (try Q| my @a = 1, 2, 3; my @b; @a [==>] map(* * 2) [==>] @b; @b |.AST.EVAL), [2, 4, 6],
+        'a bracketed feed chains with itself';
+    ok (try Q/ so 3 == 1 [|] 2 [|] 3 /.AST.EVAL),
+        'a bracketed junctive infix chains with itself';
 }
 
 # vim: expandtab shiftwidth=4

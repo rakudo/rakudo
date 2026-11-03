@@ -1,13 +1,14 @@
 # A compilation unit is the main lexical scope of a program.
 class RakuAST::CompUnit
-  is RakuAST::LexicalScope
-  is RakuAST::SinkBoundary
-  is RakuAST::ImplicitLookups
-  is RakuAST::ImplicitDeclarations
-  is RakuAST::AttachTarget
-  is RakuAST::ScopePhaser
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  is RakuAST::Node
+  does RakuAST::LexicalScope
+  does RakuAST::ScopePhaser
+  does RakuAST::SinkBoundary
+  does RakuAST::ImplicitLookups
+  does RakuAST::ImplicitDeclarations
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
+  does RakuAST::AttachTarget
 {
     has RakuAST::StatementList $.statement-list;
     has RakuAST::Block $.mainline;
@@ -65,7 +66,8 @@ class RakuAST::CompUnit
             $statement-list // RakuAST::StatementList.new);
 
         my $mainline := RakuAST::Block.new();
-        $mainline.set-implicit-topic(0);
+        $mainline.set-implicit-topic(False);
+        $mainline.set-no-implicit-match();
         nqp::bindattr($obj, RakuAST::CompUnit, '$!mainline', $mainline);
 
         nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name',
@@ -91,7 +93,6 @@ class RakuAST::CompUnit
 
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
           $precompilation-mode ?? 1 !! 0);
-        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!explicit-ctxsave', 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-content', nqp::create(Array));
         nqp::bindattr($obj, RakuAST::CompUnit, '$!data-content', nqp::null);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
@@ -102,8 +103,7 @@ class RakuAST::CompUnit
         }
 
         # If CompUnit's language revision is not set explicitly then guess it
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision',
-          $language-revision := $language-revision
+        my $revision := $language-revision
             ?? Perl6::Metamodel::Configuration.language_revision_object($language-revision)
             !! nqp::isconcrete(
                  my $setting-rev := nqp::getlexrelcaller(
@@ -111,8 +111,8 @@ class RakuAST::CompUnit
                  )
                ) ?? $setting-rev
                  !! Perl6::Metamodel::Configuration.language_revision_object(
-                      nqp::getcomp("Raku").language_revision)
-                    );
+                      nqp::getcomp("Raku").language_revision);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision', $revision);
 
         my $sc;
         if $outer-cu {
@@ -142,7 +142,7 @@ class RakuAST::CompUnit
                 nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
                 my $context := RakuAST::IMPL::QASTContext.new(
                   :$sc, :$precompilation-mode,
-                  :$setting, :$language-revision);
+                  :$setting, :language-revision($revision));
                 nqp::bindattr_i($context, RakuAST::IMPL::QASTContext,
                   '$!is-nested', 1);
                 $context.set-world-bridge($nested-world);
@@ -153,7 +153,7 @@ class RakuAST::CompUnit
                 nqp::pushcompsc($sc);
                 nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
                 nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
-                  RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :$language-revision));
+                  RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting, :language-revision($revision)));
                 # Set the SC description to $?FILES only on the
                 # fresh-SC path. The bridged path shares the outer
                 # World's SC, whose description was already set by
@@ -183,6 +183,9 @@ class RakuAST::CompUnit
     # Perform all outstanding BEGIN-time activities on the compilation unit.
     # This implies outstanding parse-time activities.
     method begin(RakuAST::Resolver $resolver) {
+        # A unit built rather than parsed first meets its resolver here.
+        nqp::bindattr(self, RakuAST::CompUnit, '$!resolver', $resolver)
+          unless nqp::isconcrete($!resolver);
         $!mainline.IMPL-BEGIN($resolver, $!context);
         self.IMPL-BEGIN($resolver, $!context);
     }
@@ -201,6 +204,7 @@ class RakuAST::CompUnit
 
         $!mainline.IMPL-CHECK($resolver, $!context);
         self.IMPL-CHECK($resolver, $!context);
+        $resolver.IMPL-CHECK-HEREDOC-WATCHES;
 
         # Not all RakuAST::Doc objects actually have their PERFORM-CHECK
         # method called on them, causing holes to occur in $=pod (albeit
@@ -218,10 +222,24 @@ class RakuAST::CompUnit
     # QAST generation. It pushes the unit scope itself in batch resolve mode
     # (the tree is already checked, nothing is being declared), so a caller just
     # hands over a resolver.
-    method optimize(RakuAST::Resolver $resolver) {
+    method optimize(RakuAST::Resolver $resolver, :$interactive?) {
+        # Diagnostic switch: turns compile-time dispatch decisions off so a
+        # suspect inlining can be ruled in or out without a rebuild.
+        my $*NO-CT-DISPATCH := nqp::existskey(nqp::getenvhash(), 'RAKUDO_NO_CT_DISPATCH');
+        # The qast stage binds this for code generation, but the optimize
+        # stage runs first, and marks that gate on an operator's origin
+        # need to know a core setting is what is being compiled.
+        my $*COMPILING_CORE_SETTING := nqp::isconcrete($!setting-name)
+            && ($!setting-name eq 'NULL.c' || $!setting-name eq 'NULL.d'
+                || $!setting-name eq 'NULL.e')
+            ?? 1 !! 0;
         $resolver.push-scope(self);
         $!mainline.IMPL-OPTIMIZE($resolver);
         self.IMPL-OPTIMIZE($resolver);
+        # With the tree in its final shape, decide which lexicals can be
+        # emitted as frame-locals.
+        RakuAST::IMPL::VarLowering.analyze-compunit(self, $resolver, :$interactive);
+        $!context.set-optimize-performed() if nqp::isconcrete($!context);
         $resolver.pop-scope;
     }
 
@@ -242,7 +260,7 @@ class RakuAST::CompUnit
             nqp::unshift(@parts,$base);
         }
 
-        my $name := RakuAST::Name.from-identifier-parts(|@parts);
+        my $name := RakuAST::Name.from-identifier-list(@parts);
         $!statement-list.add-statement: RakuAST::Statement::Expression.new(
           expression => RakuAST::StatementPrefix::Phaser::Init.new(
             RakuAST::Block.new(
@@ -299,13 +317,22 @@ class RakuAST::CompUnit
         Nil
     }
 
-    method is-boundary-sunk() { $!is-sunk ?? True !! False }
+    method is-boundary-sunk(--> Bool) { $!is-sunk }
 
     method get-boundary-sink-propagator() { $!statement-list }
 
     # Checks if the compilation unit was created in EVAL mode, meaning that it
     # does not declare its own GLOBAL and so forth.
-    method is-eval() { $!is-eval ?? True !! False }
+    method is-eval(--> Bool) { $!is-eval }
+
+    # Put this unit's SC back on the compiling-SC stack before compiling it
+    # again. Creating the unit pushed the SC, but the backend pops it after
+    # every non-nested compile, so a reused unit (an .AST tree EVALed a
+    # second time) would otherwise compile with no compiling SC. A nested
+    # unit shares the enclosing compilation's SC, which is already current.
+    method IMPL-PUSH-COMPILING-SC() {
+        nqp::pushcompsc($!sc) unless $!is-eval == 2;
+    }
 
     # The resolver used to compile this CompUnit, exposed so a later pipeline
     # stage (the optimize stage) can run an AST pass that resolves names.
@@ -361,6 +388,11 @@ class RakuAST::CompUnit
 
     method add-check-phaser(RakuAST::StatementPrefix::Phaser::Check $phaser) {
         self.add-cu-phaser($!check-phasers, $phaser);
+    }
+
+    # A code object a will trait registers to run with the check phasers.
+    method add-check-code(Code $code) {
+        self.add-cu-phaser($!check-phasers, $code);
     }
 
     method add-end-phaser(Code $phaser) {
@@ -424,7 +456,7 @@ class RakuAST::CompUnit
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::findmethod(RakuAST::LexicalScope, 'PERFORM-CHECK')(self, $resolver, $context);
+        self.IMPL-CHECK-DECLARATIONS($resolver, $context);
 
         while $!check-phasers {
             my $check-phaser := nqp::pop($!check-phasers);
@@ -436,16 +468,14 @@ class RakuAST::CompUnit
                     $check-phaser();
                 }
                 CATCH {
-                    my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+                    my $lookups := self.get-implicit-lookups;
                     my $exception := $_;
                     my $BeginTime := $lookups[2].resolution.compile-time-value;
                     my $coercer := $lookups[3].resolution.compile-time-value;
                     $exception := $coercer($_);
                     my $wrapped := $BeginTime.new(:$exception, :use-case('evaluating a CHECK'));
-                    if nqp::istype($check-phaser, RakuAST::StatementPrefix::Phaser::Check) && (my $origin := $check-phaser.origin) {
-                        my $origin-match := $origin.as-match;
-                        $wrapped.SET_FILE_LINE($origin-match.file, $origin-match.line);
-                    }
+                    $check-phaser.IMPL-LOCATE-EXCEPTION($wrapped)
+                        if nqp::istype($check-phaser, RakuAST::StatementPrefix::Phaser::Check);
                     $wrapped.throw;
                 }
             }
@@ -454,19 +484,19 @@ class RakuAST::CompUnit
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
-                'CompUnit', 'RepositoryRegistry',
-            )),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&FATALIZE')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
-                'X', 'Comp', 'BeginTime'
-            )),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&COMP_EXCEPTION')),
+          RakuAST::Type::Setting.from-identifier-parts(
+            'CompUnit', 'RepositoryRegistry',
+          ),
+          RakuAST::Type::Setting.from-identifier('&FATALIZE'),
+          RakuAST::Type::Setting.from-identifier-parts(
+            'X', 'Comp', 'BeginTime'
+          ),
+          RakuAST::Type::Setting.from-identifier('&COMP_EXCEPTION'),
         ]
     }
 
     method IMPL-FATALIZE {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        self.get-implicit-lookups[1].resolution.compile-time-value
     }
 
     # True when this compunit IS the CORE setting (NULL.c / NULL.d / NULL.e).
@@ -489,6 +519,22 @@ class RakuAST::CompUnit
         # it as the current package.
         if $!is-eval {
             add(RakuAST::VarDeclaration::Implicit::BlockTopic.new(:!parameter));
+            # The frame carries the caller's $/ so a closure built here
+            # still reaches one by name after precompilation has left this
+            # frame at the end of its outer chain.
+            add(RakuAST::VarDeclaration::Implicit::Outer.new(:name('$/')));
+            # A setting context declares no $?PACKAGE, and the unit then
+            # declares its own for the package the resolver stands in.
+            if nqp::isconcrete($!resolver)
+              && !$!resolver.resolve-lexical-constant-in-outer('$?PACKAGE') {
+                my $package := $!resolver.current-package;
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?PACKAGE', value => $package
+                ).IMPL-SET-META-OBJECT-OF-PACKAGE);
+                add(RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '::?PACKAGE', value => $package
+                ).IMPL-SET-META-OBJECT-OF-PACKAGE);
+            }
         }
         else {
             my $global := RakuAST::Package.new(
@@ -505,10 +551,10 @@ class RakuAST::CompUnit
             unless $core-setting {
                 add(RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?PACKAGE', value => $global.compile-time-value
-                ));
+                ).IMPL-SET-META-OBJECT-OF-PACKAGE);
                 add(RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '::?PACKAGE', value => $global.compile-time-value
-                ));
+                ).IMPL-SET-META-OBJECT-OF-PACKAGE);
             }
 
             # GLOBAL package is always added so generated-global can find it
@@ -579,6 +625,9 @@ class RakuAST::CompUnit
                 $!mainline.IMPL-QAST-FORM-BLOCK($context, :blocktype<declaration_static>);
         $top-level.name('<unit>');
         $top-level.annotate('IN_DECL', $!is-eval ?? 'eval' !! 'mainline');
+        # The compilation unit's own lowered declarations live in the
+        # mainline frame the shell block forms.
+        self.IMPL-ADD-LOWERED-DEBUG-MAPPINGS($top-level);
         my @pre-deserialize;
         # When compiling a CORE.<spec>.setting (setting-name shaped like
         # 'NULL.<spec>'), emit a pre-deserialize task that calls
@@ -628,15 +677,18 @@ class RakuAST::CompUnit
         if !$!precompilation-mode
             && !$*INSIDE-EVAL
             && +(@*MODULES // []) == 0
-            && (my $main := self.find-lexical('&MAIN'))
+            && self.find-lexical('&MAIN')
         {
+            # Run the mainline before looking up &MAIN, since &MAIN only holds
+            # a sub bound or assigned to it once the mainline has run.
+            my $mainline-result := QAST::Node.unique('mainline_result');
             my $run-main := QAST::Op.new(
               :op('call'),
               :name('&RUN-MAIN'),
-              QAST::WVal.new(:value($main.meta-object)),
-              QAST::Stmts.new(|$top-level.list) # run the mainline and get its result
+              QAST::Var.new(:name('&MAIN'), :scope('lexical')),
+              QAST::Var.new(:name($mainline-result), :scope('local'))
             );
-            unless nqp::getcomp('Raku').language_revision < 2 {
+            unless $!language-revision.Int < 2 {
                 $run-main.push(
                   QAST::WVal.new( # $*IN as $*ARGSFILES
                     value => True,
@@ -644,7 +696,14 @@ class RakuAST::CompUnit
                   )
                 );
             }
-            $top-level.set_children([$run-main]);
+            $top-level.set_children([
+                QAST::Op.new(
+                  :op('bind'),
+                  QAST::Var.new(:name($mainline-result), :scope('local'), :decl('var')),
+                  QAST::Stmts.new(|$top-level.list) # run the mainline and get its result
+                ),
+                $run-main
+            ]);
         }
 
         # Nested EVAL: wrap the inner mainline in an anonymous QAST::Block.
@@ -674,7 +733,7 @@ class RakuAST::CompUnit
             :post_deserialize($context.post-deserialize()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
-                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context) )),
+                self.get-implicit-lookups[0].IMPL-TO-QAST($context) )),
             # If this unit is loaded as a module, we want it to automatically
             # execute the mainline code above after all other initializations
             # have occurred.
@@ -816,7 +875,7 @@ class RakuAST::CompUnit
             QAST::Op.new(:op('null'))
         }
         else {
-            RakuAST::CtxSave.IMPL-TO-QAST($context)
+            RakuAST::CtxSave.IMPL-EXPR-QAST($context)
         }
     }
 
@@ -846,18 +905,23 @@ class RakuAST::CompUnit
 }
 
 class RakuAST::CtxSave
-  is RakuAST::ParseTime
   is RakuAST::Term
+  does RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
+    }
+
+    # The term is there for its effect, so a sunk one is not a useless use.
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        True
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('compunit').set-explicit-ctxsave;
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Stmts.new(
             QAST::Op.new(
                 :op('bind'),
@@ -916,38 +980,106 @@ class RakuAST::LiteralBuilder {
     # Build a decimal Int constant and intern it
     method intern-Int(str $source) {
         my $lookup := $!interned-int;
-
-        # Logic to reliably convert a string in a base to n Int
-        my sub build-Int() {
-            my $res := nqp::radix_I(10,$source,0,2,Int);
-            nqp::atpos($res,2) == nqp::chars($source)
-              ?? nqp::atpos($res, 0)
-              !! nqp::die("'$source' is not a valid number")
-        }
-
         nqp::ifnull(
           nqp::atkey($lookup,$source),
-          nqp::bindkey($lookup,$source,build-Int())
+          nqp::bindkey($lookup,$source,
+            nqp::ifnull(
+              self.IMPL-DECIMAL-INT($source),
+              nqp::die("'$source' is not a valid number")
+            )
+          )
         )
+    }
+
+    # Convert an optionally signed decimal literal, single underscores
+    # between digits allowed, to an Int. Returns null on anything else.
+    method IMPL-DECIMAL-INT(str $source) {
+        my int $from;
+        my int $negate;
+        if nqp::eqat($source, '-', 0) || nqp::eqat($source, '−', 0) {
+            $negate := 1;
+            $from   := 1;
+        }
+        elsif nqp::eqat($source, '+', 0) {
+            $from := 1;
+        }
+        my $parsed := self.IMPL-PARSE-DIGITS($source, $from, nqp::chars($source));
+        nqp::isnull($parsed)
+          ?? $parsed
+          !! $negate
+            ?? nqp::neg_I(nqp::atpos($parsed, 0), Int)
+            !! nqp::atpos($parsed, 0)
+    }
+
+    # Returns the Int value of the digits in the given range and the number
+    # of digits in it, underscores not counted, or null when the range is
+    # not digits with single underscores between them. nqp::radix_I is
+    # quadratic in the digit count, so the range is halved recursively
+    # down to at most 18 characters, the longest run of decimal digits
+    # that cannot overflow a native int, and the halves are recombined
+    # with bigint multiplication.
+    method IMPL-PARSE-DIGITS(str $source, int $from, int $to) {
+        my int $n := $to - $from;
+        if $n <= 18 {
+            my $res := nqp::radix(10, nqp::substr($source, $from, $n), 0, 0);
+            return nqp::null unless nqp::atpos($res, 2) == $n;
+            my int $value := nqp::atpos($res, 0);
+            return [nqp::box_i($value, Int), nqp::atpos($res, 1)];
+        }
+
+        # An underscore is only valid between two digits, so one at the
+        # split is dropped rather than left at the edge of either half.
+        my int $mid     := $from + nqp::div_i($n, 2);
+        my int $lo-from := $mid;
+        if nqp::eqat($source, '_', $mid) {
+            $lo-from := $mid + 1;
+        }
+        elsif nqp::eqat($source, '_', $mid - 1) {
+            $mid := $mid - 1;
+        }
+
+        my $hi := self.IMPL-PARSE-DIGITS($source, $from, $mid);
+        return $hi if nqp::isnull($hi);
+        my $lo := self.IMPL-PARSE-DIGITS($source, $lo-from, $to);
+        return $lo if nqp::isnull($lo);
+
+        my int $hi-digits := nqp::atpos($hi, 1);
+        my int $lo-digits := nqp::atpos($lo, 1);
+        my $scale := nqp::pow_I(
+          nqp::box_i(10, Int), nqp::box_i($lo-digits, Int), Num, Int
+        );
+        [
+          nqp::add_I(nqp::mul_I(nqp::atpos($hi, 0), $scale, Int), nqp::atpos($lo, 0), Int),
+          $hi-digits + $lo-digits
+        ]
     }
 
     # Build an Int constant by any base and intern it
     method intern-Int-by-base(str $source, int $base, Mu $error-reporter?) {
-        my $res := nqp::radix_I($base,$source,0,2,Int);
-
-        # Successfully converted to Int
-        if nqp::atpos($res,2) == nqp::chars($source) {
-            my $key := $base == 10 ?? $source !! "$base:$source";
-            nqp::ifnull(
-              nqp::atkey($!interned-int,$key),
-              nqp::bindkey($!interned-int,$key,nqp::atpos($res,0))
-            )
-        }
-        elsif $error-reporter {
-            $error-reporter();
+        my $value;
+        my str $key;
+        if $base == 10 {
+            $value := self.IMPL-DECIMAL-INT($source);
+            $key   := $source;
         }
         else {
-            nqp::die("'$source' is not a valid number")
+            my $res := nqp::radix_I($base,$source,0,2,Int);
+            $value := nqp::atpos($res,2) == nqp::chars($source)
+              ?? nqp::atpos($res,0)
+              !! nqp::null;
+            $key   := "$base:$source";
+        }
+
+        if nqp::isnull($value) {
+            $error-reporter
+              ?? $error-reporter()
+              !! nqp::die("'$source' is not a valid number")
+        }
+        else {
+            nqp::ifnull(
+              nqp::atkey($!interned-int,$key),
+              nqp::bindkey($!interned-int,$key,$value)
+            )
         }
     }
 
@@ -1087,25 +1219,74 @@ class RakuAST::LiteralBuilder {
     }
 }
 
+# Stands in for a Raku exception type that cannot be used yet, which is
+# the case while the setting defining it is still compiling. gist takes
+# the named arguments the group gist passes along, and returns a Raku
+# string since the group gist calls methods on it.
 class RakuAST::BOOTException {
     has Str $!message;
     has Hash $!opts;
+    has Str $!filename;
+    has Mu $!line;
+    has Str $!pre;
+    has Str $!post;
     method new(Str $message, %opts) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::BOOTException, '$!message', $message);
         nqp::bindattr($obj, RakuAST::BOOTException, '$!opts', %opts);
         $obj
     }
-    method message() {
-        my $message := $!message;
-        $message := "$message(";
+    method SET_FILE_LINE($filename, $line) {
+        nqp::bindattr(self, RakuAST::BOOTException, '$!filename', $filename);
+        nqp::bindattr(self, RakuAST::BOOTException, '$!line', $line);
+    }
+    method SET_PRE_POST($pre, $post) {
+        nqp::bindattr(self, RakuAST::BOOTException, '$!pre', $pre);
+        nqp::bindattr(self, RakuAST::BOOTException, '$!post', $post);
+    }
+    # There is no sort op, and the NQP setting's sorted_keys is out of reach
+    # here, so the keys are put in order by hand.
+    method IMPL-SORTED-KEYS() {
+        my @keys;
         for $!opts {
-            $message := $message ~ $_.key ~ " => " ~ ((try $_.value.gist) // (try $_.value.Str) // '<unknown>') ~ ", ";
+            nqp::push(@keys, $_.key);
         }
-        $message := "$message)";
+        my int $n := nqp::elems(@keys);
+        my int $i := 1;
+        while $i < $n {
+            my str $key := @keys[$i];
+            my int $j := $i - 1;
+            while $j >= 0 && nqp::isgt_s(@keys[$j], $key) {
+                @keys[$j + 1] := @keys[$j];
+                $j := $j - 1;
+            }
+            @keys[$j + 1] := $key;
+            $i := $i + 1;
+        }
+        @keys
+    }
+    method message() {
+        my @opts;
+        for self.IMPL-SORTED-KEYS() -> $key {
+            my $value := $!opts{$key};
+            # A boxed native has no methods to call.
+            my $rendered := nqp::isconcrete($value)
+              && (nqp::isstr($value) || nqp::isint($value) || nqp::isnum($value))
+                ?? $value
+                !! ((try $value.gist) // (try $value.Str) // ('<' ~ $value.HOW.name($value) ~ '>'));
+            nqp::push(@opts, $key ~ ' => ' ~ $rendered);
+        }
+        my $message := nqp::elems(@opts)
+            ?? $!message ~ '(' ~ nqp::join(', ', @opts) ~ ')'
+            !! $!message;
+        $message := $message ~ ' at ' ~ $!filename ~ ':' ~ $!line if $!filename;
+        # The marker X::Comp prints while the setting compiles.
+        $message := $message ~ "\n------> " ~ $!pre ~ '<HERE>' ~ $!post if $!pre;
         $message
     }
+    method gist(*%_) { nqp::hllizefor(self.message, 'Raku') }
+    method Str(*%_) { self.gist }
     method throw() {
-        nqp::die($!message);
+        nqp::die(self.message);
     }
 }

@@ -1,6 +1,7 @@
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers::QAST;
 use Test;
+use nqp;
 plan 4;
 
 subtest 'postfix-inc/dec on natives gets overwritten to prefix' => {
@@ -92,12 +93,12 @@ subtest 'for {}' => {
         }, $_ ~ ' case gets optimized entirely';
     }
 
-    todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
+    todo "optimizer NYI" if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
     qast-is ｢for ^10 {}｣, :target<ast>, -> \v {
         qast-contains-op v, 'p6forstmt'
     }, 'simple `for ^10 {}` case gets `p6forstmt` op to use';
 
-    todo "optimizer NYI" if %*ENV<RAKUDO_RAKUAST>;
+    todo "optimizer NYI" if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
     qast-is ｢for ^10 -> $, :$foo {}｣, :target<ast>, -> \v {
                 qast-contains-op   v, 'p6forstmt'
         and not qast-contains-op   v, 'p6for'

@@ -1,7 +1,8 @@
 # An argument list.
 class RakuAST::ArgList
-  is RakuAST::CaptureSource
-  is RakuAST::SinkPropagator
+  is RakuAST::Node
+  does RakuAST::CaptureSource
+  does RakuAST::SinkPropagator
 {
     has List $!args;
     has RakuAST::Expression $.invocant;
@@ -30,6 +31,16 @@ class RakuAST::ArgList
         nqp::bindattr($obj, RakuAST::ArgList, '$!args', []);
         my @args := nqp::clone(self.IMPL-UNWRAP-LIST($colon-apply.operands));
         nqp::bindattr($obj, RakuAST::ArgList, '$!invocant', nqp::shift(@args));
+
+        # The arguments after the colon arrive as one comma list
+        if nqp::elems(@args) == 1 {
+            my $arg := @args[0];
+            if nqp::istype($arg, RakuAST::ApplyListInfix)
+              && nqp::istype($arg.infix, RakuAST::Infix)
+              && $arg.infix.operator eq ',' {
+                @args := self.IMPL-UNWRAP-LIST($arg.operands);
+            }
+        }
         for @args {
             $obj.push: $_;
         }
@@ -44,6 +55,11 @@ class RakuAST::ArgList
 
     method replace-args(List @args) {
         nqp::bindattr(self, RakuAST::ArgList, '$!args', self.IMPL-UNWRAP-LIST(@args));
+        Nil
+    }
+
+    method set-invocant(RakuAST::Expression $invocant) {
+        nqp::bindattr(self, RakuAST::ArgList, '$!invocant', $invocant);
         Nil
     }
 
@@ -62,7 +78,11 @@ class RakuAST::ArgList
         }
     }
 
-    method has-args() { nqp::elems($!args) ?? True !! False }
+    method unshift($arg) {
+        nqp::unshift($!args, $arg)
+    }
+
+    method has-args(--> Bool) { nqp::elems($!args) }
     method arity() { nqp::elems($!args) }
 
     method args() {
@@ -85,7 +105,30 @@ class RakuAST::ArgList
         }
     }
 
-    method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Op $call) {
+    # The literal of a native-paired pair of positional arguments, which the
+    # emission passes in its native form and the candidate analysis counts
+    # as native. Exactly two positional arguments qualify, since with more
+    # there is no single native context for a literal to adopt.
+    method IMPL-NATIVE-PAIRED-LITERAL() {
+        return nqp::null() unless nqp::elems($!args) == 2 && !nqp::isconcrete($!invocant);
+        my $first  := nqp::atpos($!args, 0);
+        my $second := nqp::atpos($!args, 1);
+        return nqp::null() if nqp::istype($first, RakuAST::NamedArg)
+            || nqp::istype($second, RakuAST::NamedArg)
+            || self.IMPL-IS-FLATTENING($first)
+            || self.IMPL-IS-FLATTENING($second);
+        self.IMPL-NATIVE-PAIRED-LITERAL-OF($first, $second)
+    }
+
+    # Only a sub call opts into native pairing. A method call resolves its
+    # callee at runtime from an open set of candidates, and no compile time
+    # analysis commits a choice for it, so its literal arguments stay the
+    # boxed values they always were.
+    method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Node $target, Bool :$native-pairing) {
+        my $native-literal := $native-pairing
+            ?? self.IMPL-NATIVE-PAIRED-LITERAL
+            !! nqp::null();
+
         # We need to remove duplicate named args, so make a first pass through to
         # collect those.
         my %named-counts;
@@ -101,7 +144,7 @@ class RakuAST::ArgList
                 # Flattening argument; evaluate it once and pass the array and hash
                 # flattening parts.
                 my $temp := QAST::Node.unique('flattening_');
-                $call.push(QAST::Op.new(
+                $target.push(QAST::Op.new(
                     :op('callmethod'), :name('FLATTENABLE_LIST'),
                     QAST::Op.new(
                         :op('bind'),
@@ -110,7 +153,7 @@ class RakuAST::ArgList
                     ),
                     :flat(1)
                 ));
-                $call.push(QAST::Op.new(
+                $target.push(QAST::Op.new(
                     :op('callmethod'), :name('FLATTENABLE_HASH'),
                     QAST::Var.new( :name($temp), :scope('local') ),
                     :flat(1), :named(1)
@@ -123,14 +166,14 @@ class RakuAST::ArgList
                     # named argument.
                     my $val-ast := $arg.named-arg-value.IMPL-TO-QAST($context);
                     $val-ast.named($name);
-                    $call.push($val-ast);
+                    $target.push($val-ast);
                 }
                 else {
                     # It's a discarded value. If it has side-effects, then we
                     # must evaluate those.
                     my $value := $arg.named-arg-value;
                     unless $value.pure {
-                        $call.push(QAST::Stmts.new(
+                        $target.push(QAST::Stmts.new(
                             :flat,
                             $value.IMPL-TO-QAST($context),
                             QAST::Op.new( :op('list') ) # flattens to nothing
@@ -141,7 +184,9 @@ class RakuAST::ArgList
             }
             else {
                 # Positional argument.
-                $call.push($arg.IMPL-TO-QAST($context))
+                $target.push(nqp::eqaddr($arg, $native-literal)
+                    ?? $arg.IMPL-TO-QAST-ARG($context)
+                    !! $arg.IMPL-TO-QAST($context))
             }
         }
     }
@@ -156,7 +201,7 @@ class RakuAST::ArgList
         nqp::istype($arg, RakuAST::ApplyPrefix) &&
             nqp::istype($arg.prefix, RakuAST::Prefix) &&
             $arg.prefix.operator eq '|' &&
-            !$arg.IMPL-CURRIED
+            !$arg.IMPL-PRIMED
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -190,13 +235,31 @@ class RakuAST::ArgList
         [@pos, %named]
     }
 
+    # The node giving an argument its compile-time value: a named argument's
+    # value, or the argument itself. One without such a value may be a lexical
+    # in grouping parentheses, as in `:coerce(&foo)`, so look through those.
+    method IMPL-ARG-COMPILE-TIME-SOURCE(Mu $arg) {
+        my $expr := nqp::istype($arg, RakuAST::NamedArg) ?? $arg.named-arg-value !! $arg;
+        return $expr if $expr.has-compile-time-value;
+        while nqp::istype($expr, RakuAST::Circumfix::Parentheses)
+          && nqp::istype($expr.semilist, RakuAST::SemiList)
+          && $expr.semilist.IMPL-IS-SINGLE-EXPRESSION {
+            my $statement := self.IMPL-UNWRAP-LIST($expr.semilist.statements)[0];
+            last if nqp::isconcrete($statement.condition-modifier)
+                 || nqp::isconcrete($statement.loop-modifier);
+            $expr := $statement.expression;
+        }
+        $expr
+    }
+
     method IMPL-HAS-ONLY-COMPILE-TIME-VALUES(:$allow-generic, :$allow-variable) {
         for $!args -> $arg {
-            if $arg.has-compile-time-value {
-                return False if !$allow-generic && $arg.maybe-compile-time-value.HOW.archetypes.generic;
+            my $value := self.IMPL-ARG-COMPILE-TIME-SOURCE($arg);
+            if $value.has-compile-time-value {
+                return False if !$allow-generic && $value.maybe-compile-time-value.HOW.archetypes.generic;
             }
             else {
-                unless $allow-variable && nqp::istype($arg, RakuAST::Var::Lexical) && $arg.is-resolved && $arg.resolution.has-compile-time-value {
+                unless $allow-variable && nqp::istype($value, RakuAST::Var::Lexical) && $value.is-resolved && $value.resolution.has-compile-time-value {
                     return False;
                 }
             }
@@ -208,11 +271,12 @@ class RakuAST::ArgList
         my @pos;
         my %named;
         for $!args -> $arg {
+            my $value := self.IMPL-ARG-COMPILE-TIME-SOURCE($arg).maybe-compile-time-value;
             if nqp::istype($arg, RakuAST::NamedArg) {
-                %named{$arg.named-arg-name} := $arg.named-arg-value.maybe-compile-time-value;
+                %named{$arg.named-arg-name} := $value;
             }
             else {
-                nqp::push(@pos, $arg.maybe-compile-time-value);
+                nqp::push(@pos, $value);
             }
         }
         [@pos, %named]
@@ -221,7 +285,7 @@ class RakuAST::ArgList
 
 # Base role for all kinds of calls (named sub calls, calling some term, and
 # method calls).
-class RakuAST::Call {
+role RakuAST::Call {
     has RakuAST::ArgList $.args;
 
     # Set when this call is a stage of a feed operator. The fed value is
@@ -246,22 +310,22 @@ class RakuAST::Call {
 # A call to a named sub.
 class RakuAST::Call::Name
   is RakuAST::Term
-  is RakuAST::Call
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::Lookup
+  does RakuAST::Call
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $.name;
     has RakuAST::Code $!block;
     has RakuAST::Routine $!routine;
     has Mu $!lexical; # For top-level package if we can only partially resolve
     has Mu $!package;
+    has Mu $!native-return-type;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Call::Name, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj.replace-args($args // RakuAST::ArgList.new);
         $obj
     }
 
@@ -276,9 +340,9 @@ class RakuAST::Call::Name
     # until that is fixed, this appears to be the best stopgap measure.
     method properties { OperatorProperties.prefix }
 
-    method needs-resolution() { $!name.is-identifier }
+    method needs-resolution(--> Bool) { ?$!name.is-identifier }
 
-    method needs-sink-call() {
+    method needs-sink-call(--> Bool) {
         # The built-in `take` and `take-rw` hand back the same value they
         # stash into the enclosing gather, so sinking the result would drain a
         # value that is not ours to consume. A same-named user routine has no
@@ -293,6 +357,13 @@ class RakuAST::Call::Name
         RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
     }
 
+    # A call reports the name it calls, not the lexical of the routine.
+    method IMPL-HEREDOC-SYMBOL(str $name) {
+        nqp::eqat($name, '&', 0) && nqp::substr($name, 1) eq $!name.canonicalize
+          ?? nqp::substr($name, 1)
+          !! $name
+    }
+
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::Name, '$!block',
             $resolver.find-attach-target('block'));
@@ -302,11 +373,21 @@ class RakuAST::Call::Name
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Call::Name, '$!package', $resolver.current-package);
+        # A qualified callee is late-bound: the stash entry is a fresh
+        # closure clone after every mainline run, and binding it at
+        # compilation time would serialize a per-consumer copy of it and
+        # of the module state it closes over.
         my $resolved := $!name.is-identifier
             ?? $resolver.resolve-lexical('&' ~ $!name.canonicalize)
-            !! $resolver.resolve-name($!name, :sigil('&'));
+            !! $!name.is-multi-part && !$!name.is-pseudo-package
+                ?? Nil
+                !! $resolver.resolve-name($!name, :sigil('&'));
         if $resolved {
             self.set-resolution($resolved);
+        }
+        elsif $!name.is-identifier {
+            # A type or a term the heredoc body may not use parses as a call.
+            self.IMPL-NOTE-HEREDOC-REFUSAL($resolver, $!name.canonicalize);
         }
         elsif $!name.is-package-lookup {
             my $name := $!name.base-name;
@@ -407,7 +488,12 @@ class RakuAST::Call::Name
                 my $ok := 1;
                 my @args := self.IMPL-UNWRAP-LIST(self.args.args);
                 for @args {
-                    my $type := $_.return-type;
+                    my $type := $_.IMPL-STATIC-ARG-TYPE;
+                    # No istype relation holds between a definite type
+                    # and a nominal one, Mu:D and Any included, so the
+                    # trial bind would call any such pairing impossible.
+                    $type := $type.HOW.base_type($type)
+                        if nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW);
                     nqp::push(@types, $type);
                     $ok := 0 if $type =:= Mu; # Don't know the type
                     last unless $ok;
@@ -416,9 +502,24 @@ class RakuAST::Call::Name
                     nqp::push(@flags, nqp::objprimspec($type));
                 }
                 if $ok {
-                    if nqp::elems(@types) == 1 && nqp::istype(@args[0], RakuAST::Literal) {
-                        my $rev := @args[0].native-type-flag;
-                        @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
+                    if nqp::elems(@types) == 1 {
+                        # The literal kind covers a constant quoted string as
+                        # well as the literal nodes, so a string passed to an
+                        # `int` parameter is refused here rather than failing
+                        # to unbox at run time.
+                        my $rev := @args[0].IMPL-NATIVE-LITERAL-KIND;
+                        @flags[0] := $rev +| $ARG_IS_LITERAL if nqp::defined($rev);
+                    }
+                    elsif nqp::elems(@types) == 2 {
+                        # A native-paired literal is passed in its native
+                        # form, so it is diagnosed with the native reading,
+                        # which also rules out a candidate that takes a
+                        # native `is rw` parameter.
+                        my $paired := self.args.IMPL-NATIVE-PAIRED-LITERAL;
+                        if !nqp::isnull($paired) && nqp::defined($paired.IMPL-NATIVE-LITERAL-KIND) {
+                            my int $idx := nqp::eqaddr(@args[0], $paired) ?? 0 !! 1;
+                            @flags[$idx] := $paired.IMPL-NATIVE-LITERAL-KIND +| $ARG_IS_LITERAL;
+                        }
                     }
                     my $ct_result := nqp::p6trialbind($sig, @types, @flags);
                     my @ct_result_multi;
@@ -451,6 +552,38 @@ class RakuAST::Call::Name
                                 :$protoguilt,
                         );
                     }
+                    else {
+                        # The call is settled at compile time, so the chosen
+                        # candidate's native return type describes the result.
+                        # The flags above read a lone literal as native to
+                        # diagnose an impossible dispatch, so the recording
+                        # re-reads the arguments as the call site passes
+                        # them, through the same analysis the inline pass
+                        # and the argument emission use.
+                        my @info := self.IMPL-CT-ARG-TYPES($resolver, @args);
+                        if nqp::elems(@info) {
+                            my $ret := self.IMPL-NATIVE-RETURN-TYPE($routine,
+                                @info[0], @info[1]);
+                            nqp::bindattr(self, RakuAST::Call::Name,
+                                '$!native-return-type', $ret) unless nqp::isnull($ret);
+                        }
+                    }
+                }
+
+                # A callee that is not a dispatcher promises its declared
+                # return type however the arguments bind, and a closure
+                # clone shares its signature, so the promise holds even
+                # when the analysis settled nothing. A callee compiled
+                # under the soft pragma can be wrapped at run time, so it
+                # promises nothing.
+                if !nqp::objprimspec($!native-return-type)
+                    && !(nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher)
+                    && !(nqp::can($routine, 'rw') && $routine.rw)
+                    && !(nqp::can($routine, 'soft') && $routine.soft)
+                    && nqp::can($routine, 'returns')
+                    && nqp::objprimspec($routine.returns) {
+                    nqp::bindattr(self, RakuAST::Call::Name,
+                        '$!native-return-type', $routine.returns);
                 }
             }
         }
@@ -464,7 +597,42 @@ class RakuAST::Call::Name
         @sigs
     }
 
+    # Set by the optimize pass when the resolved callee's lexical is bound
+    # once, so the callee lookup can be compiled as a static one the VM
+    # resolves a single time.
+    has int $!callstatic;
+
+    method IMPL-SET-CALLSTATIC(int $on) {
+        nqp::bindattr_i(self, RakuAST::Call::Name, '$!callstatic', $on)
+    }
+
+    method IMPL-CALL-OP() { $!callstatic ?? 'callstatic' !! 'call' }
+
+    # Set by the optimize pass when the argument types decide the dispatch
+    # at compile time: the routine, for a multi the chosen candidate, whose
+    # inline info, when it has any, is spliced in place of the call.
+    has Mu $!ct-inline-candidate;
+
+    method IMPL-SET-CT-INLINE-CANDIDATE(Mu $routine) {
+        nqp::bindattr(self, RakuAST::Call::Name, '$!ct-inline-candidate', $routine)
+    }
+
+    method IMPL-CLEAR-CT-INLINE-CANDIDATE() {
+        nqp::bindattr(self, RakuAST::Call::Name, '$!ct-inline-candidate', nqp::null())
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        if nqp::isconcrete($!ct-inline-candidate) {
+            my $info := nqp::getattr($!ct-inline-candidate, Routine, '$!inline_info');
+            if nqp::isconcrete($info) && nqp::istype($info, QAST::Node) {
+                my @args-qast;
+                for self.IMPL-UNWRAP-LIST(self.args.args) {
+                    nqp::push(@args-qast, $_.IMPL-TO-QAST($context));
+                }
+                my $inlined := self.IMPL-CT-INLINE-QAST($context, $!ct-inline-candidate, @args-qast);
+                return $inlined unless nqp::isnull($inlined);
+            }
+        }
         my $call := QAST::Op.new( :op('call') );
         if $!name.is-identifier {
             if !self.is-resolved && $!name.canonicalize eq 'die' {
@@ -479,6 +647,7 @@ class RakuAST::Call::Name
                     $name := '&' ~ $!name.canonicalize;
                 }
                 $call.name($name);
+                $call.op('callstatic') if $!callstatic;
             }
         }
         else {
@@ -517,7 +686,7 @@ class RakuAST::Call::Name
                 );
             }
         }
-        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        self.args.IMPL-ADD-QAST-ARGS($context, $call, :native-pairing);
 
         # Add return value from signature if this is a return without args
         my $block := $!block;
@@ -529,13 +698,76 @@ class RakuAST::Call::Name
             $call.push(QAST::WVal.new(:value($ret.maybe-compile-time-value)));
         }
 
-        self.IMPL-SIMPLIFY-REF-ARGS($call)
+        # A call the check-time analysis settled on one candidate carries
+        # that candidate's native return type. This takes precedence over
+        # the callstatic return copy: the copy's Want offers the raw return
+        # only in its own kind, so a context wanting a different native kind
+        # falls back to the boxed default and the unbox dies, where this
+        # Want widens across native kinds. A dispatcher leaves its return to
+        # its candidates, which the copy declines to guess at, so a settled
+        # multi is covered here as well.
+        my $qast := self.IMPL-SIMPLIFY-REF-ARGS($call);
+        nqp::objprimspec($!native-return-type)
+          ?? self.IMPL-NATIVE-RETURN-WANT($qast, $!native-return-type)
+          !! $!callstatic
+            ?? self.IMPL-COPY-RETURNS($qast)
+            !! $qast
     }
 
+    # Copy the resolved callee's declared return type onto the call node, so
+    # code generation downstream may act on it. A native return keeps the
+    # bare call as the default of a Want, since the routine may still escape
+    # with a Failure or a Nil that only the boxed object can carry, and the
+    # native alternatives unbox raw. Only a callee bound once is trusted,
+    # the condition the static callee lookup already established, and a
+    # dispatcher is left alone since its candidates decide their own
+    # returns, as is an rw callee, whose return is its container.
+    method IMPL-COPY-RETURNS(Mu $call) {
+        # The attribute reads assume the stock Routine layout; a routine of
+        # another lineage declines rather than breaks the compile.
+        CATCH {
+            return $call;
+        }
+        my $decl := self.resolution;
+        return $call unless nqp::istype($decl, RakuAST::CompileTimeValue)
+            || nqp::can($decl, 'maybe-compile-time-value');
+        my $routine := nqp::istype($decl, RakuAST::CompileTimeValue)
+            ?? $decl.compile-time-value
+            !! $decl.maybe-compile-time-value;
+        # An our-scoped callee imports as its Scalar container, whose value a
+        # later assignment can replace, so it promises no return type.
+        return $call if nqp::iscont($routine);
+        return $call unless nqp::isconcrete($routine)
+            && nqp::istype($routine, Routine);
+        # Attribute reads rather than the rw, is_dispatcher, and returns
+        # methods: this runs for every marked call, and dispatching against
+        # the setting's own meta-objects during its compile is pathologically
+        # slow in the compiling process.
+        return $call if nqp::bitand_i(
+            nqp::getattr_i($routine, Routine, '$!flags'), 0x01);
+        return $call if nqp::defined(
+            nqp::getattr($routine, Routine, '@!dispatchees'));
+        my $signature := nqp::getattr($routine, Code, '$!signature');
+        return $call unless nqp::isconcrete($signature);
+        my $returns := nqp::ifnull(
+            nqp::getattr($signature, Signature, '$!returns'), Mu);
+        return $call if $returns =:= Mu;
+        if nqp::objprimspec($returns) {
+            $call := self.IMPL-NATIVE-RETURN-WANT($call, $returns);
+        }
+        else {
+            $call.returns($returns);
+        }
+        $call
+    }
+
+    # A call to callframe compiles, since the frame calling it would otherwise
+    # be the interpreter's own.
     method IMPL-CAN-INTERPRET() {
         (
             $!name.is-identifier && $!name.canonicalize ne 'EVAL' && self.is-resolved
                 && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+                && !self.IMPL-RESOLVES-TO-SETTING('&callframe')
         )
         && self.args.IMPL-CAN-INTERPRET
     }
@@ -555,12 +787,12 @@ class RakuAST::Call::Name::WithoutParentheses
 
 # A call to any term (the postfix () operator).
 class RakuAST::Call::Term
-  is RakuAST::Call
   is RakuAST::Postfixish
+  does RakuAST::Call
 {
     method new(RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj.replace-args($args // RakuAST::ArgList.new);
         $obj
     }
 
@@ -574,7 +806,7 @@ class RakuAST::Call::Term
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $callee-qast) {
         my $call := QAST::Op.new( :op('call'), $callee-qast );
-        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        self.args.IMPL-ADD-QAST-ARGS($context, $call, :native-pairing);
         $call
     }
 
@@ -603,10 +835,13 @@ class RakuAST::Call::Term
 
 # The base of all method call like things.
 class RakuAST::Call::Methodish
-  is RakuAST::Call
   is RakuAST::Postfixish
+  does RakuAST::Call
 {
     has str $!dispatcher;
+
+    # Whether the result may come from foreign code and so needs hllize
+    method IMPL-HLLIZE-RESULT() { 1 }
 
     # Set when the optimize pass has marked a `.=` call on the topic for inlining
     # the method-call-and-assign dispatcher away.
@@ -634,16 +869,16 @@ class RakuAST::Call::Methodish
         OperatorProperties.postfix(self.dispatch || $default)
     }
 
-    method IMPL-CURRIES() { 3 }
+    method IMPL-PRIMES() { 3 }
 }
 
 # A call to a method identified by a name. Some names (like WHAT and HOW) are
 # compiled into primitive operations rather than really being method calls.
 class RakuAST::Call::Method
   is RakuAST::Call::Methodish
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
 
@@ -655,9 +890,7 @@ class RakuAST::Call::Method
         my $obj := nqp::create(self);
 
         nqp::bindattr($obj, RakuAST::Call::Method, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Call, '$!args',
-          $args // RakuAST::ArgList.new
-        );
+        $obj.replace-args($args // RakuAST::ArgList.new);
 
         $obj.set-dispatcher($dispatch);
         $obj
@@ -675,6 +908,10 @@ class RakuAST::Call::Method
           && (my $name := $!name.canonicalize)
           && nqp::istrue(self.IMPL-SPECIAL-OP($name))
     }
+
+    # A special op like .WHAT is a primitive op on the value itself, so
+    # its result is never foreign and .WHAT of a VM array stays BOOTArray.
+    method IMPL-HLLIZE-RESULT() { !self.macroish }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         my @lookups := [];
@@ -704,10 +941,10 @@ class RakuAST::Call::Method
 
     # Special-op postfixes (.WHAT, .HOW, .VAR, .DEFINITE, etc.) compile to
     # primitive nqp:: ops, not real method calls, so they sit outside the
-    # currying machinery. `(5 ~~ *).WHAT` must therefore evaluate `(5 ~~ *)`
+    # priming machinery. `(5 ~~ *).WHAT` must therefore evaluate `(5 ~~ *)`
     # to a WhateverCode and then take its WHAT, rather than being absorbed
-    # into a curried `{ (5 ~~ $_).WHAT }`.
-    method IMPL-CURRIES() {
+    # into a primed `{ (5 ~~ $_).WHAT }`.
+    method IMPL-PRIMES() {
         $!name.is-identifier && nqp::istrue(self.IMPL-SPECIAL-OP($!name.canonicalize))
             ?? 0
             !! 3
@@ -774,7 +1011,8 @@ class RakuAST::Call::Method
                 # not resolve at compile time (for example a type only loaded
                 # by the consuming program) becomes a runtime lookup rather
                 # than a compile-time failure.
-                my $qualified-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+                my $qualified-qast :=
+                  self.get-implicit-lookups[0].IMPL-EXPR-QAST($context);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
 
@@ -844,7 +1082,8 @@ class RakuAST::Call::Method
                        QAST::SVal.new( :value($name) );
             }
             else {
-                my $qualified-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+                my $qualified-qast :=
+                  self.get-implicit-lookups[0].IMPL-EXPR-QAST($context);
                 $name := @parts[ nqp::elems(@parts)-1 ];
                 my $dispatcher := self.dispatcher;
 
@@ -878,7 +1117,22 @@ class RakuAST::Call::Method
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, Mu $invocant-compiler) {
         my $invocant := $invocant-compiler();
         my $name := $!name.canonicalize;
-        if $name eq 'WHAT' {
+        my $dispatcher := self.dispatcher;
+        if $dispatcher {
+            my @args := self.args.IMPL-INTERPRET($ctx);
+            my @pos := @args[0];
+            my %named := @args[1];
+            if $dispatcher eq 'dispatch:<.?>' {
+                my $obj := nqp::decont($invocant);
+                nqp::isconcrete(nqp::decont(nqp::how_nd($obj).find_method($obj, $name)))
+                  ?? $invocant."$name"(|@pos, |%named)
+                  !! Nil
+            }
+            else {
+                $invocant."$dispatcher"($name, |@pos, |%named)
+            }
+        }
+        elsif $name eq 'WHAT' {
             $invocant.WHAT
         }
         elsif $name eq 'HOW' {
@@ -887,10 +1141,18 @@ class RakuAST::Call::Method
         elsif $name eq 'WHO' {
             $invocant.WHO
         }
+        elsif $name eq 'WHERE' {
+            nqp::box_i(nqp::where($invocant), Int)
+        }
         elsif $name eq 'VAR' {
-            my $var := nqp::create(Scalar);
-            nqp::bindattr_s($var, Scalar, '$!value', $invocant);
-            $var
+            if nqp::isconcrete_nd($invocant) && nqp::iscont($invocant) {
+                my $var := nqp::create(ScalarVAR);
+                nqp::bindattr($var, Scalar, '$!value', $invocant);
+                $var
+            }
+            else {
+                $invocant
+            }
         }
         elsif $name eq 'REPR' {
             nqp::box_s(nqp::reprname($invocant), Str)
@@ -945,7 +1207,7 @@ class RakuAST::Call::Method
 # A call to a method with a quoted name.
 class RakuAST::Call::QuotedMethod
   is RakuAST::Call::Methodish
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     has RakuAST::QuotedString   $.name;
     has Mu $!package;
@@ -958,7 +1220,7 @@ class RakuAST::Call::QuotedMethod
         my $obj := nqp::create(self);
 
         nqp::bindattr($obj, RakuAST::Call::QuotedMethod, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj.replace-args($args // RakuAST::ArgList.new);
 
         $obj.set-dispatcher($dispatch);
         $obj
@@ -1026,10 +1288,10 @@ class RakuAST::Call::QuotedMethod
 # A call to a private method.
 class RakuAST::Call::PrivateMethod
   is RakuAST::Call::Methodish
-  is RakuAST::Lookup
-  is RakuAST::ImplicitLookups
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::Lookup
+  does RakuAST::ImplicitLookups
+  does RakuAST::ParseTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -1037,7 +1299,7 @@ class RakuAST::Call::PrivateMethod
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Call::PrivateMethod, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj.replace-args($args // RakuAST::ArgList.new);
         $obj
     }
 
@@ -1124,9 +1386,7 @@ class RakuAST::Call::PrivateMethod
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Var::Lexical::Constant.new('::?CLASS'),
-        ]
+        [ RakuAST::Var::Lexical::Constant.new('::?CLASS') ]
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
@@ -1150,7 +1410,7 @@ class RakuAST::Call::PrivateMethod
                 :op('dispatch'),
                 QAST::SVal.new(:value('raku-meth-private')),
                 $!package.HOW.archetypes.parametric
-                  ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context)
+                  ?? self.get-implicit-lookups[0].IMPL-EXPR-QAST($context)
                   !! QAST::WVal.new(:value($!package)),
                 QAST::SVal.new(:value($name)),
                 $invocant-qast,
@@ -1180,7 +1440,7 @@ class RakuAST::Call::PrivateMethod
             $package-qast := self.resolution.IMPL-TO-QAST($context);
         }
         elsif $!package.HOW.archetypes.parametric {
-            $package-qast := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-EXPR-QAST($context);
+            $package-qast := self.get-implicit-lookups[0].IMPL-EXPR-QAST($context);
         }
         else {
             $context.ensure-sc($!package);
@@ -1209,7 +1469,7 @@ class RakuAST::Call::MetaMethod
     method new(str :$name!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Call::MetaMethod, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj.replace-args($args // RakuAST::ArgList.new);
         $obj
     }
 
@@ -1235,11 +1495,11 @@ class RakuAST::Call::MetaMethod
     }
 }
 
-class RakuAST::Call::VarMethod
+class RakuAST::Call::NameAsMethod
   is RakuAST::Call::Methodish
-  is RakuAST::Lookup
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::Lookup
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
 
@@ -1250,8 +1510,8 @@ class RakuAST::Call::VarMethod
     ) {
         my $obj := nqp::create(self);
 
-        nqp::bindattr($obj, RakuAST::Call::VarMethod, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        nqp::bindattr($obj, RakuAST::Call::NameAsMethod, '$!name', $name);
+        $obj.replace-args($args // RakuAST::ArgList.new);
 
         $obj.set-dispatcher($dispatch);
         $obj
@@ -1266,10 +1526,16 @@ class RakuAST::Call::VarMethod
 
     method default-operator-properties() { self.default-properties('.&') }
 
-    method needs-resolution() { $!name.is-identifier }
+    method needs-resolution(--> Bool) {
+        ?$!name.is-identifier && !$!name.is-indirect-lookup
+    }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $resolved := $resolver.resolve-name($!name, :sigil('&'));
+        # An indirect lookup is a runtime symbolic lookup, so it keeps no
+        # compile-time resolution, as with Term::Name.
+        my $resolved := $!name.is-indirect-lookup
+            ?? Nil
+            !! $resolver.resolve-name($!name, :sigil('&'));
         if $resolved {
             self.set-resolution($resolved);
         }
@@ -1303,11 +1569,22 @@ class RakuAST::Call::VarMethod
         RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
     }
 
+    # A role body is compiled when the role is composed, which can precede
+    # resolving a routine declared later in the file. Look such a callee up
+    # by name at run time.
+    method IMPL-CALLEE-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.is-resolved
+            ?? self.resolution.IMPL-LOOKUP-QAST($context)
+            !! QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('&' ~ $!name.canonicalize) ) )
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         unless $!name.is-identifier {
             nqp::die('compiling complex call names NYI')
         }
-        my $name-qast  := self.resolution.IMPL-LOOKUP-QAST($context);
+        my $name-qast  := $!name.is-indirect-lookup
+            ?? $!name.IMPL-QAST-INDIRECT-LOOKUP($context, :sigil('&'))
+            !! self.IMPL-CALLEE-QAST($context);
         my $dispatcher := self.dispatcher;
 
         my $call := $dispatcher
@@ -1330,39 +1607,58 @@ class RakuAST::Call::VarMethod
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $dispatcher := self.dispatcher;
 
+        # The routine appears twice in the dispatch. A runtime indirect
+        # lookup must run once and feed both positions, so its result is
+        # bound to a temporary at the first and read back at the second.
+        my $name-qast;
+        my $name-again;
+        if $!name.is-indirect-lookup {
+            my str $tmp := QAST::Node.unique('indirect_var_method');
+            $name-qast := QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+                $!name.IMPL-QAST-INDIRECT-LOOKUP($context, :sigil('&'))
+            );
+            $name-again := QAST::Var.new( :name($tmp), :scope('local') );
+        }
+        else {
+            $name-qast  := self.IMPL-CALLEE-QAST($context);
+            $name-again := self.IMPL-CALLEE-QAST($context);
+        }
+
         my $call := $dispatcher
             ?? QAST::Op.new:
                 :op('callmethod'), :name('dispatch:<hyper>'),
                 $operand-qast,
-                self.resolution.IMPL-LOOKUP-QAST($context),
+                $name-qast,
                 QAST::SVal.new( :value($dispatcher) ),
                 QAST::SVal.new( :value('dispatch:<var>') ),
-                self.resolution.IMPL-LOOKUP-QAST($context)
+                $name-again
             !! QAST::Op.new:
                 :op('callmethod'), :name('dispatch:<hyper>'),
                 $operand-qast,
-                self.resolution.IMPL-LOOKUP-QAST($context),
+                $name-qast,
                 QAST::SVal.new( :value('dispatch:<var>') ),
-                self.resolution.IMPL-LOOKUP-QAST($context);
+                $name-again;
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
 }
 
-class RakuAST::Call::BlockMethod
+class RakuAST::Call::TermAsMethod
   is RakuAST::Call::Methodish
 {
-    has RakuAST::Block $.block;
+    has RakuAST::Term $.callee;
 
     method new(
-        RakuAST::Block :$block!,
+         RakuAST::Term :$callee!,
       RakuAST::ArgList :$args,
                    str :$dispatch
     ) {
         my $obj := nqp::create(self);
 
-        nqp::bindattr($obj, RakuAST::Call::BlockMethod, '$!block', $block);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        nqp::bindattr($obj, RakuAST::Call::TermAsMethod, '$!callee', $callee);
+        $obj.replace-args($args // RakuAST::ArgList.new);
 
         $obj.set-dispatcher($dispatch);
         $obj
@@ -1371,7 +1667,7 @@ class RakuAST::Call::BlockMethod
     method can-be-used-with-hyper() { True }
 
     method visit-children(Code $visitor) {
-        $visitor($!block);
+        $visitor($!callee);
         $visitor(self.args);
     }
 
@@ -1386,13 +1682,13 @@ class RakuAST::Call::BlockMethod
                 :name($dispatcher),
                 $invocant-qast,
                 QAST::SVal.new( :value('dispatch:<var>')),
-                $!block.IMPL-EXPR-QAST($context),
+                $!callee.IMPL-EXPR-QAST($context),
             )
             !! QAST::Op.new(
                 :op('callmethod'),
                 :name('dispatch:<var>'),
                 $invocant-qast,
-                $!block.IMPL-EXPR-QAST($context),
+                $!callee.IMPL-EXPR-QAST($context),
             );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
@@ -1405,16 +1701,16 @@ class RakuAST::Call::BlockMethod
             ?? QAST::Op.new:
                 :op('callmethod'), :name('dispatch:<hyper>'),
                 $operand-qast,
-                $!block.IMPL-EXPR-QAST($context),
+                $!callee.IMPL-EXPR-QAST($context),
                 QAST::SVal.new( :value($dispatcher) ),
                 QAST::SVal.new( :value('dispatch:<var>') ),
-                $!block.IMPL-EXPR-QAST($context)
+                $!callee.IMPL-EXPR-QAST($context)
             !! QAST::Op.new:
                 :op('callmethod'), :name('dispatch:<hyper>'),
                 $operand-qast,
-                $!block.IMPL-EXPR-QAST($context),
+                $!callee.IMPL-EXPR-QAST($context),
                 QAST::SVal.new( :value('dispatch:<var>') ),
-                $!block.IMPL-EXPR-QAST($context);
+                $!callee.IMPL-EXPR-QAST($context);
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
@@ -1422,8 +1718,8 @@ class RakuAST::Call::BlockMethod
 
 # Base role for all stubs
 class RakuAST::Stub
-  is RakuAST::ImplicitLookups
   is RakuAST::Term
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::ArgList $.args;
 
@@ -1433,27 +1729,34 @@ class RakuAST::Stub
         $obj
     }
 
+    method visit-children(Code $visitor) {
+        $visitor($!args) if $!args;
+    }
+
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # A stub in the setting mentions X::StubCode before that class is
+        # declared, so the begin time resolution of the implicit lookup
+        # comes up empty. Retry now that the whole compilation unit has
+        # been parsed, so the emitted code carries the resolved type
+        # rather than a run time package walk from GLOBAL.
+        my $lookup := self.get-implicit-lookups[0];
+        $lookup.PERFORM-CHECK($resolver, $context) unless $lookup.is-resolved;
         True
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier-parts('X','StubCode')
-            )
-        ]
+        [ RakuAST::Type::Simple.from-identifier-parts('X','StubCode') ]
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := QAST::Op.new(
           :op<callmethod>, :name<new>,
-          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context)
+          self.get-implicit-lookups[0].IMPL-TO-QAST($context)
         );
         if $!args {
             my @args := self.IMPL-UNWRAP-LIST($!args.args);
             if nqp::elems(@args) {
-                my $value := @args[0].IMPL-EXPR-QAST($context);
+                my $value := @args[0].IMPL-TO-QAST($context);
                 $value.named("message");
                 nqp::push($qast, $value);
             }
@@ -1469,7 +1772,7 @@ class RakuAST::Stub
 # the ... stub
 class RakuAST::Stub::Fail
   is RakuAST::Stub
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     method name() { '...' }
     method IMPL-FUNC-NAME() { 'fail' }

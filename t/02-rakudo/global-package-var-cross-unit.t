@@ -1,8 +1,9 @@
 use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
+use nqp;
 
-plan 3;
+plan 6;
 
 # A GLOBAL package variable written at run time by a precompiled module
 # must be visible outside that module. Each compilation unit has its own
@@ -30,5 +31,41 @@ is-run 'use GlobalWriter; set-it; print get-dynamic()',
 is-run 'use GlobalWriter; set-scalar; print $*cross-unit-scalar',
     :@compiler-args, :out<5>,
     'a scalar written to GLOBAL by a module reaches the dynamic fallback';
+
+# A run-time write through a GLOBAL-rooted name can vivify a stub package
+# under a name some unit also declares. Importing that unit's GLOBALish
+# must unify the two packages rather than install a lexical alias that
+# shadows the stub and hides its symbols.
+
+$mod-store.add('SelfWriter.rakumod').spurt: q:to/EOF/;
+    package SelfNamespace {
+        &GLOBAL::SelfNamespace::dld = &dld;
+        sub dld { 42 }
+    }
+    EOF
+
+is-run 'use SelfWriter; print SelfNamespace::dld()',
+    :@compiler-args, :out<42>,
+    'a sub a module binds into a GLOBAL-rooted package it also declares is callable by qualified name';
+
+is-run 'use SelfWriter; print SelfNamespace.WHO =:= GLOBAL::SelfNamespace.WHO',
+    :@compiler-args, :out<True>,
+    'the imported package and the GLOBAL entry of the same name are one object';
+
+$mod-store.add('StubWriter.rakumod').spurt: q:to/EOF/;
+    unit module StubWriter;
+    $GLOBAL::CrossUnitClass::stub-val = 5;
+    EOF
+$mod-store.add('RealClass.rakumod').spurt: q:to/EOF/;
+    class CrossUnitClass {
+        method val() { 37 }
+    }
+    EOF
+
+todo 'the legacy frontend does not merge a vivified GLOBAL stub into an imported class'
+    unless nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
+is-run 'use StubWriter; use RealClass; print CrossUnitClass.val + $CrossUnitClass::stub-val',
+    :@compiler-args, :out<42>,
+    'a class merges symbols from a same-named stub package an earlier module vivified in GLOBAL';
 
 # vim: expandtab shiftwidth=4

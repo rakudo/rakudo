@@ -10,7 +10,7 @@ a test for that class.
 RakuAST::BracketedInfix
 RakuAST::Categorical
 RakuAST::ContainerCreator
-RakuAST::CurryThunk
+RakuAST::PrimeThunk
 RakuAST::Declaration::External
 RakuAST::Declaration::External::Constant
 RakuAST::Declaration::Import

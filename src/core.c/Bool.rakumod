@@ -113,6 +113,9 @@ multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::hllbool(nqp::ifnull(nqp::xor(a.
 proto sub infix:<&&>(|) {*}
 multi sub infix:<&&>(--> Bool::True) { }
 multi sub infix:<&&>(Mu $x) { $x }
+# A WhateverCode operand is a value rather than a thunk to call, as calling
+# one with no arguments could only die.
+multi sub infix:<&&>(Mu \a, WhateverCode \b) { a && b }
 multi sub infix:<&&>(Mu \a, &b)    { a && b() }
 multi sub infix:<&&>(Mu \a, Mu \b) { a && b   }
 multi sub infix:<&&>(+@a) {
@@ -125,7 +128,8 @@ multi sub infix:<&&>(+@a) {
           nqp::iseq_i(++$i,$elems)
             || nqp::isfalse(
                  nqp::if(
-                   nqp::istype((my $value := nqp::atpos($reified,$i)),Callable),
+                   nqp::istype((my $value := nqp::atpos($reified,$i)),Callable)
+                     && nqp::not_i(nqp::istype($value,WhateverCode)),
                    ($value := $value()),
                    $value
                  )
@@ -141,6 +145,7 @@ multi sub infix:<&&>(+@a) {
 proto sub infix:<||>(|) {*}
 multi sub infix:<||>(--> Bool::False) { }
 multi sub infix:<||>(Mu $x) { $x }
+multi sub infix:<||>(Mu \a, WhateverCode \b) { a || b }
 multi sub infix:<||>(Mu \a, &b)    { a || b() }
 multi sub infix:<||>(Mu \a, Mu \b) { a || b   }
 multi sub infix:<||>(+@a) {
@@ -153,7 +158,8 @@ multi sub infix:<||>(+@a) {
           nqp::iseq_i(++$i,$elems)
             || nqp::istrue(
                  nqp::if(
-                   nqp::istype((my $value := nqp::atpos($reified,$i)),Callable),
+                   nqp::istype((my $value := nqp::atpos($reified,$i)),Callable)
+                     && nqp::not_i(nqp::istype($value,WhateverCode)),
                    ($value := $value()),
                    $value
                  )
@@ -169,23 +175,38 @@ multi sub infix:<||>(+@a) {
 proto sub infix:<^^>(|) {*}
 multi sub infix:<^^>(--> Bool::False) { }
 multi sub infix:<^^>(Mu $x) { $x }
+multi sub infix:<^^>(Mu \a, WhateverCode \b) { a ^^ b }
 multi sub infix:<^^>(Mu \a, &b)    { a ^^ b() }
 multi sub infix:<^^>(Mu \a, Mu \b) { a ^^ b   }
 multi sub infix:<^^>(+@a) {
-    my Mu $a = shift @a;
-    while @a {
-        my Mu $b := shift @a;
-        $b := $b() if $b ~~ Callable;
-        next unless $b;
-        return Nil if $a;
-        $a := $b;
-    }
-    $a;
+    my int $elems = @a.elems;  # reifies
+    my $reified := nqp::getattr(@a,List,'$!reified');
+    my int $i = -1;
+    my $true := nqp::null;
+    my Mu $value := False;
+    nqp::while(
+      nqp::islt_i(++$i,$elems),
+      nqp::if(
+        ($value := nqp::if(
+          nqp::istype((my $item := nqp::atpos($reified,$i)),Callable)
+            && nqp::not_i(nqp::istype($item,WhateverCode)),
+          $item(),
+          $item
+        )),
+        nqp::if(
+          nqp::isnull($true),
+          ($true := $value),
+          (return Nil)
+        )
+      )
+    );
+    nqp::ifnull($true,$value)
 }
 
 proto sub infix:<//>(|) {*}
 multi sub infix:<//>() { Any }
 multi sub infix:<//>(Mu $x = Any)  { $x }
+multi sub infix:<//>(Mu \a, WhateverCode \b) { a // b }
 multi sub infix:<//>(Mu \a, &b)    { a // b }  # shouldn't that be b() ??
 multi sub infix:<//>(Mu \a, Mu \b) { a // b }
 multi sub infix:<//>(+@a) {
@@ -197,7 +218,8 @@ multi sub infix:<//>(+@a) {
         nqp::until(
           nqp::iseq_i(++$i,$elems)
             || nqp::if(
-                 nqp::istype((my $value := nqp::atpos($reified,$i)),Callable),
+                 nqp::istype((my $value := nqp::atpos($reified,$i)),Callable)
+                   && nqp::not_i(nqp::istype($value,WhateverCode)),
                  ($value := $value()),
                  $value
                ).defined,
@@ -212,18 +234,21 @@ multi sub infix:<//>(+@a) {
 proto sub infix:<and>(Mu $?, Mu $?, *%) {*}
 multi sub infix:<and>(--> Bool::True) { }
 multi sub infix:<and>(Mu $x) { $x }
+multi sub infix:<and>(Mu \a, WhateverCode \b) { a && b }
 multi sub infix:<and>(Mu \a, &b)    { a && b }  # shouldn't that be b() ??
 multi sub infix:<and>(Mu \a, Mu \b) { a && b }
 
 proto sub infix:<or>(Mu $?, Mu $?, *%) {*}
 multi sub infix:<or>(--> Bool::False) { }
 multi sub infix:<or>(Mu $x) { $x }
+multi sub infix:<or>(Mu \a, WhateverCode \b) { a || b }
 multi sub infix:<or>(Mu \a, &b)    { a || b }  # shouldn't that be b() ??
 multi sub infix:<or>(Mu \a, Mu \b) { a || b }
 
 proto sub infix:<xor>(|) {*}
 multi sub infix:<xor>(--> Bool::False) { }
 multi sub infix:<xor>(Mu $x) { $x }
+multi sub infix:<xor>(Mu \a, WhateverCode \b) { a ^^ b }
 multi sub infix:<xor>(Mu \a, &b)    { a ^^ b }  # shouldn't that be b() ??
 multi sub infix:<xor>(Mu \a, Mu \b) { a ^^ b }
 multi sub infix:<xor>(|c) { &infix:<^^>(|c) }

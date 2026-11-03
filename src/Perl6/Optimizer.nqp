@@ -28,7 +28,6 @@ my class Symbols {
 
     # Some interesting symbols.
     has $!Mu;
-    has $!Mu'U;
     has $!Junction;
     has $!Any;
     has $!Block;
@@ -67,7 +66,6 @@ my class Symbols {
         }
         nqp::push(@!block_stack, $!UNIT);
         $!Mu          := self.find_in_setting('Mu');
-        $!Mu'U        := nqp::gethllsym('Raku', 'Mu:U');
         $!Junction    := self.find_in_setting('Junction');
         $!Any         := self.find_in_setting('Any');
         $!Block       := self.find_in_setting('Block');
@@ -121,7 +119,6 @@ my class Symbols {
     method GLOBALish()   { $!GLOBALish }
     method UNIT()        { $!UNIT }
     method Mu()          { $!Mu }
-    method Mu'U()        { $!Mu'U }
     method Junction()    { $!Junction }
     method Any()         { $!Any }
     method Block()       { $!Block }
@@ -738,11 +735,17 @@ my class BlockVarOptimizer {
         return 0 if $!poisoned || $!uses_bindsig;
         return 0 unless nqp::istype($block[0], QAST::Stmts);
         for @!decls -> $qast {
-            # We're looking for lexical var/contvar decls.
+            # We're looking for lexical var/contvar decls. A unit container
+            # is declared static, and its block symbol carries a descriptor,
+            # which the other static decls lack, so it lowers as a contvar.
             my str $scope := $qast.scope;
             next unless $scope eq 'lexical';
             my str $decl := $qast.decl;
             my int $is_contvar := $decl eq 'contvar';
+            if $decl eq 'static' {
+                my %sym := $block.symbol($qast.name);
+                $is_contvar := nqp::ishash(%sym) && nqp::existskey(%sym, 'descriptor');
+            }
             next unless $is_contvar || $decl eq 'var' || $decl eq 'param';
 
             # Also ensure not dynamic or with an implicit lexical usage.
@@ -817,6 +820,17 @@ my class BlockVarOptimizer {
                     # as it is bound immediately.
                     $qast.decl('var');
                     unless $qast.ann('our_decl') {
+                        # The container is now created on each frame entry,
+                        # so a unit declaration's mark against repossession
+                        # has nothing left to protect.
+                        my @kept;
+                        for @($block[0]) {
+                            @kept.push($_) unless nqp::istype($_, QAST::Op)
+                                && $_.op eq 'neverrepossess'
+                                && nqp::istype($_[0], QAST::Var)
+                                && $_[0].name eq $name;
+                        }
+                        $block[0].set_children(@kept);
                         my $type := nqp::what_nd($qv);
                         my $setup := QAST::Op.new(
                             :op('create'),
@@ -1569,8 +1583,6 @@ my class SmartmatchOptimizer {
         self.respect_junctions( $optimized_ast, $fallback_ast, $lhs )
     }
 
-    my $Mu'U := nqp::null;
-
     method maybe_typematch($lhs, $rhs, :$in-when = 0, :$negated = 0) {
         my $sm_type;
         # Don't try if RHS is not a compile-time known type object or it has user-defined ACCEPTS method. In the latter
@@ -1590,13 +1602,6 @@ my class SmartmatchOptimizer {
         return nqp::null()
             if !nqp::can($sm_type_how, 'archetypes')
                 || $sm_type_how.archetypes($sm_type).generic;
-
-        # This edge case muddies up the visual waters quite a bit in hopes of keeping the optimizer speedy
-        return QAST::Op.new( :op<callmethod>, :name<Bool>,
-                QAST::Op.new( :op<istype>, $lhs.ast, $rhs.ast )
-        )   if $lhs.value-kind == $OPERAND_VALUE_VAR
-            && nqp::eqaddr($sm_type, nqp::ifnull($Mu'U, $Mu'U := $!symbols.Mu'U))
-            && ! ($sm_type_how.archetypes($sm_type).definite && $sm_type_how.definite($sm_type));
 
         my $sm_is_subset :=
             $sm_type_how.archetypes($sm_type).nominalizable
@@ -1621,12 +1626,16 @@ my class SmartmatchOptimizer {
             # Wrap into try because for if there a user-defined `where`-block involved into typematching it might throw.
             # Consider this case a failed typematch and proceed further.
             my $matches := try nqp::istype($lhs.value, $rhs.value);
-            # If LHS is an invocation or a variable then we actually check their (return) type. In this case non-match
-            # means nothing because their eventual value could still match at runtime. Yet true means that any of their
-            # value will always match. Also, if routine returns a constant then we can always use it too.
-            if $matches
+            # Only a boxed variable's declared type can decide the match, and only when it matches a matcher that is
+            # neither definite nor a coercion, as those check an undefined type object rather than a value. A native
+            # value is boxed before the match, and a routine can return Nil or a Failure whatever its return type.
+            my $sm_archetypes := $sm_type_how.archetypes($sm_type);
+            if ($matches
+                    && $lhs.value-kind == $OPERAND_VALUE_VAR
+                    && !nqp::objprimspec($lhs.value)
+                    && !$sm_archetypes.definite
+                    && !$sm_archetypes.coercive)
                 || $lhs.value-kind == $OPERAND_VALUE_CONST
-                || ($lhs.value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($lhs.value))
             {
                 $matches := !$matches if $negated;
                 return QAST::WVal.new( :value($matches ?? $!symbols.True !! $!symbols.False) )
@@ -1656,8 +1665,7 @@ my class SmartmatchOptimizer {
         # Doesn't work for 'when' statement.
         if !$in-when
             && $rhs.is-ACCEPTS-default
-            && ($lhs.is-literal
-                || ($lhs.value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($lhs.value)))
+            && $lhs.is-literal
         {
             my $try-it := 1;
             my $rhs-type := nqp::what($rhs.value);
@@ -1727,8 +1735,9 @@ my class SmartmatchOptimizer {
 
         my $op_name := "&infix:<$op_type>";
 
-        # Coercion method to call on the given value
-        my $method_call :=
+        # Coercion method to call on the given value, which only === needs since the setting routines coerce the
+        # topic themselves for == and eq
+        my $method_call := $op_type ne '===' ?? nqp::null() !!
             QAST::Op.new(
                 :op<p6fatalize>,
                 :name($method),
@@ -1739,40 +1748,9 @@ my class SmartmatchOptimizer {
                     QAST::Var.new( :name($topic_name), :scope($topic_scope), :wanted(1) ) ),
                 QAST::WVal.new( :value($!symbols.Failure) ));
 
-        # We don't need/want `val()` to `fail()` if `Numeric()` ends up calling it
-        # and it doesn't succeed, that creates an expensive Backtrace that we just
-        # end up throwing away
-        if $method eq 'Numeric' {
-            my $fail-or-nil := QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) );
-            $fail-or-nil.named('fail-or-nil');
-            $method_call[0].push($fail-or-nil);
-
-            # Rewrite the `$LHS.Numeric` into `my $tmp := $LHS.Numeric(:fail-or-nil); $LHS := nqp::istype($tmp, Nil) ?? NaN !! $tmp;`
-            # Since we already explicitly handle the RHS being NaN above, this is safe because NaN isn't == to anything, so
-            # when we do `$LHS == $RHS` it will always be False
-            my $tmp := QAST::Node.unique('nilee');
-            $method_call[0] :=
-                QAST::Stmts.new(
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
-                        $method_call[0]
-                    ),
-                    QAST::Op.new(
-                        :op('if'),
-                        QAST::Op.new(
-                            :op('istype'),
-                            QAST::Var.new( :name($tmp), :scope('local') ),
-                            QAST::WVal.new( :value($!symbols.Nil) ),
-                        ),
-                        QAST::NVal.new( :value(nqp::nan) ),
-                        QAST::Var.new( :name($tmp), :scope('local') )
-                    ))
-        }
-
         # Make sure we're not comparing against a type object, since those could
         # coerce to the value, so gen the equivalent of
-        # `isconcrete($_) && <literal> ==|eq $_."$method"`
+        # `isconcrete($_) && <comparison>`
         my $topic_var;
         # With 'when' statement we always have $_. But with smartmatch we don't need it, thus use LHS directly.
         if $in-when {
@@ -1796,7 +1774,13 @@ my class SmartmatchOptimizer {
             $is_eq_op := QAST::Op.new( :op<hllbool>, $is_eq_op );
         }
         else {
-            $is_eq_op := QAST::Op.new( :op<call>, :name($op_name), $rhs_val, $method_call );
+            # The setting routine decides the match as the literal's ACCEPTS does
+            my $accepts := $op_type eq '==' ?? '&NUMERIC-LITERAL-ACCEPTS' !! '&STR-LITERAL-ACCEPTS';
+            $is_eq_op := QAST::Op.new(
+                            :op<call>,
+                            QAST::WVal.new( :value($!symbols.find_in_setting($accepts)) ),
+                            QAST::Var.new( :name($topic_name), :scope($topic_scope) ),
+                            $rhs_val );
             $is_eq_op := QAST::Op.new( :op<call>, :name('&prefix:<!>'), $is_eq_op ) if $negated;
         }
 
@@ -1811,17 +1795,10 @@ my class SmartmatchOptimizer {
                     QAST::WVal.new( :value($!symbols.Failure) )));
 
         # For a ~~ we expect a Bool, not a native 0
-        $is_eq_op.push(QAST::WVal.new( :value($!symbols.False) )) unless $in-when;
+        $is_eq_op.push(QAST::WVal.new( :value($negated ?? $!symbols.True !! $!symbols.False) ))
+            unless $in-when;
 
-        # This is the equivalent of sticking a `try` before the genned `iseq_*`, which is
-        # needed because otherwise it'll die with an error when the `$_` is a different type.
-        QAST::Op.new(
-            :op('handle'),
-            # Success path evaluates to the block.
-            $is_eq_op,
-            # On failure, just evaluate to False
-            'CATCH',
-            QAST::WVal.new( :value($!symbols.False) ))
+        $is_eq_op
     }
 
     # If we do have a 'pair ~~ pair' case then we better always return some AST as this would signal the upstream code
@@ -2212,7 +2189,7 @@ my class SmartmatchOptimizer {
             # We don't try literals optimization because they never make it into topicalized form of SM.
             my $sm_op;
             if nqp::defined($sm_op := self.maybe_typematch($lhs, $rhs, :$negated)) {
-                $result := self.maybe_respect_junctions($lhs, $rhs, $sm_op);
+                $result := self.maybe_respect_junctions($lhs, $rhs, $sm_op, :$negated);
             }
 
             note("Post-typematch attempt result is ", $result.HOW.name($result)) if $!debug;
@@ -2255,7 +2232,7 @@ my class SmartmatchOptimizer {
         $result := $op unless nqp::defined($result);
         $result.annotate('smartmatch_optimized', 1);
 
-        $!optimizer.visit_op($result);
+        $!optimizer.visit_op($result) if nqp::istype($result, QAST::Op);
 
         note("FINAL topicalized:\n", $result.dump(4)) if $!debug;
 
@@ -3000,6 +2977,9 @@ class Perl6::Optimizer {
         # Calls are especially interesting as we may wish to do some
         # kind of inlining.
         elsif $optype eq 'call' {
+            # A nameless call carries its callee as the first child, so its
+            # positional arguments start one later.
+            self.rewrite_paired_literal_args($op, $opname eq '' ?? 1 !! 0);
             my $opt_result := $opname eq ''
                 ?? self.optimize_nameless_call($op)
                 !! self.optimize_call($op);
@@ -3379,11 +3359,17 @@ class Perl6::Optimizer {
             my $dispatcher := nqp::can($obj, "is_dispatcher") && $obj.is_dispatcher;
             if $dispatcher && $obj.onlystar {
                 # Try to do compile-time multi-dispatch. Need to consider
-                # both the proto and the multi candidates.
+                # both the proto and the multi candidates. The dispatch
+                # decision reads the arguments as the call site passes them,
+                # while an impossible dispatch is diagnosed with the reading
+                # that also counts a lone literal as native, so a candidate
+                # taking a native `is rw` parameter is still ruled out at
+                # compile time.
                 my @ct_arg_info := self.analyze_args_for_ct_call($op);
                 if +@ct_arg_info {
                     my @types := @ct_arg_info[0];
                     my @flags := @ct_arg_info[1];
+                    my @diag_flags := @ct_arg_info[2];
                     my $ct_result_proto := nqp::p6trialbind($obj.signature, @types, @flags);
                     my @ct_result_multi := $obj.analyze_dispatch(@types, @flags);
                     if $ct_result_proto == 1 && @ct_result_multi[0] == 1 {
@@ -3395,11 +3381,15 @@ class Perl6::Optimizer {
                                 !! self.call_ct_chosen_multi($op, $obj, $chosen);
                         }
                     }
-                    elsif $ct_result_proto == -1 || @ct_result_multi[0] == -1 {
-                        self.report_inevitable_dispatch_failure(
-                            $op, @types, @flags, $obj,
-                            :protoguilt($ct_result_proto == -1)
-                        ) unless $*NO-COMPILE-TIME-THROWAGE;
+                    else {
+                        my $diag_proto := nqp::p6trialbind($obj.signature, @types, @diag_flags);
+                        my @diag_multi := $obj.analyze_dispatch(@types, @diag_flags);
+                        if $diag_proto == -1 || @diag_multi[0] == -1 {
+                            self.report_inevitable_dispatch_failure(
+                                $op, @types, @diag_flags, $obj,
+                                :protoguilt($diag_proto == -1)
+                            ) unless $*NO-COMPILE-TIME-THROWAGE;
+                        }
                     }
                 }
                 if $op.op eq 'chain' { $!chain_depth := $!chain_depth - 1 }
@@ -3410,6 +3400,7 @@ class Perl6::Optimizer {
                 if +@ct_arg_info {
                     my @types := @ct_arg_info[0];
                     my @flags := @ct_arg_info[1];
+                    my @diag_flags := @ct_arg_info[2];
                     my $sig := $obj.signature;
                     my $ct_result := nqp::p6trialbind($sig, @types, @flags);
                     if $ct_result == 1 {
@@ -3421,13 +3412,22 @@ class Perl6::Optimizer {
                             else {
                                 self.simplify_refs($op, $sig);
                             }
-                            copy_returns($op, $obj);
+                            # A native return replaces the call with a Want,
+                            # so the result must take the call's place.
+                            my $scopes := $!symbols.scopes_in($op.name);
+                            if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
+                                $op.op('callstatic');
+                            }
+                            return copy_returns($op, $obj);
                         }
                     }
-                    elsif $ct_result == -1 {
-                        self.report_inevitable_dispatch_failure(
-                            $op, @types, @flags, $obj
-                        ) unless $*NO-COMPILE-TIME-THROWAGE;
+                    else {
+                        my $diag_result := nqp::p6trialbind($sig, @types, @diag_flags);
+                        if $diag_result == -1 {
+                            self.report_inevitable_dispatch_failure(
+                                $op, @types, @diag_flags, $obj
+                            ) unless $*NO-COMPILE-TIME-THROWAGE;
+                        }
                     }
                 }
             }
@@ -3438,6 +3438,15 @@ class Perl6::Optimizer {
             my $scopes := $!symbols.scopes_in($op.name);
             if $scopes == 0 || $scopes == 1 && nqp::can($obj, 'soft') && !$obj.soft {
                 $op.op('callstatic');
+            }
+            # A callee that is not a dispatcher promises its declared
+            # return type however the arguments bind, and a closure clone
+            # shares its signature, so the promise holds even when the
+            # trial bind settled nothing. A callee compiled under the
+            # soft pragma can be wrapped at run time, so it promises
+            # nothing.
+            unless $dispatcher || nqp::can($obj, 'soft') && $obj.soft {
+                return copy_returns($op, $obj);
             }
         }
         else {
@@ -4126,8 +4135,13 @@ class Perl6::Optimizer {
                 my $prim := nqp::objprimspec($type);
                 my str $allo := $_.has_compile_time_value && nqp::istype($_, QAST::Want)
                     ?? $_[1] !! '';
+                # A literal is a value, never a container, whether it still
+                # wears its allomorphic Want or was already rewritten to its
+                # native form by rewrite_paired_literal_args.
+                my int $literal := $allo ne '' || $_.ann('native_literal_arg')
+                    ?? $ARG_IS_LITERAL !! 0;
                 @types.push($type);
-                @flags.push($prim);
+                @flags.push($prim +| $literal);
                 @allomorphs.push($allo);
                 $num_prim := $num_prim + 1 if $prim;
                 $num_allo := $num_allo + 1 if $allo;
@@ -4137,25 +4151,72 @@ class Perl6::Optimizer {
             }
         }
 
-        # See if we have an allomorphic constant that may allow us to do
-        # a native dispatch with it; takes at least one declaratively
-        # native argument to make this happen.
-        if nqp::elems(@types) == 2 && $num_prim == 1 && $num_allo == 1 {
-            my int $prim_flag := @flags[0] || @flags[1];
-            my int $allo_idx := @allomorphs[0] ?? 0 !! 1;
-            if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
-                @flags[$allo_idx] := $prim_flag +| $ARG_IS_LITERAL;
-            }
-        }
-
-        # Alternatively, a single arg that is allomorphic will prefer
-        # the literal too.
+        # A lone literal has no native context to adapt to, so it dispatches
+        # as the boxed value it is, and rewrite_paired_literal_args already
+        # gave a paired literal its native reading. Ruling out a candidate
+        # that takes a native `is rw` parameter still needs the native
+        # reading of a lone literal, so that is reported separately. Only
+        # the plain flags decide what runs.
+        my @diag_flags := nqp::clone(@flags);
         if nqp::elems(@types) == 1 && $num_allo == 1 {
             my $rev := %allo_rev{@allomorphs[0]};
-            @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
+            @flags[0] := $ARG_IS_LITERAL;
+            @diag_flags[0] := nqp::defined($rev)
+                ?? $rev +| $ARG_IS_LITERAL
+                !! $ARG_IS_LITERAL;
         }
 
-        [@types, @flags]
+        [@types, @flags, @diag_flags]
+    }
+
+    # The native-paired-literal rule: a literal argument beside an argument
+    # of a native kind the literal can hold is passed in that kind, so
+    # runtime dispatch reaches the same candidate the compile time analysis
+    # counts on at any level that runs this optimizer. The literal's Want is
+    # replaced with its native alternative, marked so the argument analysis
+    # keeps reading it as a literal value. Exactly two positional arguments
+    # qualify, since with more there is no single native context for a
+    # literal to adopt.
+    method rewrite_paired_literal_args($op, int $first-arg) {
+        return 0 unless nqp::elems($op) == $first-arg + 2;
+        my int $i := $first-arg;
+        my int $literal-idx := -1;
+        my int $other-idx := -1;
+        while $i < $first-arg + 2 {
+            my $arg := $op[$i];
+            return 0 unless nqp::can($arg, 'flat');
+            return 0 if $arg.flat || $arg.named ne '';
+            if nqp::istype($arg, QAST::Want) && $arg.has_compile_time_value
+                && nqp::elems($arg.list) == 3 {
+                if $literal-idx == -1 {
+                    $literal-idx := $i;
+                }
+                else {
+                    # Two literals pair with each other no more than one
+                    # does with nothing.
+                    return 0;
+                }
+            }
+            else {
+                $other-idx := $i;
+            }
+            $i := $i + 1;
+        }
+        return 0 if $literal-idx == -1 || $other-idx == -1;
+
+        my $literal := $op[$literal-idx];
+        my int $kind := %allo_rev{$literal[1]} // 0;
+        return 0 unless $kind;
+        return 0 unless nqp::objprimspec($op[$other-idx].returns) == $kind;
+
+        my $native-type := try $!symbols.find_lexical(@prim_names[$kind]);
+        return 0 unless nqp::objprimspec($native-type) == $kind;
+
+        my $native := $literal[2];
+        $native.returns($native-type);
+        $native.annotate('native_literal_arg', 1);
+        $op[$literal-idx] := $native;
+        1
     }
 
     method report_inevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
@@ -4519,6 +4580,35 @@ class Perl6::Optimizer {
         if $scopes == 0 || $scopes == 1 && nqp::can($proto, 'soft') && !$proto.soft {
             $call.op('callstatic');
         }
+
+        # Carry the chosen candidate's native return type on the native-want
+        # alternatives, leaving the bare call as the default so a context
+        # wanting the boxed object never unboxes and escape values like a
+        # Failure still flow through. The scope test is looser than the
+        # callstatic one above, since a closure clone still runs the same
+        # candidates. A soft proto can be wrapped at run time, which leaves
+        # run-time dispatch free to answer with a different candidate. A
+        # literal argument is trusted: the analysis read it exactly as the
+        # call site passes it, native when rewrite_paired_literal_args gave
+        # it its native form and the boxed value otherwise.
+        if $scopes == 0 || nqp::can($proto, 'soft') && !$proto.soft {
+            if nqp::can($chosen, 'returns') && !(nqp::can($chosen, 'rw') && $chosen.rw) {
+                if nqp::objprimspec($chosen.returns) {
+                    my $native := $call.shallow_clone;
+                    $native.returns($chosen.returns);
+                    $call := QAST::Want.new(
+                        :named($call.named),
+                        $call,
+                        'Ii', $native,
+                        'Nn', $native,
+                        'Ss', $native);
+                    # The type on the Want itself reaches the argument
+                    # analysis of an enclosing call. Codegen picks per
+                    # context between the children above.
+                    $call.returns($chosen.returns);
+                }
+            }
+        }
 #?endif
         $call
     }
@@ -4558,13 +4648,24 @@ class Perl6::Optimizer {
     my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss', '', '', '', '', '', '', 'Ii']; #FIXME maybe need Iu or even Uu here?
     sub copy_returns($to, $from) {
         if nqp::can($from, 'returns') {
+            # An `is rw` routine yields an assignable container, not a value
+            # to unbox. Leave its result alone so lvalue use keeps working.
+            return $to if nqp::can($from, 'rw') && $from.rw;
             my $ret_type := $from.returns;
-            $to.returns($ret_type) unless nqp::can($from, 'rw') && $from.rw;
-            if nqp::objprimspec($ret_type) -> $primspec {
+            if nqp::objprimspec($ret_type) {
+                # A routine with a native return may still escape with a
+                # Failure or a Nil that only the boxed object can carry, so
+                # the bare call stays the default and every native want
+                # takes the typed alternative, which unboxes directly and
+                # widens across native kinds.
+                my $native := $to.shallow_clone;
+                $native.returns($ret_type);
                 $to := QAST::Want.new(
                     :named($to.named),
-                    QAST::Op.new( :op(@prim_spec_ops[$primspec]), $to ),
-                    @prim_spec_flags[$primspec], $to);
+                    $to,
+                    'Ii', $native,
+                    'Nn', $native,
+                    'Ss', $native);
             }
             $to.returns($ret_type);
         }

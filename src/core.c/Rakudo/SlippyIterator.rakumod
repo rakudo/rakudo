@@ -1,14 +1,20 @@
 # A SlippyIterator is one that comes with some infrastructure for handling
 # flattening a received Slip into its own stream of values.  Please note
 # that the $!slipper attribute *must* be set to nqp::null upon object creation.
-my role Rakudo::SlippyIterator does Iterator {
+my role Rakudo::SlippyIterator does Iterator is implementation-detail {
     has Mu $!slipper;  # iterator of the Slip we're iterating, null if none
 
+    # Every multi here takes the Slip raw and decontainerizes it in the
+    # body.  Bound to a `$` parameter, a Slip that arrived as a map or
+    # grep block's result reaches slip-all inside a container, and the
+    # nqp::eqaddr that recognizes Empty compares that container instead.
+
     proto method start-slip(|) {*}
-    multi method start-slip(Slip:U $slip) {
-        $slip
+    multi method start-slip(Slip:U \slip) {
+        nqp::decont(slip)
     }
-    multi method start-slip(Slip:D $slip) {
+    multi method start-slip(Slip:D \slip) {
+        my $slip := nqp::decont(slip);
         nqp::if(
           nqp::eqaddr($slip,Empty),
           IterationEnd,                  # we know there's nothing
@@ -50,7 +56,12 @@ my role Rakudo::SlippyIterator does Iterator {
     # was obtained.  Handles Slips.
     method control-payload() is raw {
         nqp::if(
-          nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+          nqp::isnull(my $value := nqp::getpayload(nqp::exception))
+            # a labeled control exception carries its label, not a value
+            || nqp::bitand_i(
+                 nqp::getextype(nqp::exception),
+                 nqp::const::CONTROL_LABELED
+               ),
           IterationEnd,
           nqp::if(
             nqp::istype($value,Slip),
@@ -64,7 +75,12 @@ my role Rakudo::SlippyIterator does Iterator {
     # target while following Slip semantics.
     method push-control-payload(\target --> Nil) {
         nqp::unless(
-          nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+          nqp::isnull(my $value := nqp::getpayload(nqp::exception))
+            # a labeled control exception carries its label, not a value
+            || nqp::bitand_i(
+                 nqp::getextype(nqp::exception),
+                 nqp::const::CONTROL_LABELED
+               ),
           nqp::if(
             nqp::istype($value,Slip),
             self.slip-all($value,target),
@@ -74,10 +90,11 @@ my role Rakudo::SlippyIterator does Iterator {
     }
 
     proto method slip-all(|) {*}
-    multi method slip-all(Slip:U $slip, \target) {
-        target.push($slip)
+    multi method slip-all(Slip:U \slip, \target) {
+        target.push(nqp::decont(slip))
     }
-    multi method slip-all(Slip:D $slip, \target) {
+    multi method slip-all(Slip:D \slip, \target) {
+        my $slip := nqp::decont(slip);
         nqp::unless(
           nqp::eqaddr($slip,Empty),
           $slip.iterator.push-all(target)

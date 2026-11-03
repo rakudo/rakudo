@@ -1,6 +1,9 @@
 use Test;
+use nqp;
 
-plan 5;
+plan 9;
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 # An adverb is tighter than most infixes, so in `EXPR OP term:adverb` it can bind
 # to OP rather than to the term. A short-circuit, thunky, or chaining operator
@@ -14,6 +17,22 @@ throws-like 'my %h; 1 == %h<a>:exists', X::Syntax::Adverb,
     "can't adverb a chaining infix";
 throws-like 'my %h; True ^^ %h<a>:exists', X::Syntax::Adverb,
     "can't adverb a thunky list infix";
+
+# A meta-op that keeps the operator's properties declines the adverb
+# the same way.
+throws-like 'my %h; 1 !== %h<a>:exists', X::Syntax::Adverb,
+    "can't adverb a negated chaining infix";
+if $rakuast {
+    throws-like 'my %h; 1 R== %h<a>:exists', X::Syntax::Adverb,
+        "can't adverb a reversed chaining infix";
+    throws-like 'my %h; True R&& %h<a>:exists', X::Syntax::Adverb,
+        "can't adverb a reversed short-circuit infix";
+    throws-like 'my %h; True !&& %h<a>:exists', X::Syntax::Adverb,
+        "can't adverb a negated short-circuit infix";
+}
+else {
+    skip 'the legacy frontend drops the adverb of these meta-ops', 3;
+}
 
 # The adverb still reaches the subscript when it binds there.
 my %h = a => 1;

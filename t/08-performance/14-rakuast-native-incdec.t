@@ -1,7 +1,8 @@
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers::QAST;
 use Test;
-plan 12;
+use nqp;
+plan 16;
 
 # A native int or num `++`/`--` lowers to a raw op instead of calling the
 # operator. Postfix returns the original value, prefix the stepped one.
@@ -55,5 +56,24 @@ qast-is 'my int $i; ++$i', -> \v { qast-contains-op v, 'add_i' },
     'a native prefix operand lowers to a raw op';
 qast-is 'my Int $i = 0; $i++', -> \v { not qast-contains-op v, 'add_i' },
     'a boxed operand keeps the operator call';
+
+# A native copy parameter steps its own native lexical, so it lowers like
+# a variable. An rw parameter writes through a reference the raw ops do
+# not follow, and a read-only parameter keeps the call that reports
+# immutability, so neither lowers. The legacy optimizer lowers the rw
+# shapes through a lexicalref instead, so all four are pinned to RakuAST.
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    qast-is 'sub f(int $i is copy) { $i++; $i }', :full, -> \v { qast-contains-op v, 'add_i' },
+        'a native copy parameter increment lowers to a raw op';
+    qast-is 'sub f(int:D $i is copy) { $i++; $i }', :full, -> \v { qast-contains-op v, 'add_i' },
+        'a definite native copy parameter increment lowers to a raw op';
+    qast-is 'sub f(int $i is rw) { $i++ }', :full, -> \v { not qast-contains-op v, 'add_i' },
+        'an rw native parameter keeps the operator call';
+    qast-is 'my &b = <-> int $x { $x++ }', :full, -> \v { not qast-contains-op v, 'add_i' },
+        'a <-> native parameter keeps the operator call';
+}
+else {
+    skip 'copy-parameter lowering shape is RakuAST-specific', 4;
+}
 
 # vim: expandtab shiftwidth=4

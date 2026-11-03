@@ -19,7 +19,7 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
 
     method source-file(CompUnit::Repository::Staging:D:
       Str:D $name
-    --> IO::Path) {
+    --> IO::Path:D) {
         my $file := self.prefix.add($name);
         $file.e ?? $file !! $!parent.source-file($name)
     }

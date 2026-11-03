@@ -1,7 +1,7 @@
 use Test;
 use MONKEY-SEE-NO-EVAL;
 
-plan 5;
+plan 6;
 
 # A `my :(...)` signature literal declaration binds the right-hand side
 # against the signature. It binds only (`:=`) and requires an initializer,
@@ -20,6 +20,13 @@ plan 5;
 {
     our :($a, $b) := (1, 2);
     is "$a $b", "1 2", 'our :(...) := binds';
+}
+
+# The assignment check applies to the declaration's own initializer, not
+# to a declaration nested in the bound expression.
+{
+    my :($a, $b) := (my $c = 3, 4);
+    is "$a $b $c", "3 4 3", 'a plain assignment nested in the bound expression is not rejected';
 }
 
 # Assignment is not allowed for a signature literal: it binds, so `=` is an

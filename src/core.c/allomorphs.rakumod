@@ -270,6 +270,11 @@ multi sub val(\one-thing) is raw {
     one-thing
 }
 
+# This candidate is intended to be accessesd from the RakuAST bootstrap
+# It prevents needing to use an nqp::hllfor() op, and instead lets
+# dispatch take care of HLLization
+multi sub val(str $MAYBEVAL) { val(nqp::box_s($MAYBEVAL,Str)) }
+
 multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
 
     # Unicode vulgar lookup, cannot use .unival at this point in setting
@@ -337,15 +342,15 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     # Str.Numeric is calling
     my &parse_win := -> \newval {
         $val-or-fail
-          ?? return newval
-          !! nqp::istype(newval, Num)
-            ?? return NumStr.new(newval, $MAYBEVAL)
-            !! nqp::istype(newval, Rat)
-              ?? return RatStr.new(newval, $MAYBEVAL)
-              !! nqp::istype(newval, Complex)
-                ?? return ComplexStr.new(newval, $MAYBEVAL)
-                !! nqp::istype(newval, Int)
-                  ?? return IntStr.new(newval, $MAYBEVAL)
+          ?? newval
+          !! nqp::istype(newval, Int)
+            ?? IntStr.new(newval, $MAYBEVAL)
+            !! nqp::istype(newval, Num)
+              ?? NumStr.new(newval, $MAYBEVAL)
+              !! nqp::istype(newval, Rat)
+                ?? RatStr.new(newval, $MAYBEVAL)
+                !! nqp::istype(newval, Complex)
+                  ?? ComplexStr.new(newval, $MAYBEVAL)
                   !! die "Unknown type {newval.^name} found in val() processing"
     }
 
@@ -583,7 +588,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     # Parse a real number, magnitude of a pure imaginary number,
     # or real part of a complex number
     my $result := parse-real();
-    parse_win $result if nqp::iseq_i($pos, $eos);
+    return parse_win $result if nqp::iseq_i($pos, $eos);
 
     # Check for 'i' or '\\i' indicating first parsed number was
     # the magnitude of a pure imaginary number
@@ -623,10 +628,52 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     }
 
     # Check for trailing garbage
-    parse_fail "trailing characters after number"
-        if nqp::islt_i($pos, $eos);
+    nqp::islt_i($pos, $eos)
+      ?? parse_fail("trailing characters after number")
+      !! parse_win($result)
+}
 
-    parse_win $result;
+# What the ACCEPTS of a number literal compares an Any topic that is not
+# a Str by. Only core types whose Numeric cannot throw skip the guard, as a
+# handler keeps a routine from inlining. An Int literal compares an Int itself.
+my sub LITERAL-NUMERIC(Mu \value, \literal) is implementation-detail {
+    my \type = nqp::what(value);
+    nqp::istype(value, Int) && nqp::istype(literal, Int)
+      || nqp::eqaddr(type, Int) || nqp::eqaddr(type, Num) || nqp::eqaddr(type, Rat)
+      ?? value
+      !! nqp::eqaddr(type, IntStr) || nqp::eqaddr(type, NumStr)
+           || nqp::eqaddr(type, RatStr)
+        ?? value.Numeric
+        !! nqp::handle(value.Numeric, 'CATCH', Nil)
+}
+
+my sub LITERAL-EQUALS(Mu \numeric, \literal) is implementation-detail {
+    nqp::isconcrete(numeric) && nqp::not_i(nqp::istype(numeric, Nil))
+      ?? (numeric == literal).Bool
+      !! numeric.defined && (numeric == literal).Bool
+}
+
+# Smartmatch of a concrete topic against an Int or non-NaN Num literal, as
+# the literal's ACCEPTS decides it. A Str topic asks for Nil in place of a
+# Failure, which spares building a backtrace for each mismatch.
+sub NUMERIC-LITERAL-ACCEPTS(Mu \topic, \literal) is implementation-detail {
+    my \value = nqp::decont(topic);
+    nqp::eqaddr(nqp::what(value), Str)
+      ?? LITERAL-EQUALS(value.Numeric(:fail-or-nil), literal)
+      !! nqp::istype(value, Any)
+        ?? LITERAL-EQUALS(LITERAL-NUMERIC(value, literal), literal)
+        !! literal.ACCEPTS(value).Bool
+}
+
+# Smartmatch of a concrete topic against a Str literal, as the literal's
+# ACCEPTS decides it, comparing a Str topic's own value rather than its Str.
+sub STR-LITERAL-ACCEPTS(Mu \topic, \literal) is implementation-detail {
+    my \value = nqp::decont(topic);
+    nqp::istype(value, Str)
+      ?? nqp::hllbool(nqp::iseq_s(value, literal))
+      !! nqp::istype(value, Any)
+        ?? nqp::hllbool(nqp::iseq_s(value.Str, literal))
+        !! literal.ACCEPTS(value).Bool
 }
 
 # vim: expandtab shiftwidth=4

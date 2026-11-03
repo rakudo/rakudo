@@ -193,7 +193,7 @@ class Perl6::Metamodel::CurriedRoleHOW
             while $i < $m {
                 my $role := nqp::atpos(@roles, $i);
                 my $HOW  := $role.HOW;
-                if $HOW.archetypes.composablish {
+                if $HOW.archetypes.composable || $HOW.archetypes.composalizable {
                     nqp::push(@role_typecheck_list, $role);
                     nqp::splice(
                       @role_typecheck_list,
@@ -234,11 +234,11 @@ class Perl6::Metamodel::CurriedRoleHOW
                   $value.HOW.instantiate_generic($value, $type_env)
                 ) if $value.HOW.archetypes($value).generic;
             }
-            self.new_type($!curried_role, |@new_pos, |%new_named)
+            $!curried_role.HOW.parameterize($!curried_role, |@new_pos, |%new_named)
         }
 
         else {
-            self.new_type($!curried_role, |@new_pos)
+            $!curried_role.HOW.parameterize($!curried_role, |@new_pos)
         }
     }
 

@@ -173,7 +173,7 @@ my class Proc {
     method shell($cmd, :$cwd = $*CWD, :$env --> Bool:D) {
         @!command := $cmd.List;
         my @args := Rakudo::Internals.IS-WIN
-            ?? (%*ENV<ComSpec>, '/c', $cmd)
+            ?? (%*ENV<ComSpec> // %*ENV<COMSPEC>, '/c', $cmd)
             !! ('/bin/sh', '-c', $cmd);
         self!spawn-internal(@args, $cwd, $env, :win-verbatim-args)
     }

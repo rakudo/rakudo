@@ -1,7 +1,10 @@
 use v6.e.PREVIEW;
 use Test;
+use nqp;
 
-plan 36; # Do not change this file to done-testing because of END block tests
+plan 41; # Do not change this file to done-testing because of END block tests
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 my $ast;
 my $deparsed;
@@ -139,9 +142,7 @@ subtest 'CONTROL phaser catching a warning' => {
                   name => RakuAST::Name.from-identifier("isa-ok"),
                   args => RakuAST::ArgList.new(
                     RakuAST::Var::Lexical.new('$_'),
-                    RakuAST::Type::Simple.new(
-                      RakuAST::Name.from-identifier-parts('CX', 'Warn')
-                    )
+                    RakuAST::Type::Simple.from-identifier-parts('CX', 'Warn')
                   )
                 )
               ),
@@ -200,9 +201,7 @@ subtest 'CATCH phaser catching an exception' => {
                   name => RakuAST::Name.from-identifier("isa-ok"),
                   args => RakuAST::ArgList.new(
                     RakuAST::Var::Lexical.new('$_'),
-                    RakuAST::Type::Simple.new(
-                      RakuAST::Name.from-identifier-parts('X', 'AdHoc')
-                    )
+                    RakuAST::Type::Simple.from-identifier-parts('X', 'AdHoc')
                   )
                 )
               ),
@@ -448,10 +447,12 @@ subtest 'LEAVE phaser thunk being run' => {
           ),
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Leave.new(
-              RakuAST::Call::Name.new(
-                name => RakuAST::Name.from-identifier("pass"),
-                args => RakuAST::ArgList.new(
-                  RakuAST::StrLiteral.new("leaving")
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("pass"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::StrLiteral.new("leaving")
+                  )
                 )
               )
             )
@@ -555,17 +556,21 @@ subtest 'KEEP / UNDO phaser thunk successful exit' => {
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Keep.new(
-              RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$keep')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$keep')
+                )
               )
             )
           ),
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Undo.new(
-              RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$undo')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$undo')
+                )
               )
             )
           ),
@@ -689,24 +694,26 @@ subtest 'KEEP / UNDO phaser thunk UNsuccessful exit' => {
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Keep.new(
-              RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$keep')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$keep')
+                )
               )
             )
           ),
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Undo.new(
-              RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$undo')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$undo')
+                )
               )
             )
           ),
           RakuAST::Statement::Expression.new(
-            expression => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier("Int")
-            )
+            expression => RakuAST::Type::Simple.from-identifier("Int")
           )
         )
       )
@@ -779,9 +786,7 @@ subtest 'KEEP / UNDO phaser block UNsuccessful exit' => {
             )
           ),
           RakuAST::Statement::Expression.new(
-            expression => RakuAST::Type::Simple.new(
-              RakuAST::Name.from-identifier("Int")
-            )
+            expression => RakuAST::Type::Simple.from-identifier("Int")
           )
         )
       )
@@ -817,10 +822,12 @@ CODE
 subtest 'END phaser thunk being run' => {
     # END pass("leaving END thunk")
     ast RakuAST::StatementPrefix::Phaser::End.new(
-      RakuAST::Call::Name.new(
-       name => RakuAST::Name.from-identifier("pass"),
-        args => RakuAST::ArgList.new(
-          RakuAST::StrLiteral.new("leaving END thunk")
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+         name => RakuAST::Name.from-identifier("pass"),
+          args => RakuAST::ArgList.new(
+            RakuAST::StrLiteral.new("leaving END thunk")
+          )
         )
       )
     );
@@ -977,7 +984,7 @@ CODE
     }
 }
 
-todo("Depends on Raku grammar/actions") unless %*ENV<RAKUDO_RAKUAST>;
+todo("Depends on Raku grammar/actions") unless $rakuast;
 subtest 'While loop with FIRST phaser block and return value' => {
     my $run;
     my $guard = True;
@@ -1039,7 +1046,7 @@ while $guard {
     $result = FIRST {
         is-deeply($run, 0, "inside FIRST");
         $guard = False
-    }
+    };
     ++$run
 }
 CODE
@@ -1055,7 +1062,7 @@ CODE
     }
 }
 
-todo("Depends on Raku grammar/actions") unless %*ENV<RAKUDO_RAKUAST>;
+todo("Depends on Raku grammar/actions") unless $rakuast;
 subtest 'Subroutine with FIRST phaser block and return value' => {
     my $run;
     my $guard;
@@ -1133,7 +1140,7 @@ sub s {
     $guard = FIRST {
         is-deeply($run, 0, "in FIRST");
         $guard + 1
-    }
+    };
     $run++
 }
 s() xx 3
@@ -1390,7 +1397,7 @@ subtest 'Block with QUIT phaser block' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Quit.new(
               RakuAST::Block.new(
-                implicit-topic => 3,
+                implicit-topic => True,
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
@@ -1666,6 +1673,188 @@ CODE
           phaser  => "POST",
           "$type: POST phaser throws";
         is-deeply $post, $result, "$type: POST actually ran";
+    }
+}
+
+subtest 'ENTER phaser subclass added to a scope outside a parse' => {
+    plan 2;
+
+    # The scope declares a lexical for each ENTER phaser's result under a
+    # name it hands the phaser when taking it, so two phasers added this
+    # way need two names.
+    my class MyEnter is RakuAST::StatementPrefix::Phaser::Enter {
+        has $.code is rw;
+        method meta-object() { $!code }
+    }
+    my @ran;
+    my $block = RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+    for <first second> -> $tag {
+        my $phaser = MyEnter.new(RakuAST::Block.new);
+        $phaser.code = { @ran.push($tag) };
+        $block.add-enter-phaser($phaser);
+    }
+    is EVAL(RakuAST::StatementPrefix::Do.new($block)), 42,
+      'block with two subclass ENTER phasers returns its value';
+    is-deeply @ran, [<first second>],
+      'each subclass phaser meta-object was called';
+}
+
+# This holds whichever block declares the code, and guards what it keeps.
+subtest 'ENTER phaser subclass with a statement added to a scope outside a parse' => {
+    plan 2;
+
+    my class MyEnter is RakuAST::StatementPrefix::Phaser::Enter {
+        has $.code is rw;
+        method meta-object() { $!code }
+    }
+    my @ran;
+    my $block = RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+    my $phaser = MyEnter.new(
+      RakuAST::Statement::Expression.new(expression => RakuAST::IntLiteral.new(1))
+    );
+    $phaser.code = { @ran.push('ran') };
+    $block.add-enter-phaser($phaser);
+    is EVAL(RakuAST::StatementPrefix::Do.new($block)), 42,
+      'block with a subclass ENTER phaser holding a statement returns its value';
+    is-deeply @ran, ['ran'],
+      'the subclass phaser meta-object was called';
+}
+
+subtest 'two ENTER phasers in one scope keep their own values' => {
+    plan 1;
+    is-deeply EVAL(q[{ my $a = ENTER 'a'; my $b = ENTER 'b'; ($a, $b) }()]),
+      ('a', 'b'),
+      'each ENTER result reads back its own lexical';
+}
+
+subtest 'ENTER phaser subclass added to the compilation unit at BEGIN' => {
+    plan 1;
+    # A string compiles with the running frontend, and only the RakuAST
+    # frontend has a compilation unit node to add to.
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') ne 'rakuast' {
+        skip 'the legacy frontend has no RakuAST compilation unit', 1;
+    }
+    else {
+    my $code = q:to/CODE/;
+        use experimental :rakuast;
+        my class UnitEnter is RakuAST::StatementPrefix::Phaser::Enter {
+            has $.code is rw;
+            method meta-object() { $!code }
+        }
+        my @ran;
+        BEGIN {
+            my $phaser = UnitEnter.new(RakuAST::Block.new);
+            $phaser.code = { @ran.push('unit') };
+            $*CU.add-enter-phaser($phaser);
+        }
+        my $mine = ENTER 'mine';
+        ($mine, @ran)
+        CODE
+    is-deeply EVAL($code), ('mine', ['unit']),
+      'the added phaser ran and the parsed ENTER kept its own value';
+    }
+}
+
+
+subtest 'A parsed QUIT phaser deparses without the topic it hands back' => {
+    # -> {
+    #     QUIT {
+    #         $*SEEN = .payload
+    #     }
+    # }
+    ast Q:to/SOURCE/.AST;
+    -> {
+        QUIT {
+            $*SEEN = .payload
+        }
+    }
+    SOURCE
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+-> {
+    QUIT {
+        $*SEEN = .payload
+    }
+}
+CODE
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+    is-deeply $raku.EVAL.DEPARSE, $deparsed, 'Raku: deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $*SEEN;
+        $block.callable_for_phaser("QUIT")(X::AdHoc.new(:payload<foo>));
+        is $*SEEN, 'foo', "$type: the QUIT phaser ran with the exception as its topic";
+    }
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $*SEEN;
+        my $ex = X::AdHoc.new(:payload<foo>);
+        ok $block.callable_for_phaser("QUIT")($ex) === $ex,
+          "$type: the QUIT phaser hands the exception back when it runs to the end";
+    }
+
+    # -> {
+    #     QUIT {
+    #         when X::AdHoc {
+    #             $*SEEN = .payload
+    #         }
+    #     }
+    # }
+    ast Q:to/SOURCE/.AST;
+    -> {
+        QUIT {
+            when X::AdHoc {
+                $*SEEN = .payload
+            }
+        }
+    }
+    SOURCE
+    is-deeply $deparsed, q:to/CODE/, 'deparse with a when handler';
+-> {
+    QUIT {
+        when X::AdHoc {
+            $*SEEN = .payload
+        }
+    }
+}
+CODE
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        my $*SEEN;
+        my $quit := $block.callable_for_phaser("QUIT");
+        is-deeply $quit(X::AdHoc.new(:payload<foo>)), Nil,
+          "$type: a matching when handler succeeds with Nil";
+        is $*SEEN, 'foo', "$type: the when handler ran";
+        my $other = X::NYI.new(feature => 'x');
+        ok $quit($other) === $other,
+          "$type: a when handler that does not match hands the exception back";
     }
 }
 

@@ -1,11 +1,11 @@
 # A signature, typically part of a block though also contained within a
 # signature literal or a signature-based variable declarator.
 class RakuAST::Signature
-  is RakuAST::Meta
-  is RakuAST::ImplicitLookups
-  is RakuAST::BeginTime
-  is RakuAST::ParseTime
   is RakuAST::Term
+  does RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
+  does RakuAST::ParseTime
 {
     has List $.parameters;
     has RakuAST::Node $.returns;
@@ -24,15 +24,10 @@ class RakuAST::Signature
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Signature, '$!parameters',
           self.IMPL-UNWRAP-LIST($parameters)
-        ) if $parameters;
+        ) if nqp::isconcrete($parameters);
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-named-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-meta-method', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!invocant-type-check', 1);
-        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-array', $is-array);
+        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-array', ?$is-array);
         $obj
     }
 
@@ -57,10 +52,11 @@ class RakuAST::Signature
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $!implicit-invocant.to-begin-time($resolver, $context) if $!implicit-invocant;
-        my $has-slurpy-pos := 0;
+        my int $has-slurpy-pos;
         if $!parameters {
             for $!parameters {
                 $_.to-begin-time($resolver, $context);
+                $_.IMPL-BEGIN-AFTER-MUTATION($resolver, $context);
 
                 my $sigil := $_.IMPL-SIGIL;
                 if !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $sigil ne '%'
@@ -78,7 +74,7 @@ class RakuAST::Signature
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my %seen;
         if $!parameters {
-            my int $prev-kind := 0;
+            my int $prev-kind;
             for $!parameters {
                 my int $kind := $_.named ?? 1 !!
                             $_.is-optional ?? 2 !!
@@ -86,18 +82,18 @@ class RakuAST::Signature
 
                 if $kind == 3 {               # required
                     if $prev-kind == 2 {      # optional
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'optional', parameter => $_.target.lexical-name;
                     } elsif $prev-kind == 4 { # variadic
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $_.target.lexical-name;
                     } elsif $prev-kind == 1 { # named
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $_.target.lexical-name;
                     }
 
                 } elsif $kind == 2 {          # optional
                     if $prev-kind == 4 {      # variadic
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $_.target.lexical-name;
                     } elsif $prev-kind == 1 { # named
-                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'named', parameter => $_.target.name;
+                        self.add-sorry: $resolver.build-exception: 'X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'named', parameter => $_.target.lexical-name;
                     }
                 }
 
@@ -169,9 +165,7 @@ class RakuAST::Signature
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Var::Compiler::Lookup.new('$?CLASS')
-        ]
+        [ RakuAST::Var::Compiler::Lookup.new('$?CLASS') ]
     }
 
     method IMPL-HAS-PARAMETER(Str $name) {
@@ -190,32 +184,33 @@ class RakuAST::Signature
         if $!is-on-method && !($!implicit-invocant || $!implicit-slurpy-hash) {
             my @param-asts := $!parameters // [];
             unless @param-asts && @param-asts[0].invocant {
-                my $type;
+                my $type := RakuAST::Type;
                 if $!is-on-meta-method {
-                    $type := Mu;
+                    $type := RakuAST::Type;
                 }
                 elsif $!is-on-named-method {
                     if $!invocant-type-check && nqp::isconcrete($!method-package) && !nqp::istype($!method-package, RakuAST::Grammar) && $!method-package.can-have-methods {
-                        my $Class := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+                        my $Class := self.get-implicit-lookups[0];
                         if $!is-on-role-method && $Class.is-resolved {
-                            $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('$?CLASS'));
+                            $type := RakuAST::Type::Simple.from-identifier('$?CLASS');
                             $type.set-resolution($Class.resolution);
                         } elsif $!method-package.declarator eq 'role' {
                             # An anon or my method in a role is not a role method
                             # and may be added to an unrelated type, so it takes
                             # an unconstrained invocant.
-                            $type := Mu;
+                            $type := RakuAST::Type;
                         } else {
                             my $package := $!method-package.stubbed-meta-object;
                             my $package-name := $package.HOW.name($package);
-                            $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($package-name));
+                            $type := RakuAST::Type::Simple.from-identifier($package-name);
                             $type.set-resolution(RakuAST::VarDeclaration::Implicit::Constant.new(
                                 :name($package-name), :value($package), :scope<lexical>));
                         }
                     }
                 }
-                nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant',
-                    RakuAST::Parameter.new(:invocant, :$type));
+                my $invocant := RakuAST::Parameter.new(:invocant, :$type);
+                $invocant.IMPL-SET-IMPLICIT-INVOCANT;
+                nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant', $invocant);
             }
             unless $!is-on-meta-method {
                 my int $slurpy-hash-seen;
@@ -251,14 +246,10 @@ class RakuAST::Signature
             unless @param-asts && @param-asts[0].invocant {
                 my $invocant := RakuAST::Parameter.new();
                 $invocant.add-type-capture(
-                    RakuAST::Type::Capture.new(
-                        RakuAST::Name.from-identifier('$?CLASS')
-                    )
+                  RakuAST::Type::Capture.from-identifier('$?CLASS')
                 );
                 $invocant.add-type-capture(
-                    RakuAST::Type::Capture.new(
-                        RakuAST::Name.from-identifier('::?CLASS')
-                    )
+                  RakuAST::Type::Capture.from-identifier('::?CLASS')
                 );
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant', $invocant);
                 nqp::push(@generated, $_) for self.IMPL-UNWRAP-LIST($invocant.type-captures);
@@ -291,6 +282,24 @@ class RakuAST::Signature
         nqp::bindattr_i($signature, Signature, '$!arity', self.arity);
         nqp::bindattr($signature, Signature, '$!count', self.count);
 
+        # The mask of read only positionals. The invocation dispatcher
+        # reads it to pass such arguments outside their Scalar containers.
+        my int $n := nqp::elems(@parameters);
+        my int $i := -1;
+        my int $readonly;
+        while ++$i < $n {
+            my $param := @parameters[$i];
+            my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
+            if !($flags +& nqp::const::SIG_ELEM_SLURPY_ARITY)
+              && !($flags +& nqp::const::SIG_ELEM_SLURPY_NAMED)
+              && nqp::isnull(nqp::getattr($param, Parameter, '@!named_names'))
+              && $i < 64
+              && !($flags +& (nqp::const::SIG_ELEM_IS_RW +| nqp::const::SIG_ELEM_IS_RAW)) {
+                $readonly := $readonly +| nqp::bitshiftl_i(1, $i);
+            }
+        }
+        nqp::bindattr_i($signature, Signature, '$!readonly', $readonly);
+
         # Figure out and set return type.
         nqp::bindattr($signature, Signature, '$!returns', $!returns
             ?? self.IMPL-RETURN-VALUE()
@@ -306,20 +315,37 @@ class RakuAST::Signature
         elsif $!returns.has-compile-time-value {
             $!returns.maybe-compile-time-value
         }
+        elsif nqp::istype($!returns, RakuAST::Heredoc) && $!returns.IMPL-AWAITS-BODY {
+            $!returns.IMPL-PREMATURE
+        }
         else {
+            # Only a heredoc gets here, as its body may turn out to interpolate.
+            $!returns.IMPL-THROW-IF-COMPILING('X::Comp::AdHoc',
+              :payload('Return value after --> may only be a type or a constant'));
             nqp::die('--> return constraint must be a type or a constant value');
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $signature := self.meta-object;
         $context.ensure-sc($signature);
         QAST::WVal.new(:value($signature))
     }
 
-    method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder, :$multi) {
+    # A sub-signature is bound only by the full binder, which reads the
+    # meta-objects, so its parameters get their literal defaults too.
+    method IMPL-BIND-LITERAL-DEFAULTS() {
+        for $!parameters // [] {
+            $_.IMPL-BIND-DEFAULT-AS-LITERAL;
+            $_.sub-signature.IMPL-BIND-LITERAL-DEFAULTS if $_.sub-signature;
+        }
+        Nil
+    }
+
+    method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder, :$multi, Mu :$invocant-decl) {
         my $bindings := QAST::Stmts.new();
         my $parameters := $!parameters // [];
+        self.IMPL-BIND-LITERAL-DEFAULTS;
         if $needs-full-binder {
             $bindings.push(QAST::Op.new(
                 :op('if'),
@@ -336,10 +362,10 @@ class RakuAST::Signature
         }
         else {
             if $!implicit-invocant {
-                $bindings.push($!implicit-invocant.IMPL-TO-QAST($context));
+                $bindings.push($!implicit-invocant.IMPL-TO-QAST($context, :$invocant-decl));
             }
             for $parameters {
-                $bindings.push($_.IMPL-TO-QAST($context));
+                $bindings.push($_.IMPL-TO-QAST($context, :$invocant-decl));
             }
             if $!implicit-slurpy-hash {
                 $bindings.push($!implicit-slurpy-hash.IMPL-TO-QAST($context));
@@ -413,9 +439,20 @@ class RakuAST::Signature
         }
     }
 
+    # Push the parameters of this signature onto @parameters, those of a
+    # sub-signature after the parameter that holds it, so a list
+    # declaration reaches every variable it declares.
+    method IMPL-COLLECT-PARAMETERS(@parameters) {
+        for self.IMPL-UNWRAP-LIST(self.parameters) -> $param {
+            nqp::push(@parameters, $param);
+            my $sub := $param.sub-signature;
+            $sub.IMPL-COLLECT-PARAMETERS(@parameters) if $sub;
+        }
+    }
+
     method IMPL-PARAM-POSITION(RakuAST::Parameter $param) {
-        my $i := 0;
-        my $found := 0;
+        my int $i;
+        my int $found;
         if $!implicit-invocant {
             if $!implicit-invocant =:= $param {
                 $found := 1;
@@ -424,7 +461,7 @@ class RakuAST::Signature
                 $i := $i + 1;
             }
         }
-        if !$found {
+        unless $found {
             for $!parameters {
                 if $_ =:= $param {
                     $found := 1;
@@ -438,6 +475,15 @@ class RakuAST::Signature
     }
 
     has Mu $!ins_params;
+
+    # IMPL-SIGNATURE-PARAMS emits its declaring bind only when it mints
+    # the name, so a formation that runs again on the same signature
+    # must reset the memo or the fresh children reference a local never
+    # declared.
+    method IMPL-RESET-SIGNATURE-PARAMS() {
+        nqp::bindattr(self, RakuAST::Signature, '$!ins_params', nqp::null());
+    }
+
     method IMPL-SIGNATURE-PARAMS(Mu $var) {
         unless $!ins_params {
             nqp::bindattr(self, RakuAST::Signature, '$!ins_params', QAST::Node.unique('__lowered_parameters_'));
@@ -464,10 +510,10 @@ class RakuAST::Signature
 }
 
 class RakuAST::FakeSignature
-  is RakuAST::BeginTime
-  is RakuAST::Meta
   is RakuAST::Term
-  is RakuAST::LexicalScope
+  does RakuAST::LexicalScope
+  does RakuAST::Meta
+  does RakuAST::BeginTime
 {
     has RakuAST::Signature $.signature;
     has RakuAST::Block $.block;
@@ -493,16 +539,33 @@ class RakuAST::FakeSignature
         True
     }
 
+    # The scope is the block the signature is bound to. The signature
+    # literal itself is checked as the expression it is.
+    method creates-block() {
+        nqp::findmethod(RakuAST::Expression, 'creates-block')(self)
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::findmethod(RakuAST::Expression, 'PERFORM-CHECK')(self, $resolver, $context)
+    }
+
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
         $!block.meta-object; # To bind block to signature
         $!signature.meta-object
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # The binder evaluates the defaults and wheres of the literal without
+        # entering its block, so no entry takes the closures of their routines.
+        my @parameters;
+        $!signature.IMPL-COLLECT-PARAMETERS(@parameters);
+        for @parameters {
+            $_.IMPL-SET-DECLARED-BY-EVALUATING-CODE for $_.IMPL-ROUTINES-BOUND-WITH;
+        }
         $!block.to-begin-time($resolver, $context);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.meta-object;
         $!signature.IMPL-TO-QAST($context)
     }
@@ -528,19 +591,23 @@ class RakuAST::FakeSignature
 # assignment into a target; this is modeled by a RakuAST::ParameterTarget,
 # which is optional.
 class RakuAST::Parameter
-  is RakuAST::Meta
-  is RakuAST::ImplicitLookups
-  is RakuAST::TraitTarget
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
-  is RakuAST::Doc::DeclaratorTarget
+  is RakuAST::Node
+  does RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::TraitTarget
+  does RakuAST::Doc::DeclaratorTarget
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Type              $.type;
     has RakuAST::Type              $!conflicting-type;
+    has int                        $!outer-type;
     has RakuAST::ParameterTarget   $.target;
     has Mu                         $!names;
     has Bool                       $.invocant;
+    has int                        $!implicit-invocant; # Generated by the compiler, not written in the signature
+    has int                        $!attribute-declaration; # Part of a has (...) declaration list, not a callable signature
     has Bool                       $.multi-invocant; # Is this param relevant for multi dispatch?
     has Bool                       $.optional;
     has Bool                       $.default-rw;
@@ -548,7 +615,12 @@ class RakuAST::Parameter
     has RakuAST::Parameter::Slurpy $.slurpy;
     has RakuAST::Expression        $.default;
     has RakuAST::Expression        $.where;
-    has RakuAST::Expression        $.array-shape;
+    # Set by the optimize pass when the where constraint is a junction of
+    # type objects: the types the argument is checked against inline, and
+    # whether it must be all of them rather than any.
+    has Mu $!where-junction-types;
+    has int $!where-junction-all;
+    has RakuAST::Statement         $.array-shape;
     has RakuAST::Node              $.owner;
     has RakuAST::Package           $!package;
     has Mu                         $!attr-package;
@@ -569,7 +641,7 @@ class RakuAST::Parameter
                           List :$traits,
            RakuAST::Expression :$default,
            RakuAST::Expression :$where,
-           RakuAST::Expression :$array-shape,
+            RakuAST::Statement :$array-shape,
             RakuAST::Signature :$sub-signature,
                           List :$type-captures,
             RakuAST::Signature :$signature-constraint,
@@ -613,7 +685,7 @@ class RakuAST::Parameter
         nqp::bindattr($obj, RakuAST::Parameter, '$!where',
           $where // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::Parameter, '$!array-shape',
-          $array-shape // RakuAST::Expression);
+          $array-shape // RakuAST::Statement);
         nqp::bindattr($obj, RakuAST::Parameter, '$!sub-signature',
           $sub-signature // RakuAST::Signature);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type-captures',
@@ -629,13 +701,28 @@ class RakuAST::Parameter
     }
 
     method set-type(RakuAST::Type $type, Bool :$replace) {
-        if $!type && !$replace {
+        if $!type && !$replace && !$!outer-type {
             nqp::bindattr(self, RakuAST::Parameter, '$!conflicting-type', $!type);
         }
         nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
-        $!target.set-type($type) if $!target && nqp::can($!target, 'set-type');
+        nqp::bindattr_i(self, RakuAST::Parameter, '$!outer-type', 0);
+        $!target.set-type($type, :$replace) if $!target && nqp::can($!target, 'set-type');
+        self.IMPL-CLEAR-META-OBJECT;
         Nil
     }
+
+    # The type of the list declaration a parameter binds through is the
+    # parameter's type when it has none of its own, so the binder checks
+    # it. The deparse and the .raku leave it to the declaration.
+    method IMPL-SET-OUTER-TYPE(RakuAST::Type $type) {
+        unless $!type {
+            nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
+            nqp::bindattr_i(self, RakuAST::Parameter, '$!outer-type', 1);
+        }
+        Nil
+    }
+
+    method outer-type() { $!outer-type }
 
     method set-default-type(RakuAST::Type $type) {
         my str $sigil := self.IMPL-SIGIL;
@@ -648,6 +735,16 @@ class RakuAST::Parameter
 
     method set-invocant(Bool $invocant) {
         nqp::bindattr(self, RakuAST::Parameter, '$!invocant', $invocant ?? True !! False);
+        Nil
+    }
+
+    method IMPL-SET-IMPLICIT-INVOCANT() {
+        nqp::bindattr_i(self, RakuAST::Parameter, '$!implicit-invocant', 1);
+        Nil
+    }
+
+    method IMPL-SET-ATTRIBUTE-DECLARATION() {
+        nqp::bindattr_i(self, RakuAST::Parameter, '$!attribute-declaration', 1);
         Nil
     }
 
@@ -711,7 +808,23 @@ class RakuAST::Parameter
 
     method set-where(RakuAST::Expression $where) {
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $where);
+        nqp::bindattr(self, RakuAST::Parameter, '$!where-junction-types', Mu);
+        nqp::bindattr_i(self, RakuAST::Parameter, '$!where-junction-all', 0);
+        self.IMPL-CLEAR-META-OBJECT;
         Nil
+    }
+
+    # The variable a parameter of a declaration declares carries the where in the
+    # subset made for its type, which is then the where's one parent.
+    method IMPL-WHERE-IN-TARGET-TYPE() {
+        nqp::istype($!target, RakuAST::ParameterTarget::Var)
+          && nqp::isconcrete($!target.declaration)
+          && $!target.declaration.IMPL-WHERE-IN-TYPE ?? True !! False
+    }
+
+    method IMPL-SET-WHERE-JUNCTION(Mu @types, int $all) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!where-junction-types', @types);
+        nqp::bindattr_i(self, RakuAST::Parameter, '$!where-junction-all', $all);
     }
 
     method set-target(RakuAST::ParameterTarget $target) {
@@ -719,7 +832,7 @@ class RakuAST::Parameter
         Nil
     }
 
-    method set-array-shape(RakuAST::Expression $array-shape) {
+    method set-array-shape(RakuAST::Statement $array-shape) {
         nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $array-shape);
         Nil
     }
@@ -768,18 +881,28 @@ class RakuAST::Parameter
         self.IMPL-WRAP-LIST($!type-captures)
     }
 
+    # The definedness the smiley of a type capture asks for, Bool when
+    # none has one.
+    method IMPL-CAPTURE-DEFINITE() {
+        my $definite := Bool;
+        for $!type-captures {
+            $definite := $_.definite if nqp::isconcrete($_.definite);
+        }
+        $definite
+    }
+
     # Tests if the parameter is a simple positional parameter.
     method is-positional() {
         $!names || !($!slurpy =:= RakuAST::Parameter::Slurpy) ?? False !! True
     }
 
     # Tests if the parameter has been explicitly marked optional.
-    method is-declared-optional() {
+    method is-declared-optional(--> Bool) {
         nqp::eqaddr($!optional, True)
     }
 
     # Tests if the parameter has been explicitly marked required.
-    method is-declared-required() {
+    method is-declared-required(--> Bool) {
         nqp::eqaddr($!optional, False)
     }
 
@@ -788,6 +911,28 @@ class RakuAST::Parameter
     # default value or is named.
     method is-optional() {
         $!optional // ($!default || $!names ?? True !! False)
+    }
+
+    # Whether the default binds as a literal, which needs it to give its compile
+    # time value and hold no code. BEGIN time thunks any other default, and a
+    # heredoc body or the optimizer can give a thunked one such a value.
+    method IMPL-DEFAULT-IS-LITERAL() {
+        $!default && !nqp::isnull(self.IMPL-LITERAL-VALUE($!default)) ?? True !! False
+    }
+
+    # The meta-object binds a literal default as a literal, even when BEGIN
+    # time gave the default a thunk.
+    method IMPL-BIND-DEFAULT-AS-LITERAL() {
+        return Nil unless self.IMPL-DEFAULT-IS-LITERAL;
+        my $parameter := self.meta-object;
+        my int $flags := nqp::getattr_i($parameter, Parameter, '$!flags');
+        unless $flags +& nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL {
+            nqp::bindattr($parameter, Parameter, '$!default_value',
+              $!default.maybe-compile-time-value);
+            nqp::bindattr_i($parameter, Parameter, '$!flags',
+              $flags +| nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL);
+        }
+        Nil
     }
 
     method IMPL-NAMES(Mu $names) {
@@ -840,7 +985,7 @@ class RakuAST::Parameter
         $visitor($!type)          if $!type;
         $visitor($!target)        if $!target;
         $visitor($!default)       if $!default;
-        $visitor($!where)         if $!where;
+        $visitor($!where)         if $!where && !self.IMPL-WHERE-IN-TARGET-TYPE;
         $visitor($!array-shape)   if $!array-shape;
         $visitor($!sub-signature) if $!sub-signature;
         $visitor(self.WHY)        if self.WHY;
@@ -866,7 +1011,7 @@ class RakuAST::Parameter
 
         my @types;
         for @lookups {
-            nqp::push(@types, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($_)));
+            nqp::push(@types, RakuAST::Type::Setting.from-identifier($_));
         }
         @types
     }
@@ -902,26 +1047,48 @@ class RakuAST::Parameter
         if $!target {
             $!target.set-ro(True);
             my $name := $!target.introspection-name;
-            my $rw := $!default-rw;
+            my str $trait-rw := '';
             for self.IMPL-UNWRAP-LIST(self.traits) {
                 if nqp::istype($_, RakuAST::Trait::Is)
                     && (
                         $_.name.canonicalize eq 'copy' || $_.name.canonicalize eq 'rw'
                     )
                 {
-                    $rw := $_.name.canonicalize;
+                    $trait-rw := $_.name.canonicalize;
                     last;
                 }
             }
+            my str $rw := $trait-rw || ($!default-rw ?? 'rw' !! '');
 
             if $rw {
-                if $rw ne 'copy' || !$!type || !nqp::objprimspec($!type.meta-object) {
+                # A definite type like `int:D` nominalizes to its native base.
+                # The wrapper answers no primitive spec, so testing it would
+                # send a native copy parameter down the container path, whose
+                # native-of descriptor rejects every boxed assignment. Ask the
+                # nominal type.
+                if $rw ne 'copy' || !$!type || !nqp::objprimspec($type) {
                     my $cd := RakuAST::IMPL::Containers.create-descriptor(
                         :of($type), :default($type), :dynamic(0), :$name);
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
                     $!target.set-bindable(True);
                 }
-                $!target.set-rw if $rw eq 'rw';
+                elsif nqp::istype($!type, RakuAST::Type::Definedness)
+                    && nqp::istype($!target, RakuAST::ParameterTarget::Var) {
+                    # Retype the target to the base type so it declares a
+                    # plain native lexical rather than an object lexical.
+                    # Definedness stays with the binder, and a native value
+                    # is always defined.
+                    $!target.set-type($!type.base-type, :replace);
+                }
+                # A <-> block starter flags every parameter rw and a trait
+                # does not clear that, so the target follows the flag even
+                # under an is copy trait. A variable declarator signature
+                # flags its parameters rw as well and accepts an explicit
+                # rw trait, but its targets declare ordinary variables,
+                # and a native one must stay a plain lexical for
+                # assignment to reach it.
+                $!target.set-rw if ($trait-rw eq 'rw' || $!default-rw)
+                    && !$!target.var-declaration;
                 $!target.set-ro(False);
             }
         }
@@ -954,7 +1121,8 @@ class RakuAST::Parameter
             }
         }
         if $!where {
-            nqp::push(@post_constraints, $!where.IMPL-CURRIED ?? $!where.IMPL-CURRIED.meta-object !! $!where.meta-object);
+            my $thunk := $!where.IMPL-WHERE-THUNK;
+            nqp::push(@post_constraints, $thunk ?? $thunk.meta-object !! $!where.meta-object);
         }
         if $!array-shape {
             nqp::push(@post_constraints, $!array-shape.meta-object);
@@ -962,12 +1130,8 @@ class RakuAST::Parameter
         if nqp::elems(@post_constraints) {
             nqp::bindattr($parameter, Parameter, '@!post_constraints', @post_constraints);
         }
-        if $!default {
-            if $!default.has-compile-time-value {
-                nqp::bindattr($parameter, Parameter, '$!default_value', $!default.maybe-compile-time-value);
-            }
-            else {
-            }
+        if self.IMPL-DEFAULT-IS-LITERAL {
+            nqp::bindattr($parameter, Parameter, '$!default_value', $!default.maybe-compile-time-value);
         }
         if $!sub-signature {
             nqp::bindattr($parameter, Parameter, '$!sub_signature', $!sub-signature.meta-object);
@@ -982,7 +1146,6 @@ class RakuAST::Parameter
             }
             nqp::bindattr($parameter, Parameter, '@!type_captures', @type-captures);
         }
-        # TODO further setup
         $parameter
     }
 
@@ -1019,8 +1182,11 @@ class RakuAST::Parameter
                 $flags := $flags + nqp::const::SIG_ELEM_BIND_PRIVATE_ATTR;
             }
         }
-        if nqp::istype($!type, RakuAST::Type::Definedness) {
-            $flags := $flags +| ($!type.definite
+        my $definite := nqp::istype($!type, RakuAST::Type::Definedness)
+          ?? $!type.definite
+          !! self.IMPL-CAPTURE-DEFINITE;
+        if nqp::isconcrete($definite) {
+            $flags := $flags +| ($definite
               ?? nqp::const::SIG_ELEM_DEFINED_ONLY
               !! nqp::const::SIG_ELEM_UNDEFINED_ONLY
             );
@@ -1051,10 +1217,8 @@ class RakuAST::Parameter
                 $flags := $flags +| nqp::const::SIG_ELEM_NATIVE_UINT_VALUE;
             }
         }
-        if $!default {
-            if $!default.has-compile-time-value {
-                $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
-            }
+        if self.IMPL-DEFAULT-IS-LITERAL {
+            $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
         }
         $flags := $flags +| $!slurpy.IMPL-FLAGS($sigil);
         $flags
@@ -1064,7 +1228,7 @@ class RakuAST::Parameter
         my str $sigil := self.IMPL-SIGIL;
         if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
             my $sigil-type :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
+              self.get-implicit-lookups[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
             # Match legacy: store the bare element type and treat `:D`/`:U`
             # as a separate definedness flag. Role parameterisation is
             # invariant, so the wrapped form would reject `my Str @x` defaults.
@@ -1094,53 +1258,23 @@ class RakuAST::Parameter
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::bindattr(self, RakuAST::Parameter, '$!where', $!where.IMPL-UNWRAP-WHERE-PARENS)
-            if $!where;
+        # the meta-object made below holds the meta-objects of the
+        # sub-signature's parameters, which their BEGIN time completes
+        $!sub-signature.to-begin-time($resolver, $context) if $!sub-signature;
 
-        # Catch a double closure in the user's own where block, before it is
-        # wrapped in the synthetic ACCEPTS block below. A bare `where *` is not a
-        # block, so it is left alone and its wrapper is not mistaken for one.
-        if $!where && nqp::istype($!where, RakuAST::Block) {
-            my $sorry := $!where.IMPL-CHECK-DOUBLE-CLOSURE($resolver, $context);
-            self.add-sorry: $sorry if $sorry;
-        }
-
-        if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-CURRIED {
-            my $block := RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            expression => RakuAST::ApplyPostfix.new(
-                                operand => RakuAST::ApplyPostfix.new(
-                                    operand => $!where,
-                                    postfix => RakuAST::Call::Method.new(
-                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
-                                        args => RakuAST::ArgList.new(
-                                            RakuAST::Var::Lexical.new('$_'),
-                                        ),
-                                    ),
-                                ),
-                                postfix => RakuAST::Call::Method.new(
-                                    name => RakuAST::Name.from-identifier('Bool'),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            );
-            $block.IMPL-BEGIN($resolver, $context);
-            $block.IMPL-CHECK($resolver, $context);
-            nqp::bindattr(self, RakuAST::Parameter, '$!where', $block);
-        }
+        self.IMPL-BEGIN-WHERE($resolver, $context);
 
         if $!array-shape {
+            # The shape is wrapped in a do statement, so the method call on
+            # it does not curry a bare * into a WhateverCode.
+            my $shape := RakuAST::StatementPrefix::Do.new($!array-shape);
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                     RakuAST::StatementList.new(
                         RakuAST::Statement::Expression.new(
                             expression => RakuAST::ApplyPostfix.new(
                                 operand => RakuAST::ApplyPostfix.new(
-                                    operand => RakuAST::ApplyPostfix.new(operand => $!array-shape, postfix => RakuAST::Call::Method.new(name => RakuAST::Name.from-identifier('list'))),
+                                    operand => RakuAST::ApplyPostfix.new(operand => $shape, postfix => RakuAST::Call::Method.new(name => RakuAST::Name.from-identifier('list'))),
                                     postfix => RakuAST::Call::Method.new(
                                         name => RakuAST::Name.from-identifier('ACCEPTS'),
                                         args => RakuAST::ArgList.new(
@@ -1166,18 +1300,22 @@ class RakuAST::Parameter
             nqp::bindattr(self, RakuAST::Parameter, '$!array-shape', $block);
         }
 
-        if $!default {
-            # If it doesn't have a compile-time value, we'll need to thunk it.
-            unless $!default.has-compile-time-value {
-                $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
-                $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
-            }
+        if $!default && !self.IMPL-DEFAULT-IS-LITERAL {
+            $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
+            my $default-thunk := $!default.outer-most-thunk;
+            $default-thunk.IMPL-SET-PRELUDE-PRODUCER(
+              -> $context { self.IMPL-QAST-ENTRY-CLOSURES($context, $default-thunk) });
+            $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
         }
 
         CATCH {
-            $resolver.convert-begin-time-exception($_).throw
+            my $ex := $resolver.convert-exception($_);
+            # An error already located is reported as it is.
+            $ex.rethrow if nqp::can($ex, 'line') && nqp::isconcrete($ex.line);
+            $resolver.convert-begin-time-exception($ex).throw
         }
 
+        self.IMPL-DOCUMENT-AT-BEGIN;
         self.apply-traits($resolver, $context, self);
 
         # Apply possible is required trait
@@ -1187,22 +1325,130 @@ class RakuAST::Parameter
             && !($meta-object.optional || $meta-object.slurpy || $meta-object.capture);
 
         # Parameters needing the full binder force custom-args on
-        # their owning routine. Conditions decidable from AST state
-        # set the flag here at BEGIN time. The flag must be True by
-        # the time the owning routine compiles, which can happen
-        # during BEGIN (for example, a trait_mod multi applied to
-        # an attribute).
+        # their owning routine. The flag must be True by the time the
+        # owning routine compiles, which can happen during BEGIN (for
+        # example, a trait_mod multi applied to an attribute, or a
+        # method in a role body).
         $!owner.set-custom-args
             if nqp::isconcrete($!owner)
             && ($!sub-signature || nqp::elems($!names) > 2);
+        self.IMPL-SET-CUSTOM-ARGS-FOR-GENERIC;
 
         $!target.to-begin-time($resolver, $context) if $!target;
+    }
+
+    # Call after to-begin-time. A parameter whose where or type was set
+    # after its own BEGIN time has no meta-object. A signature built
+    # around it brings the where to its BEGIN time again and applies the
+    # traits to the meta-object made next, so the routine compiles
+    # against the mutated parameter.
+    method IMPL-BEGIN-AFTER-MUTATION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.has-meta-object {
+            self.IMPL-BEGIN-WHERE($resolver, $context);
+            self.IMPL-DOCUMENT-AT-BEGIN;
+            self.apply-traits($resolver, $context, self);
+        }
+        Nil
+    }
+
+    # At BEGIN time a where constraint loses the parentheses it was written in,
+    # a double closure in it is a sorry, and one smartmatched rather than called
+    # is thunked, once.
+    method IMPL-BEGIN-WHERE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!where', $!where.IMPL-UNWRAP-WHERE-PARENS)
+            if $!where;
+
+        # Catch a double closure in the user's own where block. A bare
+        # `where *` is not a block, so it is left alone.
+        self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!where, $resolver, $context, :tested)
+          if $!where;
+
+        $!where.IMPL-THUNK-WHERE($resolver, $context) if $!where;
+        my $where-thunk := $!where ?? $!where.IMPL-WHERE-THUNK !! Nil;
+        $where-thunk.IMPL-SET-PRELUDE-PRODUCER(-> $context { self.IMPL-QAST-ENTRY-CLOSURES($context, $where-thunk) })
+          if $where-thunk;
+    }
+
+    # The routines declared in the default and where, which code evaluates as
+    # the signature binds. Those under a phaser run at its time instead.
+    method IMPL-ROUTINES-BOUND-WITH() {
+        my @routines;
+        my @todo;
+        @todo.push($!default) if $!default;
+        @todo.push($!where) if $!where;
+        while @todo {
+            my $node := @todo.shift;
+            if nqp::istype($node, RakuAST::Routine) {
+                @routines.push($node);
+            }
+            elsif !nqp::istype($node, RakuAST::LexicalScope)
+              && !nqp::istype($node, RakuAST::StatementPrefix::Phaser) {
+                $node.visit-children(-> $child { @todo.push($child) });
+            }
+        }
+        @routines
+    }
+
+    # The closures of the routines in the default and where. The scope declaring
+    # them takes them on entry after the signature binds, and a trial bind not at
+    # all, so evaluating the default or where takes them over the frame bound.
+    method IMPL-QAST-ENTRY-CLOSURES(RakuAST::IMPL::QASTContext $context, Mu $thunk?) {
+        my @routines;
+        for self.IMPL-ROUTINES-BOUND-WITH {
+            @routines.push($_) if $_.IMPL-TAKES-ENTRY-CLOSURE;
+        }
+        return Nil unless @routines;
+        # A thunk compiled on its own at BEGIN time binds no frame, and its
+        # compilation holds no block of the routines. The unit forms it again.
+        if nqp::isconcrete($thunk)
+          && nqp::eqaddr(nqp::getlexdyn('$*IMPL-DYNAMIC-ROOT'), $thunk) {
+            $*IMPL-FORM-AGAIN := 1
+              unless nqp::isnull(nqp::getlexdyn('$*IMPL-FORM-AGAIN'));
+            return Nil;
+        }
+        my $stmts := QAST::Stmts.new;
+        $stmts.push($_.IMPL-QAST-ENTRY-CLOSURE($context, :callers)) for @routines;
+        $stmts
+    }
+
+    # A where that is code to call is the routine itself, not a thunk taking
+    # its closure, so the binding does.
+    method IMPL-WHERE-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := $!where.IMPL-TO-QAST($context);
+        my $closures := $!where.IMPL-WHERE-THUNK ?? Nil !! self.IMPL-QAST-ENTRY-CLOSURES($context);
+        nqp::isconcrete($closures) ?? QAST::Stmts.new($closures, $qast) !! $qast
+    }
+
+    # Type captures are the only generic parameter types the lowered
+    # typecheck can handle. Generic classes such as Array[T], which are
+    # generic and nominal, and parametric generics such as Positional[T]
+    # need the full binder to instantiate them from the type environment.
+    # A generic coercion such as T() needs it too, unless the parameter
+    # is slurpy or the invocant.
+    # Also called at CHECK time for types whose archetypes are not final
+    # at the parameter's begin time, such as a class stub completed later.
+    method IMPL-SET-CUSTOM-ARGS-FOR-GENERIC() {
+        my $param-type := nqp::getattr(self.meta-object, Parameter, '$!type');
+        my $archetypes := $param-type.HOW.archetypes($param-type);
+        return Nil unless nqp::isconcrete($!owner) && $archetypes.generic;
+        if $archetypes.coercive {
+            $!owner.set-custom-args
+                if $!slurpy =:= RakuAST::Parameter::Slurpy && !$!invocant;
+        }
+        elsif $archetypes.nominal
+            || nqp::can($archetypes, "parametric") && $archetypes.parametric {
+            $!owner.set-custom-args;
+        }
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-trait-sorries;
 
-        if nqp::istype($!owner, RakuAST::Sub) {
+        # A variable declarator signature in the body of MAIN owns its
+        # parameters too, but they are not what MAIN is called with, so
+        # they earn no dispatch advice.
+        if nqp::istype($!owner, RakuAST::Sub)
+            && !($!target && $!target.var-declaration) {
             my $name := $!owner.name;
             if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
                 for self.IMPL-UNWRAP-LIST(self.traits) {
@@ -1219,7 +1465,7 @@ class RakuAST::Parameter
         if $!conflicting-type {
             self.add-sorry:
                 $resolver.build-exception: 'X::Parameter::MultipleTypeConstraints',
-                    parameter => $!target.name;
+                    parameter => $!target.lexical-name;
         }
 
         if $!default {
@@ -1232,17 +1478,20 @@ class RakuAST::Parameter
             if self.is-declared-required {
                 self.add-sorry:
                   $resolver.build-exception: 'X::Parameter::Default',
-                    how => 'required', parameter => $!target.name;
+                    how => 'required', parameter => $!target.lexical-name;
             }
 
-            if nqp::isconcrete($!type) && $!default.has-compile-time-value {
-                my $value := $!default.maybe-compile-time-value;
+            # A default holding code gives a value of its compile time value's
+            # type on each call, a new closure for a block or the type object
+            # for a package, so the check covers it too.
+            my $value := self.IMPL-EVALUATED-VALUE($!default);
+            if nqp::isconcrete($!type) && !nqp::isnull($value) {
                 my $type := self.IMPL-NOMINAL-TYPE;
                 if nqp::objprimspec($type) {
                     $type := $type.HOW.mro($type)[1];
                 }
 
-                if !nqp::istype($value, $type) {
+                unless nqp::istype($value, $type) {
                     my $got_comp := nqp::can($value.HOW, "is_composed") && $value.HOW.is_composed($value);
                     my $exp_comp := nqp::can($type.HOW, "is_composed") && $type.HOW.is_composed($type);
                     if $got_comp && $exp_comp {
@@ -1255,36 +1504,33 @@ class RakuAST::Parameter
             }
         }
 
-        if nqp::istype($!owner, RakuAST::Submethod) && $!target && $!target.twigil eq '.' {
+        if !$!attribute-declaration
+            && nqp::istype($!owner, RakuAST::Submethod) && $!target && $!target.twigil eq '.' {
             self.add-sorry:
-                $resolver.build-exception: 'X::Syntax::VirtualCall', call => $!target.name;
+                $resolver.build-exception: 'X::Syntax::VirtualCall', call => $!target.lexical-name;
         }
 
-        if nqp::istype($!owner, RakuAST::Sub) && $!target && ($!target.twigil eq '.' || $!target.twigil eq '!') {
+        # A `!`-twigil attributive parameter is checked by its own
+        # RakuAST::Var::Attribute target, which allows it when `self` is
+        # lexically available (a sub nested in a method) and reports it
+        # otherwise. Only the `.`-twigil form, which has no such target, is
+        # handled here. Parameters of a has (...) declaration list are
+        # exempt: they declare attributes rather than bind through an
+        # accessor, yet inside a role they are owned by the role body,
+        # which is internally a Sub.
+        if !$!attribute-declaration
+            && nqp::istype($!owner, RakuAST::Sub) && $!target && $!target.twigil eq '.' {
             self.add-sorry:
-                $resolver.build-exception: 'X::Syntax::NoSelf', variable => $!target.name;
+                $resolver.build-exception: 'X::Syntax::NoSelf', variable => $!target.lexical-name;
         }
 
-        my $param-obj := self.meta-object;
-        my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
-        my $ptype-archetypes := $param-type.HOW.archetypes($param-type);
-        my int $is-generic  := $ptype-archetypes.generic;
-        my int $is-coercive := $ptype-archetypes.coercive;
-
-        # Generic parametric parameter types need the full binder.
-        # This branch depends on archetype data so it runs at CHECK
-        # time. Parameter shape conditions are handled in PERFORM-BEGIN.
-        if $is-generic
-          && !$is-coercive
-          && nqp::can($ptype-archetypes, "parametric")
-          && $ptype-archetypes.parametric {
-            $!owner.set-custom-args;
-        }
+        self.IMPL-SET-CUSTOM-ARGS-FOR-GENERIC;
 
         if $!type {
             my $param-type := $!type.compile-time-value;
             my $archetypes := $param-type.HOW.archetypes;
-            unless $archetypes.nominalish
+            unless $archetypes.nominal
+                || $archetypes.nominalizable
                 || $archetypes.generic
                 || $archetypes.definite
                 || $archetypes.coercive
@@ -1292,19 +1538,7 @@ class RakuAST::Parameter
                 self.add-sorry:
                     $resolver.build-exception: 'X::Parameter::BadType', type => $param-type;
             }
-
-            # Improve error messages around subsets used with named parameters lacking a valid default
-            if $!names
-            && nqp::istype($param-type.HOW, Perl6::Metamodel::SubsetHOW)
-            && ! (self.is-declared-required || $!default) {
-                self.add-worry:
-                    $resolver.build-exception:  'X::Parameter::Named::SubsetTypeWithoutDefault',
-                                                :parameter(nqp::join(" ", $!names)),
-                                                :subset($param-type);
-            }
         }
-
-
 
         # True/False parse as type
         if $!type && $!type.is-known-to-be(Bool) && nqp::isconcrete($!type.meta-object) {
@@ -1320,10 +1554,6 @@ class RakuAST::Parameter
 
         my int $was-slurpy := !($!slurpy =:= RakuAST::Parameter::Slurpy);
 
-        if $is-generic && $is-coercive && !$was-slurpy && !($param-type =:= Mu) && !self.invocant {
-            $!owner.set-custom-args;
-        }
-
         my $sigil := $!target.sigil;
         if $was-slurpy && nqp::isconcrete($!type) {
             self.add-sorry: $resolver.build-exception: 'X::Parameter::TypedSlurpy', kind => 'positional' if $sigil eq '@';
@@ -1333,7 +1563,7 @@ class RakuAST::Parameter
         if nqp::can(self.meta-object, 'is-item') && self.meta-object.is-item && ($sigil eq '$' || $sigil eq '&') {
             self.add-sorry:
                 $resolver.build-exception:  'X::Comp::Trait::Invalid',
-                                            name        => $!target.name,
+                                            name        => $!target.lexical-name,
                                             reason      => "only '\@' or '\%' sigiled parameters can be constrained to itemized arguments",
                                             declaring   => 'parameter',
                                             type        => 'is',
@@ -1341,11 +1571,11 @@ class RakuAST::Parameter
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-decl) {
         nqp::die('RakuAST::Parameter::IMPL-TO-QAST reached for a sub-signature parameter. The owning routine must have custom-args True so dispatch routes through Signature::IMPL-QAST-BINDINGS.')
             if $!sub-signature;
         # Flag constants we need to pay attention to.
-        my @iscont-ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
+        my constant OPS := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
 
         # Get the parameter meta-object, since traits can change some things.
         my $param-obj := self.meta-object;
@@ -1366,7 +1596,12 @@ class RakuAST::Parameter
         my $param-qast := QAST::Var.new( :decl('param'), :scope('local'), :$name );
         my $temp-qast-var := QAST::Var.new( :name($name), :scope('local') );
 
-        # Deal with nameds and slurpies.
+        # Deal with nameds and slurpies. An unused implicit slurpy hash
+        # still accepts and discards stray nameds, but builds no hash.
+        my int $discard := nqp::isconcrete($!target)
+            && nqp::istype($!target, RakuAST::ParameterTarget::Var)
+            && nqp::isconcrete($!target.declaration)
+            && $!target.declaration.IMPL-UNUSED-SLURPY;
         my int $was-slurpy;
         my @prepend;
         if $!names {
@@ -1374,7 +1609,7 @@ class RakuAST::Parameter
         }
         elsif !($!slurpy =:= RakuAST::Parameter::Slurpy) {
             $!slurpy.IMPL-TRANSFORM-PARAM-QAST($context, $param-qast, $temp-qast-var,
-                $!target.sigil, $flags, @prepend);
+                $!target.sigil, $flags, @prepend, :discard($discard));
             $was-slurpy := 1;
         }
 
@@ -1411,7 +1646,7 @@ class RakuAST::Parameter
         if !$is-generic && $spec {
             if $is-rw {
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                    :op(@iscont-ops[$spec]),
+                    :op(nqp::atpos(OPS,$spec)),
                     $temp-qast-var
                 )));
             }
@@ -1425,13 +1660,40 @@ class RakuAST::Parameter
             if $is-generic && !$is-coercive
               && nqp::istype($param-type.HOW, Perl6::Metamodel::GenericHOW) {
                 # True type capture (e.g. ::T in role R[::T]) resolves
-                # per-invocant-type at runtime.
-                my $genericname := $param-type.HOW.name($!package.stubbed-meta-object);
-                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                    :op('istype_nd'),
-                    $get-decont-var(),
-                    QAST::Var.new( :name($genericname), :scope<typevar> )
-                )));
+                # per-invocant-type at runtime. The implicit invocant is not
+                # checked. Its $?CLASS typevar names the caller's
+                # concretization, so the check would reject an invocant of
+                # another class that does the same role.
+                unless $!implicit-invocant {
+                    # The signature these parameters were compiled against
+                    # is instantiated with the box type when the capture
+                    # resolves to a native type, since the body treats the
+                    # parameter as a boxed value. Accept what the
+                    # instantiated signature accepts.
+                    my $genericname := $param-type.HOW.name($!package.stubbed-meta-object);
+                    $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            $get-decont-var(),
+                            QAST::Var.new( :name($genericname), :scope<typevar> )
+                        ),
+                        QAST::IVal.new( :value(1) ),
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            $get-decont-var(),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('box_or_self'),
+                                QAST::Op.new(
+                                    :op('gethllsym'),
+                                    QAST::SVal.new( :value('Raku') ),
+                                    QAST::SVal.new( :value('NativeInstantiation') )
+                                ),
+                                QAST::Var.new( :name($genericname), :scope<typevar> )
+                            )
+                        )
+                    )));
+                }
             }
             elsif $is-generic && !$is-coercive {
                 # Archetypally generic but not a type capture (e.g. a class
@@ -1446,8 +1708,8 @@ class RakuAST::Parameter
                 )));
             }
             elsif !($param-type =:= Mu) {
-                if !$ptype-archetypes.generic {
-                    my $implicit-lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+                unless $ptype-archetypes.generic {
+                    my $implicit-lookups := self.get-implicit-lookups;
                     if $param-type =:= $implicit-lookups[0].resolution.compile-time-value {
                         my $PositionalBindFailover := $implicit-lookups[1].resolution.compile-time-value;
                         $param-qast.push(QAST::Op.new(
@@ -1498,8 +1760,11 @@ class RakuAST::Parameter
                     }
                 }
             }
-            if nqp::istype($!type.IMPL-TARGET-TYPE, RakuAST::Type::Definedness) {
-                if $!type.IMPL-TARGET-TYPE.definite {
+            my $definite := nqp::istype($!type.IMPL-TARGET-TYPE, RakuAST::Type::Definedness)
+              ?? $!type.IMPL-TARGET-TYPE.definite
+              !! self.IMPL-CAPTURE-DEFINITE;
+            if nqp::isconcrete($definite) {
+                if $definite {
                     $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('isconcrete_nd'),
                         $get-decont-var()
@@ -1536,7 +1801,10 @@ class RakuAST::Parameter
 
         my $inst-param;
         # Make sure we have (possibly instantiated) parameter object ready when we need it
-        if $is-generic || $!signature-constraint {
+        # An implicit invocant is generic on a role method, but its type is
+        # compiler-written and never a coercion, so it needs no runtime
+        # probing.
+        if ($is-generic && !$!implicit-invocant) || $!signature-constraint {
             my $inst-param-name := QAST::Node.unique('__lowered_param_obj_');
             my $i := $!owner.signature.IMPL-PARAM-POSITION(self);
             $param-qast.push( # Fetch instantiated Parameter object
@@ -1553,7 +1821,7 @@ class RakuAST::Parameter
         # Handle coercion.
         # For a generic we can't know beforehand if it's going to be a coercive or any other nominalizable. Thus
         # we have to fetch the instantiated parameter object and do run-time processing.
-        if $is-generic {
+        if $is-generic && !$!implicit-invocant {
             # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
             $get-decont-var := -> { NQPMu }
             my $low-param-type := QAST::Node.unique('__lowered_param_type');
@@ -1621,9 +1889,18 @@ class RakuAST::Parameter
 
         # If it's optional, do any default handling.
         if self.is-optional {
-            if $!default.has-compile-time-value {
-                # Literal default value, so just insert it.
-                $param-qast.default($!default.IMPL-TO-QAST($context));
+            if self.IMPL-DEFAULT-IS-LITERAL {
+                # Literal default value, so just insert it. A default thunked
+                # at BEGIN time may have one by now, from a heredoc body or the
+                # optimizer, so its thunk goes unused.
+                if $!default.outer-most-thunk {
+                    my $value := $!default.maybe-compile-time-value;
+                    $context.ensure-sc($value);
+                    $param-qast.default(QAST::WVal.new(:$value));
+                }
+                else {
+                    $param-qast.default($!default.IMPL-TO-QAST($context));
+                }
             }
             elsif $!default {
                 # Default has been thunked, so call the produced thunk.
@@ -1635,7 +1912,7 @@ class RakuAST::Parameter
             else {
                 my $sigil := $!target.sigil;
                 if (my $is-array := $sigil eq '@') || $sigil eq '%' {
-                    my $role := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
+                    my $role := self.get-implicit-lookups[$sigil eq '@' ?? 0 !! 3].resolution.compile-time-value;
                     my $base-type := $is-array ?? Array !! Hash;
                     my $value := nqp::istype($nominal-type, $role) && nqp::can($nominal-type.HOW, 'role_arguments')
                         ?? $base-type.HOW.parameterize($base-type, |$nominal-type.HOW.role_arguments($nominal-type))
@@ -1706,15 +1983,18 @@ class RakuAST::Parameter
 
         # Bind parameter into its target.
         if self.invocant {
-            $param-qast.push(QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :name('self'), :scope('lexical') ),
-                $get-decont-var() // QAST::Op.new(
-                        :op('decont'),
-                        $temp-qast-var,
-                    )));
+            my $invocant-value := $get-decont-var() // QAST::Op.new(
+                :op('decont'),
+                $temp-qast-var,
+            );
+            $param-qast.push(nqp::isconcrete($invocant-decl)
+                ?? $invocant-decl.IMPL-BIND-QAST($context, $invocant-value)
+                !! QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name('self'), :scope('lexical') ),
+                    $invocant-value));
         }
-        if nqp::isconcrete($!target) {
+        if nqp::isconcrete($!target) && !$discard {
             if $flags +& (
               nqp::const::SIG_ELEM_IS_RW +| nqp::const::SIG_ELEM_IS_RAW
             ) {
@@ -1722,19 +2002,26 @@ class RakuAST::Parameter
                 $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast-var));
             }
             else {
-                my $value := $get-decont-var() // QAST::Op.new(:op('decont'), $temp-qast-var);
+                # A native register holds no container, so the value binds
+                # straight through. The decont var would build
+                # hllize(decont(...)) around it, which the code generator
+                # can only satisfy by boxing the native first.
+                my $value := !$is-generic && !$is-coercive && $spec
+                    ?? $temp-qast-var
+                    !! $get-decont-var() // QAST::Op.new(:op('decont'), $temp-qast-var);
 
                 my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
                 unless $wrap {
-                    my $Iterable := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[2].resolution.compile-time-value;
-                    if !$is-coercive {
-                        $wrap := nqp::istype($nominal-type, $Iterable) || nqp::istype($Iterable, $nominal-type);
-                    }
-                    else {
+                    my $Iterable := self.get-implicit-lookups[2].resolution.compile-time-value;
+                    if $is-coercive {
                         my $coercion_type := $param-type.HOW.wrappee($param-type, :coercion);
                         my $coerce_nom := $coercion_type.HOW.nominal_target($coercion_type);
                         $wrap := nqp::istype($coerce_nom, $Iterable) || nqp::istype($Iterable, $coerce_nom);
                     }
+                    else {
+                        $wrap := nqp::istype($nominal-type, $Iterable) || nqp::istype($Iterable, $nominal-type);
+                    }
+
                 }
 
                 if $wrap {
@@ -1759,9 +2046,22 @@ class RakuAST::Parameter
                     }
                     else {
                         if $container_descriptor {
+                            my $descriptor-qast := QAST::WVal.new(:value($container_descriptor));
+                            # A generic descriptor still carries the unresolved
+                            # type variable and would reject every assignment
+                            # into the container. Resolve it in the current
+                            # frame, where type captures and role type
+                            # environments are visible as lexicals.
+                            if $container_descriptor.is_generic {
+                                $descriptor-qast := QAST::Op.new(
+                                    :op<callmethod>, :name<instantiate_generic>,
+                                    $descriptor-qast,
+                                    QAST::Op.new( :op<ctx> )
+                                );
+                            }
                             $value := QAST::Op.new(
                                 :op<p6scalarwithvalue>,
-                                QAST::WVal.new(:value($container_descriptor)),
+                                $descriptor-qast,
                                 $value
                             );
                         }
@@ -1853,18 +2153,43 @@ class RakuAST::Parameter
         }
 
         if $!where {
-            $param-qast.push(
-                QAST::ParamTypeCheck.new(
-                    QAST::Op.new(
-                        :op<istrue>,
+            if nqp::islist($!where-junction-types) {
+                # The constraint is a junction of type objects: check the
+                # argument against each inline, short-circuiting the same
+                # way the junction's ACCEPTS would collapse.
+                my @types := $!where-junction-types;
+                my int $i := nqp::elems(@types);
+                my $check := nqp::null();
+                while --$i >= 0 {
+                    my $type := nqp::atpos(@types, $i);
+                    $context.ensure-sc($type);
+                    my $istype := QAST::Op.new(
+                        :op<istype>,
+                        $temp-qast-var,
+                        QAST::WVal.new( :value($type) ));
+                    $check := nqp::isnull($check)
+                        ?? $istype
+                        !! QAST::Op.new(
+                            :op($!where-junction-all ?? 'if' !! 'unless'),
+                            $istype,
+                            $check);
+                }
+                $param-qast.push(QAST::ParamTypeCheck.new($check));
+            }
+            else {
+                $param-qast.push(
+                    QAST::ParamTypeCheck.new(
                         QAST::Op.new(
-                            :op('callmethod'), :name('ACCEPTS'),
-                            $!where.IMPL-TO-QAST($context),
-                            $temp-qast-var
+                            :op<istrue>,
+                            QAST::Op.new(
+                                :op('callmethod'), :name('ACCEPTS'),
+                                self.IMPL-WHERE-QAST($context),
+                                $temp-qast-var
+                            )
                         )
                     )
-                )
-            );
+                );
+            }
         }
 
         if $!array-shape {
@@ -1925,8 +2250,11 @@ class RakuAST::ParameterTarget
     method set-rw() { }
     method set-ro(Bool $ro) { }
     method set-where(RakuAST::Expression $where) { }
+    method var-declaration() { False }
+    method set-var-declaration() { }
     method sigil() { '' }
     method name() { '' }
+    method lexical-name() { '' }
     method desigilname() { self.name }
     method set-bindable(Bool $is-bindable) {
         nqp::die("set-bindable NYI on " ~ self.HOW.name(self));
@@ -1936,11 +2264,11 @@ class RakuAST::ParameterTarget
 # A binding of a parameter into a lexical variable (with sigil).
 class RakuAST::ParameterTarget::Var
   is RakuAST::ParameterTarget
-  is RakuAST::TraitTarget
-  is RakuAST::Meta
-  is RakuAST::ParseTime
-  is RakuAST::BeginTime
-  is RakuAST::CheckTime
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::ParseTime
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has str $.name;
     has RakuAST::Type $.type;
@@ -1949,12 +2277,15 @@ class RakuAST::ParameterTarget::Var
     has RakuAST::VarDeclaration::Simple $.declaration;
     has str $!scope;
     has Bool $!is-bindable;
+    has Bool $!var-declaration;
 
     method new(str :$name!, Bool :$forced-dynamic, Bool :$var-declaration) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', RakuAST::Type);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!is-bindable', False);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!var-declaration',
+            $var-declaration ?? True !! False);
         my $sigil := $obj.sigil;
         my $twigil := $obj.twigil;
         if $twigil eq '!' && !$var-declaration {
@@ -1969,7 +2300,6 @@ class RakuAST::ParameterTarget::Var
                   ?? RakuAST::VarDeclaration::Anonymous.new(
                        :scope($obj.scope),
                        :sigil($name),
-                       :type(Mu),
                        :is-parameter,
                      )
                   !! RakuAST::VarDeclaration::Simple.new(
@@ -1977,17 +2307,17 @@ class RakuAST::ParameterTarget::Var
                       :desigilname(RakuAST::Name.from-identifier($obj.desigilname)),
                       :$sigil,
                       :$twigil,
-                      :type(Mu),
                       :$forced-dynamic,
                       :is-parameter,
                     )
             );
+            $obj.set-var-declaration if $var-declaration;
         }
         $obj
     }
 
     # Can be resolved if the parameter is not anonymous
-    method can-be-resolved() {
+    method can-be-resolved(--> Bool) {
         !(nqp::defined($!declaration) && nqp::istype($!declaration,RakuAST::VarDeclaration::Anonymous))
     }
 
@@ -2042,9 +2372,9 @@ class RakuAST::ParameterTarget::Var
             :target(self.lexical-name)
     }
 
-    method set-type(RakuAST::Type $type, Bool :$outer) {
+    method set-type(RakuAST::Type $type, Bool :$outer, Bool :$replace) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
-        $!declaration.set-type($type, :$outer) if $!declaration;
+        $!declaration.set-type($type, :$outer, :$replace) if $!declaration;
         Nil
     }
 
@@ -2055,6 +2385,13 @@ class RakuAST::ParameterTarget::Var
     method set-bindable(Bool $bindable) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!is-bindable', $bindable);
         $!declaration.set-bindable($bindable) if $!declaration;
+    }
+
+    method var-declaration() { $!var-declaration }
+
+    method set-var-declaration() {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!var-declaration', True);
+        $!declaration.IMPL-SET-LIST-DECLARED if $!declaration;
     }
 
     method set-rw() {
@@ -2091,6 +2428,12 @@ class RakuAST::ParameterTarget::Var
         else {
             $!declaration.IMPL-BIND-QAST($context, $source-qast)
         }
+    }
+
+    method IMPL-CHECKED-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
+        $!attribute
+            ?? self.IMPL-BIND-QAST($context, $source-qast)
+            !! $!declaration.IMPL-CHECKED-BIND-QAST($context, $source-qast)
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -2131,7 +2474,10 @@ class RakuAST::ParameterTarget::Var
 
         if $twigil eq '!' {
             if $!attribute-package {
-                my $package := $!attribute-package.meta-object;
+                # stubbed-meta-object avoids composing the package: an
+                # attributive parameter checked from inside a BEGIN block
+                # would otherwise compose the enclosing class mid-body.
+                my $package := $!attribute-package.stubbed-meta-object;
                 unless $package.HOW.has_attribute($package, $!name) {
                     self.add-sorry:
                       $resolver.build-exception: 'X::Attribute::Undeclared',
@@ -2169,7 +2515,7 @@ class RakuAST::ParameterTarget::Var
     }
 
     method IMPL-SIGIL-TYPE() {
-       self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value
+       self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
     method has-compile-time-value() { False }
@@ -2187,22 +2533,57 @@ class RakuAST::ParameterTarget::Var
 # A binding of a parameter into a lexical term.
 class RakuAST::ParameterTarget::Term
   is RakuAST::ParameterTarget
-  is RakuAST::ContainerCreator
-  is RakuAST::Declaration
-  is RakuAST::BeginTime
-  is RakuAST::Meta
+  does RakuAST::Declaration
+  does RakuAST::ContainerCreator
+  does RakuAST::Meta
+  does RakuAST::BeginTime
+  does RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has RakuAST::Type $.type;
+    has RakuAST::Type $!conflicting-type;
     has RakuAST::Expression $.where;
     has Bool $!is-bindable;
+    has int $!lowered-to-local;
+    has Mu $!lowered-away-sentinel;
+    has str $!lowered-local-name;
 
     method new(RakuAST::Name $name!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!type', Mu);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!type', RakuAST::Type);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!is-bindable', False);
         $obj
+    }
+
+    method IMPL-SET-LOWERED-TO-LOCAL(Mu $sentinel) {
+        nqp::bindattr_i(self, RakuAST::ParameterTarget::Term, '$!lowered-to-local', 1);
+        nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!lowered-away-sentinel', $sentinel);
+    }
+
+    # The frame-local name for a lowered term parameter, minted on first
+    # request so the binding and every lookup agree, or the empty string
+    # when the term stays a by-name lexical.
+    method IMPL-LOWERED-LOCAL-NAME() {
+        return $!lowered-local-name if $!lowered-local-name;
+        return '' unless $!lowered-to-local;
+        return '' if nqp::isnull($!lowered-away-sentinel);
+        nqp::bindattr_s(self, RakuAST::ParameterTarget::Term,
+            '$!lowered-local-name',
+            QAST::Node.unique('__lowered_' ~ $!name.canonicalize));
+        if nqp::atkey(nqp::getenvhash(), 'RAKUDO_LOWERING_DEBUG') {
+            my str $where := '';
+            my $origin := self.origin;
+            if nqp::isconcrete($origin) {
+                my $source := $origin.source;
+                $where := ' at ' ~ $source.original-file
+                    ~ ':' ~ $source.original-line($origin.from);
+            }
+            RakuAST::IMPL::VarLowering.IMPL-NOTE(
+                'lex2local: minted ' ~ $!lowered-local-name ~ ' for term '
+                    ~ $!name.canonicalize ~ $where);
+        }
+        $!lowered-local-name
     }
 
     method lexical-name() {
@@ -2216,7 +2597,14 @@ class RakuAST::ParameterTarget::Term
     method sigil() { '' }
     method twigil() { '' }
 
-    method set-type(RakuAST::Type $type) {
+    # The type of the list declaration a term sits in becomes the
+    # term's type unless the term has one of its own, and then they
+    # conflict
+    method set-type(RakuAST::Type $type, Bool :$outer, Bool :$replace) {
+        if $outer && $!type && !$replace {
+            nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!conflicting-type', $type);
+            return Nil;
+        }
         nqp::bindattr(self, RakuAST::ParameterTarget::Term, '$!type', $type);
         Nil
     }
@@ -2241,14 +2629,22 @@ class RakuAST::ParameterTarget::Term
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if my $where := $!where {
-            my $type := $!type;
-            my $type-name := $type ?? $type.name.canonicalize !! "Mu";
-            my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
-            my $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type), :$where;
+        # a type in conflict stays as written for the report
+        if $!where && !$!conflicting-type {
+            my $where := $!where;
+            # An unnamed subset reports as <anon> in a failed type check,
+            # matching the legacy frontend.
+            my $subset := RakuAST::Type::Subset.new: :name(RakuAST::Name.new), :of($!type), :$where;
             $subset.to-begin-time($resolver, $context);
-            self.set-type($subset);
+            self.set-type($subset, :replace);
         }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-sorry(
+          $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
+            :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
+        ) if $!conflicting-type;
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
@@ -2275,6 +2671,24 @@ class RakuAST::ParameterTarget::Term
                 :value($container), :returns(self.IMPL-OF-TYPE)
             )
         }
+        elsif self.IMPL-LOWERED-LOCAL-NAME {
+            # The local is declared here, in the block's declaration
+            # section, so it exists before anything references it. The
+            # by-name lexical stays declared for introspection, static
+            # with the sentinel as its value so no per-entry setup is
+            # paid for it.
+            $context.ensure-sc($!lowered-away-sentinel);
+            QAST::Stmts.new(
+                QAST::Var.new(
+                    :decl('static'), :scope('lexical'), :name($!name.canonicalize),
+                    :value($!lowered-away-sentinel)
+                ),
+                QAST::Var.new(
+                    :decl('var'), :scope('local'), :name($!lowered-local-name),
+                    :returns(self.IMPL-OF-TYPE)
+                )
+            )
+        }
         else {
             QAST::Var.new(
                 :decl('var'), :scope('lexical'), :name($!name.canonicalize),
@@ -2284,15 +2698,26 @@ class RakuAST::ParameterTarget::Term
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
-        QAST::Op.new(
-            :op('bind'),
-            QAST::Var.new( :scope('lexical'), :name($!name.canonicalize) ),
-            $source-qast
-        )
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        $local-name
+            ?? QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :scope('local'), :name($local-name),
+                    :returns(self.IMPL-OF-TYPE) ),
+                $source-qast
+            )
+            !! QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :scope('lexical'), :name($!name.canonicalize) ),
+                $source-qast
+            )
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :name($!name.canonicalize), :scope('lexical'), :returns(self.IMPL-OF-TYPE))
+        my str $local-name := self.IMPL-LOWERED-LOCAL-NAME;
+        $local-name
+            ?? QAST::Var.new( :name($local-name), :scope('local'), :returns(self.IMPL-OF-TYPE))
+            !! QAST::Var.new( :name($!name.canonicalize), :scope('lexical'), :returns(self.IMPL-OF-TYPE))
     }
 
     method has-compile-time-value() { False }
@@ -2346,7 +2771,7 @@ class RakuAST::Parameter::Slurpy {
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend, :$discard) {
         # Not slurply, so nothing to do
         $param-qast
     }
@@ -2376,7 +2801,7 @@ class RakuAST::Parameter::Slurpy::Flattened
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend, :$discard) {
         my int $is-rw := $flags +& nqp::const::SIG_ELEM_IS_RW;
         my int $is-raw := $flags +& nqp::const::SIG_ELEM_IS_RAW;
 
@@ -2399,7 +2824,7 @@ class RakuAST::Parameter::Slurpy::Flattened
                     QAST::SVal.new( :value('$!storage') ),
                     $temp-qast
                 )
-            ));
+            )) unless $discard;
         }
         elsif $sigil eq '$' || $sigil eq '&' {
             # Slurpiness on scalar and callable parameters does not actually have
@@ -2422,7 +2847,7 @@ class RakuAST::Parameter::Slurpy::Unflattened
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend, :$discard) {
         my int $is-rw := $flags +& nqp::const::SIG_ELEM_IS_RW;
         my int $is-raw := $flags +& nqp::const::SIG_ELEM_IS_RAW;
         if $sigil eq '@' {
@@ -2445,7 +2870,7 @@ class RakuAST::Parameter::Slurpy::SingleArgument
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend, :$discard) {
         my int $is-rw := $flags +& nqp::const::SIG_ELEM_IS_RW;
         my int $is-raw := $flags +& nqp::const::SIG_ELEM_IS_RAW;
         if $sigil eq '@' || $sigil eq '' {
@@ -2466,7 +2891,7 @@ class RakuAST::Parameter::Slurpy::Capture
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, int $flags, @prepend, :$discard) {
         # Sneak in a slurpy hash parameter too.
         $param-qast.slurpy(1);
         my $hash-param-name := $temp-qast.name ~ '_hash';
@@ -2514,6 +2939,19 @@ class RakuAST::ParameterDefaultThunk
 
     method thunk-details() {
         ''
+    }
+
+    # The parameter binds a compile time value in place of its default's thunk.
+    method IMPL-USER-TAKES-VALUE() { 1 }
+
+    method IMPL-REBUILD-ELIGIBLE() { 1 }
+
+    # Its stub compiles it around the default it holds.
+    method IMPL-QAST-BLOCK-AHEAD-OF-UNIT(RakuAST::Resolver $resolver,
+            RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        nqp::findmethod(RakuAST::ExpressionThunk, 'IMPL-QAST-BLOCK-AHEAD-OF-UNIT')(self,
+          $resolver, $context, :$blocktype, :expression($expression // $!parameter.default))
     }
 
     method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {

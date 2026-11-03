@@ -120,7 +120,11 @@ my class array is Cool does Iterable does Positional {
         )
     }
 
-    role strarray[::T] does Positional[T] is array_type(T) {
+    role strarray[::T]
+      does Positional[T]
+      is array_type(T)
+      is implementation-detail
+    {
 #- start of generated part of strarray role -----------------------------------
 #- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -746,7 +750,11 @@ my class array is Cool does Iterable does Positional {
         }
     }
 
-    role intarray[::T] does Positional[T] is array_type(T) {
+    role intarray[::T]
+      does Positional[T]
+      is array_type(T)
+      is implementation-detail
+    {
 #- start of generated part of intarray role -----------------------------------
 #- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -1414,7 +1422,11 @@ my class array is Cool does Iterable does Positional {
         }
     }
 
-    role uintarray[::T] does Positional[T] is array_type(T) {
+    role uintarray[::T]
+      does Positional[T]
+      is array_type(T)
+      is implementation-detail
+    {
 #- start of generated part of uintarray role -----------------------------------
 #- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -2082,7 +2094,11 @@ my class array is Cool does Iterable does Positional {
         }
     }
 
-    role numarray[::T] does Positional[T] is array_type(T) {
+    role numarray[::T]
+      does Positional[T]
+      is array_type(T)
+      is implementation-detail
+    {
 #- start of generated part of numarray role -----------------------------------
 #- Generated on 2025-03-19T12:20:30+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -2760,11 +2776,11 @@ my class array is Cool does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-10-07T04:27:47-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-    role shapedintarray does shapedarray {
-        multi method AT-POS(::?CLASS:D: **@indices --> int) is raw {
+    role shapedintarray does shapedarray is implementation-detail {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -2786,7 +2802,7 @@ my class array is Cool does Iterable does Positional {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                NYI("Partially dimensioned views of shaped arrays").throw
+                Array::ShapedView.new(self, @indices)
               )
             )
         }
@@ -2865,7 +2881,7 @@ my class array is Cool does Iterable does Positional {
                 nqp::stmts(
                   self!SET-SELF(to),
                   ($!iterators := nqp::setelems(
-                    nqp::list(from.iterator),
+                    nqp::list(Rakudo::Internals.SHAPED-ITERATOR(from, self.dims, 0)),
                     nqp::add_i($!maxdim,1)
                   )),
                   self
@@ -2893,8 +2909,14 @@ my class array is Cool does Iterable does Positional {
                       nqp::bindpos($!iterators,$i,  # add an empty one
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
-                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
-                        nqp::bindpos($!iterators,$i,item.iterator),
+                        nqp::istype(item,Iterable)
+                          && (nqp::isconcrete(item)
+                               || nqp::istype(item,Array::JaggedRow)),
+                        nqp::bindpos($!iterators,$i,
+                          nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
+                            || nqp::istype(item,Array::ShapedView)
+                            ?? Rakudo::Internals.SHAPED-ITERATOR(item, self.dims, $i)
+                            !! item.iterator),
                         X::Assignment::ToShaped.new(shape => $!dims).throw
                       )
                     )
@@ -2950,9 +2972,40 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a row not made yet of a jagged array gives the values of a new one
+        multi method STORE(::?CLASS:D: Array::JaggedRow:U \from) {
+            self.STORE(from.new)
+        }
+
+        # Whether values may be read from an array while they are assigned
+        # to it, as from a view of it or a sequence, given the number of
+        # dimensions whose rows the values hold
+        sub READS-ALONG(Mu \from, int $rows) {
+            return False unless nqp::isconcrete(from);
+            return nqp::not_i(nqp::istype(from,Range))
+              unless nqp::istype(from,List);
+            return True if nqp::isconcrete(nqp::getattr(from,List,'$!todo'));
+            my $reified := nqp::getattr(from,List,'$!reified');
+            my int $i = -1;
+            nqp::while(
+              nqp::isgt_i($rows,0)
+                && nqp::isconcrete($reified)
+                && nqp::islt_i(++$i,nqp::elems($reified)),
+              nqp::if(
+                nqp::istype((my \item := nqp::decont(nqp::atpos($reified,$i))),
+                  Iterable)
+                  && READS-ALONG(item,nqp::sub_i($rows,1)),
+                (return True)
+              )
+            );
+            False
+        }
+
+        # Values that may be read from this array are stored in a copy that
+        # then takes the place of its values, so they are those it had
         multi method STORE(::?CLASS:D: Iterable:D \from) {
             nqp::if(
-              nqp::can(from,'shape'),
+              nqp::istype(from,List) && nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
                 OBJCPY(self,from),
@@ -2961,7 +3014,9 @@ my class array is Cool does Iterable does Positional {
                     target-shape => self.shape
                 ).throw
               ),
-              ITERCPY(self,from)
+              READS-ALONG(from,nqp::sub_i(nqp::numdimensions(self),1))
+                ?? NATCPY(self,ITERCPY(NATCPY(self.new(:shape(self.shape)),self),from))
+                !! ITERCPY(self,from)
             )
         }
 
@@ -3018,7 +3073,7 @@ my class array is Cool does Iterable does Positional {
         }
     }  # end of shapedintarray role
 
-    role shaped1intarray does shapedintarray {
+    role shaped1intarray does shapedintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one --> int) is raw {
            nqp::atposref_i(self,one)
         }
@@ -3067,8 +3122,14 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a view must have the shape of the array
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            my \iter := Rakudo::Iterator.TailWith(in.iterator,0);
+            my \iter := Rakudo::Iterator.TailWith(
+              nqp::istype(in,Array::ShapedView)
+                ?? Rakudo::Internals.SHAPED-ITERATOR(in, self.shape, 0)
+                !! in.iterator,
+              0
+            );
             my int $i = -1;
             nqp::while(
               nqp::islt_i(++$i,nqp::elems(self)),
@@ -3190,7 +3251,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped1intarray role
 
-    role shaped2intarray does shapedintarray {
+    role shaped2intarray does shapedintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two))
         }
@@ -3223,7 +3284,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped2intarray role
 
-    role shaped3intarray does shapedintarray {
+    role shaped3intarray does shapedintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two, three))
         }
@@ -3263,11 +3324,11 @@ my class array is Cool does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapeduintarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-10-07T04:27:47-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-    role shapeduintarray does shapedarray {
-        multi method AT-POS(::?CLASS:D: **@indices --> uint) is raw {
+    role shapeduintarray does shapedarray is implementation-detail {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -3289,7 +3350,7 @@ my class array is Cool does Iterable does Positional {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                NYI("Partially dimensioned views of shaped arrays").throw
+                Array::ShapedView.new(self, @indices)
               )
             )
         }
@@ -3368,7 +3429,7 @@ my class array is Cool does Iterable does Positional {
                 nqp::stmts(
                   self!SET-SELF(to),
                   ($!iterators := nqp::setelems(
-                    nqp::list(from.iterator),
+                    nqp::list(Rakudo::Internals.SHAPED-ITERATOR(from, self.dims, 0)),
                     nqp::add_i($!maxdim,1)
                   )),
                   self
@@ -3396,8 +3457,14 @@ my class array is Cool does Iterable does Positional {
                       nqp::bindpos($!iterators,$i,  # add an empty one
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
-                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
-                        nqp::bindpos($!iterators,$i,item.iterator),
+                        nqp::istype(item,Iterable)
+                          && (nqp::isconcrete(item)
+                               || nqp::istype(item,Array::JaggedRow)),
+                        nqp::bindpos($!iterators,$i,
+                          nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
+                            || nqp::istype(item,Array::ShapedView)
+                            ?? Rakudo::Internals.SHAPED-ITERATOR(item, self.dims, $i)
+                            !! item.iterator),
                         X::Assignment::ToShaped.new(shape => $!dims).throw
                       )
                     )
@@ -3453,9 +3520,40 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a row not made yet of a jagged array gives the values of a new one
+        multi method STORE(::?CLASS:D: Array::JaggedRow:U \from) {
+            self.STORE(from.new)
+        }
+
+        # Whether values may be read from an array while they are assigned
+        # to it, as from a view of it or a sequence, given the number of
+        # dimensions whose rows the values hold
+        sub READS-ALONG(Mu \from, int $rows) {
+            return False unless nqp::isconcrete(from);
+            return nqp::not_i(nqp::istype(from,Range))
+              unless nqp::istype(from,List);
+            return True if nqp::isconcrete(nqp::getattr(from,List,'$!todo'));
+            my $reified := nqp::getattr(from,List,'$!reified');
+            my int $i = -1;
+            nqp::while(
+              nqp::isgt_i($rows,0)
+                && nqp::isconcrete($reified)
+                && nqp::islt_i(++$i,nqp::elems($reified)),
+              nqp::if(
+                nqp::istype((my \item := nqp::decont(nqp::atpos($reified,$i))),
+                  Iterable)
+                  && READS-ALONG(item,nqp::sub_i($rows,1)),
+                (return True)
+              )
+            );
+            False
+        }
+
+        # Values that may be read from this array are stored in a copy that
+        # then takes the place of its values, so they are those it had
         multi method STORE(::?CLASS:D: Iterable:D \from) {
             nqp::if(
-              nqp::can(from,'shape'),
+              nqp::istype(from,List) && nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
                 OBJCPY(self,from),
@@ -3464,7 +3562,9 @@ my class array is Cool does Iterable does Positional {
                     target-shape => self.shape
                 ).throw
               ),
-              ITERCPY(self,from)
+              READS-ALONG(from,nqp::sub_i(nqp::numdimensions(self),1))
+                ?? NATCPY(self,ITERCPY(NATCPY(self.new(:shape(self.shape)),self),from))
+                !! ITERCPY(self,from)
             )
         }
 
@@ -3521,7 +3621,7 @@ my class array is Cool does Iterable does Positional {
         }
     }  # end of shapeduintarray role
 
-    role shaped1uintarray does shapeduintarray {
+    role shaped1uintarray does shapeduintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one --> uint) is raw {
            nqp::atposref_u(self,one)
         }
@@ -3570,8 +3670,14 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a view must have the shape of the array
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            my \iter := Rakudo::Iterator.TailWith(in.iterator,0);
+            my \iter := Rakudo::Iterator.TailWith(
+              nqp::istype(in,Array::ShapedView)
+                ?? Rakudo::Internals.SHAPED-ITERATOR(in, self.shape, 0)
+                !! in.iterator,
+              0
+            );
             my int $i = -1;
             nqp::while(
               nqp::islt_i(++$i,nqp::elems(self)),
@@ -3693,7 +3799,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped1uintarray role
 
-    role shaped2uintarray does shapeduintarray {
+    role shaped2uintarray does shapeduintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> uint) is raw {
             nqp::multidimref_u(self,nqp::list_i(one, two))
         }
@@ -3726,7 +3832,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped2uintarray role
 
-    role shaped3uintarray does shapeduintarray {
+    role shaped3uintarray does shapeduintarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> uint) is raw {
             nqp::multidimref_u(self,nqp::list_i(one, two, three))
         }
@@ -3766,11 +3872,11 @@ my class array is Cool does Iterable does Positional {
 #- end of generated part of shapeduintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-10-07T04:27:47-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-    role shapednumarray does shapedarray {
-        multi method AT-POS(::?CLASS:D: **@indices --> num) is raw {
+    role shapednumarray does shapedarray is implementation-detail {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -3792,7 +3898,7 @@ my class array is Cool does Iterable does Positional {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                NYI("Partially dimensioned views of shaped arrays").throw
+                Array::ShapedView.new(self, @indices)
               )
             )
         }
@@ -3871,7 +3977,7 @@ my class array is Cool does Iterable does Positional {
                 nqp::stmts(
                   self!SET-SELF(to),
                   ($!iterators := nqp::setelems(
-                    nqp::list(from.iterator),
+                    nqp::list(Rakudo::Internals.SHAPED-ITERATOR(from, self.dims, 0)),
                     nqp::add_i($!maxdim,1)
                   )),
                   self
@@ -3899,8 +4005,14 @@ my class array is Cool does Iterable does Positional {
                       nqp::bindpos($!iterators,$i,  # add an empty one
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
-                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
-                        nqp::bindpos($!iterators,$i,item.iterator),
+                        nqp::istype(item,Iterable)
+                          && (nqp::isconcrete(item)
+                               || nqp::istype(item,Array::JaggedRow)),
+                        nqp::bindpos($!iterators,$i,
+                          nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
+                            || nqp::istype(item,Array::ShapedView)
+                            ?? Rakudo::Internals.SHAPED-ITERATOR(item, self.dims, $i)
+                            !! item.iterator),
                         X::Assignment::ToShaped.new(shape => $!dims).throw
                       )
                     )
@@ -3956,9 +4068,40 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a row not made yet of a jagged array gives the values of a new one
+        multi method STORE(::?CLASS:D: Array::JaggedRow:U \from) {
+            self.STORE(from.new)
+        }
+
+        # Whether values may be read from an array while they are assigned
+        # to it, as from a view of it or a sequence, given the number of
+        # dimensions whose rows the values hold
+        sub READS-ALONG(Mu \from, int $rows) {
+            return False unless nqp::isconcrete(from);
+            return nqp::not_i(nqp::istype(from,Range))
+              unless nqp::istype(from,List);
+            return True if nqp::isconcrete(nqp::getattr(from,List,'$!todo'));
+            my $reified := nqp::getattr(from,List,'$!reified');
+            my int $i = -1;
+            nqp::while(
+              nqp::isgt_i($rows,0)
+                && nqp::isconcrete($reified)
+                && nqp::islt_i(++$i,nqp::elems($reified)),
+              nqp::if(
+                nqp::istype((my \item := nqp::decont(nqp::atpos($reified,$i))),
+                  Iterable)
+                  && READS-ALONG(item,nqp::sub_i($rows,1)),
+                (return True)
+              )
+            );
+            False
+        }
+
+        # Values that may be read from this array are stored in a copy that
+        # then takes the place of its values, so they are those it had
         multi method STORE(::?CLASS:D: Iterable:D \from) {
             nqp::if(
-              nqp::can(from,'shape'),
+              nqp::istype(from,List) && nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
                 OBJCPY(self,from),
@@ -3967,7 +4110,9 @@ my class array is Cool does Iterable does Positional {
                     target-shape => self.shape
                 ).throw
               ),
-              ITERCPY(self,from)
+              READS-ALONG(from,nqp::sub_i(nqp::numdimensions(self),1))
+                ?? NATCPY(self,ITERCPY(NATCPY(self.new(:shape(self.shape)),self),from))
+                !! ITERCPY(self,from)
             )
         }
 
@@ -4024,7 +4169,7 @@ my class array is Cool does Iterable does Positional {
         }
     }  # end of shapednumarray role
 
-    role shaped1numarray does shapednumarray {
+    role shaped1numarray does shapednumarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one --> num) is raw {
            nqp::atposref_n(self,one)
         }
@@ -4073,8 +4218,14 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a view must have the shape of the array
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            my \iter := Rakudo::Iterator.TailWith(in.iterator,0e0);
+            my \iter := Rakudo::Iterator.TailWith(
+              nqp::istype(in,Array::ShapedView)
+                ?? Rakudo::Internals.SHAPED-ITERATOR(in, self.shape, 0)
+                !! in.iterator,
+              0e0
+            );
             my int $i = -1;
             nqp::while(
               nqp::islt_i(++$i,nqp::elems(self)),
@@ -4196,7 +4347,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped1numarray role
 
-    role shaped2numarray does shapednumarray {
+    role shaped2numarray does shapednumarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two))
         }
@@ -4229,7 +4380,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped2numarray role
 
-    role shaped3numarray does shapednumarray {
+    role shaped3numarray does shapednumarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two, three))
         }
@@ -4269,11 +4420,11 @@ my class array is Cool does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2026-10-07T04:27:47-07:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-    role shapedstrarray does shapedarray {
-        multi method AT-POS(::?CLASS:D: **@indices --> str) is raw {
+    role shapedstrarray does shapedarray is implementation-detail {
+        multi method AT-POS(::?CLASS:D: **@indices) is raw {
             nqp::if(
               nqp::iseq_i(
                 (my int $numdims = nqp::numdimensions(self)),
@@ -4295,7 +4446,7 @@ my class array is Cool does Iterable does Positional {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                NYI("Partially dimensioned views of shaped arrays").throw
+                Array::ShapedView.new(self, @indices)
               )
             )
         }
@@ -4374,7 +4525,7 @@ my class array is Cool does Iterable does Positional {
                 nqp::stmts(
                   self!SET-SELF(to),
                   ($!iterators := nqp::setelems(
-                    nqp::list(from.iterator),
+                    nqp::list(Rakudo::Internals.SHAPED-ITERATOR(from, self.dims, 0)),
                     nqp::add_i($!maxdim,1)
                   )),
                   self
@@ -4402,8 +4553,14 @@ my class array is Cool does Iterable does Positional {
                       nqp::bindpos($!iterators,$i,  # add an empty one
                         Rakudo::Iterator.Empty),
                       nqp::if(                      # is it an iterator?
-                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
-                        nqp::bindpos($!iterators,$i,item.iterator),
+                        nqp::istype(item,Iterable)
+                          && (nqp::isconcrete(item)
+                               || nqp::istype(item,Array::JaggedRow)),
+                        nqp::bindpos($!iterators,$i,
+                          nqp::istype(item,Rakudo::Internals::ShapedArrayCommon)
+                            || nqp::istype(item,Array::ShapedView)
+                            ?? Rakudo::Internals.SHAPED-ITERATOR(item, self.dims, $i)
+                            !! item.iterator),
                         X::Assignment::ToShaped.new(shape => $!dims).throw
                       )
                     )
@@ -4459,9 +4616,40 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a row not made yet of a jagged array gives the values of a new one
+        multi method STORE(::?CLASS:D: Array::JaggedRow:U \from) {
+            self.STORE(from.new)
+        }
+
+        # Whether values may be read from an array while they are assigned
+        # to it, as from a view of it or a sequence, given the number of
+        # dimensions whose rows the values hold
+        sub READS-ALONG(Mu \from, int $rows) {
+            return False unless nqp::isconcrete(from);
+            return nqp::not_i(nqp::istype(from,Range))
+              unless nqp::istype(from,List);
+            return True if nqp::isconcrete(nqp::getattr(from,List,'$!todo'));
+            my $reified := nqp::getattr(from,List,'$!reified');
+            my int $i = -1;
+            nqp::while(
+              nqp::isgt_i($rows,0)
+                && nqp::isconcrete($reified)
+                && nqp::islt_i(++$i,nqp::elems($reified)),
+              nqp::if(
+                nqp::istype((my \item := nqp::decont(nqp::atpos($reified,$i))),
+                  Iterable)
+                  && READS-ALONG(item,nqp::sub_i($rows,1)),
+                (return True)
+              )
+            );
+            False
+        }
+
+        # Values that may be read from this array are stored in a copy that
+        # then takes the place of its values, so they are those it had
         multi method STORE(::?CLASS:D: Iterable:D \from) {
             nqp::if(
-              nqp::can(from,'shape'),
+              nqp::istype(from,List) && nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
                 OBJCPY(self,from),
@@ -4470,7 +4658,9 @@ my class array is Cool does Iterable does Positional {
                     target-shape => self.shape
                 ).throw
               ),
-              ITERCPY(self,from)
+              READS-ALONG(from,nqp::sub_i(nqp::numdimensions(self),1))
+                ?? NATCPY(self,ITERCPY(NATCPY(self.new(:shape(self.shape)),self),from))
+                !! ITERCPY(self,from)
             )
         }
 
@@ -4527,7 +4717,7 @@ my class array is Cool does Iterable does Positional {
         }
     }  # end of shapedstrarray role
 
-    role shaped1strarray does shapedstrarray {
+    role shaped1strarray does shapedstrarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one --> str) is raw {
            nqp::atposref_s(self,one)
         }
@@ -4576,8 +4766,14 @@ my class array is Cool does Iterable does Positional {
               ).throw
             )
         }
+        # a view must have the shape of the array
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            my \iter := Rakudo::Iterator.TailWith(in.iterator,"");
+            my \iter := Rakudo::Iterator.TailWith(
+              nqp::istype(in,Array::ShapedView)
+                ?? Rakudo::Internals.SHAPED-ITERATOR(in, self.shape, 0)
+                !! in.iterator,
+              ""
+            );
             my int $i = -1;
             nqp::while(
               nqp::islt_i(++$i,nqp::elems(self)),
@@ -4699,7 +4895,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped1strarray role
 
-    role shaped2strarray does shapedstrarray {
+    role shaped2strarray does shapedstrarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two))
         }
@@ -4732,7 +4928,7 @@ my class array is Cool does Iterable does Positional {
         }
     } # end of shaped2strarray role
 
-    role shaped3strarray does shapedstrarray {
+    role shaped3strarray does shapedstrarray is implementation-detail {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two, three))
         }
@@ -4771,11 +4967,30 @@ my class array is Cool does Iterable does Positional {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapedstrarray role -------------------------------
 
+    # Carries a still-generic type parameter, such as the T of array[T]
+    # inside the body of a parametric role, so that checking the type for
+    # nativeness waits until role instantiation provides the actual type.
+    my role genericarray[::T] {
+        method is-generic {
+            nqp::hllbool(callsame() || nqp::istrue(T.^archetypes.generic))
+        }
+
+        multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
+            self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize:
+              type-environment.instantiate(T)
+        }
+    }
+
     method ^parameterize(Mu:U \arr, Mu \t) {
         if nqp::isconcrete(t) {
             die "Can not parameterize {arr.^name} with {t.raku}";
         }
         my $t := nqp::decont(t);
+        if $t.^archetypes.generic {
+            my $what := arr.^mixin(genericarray[$t]);
+            $what.^set_name("{arr.^name}[{t.^name}]");
+            return $what;
+        }
         my int $kind = nqp::objprimspec($t);
         my $what;
 
@@ -4829,6 +5044,11 @@ my class array is Cool does Iterable does Positional {
         if nqp::iseq_i($dims,1)
           && nqp::istype(nqp::atpos($reified,0),Whatever) {
             nqp::create(self.WHAT)
+        }
+
+        # several dimensions, one of no set length
+        elsif Rakudo::Internals.JAGGED-SHAPE(shape) {
+            Rakudo::Internals.JAGGED-ARRAY(self.WHAT, shape)
         }
         elsif $dims {
             # Calculate new meta-object (probably hitting caches in most cases).
@@ -4982,8 +5202,154 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2026-10-07T02:20:17-07:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+# A shaped array of 2 dimensions is indexed as an array of objects is,
+# so an index of its first dimension alone gives a view
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, uint $pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Int:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, uint $pos, Str:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Int:D \pos, Str:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Int:D \pos, :$exists!, *%_
+) is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$exists, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Int:D \pos, :$delete!, *%_
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$delete, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Int:D \pos, :$k!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$k)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Int:D \pos, :$kv!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$kv)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Int:D \pos, :$p!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$p)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Int:D \pos, :$v!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$v)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Callable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Iterable:D $pos is rw
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Iterable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2strarray:D \SELF, Iterable:D \pos, \values
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, values)
+}
+
+# A shaped array of 3 dimensions is indexed as an array of objects is,
+# so an index of its first dimension alone gives a view
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, uint $pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Int:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, uint $pos, Str:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Int:D \pos, Str:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Int:D \pos, :$exists!, *%_
+) is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$exists, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Int:D \pos, :$delete!, *%_
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$delete, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Int:D \pos, :$k!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$k)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Int:D \pos, :$kv!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$kv)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Int:D \pos, :$p!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$p)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Int:D \pos, :$v!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$v)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Callable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Iterable:D $pos is rw
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Iterable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3strarray:D \SELF, Iterable:D \pos, \values
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, values)
+}
 
 multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, uint $pos
@@ -5237,8 +5603,154 @@ multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2026-10-07T02:20:17-07:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+# A shaped array of 2 dimensions is indexed as an array of objects is,
+# so an index of its first dimension alone gives a view
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, uint $pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Int:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, uint $pos, Num:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Int:D \pos, Num:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Int:D \pos, :$exists!, *%_
+) is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$exists, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Int:D \pos, :$delete!, *%_
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$delete, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Int:D \pos, :$k!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$k)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Int:D \pos, :$kv!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$kv)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Int:D \pos, :$p!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$p)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Int:D \pos, :$v!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$v)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Callable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Iterable:D $pos is rw
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Iterable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2numarray:D \SELF, Iterable:D \pos, \values
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, values)
+}
+
+# A shaped array of 3 dimensions is indexed as an array of objects is,
+# so an index of its first dimension alone gives a view
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, uint $pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Int:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, uint $pos, Num:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Int:D \pos, Num:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Int:D \pos, :$exists!, *%_
+) is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$exists, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Int:D \pos, :$delete!, *%_
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$delete, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Int:D \pos, :$k!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$k)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Int:D \pos, :$kv!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$kv)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Int:D \pos, :$p!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$p)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Int:D \pos, :$v!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$v)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Callable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Iterable:D $pos is rw
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Iterable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3numarray:D \SELF, Iterable:D \pos, \values
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, values)
+}
 
 multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, uint $pos
@@ -5492,8 +6004,154 @@ multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2026-10-07T02:20:17-07:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+# A shaped array of 2 dimensions is indexed as an array of objects is,
+# so an index of its first dimension alone gives a view
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, uint $pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Int:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, uint $pos, Int:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Int:D \pos, Int:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Int:D \pos, :$exists!, *%_
+) is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$exists, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Int:D \pos, :$delete!, *%_
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$delete, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Int:D \pos, :$k!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$k)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Int:D \pos, :$kv!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$kv)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Int:D \pos, :$p!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$p)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Int:D \pos, :$v!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$v)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Callable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Iterable:D $pos is rw
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Iterable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2intarray:D \SELF, Iterable:D \pos, \values
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, values)
+}
+
+# A shaped array of 3 dimensions is indexed as an array of objects is,
+# so an index of its first dimension alone gives a view
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, uint $pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Int:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, uint $pos, Int:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Int:D \pos, Int:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Int:D \pos, :$exists!, *%_
+) is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$exists, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Int:D \pos, :$delete!, *%_
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$delete, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Int:D \pos, :$k!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$k)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Int:D \pos, :$kv!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$kv)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Int:D \pos, :$p!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$p)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Int:D \pos, :$v!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$v)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Callable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Iterable:D $pos is rw
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Iterable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3intarray:D \SELF, Iterable:D \pos, \values
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, values)
+}
 
 multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, uint $pos
@@ -5747,8 +6405,154 @@ multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of postcircumfix candidates of uintarray -------------------------------
-#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2026-10-07T02:20:17-07:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+# A shaped array of 2 dimensions is indexed as an array of objects is,
+# so an index of its first dimension alone gives a view
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, uint $pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Int:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, uint $pos, UInt:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Int:D \pos, UInt:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Int:D \pos, :$exists!, *%_
+) is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$exists, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Int:D \pos, :$delete!, *%_
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$delete, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Int:D \pos, :$k!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$k)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Int:D \pos, :$kv!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$kv)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Int:D \pos, :$p!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$p)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Int:D \pos, :$v!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$v)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Callable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Iterable:D $pos is rw
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Iterable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped2uintarray:D \SELF, Iterable:D \pos, \values
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, values)
+}
+
+# A shaped array of 3 dimensions is indexed as an array of objects is,
+# so an index of its first dimension alone gives a view
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, uint $pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Int:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, uint $pos, UInt:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Int:D \pos, UInt:D \assignee
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Int:D \pos, :$exists!, *%_
+) is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$exists, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Int:D \pos, :$delete!, *%_
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$delete, |%_)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Int:D \pos, :$k!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$k)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Int:D \pos, :$kv!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$kv)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Int:D \pos, :$p!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$p)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Int:D \pos, :$v!
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, :$v)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Callable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Iterable:D $pos is rw
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), $pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Iterable:D \pos
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped3uintarray:D \SELF, Iterable:D \pos, \values
+) is raw is default {
+    postcircumfix:<[ ]>(Array::ShapedView.new(SELF, ()), pos, values)
+}
 
 multi sub postcircumfix:<[ ]>(
   array::uintarray:D \SELF, uint $pos

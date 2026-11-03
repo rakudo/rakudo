@@ -2,7 +2,7 @@ use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 
-plan 11;
+plan 14;
 
 subtest 'IO::Handle.raku.EVAL roundtrips' => {
     plan 7;
@@ -153,5 +153,36 @@ subtest 'Temporal', {
     my $posix = 915148800.999_999_999_999_9;
     todo 'Needs more time or expertise';
     is Instant.from-posix-nanos( ($posix * 10**9).Int ), Instant.from-posix( $posix), '.from-posix-nanos vs .from-posix';
+}
+
+subtest 'DOC use loads only when compiling documentation', {
+    plan 2;
+    is-run ｢DOC use NoSuchModuleAnywhere; print "ran"｣,
+        :out<ran>,
+        'a DOC-prefixed use is inert without --doc';
+    is-run ｢DOC use NoSuchModuleAnywhere;｣,
+        :compiler-args['--doc'], :err(/'Could not find NoSuchModuleAnywhere'/), :exitcode(1),
+        'a DOC-prefixed use loads the module under --doc';
+}
+
+subtest 'trailing paren declarator doc directly after a block', {
+    plan 1;
+    use MONKEY-SEE-NO-EVAL;
+    is EVAL(｢sub f() {} #=( attached )
+&f.WHY｣),
+        'attached',
+        'the doc attaches without a separating semicolon';
+}
+
+subtest 'a stash reference used as a compile-time value is the stash', {
+    plan 4;
+    my class Misc99 { class Inner { } }
+    my constant S = Misc99::;
+    ok S ~~ Stash, 'a trailing :: on a class name gives its stash';
+    ok S<Inner>:exists, 'the stash holds the nested package';
+    my constant G = GLOBAL::;
+    ok G ~~ Stash, 'a trailing :: on GLOBAL gives a stash';
+    my constant T = Int;
+    ok T =:= Int, 'a name without a trailing :: keeps its own value';
 }
 # vim: expandtab shiftwidth=4

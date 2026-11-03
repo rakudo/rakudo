@@ -15,6 +15,7 @@
 	@nfp(@bpm(BLIB)@/*.js.map)@ \
 	@bpm(BLIB_RAKUDO)@/load-compiler.js \
 	@bpm(BLIB_RAKUDO)@/*.js.map \
+	@bpm(BLIB_RAKUDO_R)@/*.js.map \
 	@bpm(BLIB_RAKUDO)@/BOOTSTRAP/*.js.map
 
 # Have this target before including Makefile-backend-common to prevent the

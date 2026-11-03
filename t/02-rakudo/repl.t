@@ -1,8 +1,11 @@
 use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
+use nqp;
 
-plan 49;
+plan 53;
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
@@ -103,6 +106,15 @@ is-run-repl "''\n", "\n", 'an empty string gives back one blank line';
 
 is-run-repl "}\n", /'===SORRY!===' .* 'Unexpected closing bracket'/,
     'syntax error gives a compile-time error';
+
+if $rakuast {
+    is-run-repl «'my &f = sub (--> q:to/END/) { }; say 1'  'say "next"'»,
+      /'Premature heredoc consumption' .* 'next'/,
+      'a heredoc needed while compiling is reported without waiting for more input';
+}
+else {
+    skip 'the legacy frontend does not report this while compiling';
+}
 
 is-run-repl "}\nsay 42", {
     .match: /'===SORRY!===' .* 'Unexpected closing bracket' .* '42'/
@@ -225,7 +237,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
                                               'num32 $i,  num64 $j,',
                     ') = 1, 2, 3, 4, 5, 6, 7, 8, 9e0, 10e0;';
 
-    todo 'https://github.com/rakudo/rakudo/issues/4161' unless $*VM.name eq 'jvm' || %*ENV<RAKUDO_RAKUAST>;
+    todo 'https://github.com/rakudo/rakudo/issues/4161' unless $*VM.name eq 'jvm' || $rakuast;
     is-run-repl "$code\nsay 'test is good';\n",
         :err(''),
         :out(/'(1 2 3 4 5 6 7 8 9 10)' .* 'test is good'/),
@@ -352,5 +364,18 @@ subtest 'check that trying to run a REPL that expects a TTY fails without a TTY'
     ok $p.err.slurp(:close).contains('Invalid REPL environment'), "Cannot start a REPL that wants a TTY without a TTY";
     is $p.exitcode, 1, 'Exit code (1) reflects expected failure';
 }
+
+# https://github.com/rakudo/rakudo/issues/6777
+is-run-repl ('role R[::T] { method type { T } }', 'say R[Int].type =:= Int'),
+    :out{.lines.tail eq 'True'}, :err(''),
+    'a parametric role declared on an earlier line can be parameterized';
+
+is-run-repl ('my class Bar { }', 'BEGIN say EVAL(q{Bar}).^name'),
+    :out{.lines.tail eq 'Bar'}, :err(''),
+    'an EVAL at BEGIN time of a line sees a class declared on an earlier line';
+
+is-run-repl ('sub repl-export is export { }', 'say EXPORT::DEFAULT::<&repl-export>.name'),
+    :out{.lines.tail eq 'repl-export'}, :err(''),
+    'a sub exported on an earlier line is in the EXPORT package of a later line';
 
 # vim: expandtab shiftwidth=4

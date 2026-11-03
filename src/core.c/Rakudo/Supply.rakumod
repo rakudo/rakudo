@@ -1,7 +1,7 @@
-class Rakudo::Supply {
+class Rakudo::Supply is implementation-detail {
     my constant ADD_WHENEVER_PROMPT = nqp::create(Mu);
 
-    class BlockState {
+    class BlockState is implementation-detail {
         has &.emit;
         has &.done;
         has &.quit;
@@ -107,7 +107,7 @@ class Rakudo::Supply {
         }
     }
 
-    class BlockTappable does Tappable {
+    class BlockTappable does Tappable is implementation-detail {
         has &!block;
 
         submethod BUILD(:&!block --> Nil) { }
@@ -210,7 +210,7 @@ class Rakudo::Supply {
         method serial(--> True) { }
     }
 
-    class OneWheneverState {
+    class OneWheneverState is implementation-detail {
         has &.emit;
         has &.done;
         has &.quit;
@@ -271,7 +271,7 @@ class Rakudo::Supply {
         }
     }
 
-    class OneWheneverTappable does Tappable {
+    class OneWheneverTappable does Tappable is implementation-detail {
         has &!block;
 
         submethod BUILD(:&!block --> Nil) { }
@@ -378,7 +378,7 @@ class Rakudo::Supply {
         method serial(--> True) { }
     }
 
-    class OneEmitTappable does Tappable {
+    class OneEmitTappable does Tappable is implementation-detail {
         has &!block;
 
         submethod BUILD(:&!block! --> Nil) {}

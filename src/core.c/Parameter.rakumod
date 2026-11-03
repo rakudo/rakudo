@@ -52,6 +52,7 @@ my class Parameter { # declared in BOOTSTRAP
         --> Nil
       ) {
 
+        my $sigil = '';
         if $name {                                 # specified a name?
 
             if $name.ends-with(Q/!/) {
@@ -63,7 +64,7 @@ my class Parameter { # declared in BOOTSTRAP
                 $optional = True;
             }
 
-            my $sigil = $name.substr(0,1);
+            $sigil = $name.substr(0,1);
 
             if $sigil eq Q/:/ {
                 $name  = $name.substr(1);
@@ -72,8 +73,8 @@ my class Parameter { # declared in BOOTSTRAP
             }
             elsif $sigil eq Q/+/ {
                 $name  = $name.substr(1);
-                $sigil = $name.substr(-1,1);
-                $flags +|= nqp::const::SIG_ELEM_IS_RAW +| nqp::const::SIG_ELEM_SLURPY_ONEARG;
+                $sigil = $name.substr(0,1);
+                $flags +|= nqp::const::SIG_ELEM_SLURPY_ONEARG;
             }
 
             if $name.ends-with(Q/)/) {
@@ -81,6 +82,7 @@ my class Parameter { # declared in BOOTSTRAP
                     my $start = $name.index(Q/(/); # XXX handle multiple
                     @!named_names := nqp::list_s($name.substr(0,$start));
                     $name := $name.substr($start + 1, *-1);
+                    $sigil = $name.substr(0,1);
                 }
                 else {
                     die "Can only specify alternative names on named parameters: $name";
@@ -90,10 +92,6 @@ my class Parameter { # declared in BOOTSTRAP
             if $sigil eq Q/*/ {                     # is it a slurpy?
                 $name  = $name.substr(1);
                 $sigil = $name.substr(0,1);
-
-                if %args.EXISTS-KEY('type') {
-                    die "Slurpy named parameters with type constraints are not supported|"
-                }
 
                 if $sigil eq Q/*/ {                  # is it a double slurpy?
                     $name  = $name.substr(1);
@@ -106,6 +104,11 @@ my class Parameter { # declared in BOOTSTRAP
                 elsif $sigil eq Q/%/ {               # a slurpy hash?
                     $flags +|= nqp::const::SIG_ELEM_SLURPY_NAMED;
                 }
+            }
+
+            if %args.EXISTS-KEY('type')
+              && $flags +& nqp::const::SIG_ELEM_IS_SLURPY {
+                die "Slurpy { $sigil eq Q/%/ ?? 'named' !! 'positional' } parameters with type constraints are not supported"
             }
 
             if $name.substr(1,1) -> $twigil {
@@ -121,12 +124,31 @@ my class Parameter { # declared in BOOTSTRAP
             $name = $name.substr(1) if $sigil eq Q/\/ || $sigil eq Q/|/;
         }
 
+        # The sigil implies a role, which a given type parameterizes the
+        # way the compiler stores `Int @a` as Positional[Int]
+        my $sigil-type := $sigil eq Q/@/
+          ?? Positional
+          !! $sigil eq Q/%/
+            ?? Associative
+            !! $sigil eq Q/&/
+              ?? Callable
+              !! Mu;
         if %args.EXISTS-KEY('type') {
             my $type := %args.AT-KEY('type');
-            $!type := $type.DEFINITE ?? $type.WHAT !! $type;
+            $type := $type.WHAT if $type.DEFINITE;
+            # Definedness lives in the flags, the type being the base type
+            if nqp::istype($type.HOW,Metamodel::DefiniteHOW) {
+                $flags +|= $type.^definite
+                  ?? nqp::const::SIG_ELEM_DEFINED_ONLY
+                  !! nqp::const::SIG_ELEM_UNDEFINED_ONLY;
+                $type := $type.^base_type;
+            }
+            $!type := nqp::eqaddr($sigil-type,Mu)
+              ?? $type
+              !! $sigil-type.^parameterize($type);
         }
         else {
-            $!type := Any;
+            $!type := nqp::eqaddr($sigil-type,Mu) ?? Any !! $sigil-type;
         }
 
         if %args.EXISTS-KEY('default') {

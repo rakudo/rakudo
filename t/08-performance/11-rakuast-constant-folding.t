@@ -3,7 +3,8 @@ use Test::Helpers;
 use Test;
 use experimental :rakuast;
 
-plan 39;
+plan :skip-all('these tests observe the optimize phase') unless optimizer-enabled;
+plan 65;
 
 # Constant folding rewrites a pure operator on constant operands into the
 # literal result. The helper deparses a source after optimizing it, so
@@ -37,7 +38,7 @@ ok optimized-deparse(Q[my $y = 3 / 4]).contains('= 0.75'),       'integer divisi
 ok optimized-deparse(Q[my $s = (2 ** 10).Str]).contains('1024.Str'),         'a method call invocant folds';
 ok optimized-deparse(Q[my $p = (status => 6 * 7)]).contains('status => 42'), 'a pair value folds';
 ok optimized-deparse(Q[my $x = do { 100 - 1 }]).contains('99'),              'a block final value folds';
-ok optimized-deparse(Q[say "x" if 2 ** 3]).contains('if 8'),                 'a statement modifier condition folds';
+ok optimized-deparse(Q[{ say "x" } if 2 ** 3]).contains('if 8'),             'a statement modifier condition folds';
 ok optimized-deparse(Q[my @a = [2 + 3, 4 * 5]]).contains('[5, 20]'),         'array composer elements fold';
 ok optimized-deparse(Q[my @a; @a[2 + 3]]).contains('[5]'),                   'an index expression folds';
 ok optimized-deparse(Q[sub f($x = 2 + 3) { }]).contains('= 5'),              'a parameter default folds';
@@ -46,6 +47,37 @@ ok optimized-deparse(Q[my $x = 5 * 3 + (2 ** 2) - 10 + 2 * 5]).contains('= 19'),
 ok optimized-deparse(Q[my $x = ((2 ** 3))]).contains('= 8'),                 'nested grouping parentheses fold';
 ok optimized-deparse(Q[my int $i = 3 * 4]).contains('= 12'),                 'a native int initializer folds';
 { my int $i = 3 * 4; is $i, 12, 'a folded native int initializer widens correctly'; }
+
+# A rewrite applies inside a thunk as it does outside one, and takes the
+# thunk over, so the code a thunk evaluates is optimized too.
+ok optimized-deparse(Q[my $y = (42 andthen 0 || $_ + 1)]).contains('(42 andthen $_ + 1)'),
+    'a constant || right of andthen collapses inside the topic thunk';
+ok optimized-deparse(Q[my $y = (42 andthen True ?? $_ + 1 !! 0)]).contains('(42 andthen $_ + 1)'),
+    'a ternary with a constant condition right of andthen collapses inside the topic thunk';
+ok optimized-deparse(Q[my @a; sub f($c = @a[0, 1]) { }]).contains('@a.AT-POS(0), @a.AT-POS(1)'),
+    'a slice as a parameter default unrolls inside the default thunk';
+ok optimized-deparse(Q[constant F = &uc; say (0 || F for 1..2)]).contains('(F for'),
+    'a constant || giving code collapses inside the thunk of a for modifier statement';
+
+# A folded constant keeps a thunk its user runs as code, and stands without
+# one whose user takes a value in its place.
+my sub folded-thunked(Str $source, Int $value) {
+    my $cu := $source.AST(:compunit);
+    $cu.optimize($cu.resolver);
+    $cu.find-nodes(RakuAST::IntLiteral, :condition({ .value == $value }))
+       .map({ .outer-most-thunk.so }).List
+}
+is-deeply folded-thunked(Q[say (2 + 3 for 1..2)], 5), (True,),
+    'a folded constant keeps the thunk of a for modifier statement';
+# These hold without the rewrite keeping the thunk too, and guard what it keeps.
+ok optimized-deparse(Q[s[\d] += 2 + 3]).contains('+= 5'),
+    'a constant folds inside the thunk of a substitution replacement';
+is-deeply folded-thunked(Q[say (42 andthen 2 + 3)], 5), (False,),
+    'a folded constant right of andthen stands without its thunk';
+is-deeply folded-thunked(Q[say (2 + 3) xx 2], 5), (False,),
+    'a folded constant on the left of xx stands without its thunk';
+is-deeply folded-thunked(Q[sub f($c = 2 + 3) { }], 5), (False,),
+    'a folded constant parameter default stands without its thunk';
 
 # Folding declines where the rewrite would not preserve the program.
 ok optimized-deparse(Q[my $a = 5; my $y = $a + 3]).contains('$a + 3'),
@@ -116,9 +148,81 @@ ok optimized-deparse(Q[my &infix:<zlex> = sub ($a, $b) { $a + $b }; my $y = 1 zl
     is (zfold 4 :x(5)), '4,5', 'a pure prefix operator with an adverb keeps its adverb';
 }
 
+# A resolved constant is a foldable operand: its declaration carries the
+# value the name evaluates to.
+ok optimized-deparse(Q[my constant K = 3; my $y = K * 2]).contains('= 6'),
+    'a constant folds as an operand';
+ok optimized-deparse(Q[my constant $K = 3; my $y = $K * 2]).contains('= 6'),
+    'a sigiled constant folds as an operand';
+ok optimized-deparse(Q[my constant K = 3; my $y = 1 + K * 2]).contains('= 7'),
+    'a constant folds up a nested chain';
+ok optimized-deparse(Q[my constant K = "ab"; my $y = K ~ "cd"]).contains('"abcd"'),
+    'a string constant folds as an operand';
+{ my constant K = 3; is K * 2, 6, 'a folded constant operand computes the same value'; }
+
+# A value only claimed at runtime keeps the operator, and so does a stash
+# reference, whose claimed value differs from what evaluating it produces.
+ok optimized-deparse(Q[my $x = 3; my $y = $x * 2]).contains('$x * 2'),
+    'a runtime variable keeps the operator';
+ok optimized-deparse(Q[class FoldPkg { }; my $y = FoldPkg:: eq "x"]).contains('eq'),
+    'a stash reference keeps the operator';
+
+# A user operator declared after the use shadows the setting's, and the
+# resolution stored on the node predates the declaration, so the operator
+# survives and the user's runs. A declaration in an inner block reaches
+# no use outside it. The operator use sits in a module rather than in an
+# EVAL string, since an EVAL runs the user's routine either way.
+ok optimized-deparse(Q[my $y = 2 ** 3; sub infix:<**>($a, $b) { 'user' }]).contains('**'),
+    'a user infix declared after the use keeps the operator';
+ok optimized-deparse(Q[my $y = 2 min 3; sub infix:<min>($a, $b) { 'user' }]).contains('min'),
+    'a user list infix declared after the use keeps the operator';
+ok optimized-deparse(Q[my $y = 2 ** 3; my &infix:<**> = sub ($a, $b) { 'user' }]).contains('**'),
+    'an operator bound to a variable after the use keeps the operator';
+ok optimized-deparse(Q[sub f() { 2 ** 3 }; multi sub infix:<**>(Int $a, Int $b) is default { 'user' }]).contains('**'),
+    'a user multi declared after the use keeps the operator';
+{
+    my $t = optimized-deparse(Q[sub outer() { 2 ** 3 }; sub inner() { { sub infix:<**>($a, $b) { 'user' }; 2 ** 3 } }]);
+    ok $t.subst(/\s+/, ' ', :g).contains('sub outer { 8 }') && $t.contains('2 ** 3'),
+        'a user infix in an inner block leaves a use outside it folding and keeps its own';
+}
+{
+    my $dir = make-temp-dir;
+    $dir.add('FoldLateOp.rakumod').spurt: q:to/END/;
+        unit module FoldLateOp;
+        our sub pow() { 2 ** 3 }
+        our sub neg() { -3 }
+        our sub least() { 2 min 3 }
+        sub infix:<**>($a, $b) { 'user' }
+        sub prefix:<->($a) { 'user' }
+        sub infix:<min>($a, $b) { 'user' }
+        END
+    is EVAL(q[use lib $dir; use FoldLateOp; &FoldLateOp::pow()]), 'user',
+        'a user infix declared after a use in a sub is what the sub calls';
+    is EVAL(q[use lib $dir; use FoldLateOp; &FoldLateOp::neg()]), 'user',
+        'a user prefix declared after a use in a sub is what the sub calls';
+    is EVAL(q[use lib $dir; use FoldLateOp; &FoldLateOp::least()]), 'user',
+        'a user list infix declared after a use in a sub is what the sub calls';
+}
+
+# A string EVAL runs the optimize pass too, so a folded string literal
+# is one object across calls where an unfolded concatenation is not.
+is-deeply EVAL(q[sub folded() { "ab" ~ "cd" }; folded() =:= folded()]), True,
+    'a string EVAL folds a constant like a compiled unit does';
+
 # Str.AST does not optimize, so the operator survives. The scenarios above
 # therefore test the optimize pass, not something upstream.
 ok Q[my $x = 2 + 3].AST.DEPARSE.contains('2 + 3'),
     'the unoptimized tree keeps the operator';
+
+# An our-scoped variable imports as its Scalar container, whose value a
+# later assignment can replace, so it never feeds an evaluation.
+{
+    my $dir = make-temp-dir;
+    $dir.add('FoldContainerConst.rakumod').spurt: 'our $cv = 5';
+    is-deeply
+        EVAL(q[use lib $dir; use FoldContainerConst; $cv = 10; $cv + 1]),
+        11,
+        'an imported our-scoped variable reassigned at runtime computes with the new value';
+}
 
 # vim: expandtab shiftwidth=4

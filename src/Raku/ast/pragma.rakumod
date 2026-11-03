@@ -1,7 +1,7 @@
 class RakuAST::Pragma
   is RakuAST::Statement
-  is RakuAST::BeginTime
-  is RakuAST::ProducesNil
+  does RakuAST::ProducesNil
+  does RakuAST::BeginTime
 {
     has Str $.name;
     has RakuAST::Expression $.argument;
@@ -77,6 +77,9 @@ class RakuAST::Pragma
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        CATCH {
+            self.IMPL-BEGIN-TIME-FAILURE($_, $resolver);
+        }
         my $name    := $!name;
         my $LANG    := $*LANG;
         my int $on  := nqp::not_i($!off);
@@ -110,7 +113,9 @@ class RakuAST::Pragma
                 ).throw;
             }
             elsif $*PKGDECL {
-                $resolver.build-exception('X::Package::UseLib', :what($*PKGDECL));
+                $resolver.build-exception(
+                  'X::Package::UseLib', :what($*PKGDECL)
+                ).throw;
             }
             elsif nqp::islist($arglist) {
                 my $Registry := $resolver.type-from-setting(

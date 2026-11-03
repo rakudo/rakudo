@@ -12,13 +12,12 @@ my class ThreadPoolScheduler does Scheduler {
     my constant UNLIMITED_THREADS = 9223372036854775807; # 2⁶³-1
 
     # Scheduler defaults controlled by environment variables
-    my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
     my int $scheduler-debug;
     $scheduler-debug = 1
-      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG');
+      if nqp::atkey(nqp::getenvhash,'RAKUDO_SCHEDULER_DEBUG');
     my int $scheduler-debug-status;
     $scheduler-debug-status = 1
-      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG_STATUS');
+      if nqp::atkey(nqp::getenvhash,'RAKUDO_SCHEDULER_DEBUG_STATUS');
 
     sub scheduler-debug($message --> Nil) {
         if $scheduler-debug {
@@ -35,7 +34,7 @@ my class ThreadPoolScheduler does Scheduler {
             nqp::p6bindattrinvres(nqp::create(self), ContinuationWrapper, '$!cont', cont)
         }
     }
-    class ThreadPoolAwaiter does Awaiter {
+    my class ThreadPoolAwaiter does Awaiter {
         has $!queue;
 
         submethod BUILD(:$queue!) {
@@ -786,7 +785,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     method !SET-SELF($initial_threads, $max_threads) {
         my $default_max = (Kernel.cpu-cores * 8) max 64;
-        with $max_threads // %*ENV<RAKUDO_MAX_THREADS> {
+        with $max_threads {
             $!max_threads = nqp::istype($_,Whatever)
               ?? UNLIMITED_THREADS
               !! nqp::istype($_, Numeric) && $_ == Inf
@@ -798,6 +797,13 @@ my class ThreadPoolScheduler does Scheduler {
                       ?? UNLIMITED_THREADS
                       !! die "Cannot use '$_' as a value for maximum threads"
                     !! die "Cannot use a '" ~ $_.^name ~ "' for maximum threads value"
+        }
+        elsif nqp::atkey(nqp::getenvhash,'RAKUDO_MAX_THREADS') -> $max {
+            $!max_threads = ($max.lc eq any(<unlimited inf>))
+              ?? UNLIMITED_THREADS
+              !! (my $nummax := $max.Int).defined && $nummax >= 0
+                ?? ($nummax || UNLIMITED_THREADS)
+                !! die "Cannot use '$max' as a value for maximum threads value"
         }
         else {
             $!max_threads = $default_max;

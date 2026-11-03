@@ -22,7 +22,8 @@ my class Grammar is Match {
           $cursor := $cursor.'!cursor_next'()
         );
 
-        nqp::getlexcaller('$/') = $cursor
+        Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'))
+          = $cursor
           ?? $cursor.Match::MATCH
           !! Nil
     }
@@ -32,13 +33,15 @@ my class Grammar is Match {
         $grammar.set_actions($actions)
           unless nqp::eqaddr(nqp::decont($actions),Mu);
 
-        nqp::getlexcaller('$/') = $args
+        Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'))
+          = $args
           ?? $grammar."$rule"(|$args.Capture).Match::MATCH
           !! $grammar."$rule"().Match::MATCH
       }
 
     method parsefile(Str(Cool) $filename, :$enc) {
-        nqp::getlexcaller('$/') = nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+        Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'))
+          = nqp::elems(nqp::getattr(%_,Map,'$!storage'))
           ?? self.parse($filename.IO.slurp(:$enc), :$filename, |%_)
           !! self.parse($filename.IO.slurp(:$enc), :$filename)
     }

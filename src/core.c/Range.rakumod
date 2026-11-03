@@ -415,14 +415,28 @@ my class Range is Cool does Iterable does Positional {
             True
           ),
           nqp::if(
+            # .Int hands back a Failure for an endpoint with no integer
+            # value, such as a NaN, an Inf, or a Rational with a zero
+            # denominator.  Ruling the first two out keeps that Failure from
+            # being made, and marking any other one handled keeps it off the
+            # garbage collector's report.  The bounds themselves come from
+            # .floor, which rounds down where .Int truncates towards zero.
             nqp::istype($!min,Real)
               && $!min.floor == $!min
               && nqp::istype($!max,Real)
-              && nqp::istype($!min.Int, Int)  # exclude NaN and Infs, who will fail() here
-              && nqp::istype($!max.Int, Int),
+              && nqp::isfalse(nqp::istype($!min,Num) && nqp::isnanorinf($!min))
+              && nqp::isfalse(nqp::istype($!max,Num) && nqp::isnanorinf($!max))
+              && nqp::if(
+                   nqp::isconcrete(my \low := $!min.Int) && nqp::istype(low,Failure),
+                   nqp::stmts((low.Failure::handled = True), 0),
+                   nqp::istype(low,Int))
+              && nqp::if(
+                   nqp::isconcrete(my \high := $!max.Int) && nqp::istype(high,Failure),
+                   nqp::stmts((high.Failure::handled = True), 0),
+                   nqp::istype(high,Int)),
             nqp::stmts(
               ($from = $!min.floor + $!excludes-min),
-              ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max)),
+              ($to   = $!max.floor - ($!excludes-max && high == $!max)),
               True
             ),
             False
@@ -432,10 +446,8 @@ my class Range is Cool does Iterable does Positional {
     multi method int-bounds() {
         $!is-int
           ?? ($!min + $!excludes-min, $!max - $!excludes-max)
-          !! nqp::istype($!min,Real) && $!min.floor == $!min && nqp::istype($!max,Real)
-                && nqp::istype($!min.Int, Int) # exclude NaN and Infs, who will fail() here
-                && nqp::istype($!max.Int, Int)
-            ?? ($!min.floor + $!excludes-min, $!max.floor - ($!excludes-max && $!max.Int == $!max))
+          !! self.int-bounds(my $from, my $to)
+            ?? (nqp::decont($from), nqp::decont($to))
             !! "Cannot determine integer bounds".Failure
     }
 

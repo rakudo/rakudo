@@ -90,7 +90,7 @@ sub MAIN ($year = Date.today.year) {
     for $start-month..12 -> $month {
         my $d = Date.new($year, $month, 1);
         ++$d until $d.day-of-week == 6;     # $d is now first Saturday
-        $d += 14;                           # ... third Saturday
+        $d += 21;                           # ... fourth Saturday
         say "  $d   Rakudo #$next-release-number";
         $next-release-number++;
     }

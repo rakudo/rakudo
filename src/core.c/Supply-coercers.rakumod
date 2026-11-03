@@ -669,51 +669,110 @@
     }
 
     method min(Supply:D: &by = &infix:<cmp>) {
-        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
-        supply {
-            my $min;
-            whenever self -> \val {
-                if val.defined and !$min.defined || cmp(val,$min) < 0 {
-                    emit( $min := val );
-                }
-            }
-        }
+        &by.arity == 2
+          ?? supply {
+                 my $min;
+                 whenever self -> \val {
+                     if val.defined and !$min.defined || by(val,$min) < 0 {
+                         emit( $min := val );
+                     }
+                 }
+             }
+          # a 1-arg &by maps a value to the key to compare it by, so
+          # call it once per value and cache the current minimum's key
+          !! supply {
+                 my $min;
+                 my $min-key;
+                 whenever self -> \val {
+                     if val.defined {
+                         my \key = by(val);
+                         if !$min.defined || (key cmp $min-key) < 0 {
+                             $min-key = key;
+                             emit( $min := val );
+                         }
+                     }
+                 }
+             }
     }
 
     method max(Supply:D: &by = &infix:<cmp>) {
-        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
-        supply {
-            my $max;
-            whenever self -> \val {
-                 if val.defined and !$max.defined || cmp(val,$max) > 0 {
-                     emit( $max = val );
+        &by.arity == 2
+          ?? supply {
+                 my $max;
+                 whenever self -> \val {
+                     if val.defined and !$max.defined || by(val,$max) > 0 {
+                         emit( $max = val );
+                     }
                  }
-            }
-        }
+             }
+          # a 1-arg &by maps a value to the key to compare it by, so
+          # call it once per value and cache the current maximum's key
+          !! supply {
+                 my $max;
+                 my $max-key;
+                 whenever self -> \val {
+                     if val.defined {
+                         my \key = by(val);
+                         if !$max.defined || (key cmp $max-key) > 0 {
+                             $max-key = key;
+                             emit( $max = val );
+                         }
+                     }
+                 }
+             }
     }
 
     method minmax(Supply:D: &by = &infix:<cmp>) {
-        my &cmp = &by.arity == 2 ?? &by !! { by($^a) cmp by($^b) }
-        supply {
-            my $min;
-            my $max;
-            whenever self -> \val {
-                if nqp::istype(val,Failure) {
-                    val.throw;  # XXX or just ignore ???
-                }
-                elsif val.defined {
-                    if !$min.defined {
-                        emit( Range.new($min = val, $max = val) );
-                    }
-                    elsif cmp(val,$min) < 0 {
-                        emit( Range.new( $min = val, $max ) );
-                    }
-                    elsif cmp(val,$max) > 0 {
-                        emit( Range.new( $min, $max = val ) );
-                    }
-                }
-            }
-        }
+        &by.arity == 2
+          ?? supply {
+                 my $min;
+                 my $max;
+                 whenever self -> \val {
+                     if nqp::istype(val,Failure) {
+                         val.throw;  # XXX or just ignore ???
+                     }
+                     elsif val.defined {
+                         if !$min.defined {
+                             emit( Range.new($min = val, $max = val) );
+                         }
+                         elsif by(val,$min) < 0 {
+                             emit( Range.new( $min = val, $max ) );
+                         }
+                         elsif by(val,$max) > 0 {
+                             emit( Range.new( $min, $max = val ) );
+                         }
+                     }
+                 }
+             }
+          # a 1-arg &by maps a value to the key to compare it by, so
+          # call it once per value and cache the keys of the current
+          # minimum and maximum
+          !! supply {
+                 my $min;
+                 my $max;
+                 my $min-key;
+                 my $max-key;
+                 whenever self -> \val {
+                     if nqp::istype(val,Failure) {
+                         val.throw;  # XXX or just ignore ???
+                     }
+                     elsif val.defined {
+                         my \key = by(val);
+                         if !$min.defined {
+                             $min-key = $max-key = key;
+                             emit( Range.new($min = val, $max = val) );
+                         }
+                         elsif (key cmp $min-key) < 0 {
+                             $min-key = key;
+                             emit( Range.new( $min = val, $max ) );
+                         }
+                         elsif (key cmp $max-key) > 0 {
+                             $max-key = key;
+                             emit( Range.new( $min, $max = val ) );
+                         }
+                     }
+                 }
+             }
     }
 
     method grab(Supply:D: &when_done) {

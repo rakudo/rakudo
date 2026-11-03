@@ -1,10 +1,10 @@
 # Takes a foreign code object and tries to make it feel somewhat like a Raku
 # one. Note that it doesn't have signature information we can know about.
 
-my class ForeignCode
+my class ForeignCode  # declared in BOOTSTRAP
   does Callable
-  does Rakudo::Internals::ImplementationDetail
-{ # declared in BOOTSTRAP
+  is implementation-detail
+{
     # class ForeignCode
     #     has Code $!do;                # Code object we delegate to
 
@@ -18,7 +18,7 @@ my class ForeignCode
     method name() { (nqp::can($!do, 'name') ?? $!do.name !! nqp::getcodename($!do)) || '<anon>' }
 }
 
-my class Rakudo::Internals::EvalIdSource {
+my class Rakudo::Internals::EvalIdSource is implementation-detail {
     my Int $count = 0;
     my Lock $lock = Lock.new;
     method next-id() {
@@ -58,10 +58,29 @@ $lang = 'Raku' if $lang eq 'perl6';
     my $compiled;
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
 
+    # A context whose chain of outers never reaches a setting is the
+    # compiler's own, as CALLER:: is inside a BEGIN block, and holds
+    # nothing the code could use. The setting of the compilation in
+    # progress stands in for it.
+    if $*CU && nqp::istype($*CU, RakuAST::CompUnit) {
+        my Mu $walk := $eval_ctx;
+        $walk := nqp::ctxouterskipthunks($walk)
+          until nqp::isnull($walk)
+            || nqp::existskey(nqp::ctxlexpad($walk), 'CORE-SETTING-REV');
+        if nqp::isnull($walk) {
+            my Mu $setting := $*CU.setting;
+            $eval_ctx := $setting if nqp::isconcrete($setting);
+        }
+    }
+
     # Compile a RakuAST comp-unit the rest of the way to a code object.
-    # IMPL-TO-QAST-COMP-UNIT runs outside the compiler's qast stage here,
-    # so bind the dynamic that stage provides, and run the comp-unit's
-    # cleanup even when a later stage throws.
+    # Only the RakuAST frontend's pipeline has a stage that lowers a
+    # RakuAST tree, and this runs under either frontend, so the lowering
+    # happens here with the $*COMPILING_CORE_SETTING that stage would
+    # bind, and compilation resumes after the last stage that produces
+    # QAST. Link the code objects to their coderefs as the compiler does
+    # for a unit it lowers itself, and run the comp-unit's cleanup even
+    # when a later stage throws.
     my sub compile-rakuast-comp-unit($comp-unit) {
         LEAVE $comp-unit.cleanup;
         my $*COMPILING_CORE_SETTING := 0;
@@ -74,9 +93,27 @@ $lang = 'Raku' if $lang eq 'perl6';
     }
 
     if nqp::istype($code, RakuAST::Node) {
-        # Wrap as required to get compilation unit.
+        # Wrap as required to get compilation unit. A unit that already
+        # exists (rather than the wrapper created below, whose creation
+        # pushes its fresh SC) needs its SC put back on the compiling-SC
+        # stack, which the backend pops after each non-nested compile.
+        my $reused-comp-unit := False;
         my $comp-unit := do if nqp::istype($code, RakuAST::CompUnit) {
+            $reused-comp-unit := True;
             $code
+        }
+        # A statement list from Cool.AST was already begun as part of its
+        # parse's compilation unit; begin-time state such as an implicit
+        # proto or require's symbol captures lives on that unit's mainline
+        # scope, not in the statement list. Compile that unit, as wrapping
+        # the (begun, so begin cannot run again) statements in a fresh one
+        # would lose the state. Only when the statement list is still the
+        # unit's own: one transplanted into a user-built tree is theirs.
+        elsif nqp::istype($code, RakuAST::StatementList)
+          && nqp::isconcrete(my $origin := $code.IMPL-ORIGIN-COMP-UNIT)
+          && nqp::eqaddr(nqp::decont($origin.statement-list), nqp::decont($code)) {
+            $reused-comp-unit := True;
+            $origin
         }
         else {
             my $statement-list := do if nqp::istype($code, RakuAST::StatementList) {
@@ -98,18 +135,26 @@ $lang = 'Raku' if $lang eq 'perl6';
             RakuAST::CompUnit.new:
                 :outer-cu($*CU // RakuAST::CompUnit),
                 :eval, :$statement-list,
-                :comp-unit-name($filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id)
+                :comp-unit-name($filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id),
+                :language-revision(Rakudo::Internals.LANGUAGE-REVISION-OF-CONTEXT($eval_ctx))
         }
 
+        my $*LANGUAGE-REVISION := $comp-unit.language-revision.Int;
+        # Set for compilation only, as the EVALed code runs after this block.
+        my $*INSIDE-EVAL := 1;
+
         # Perform symbol resolution, then compile to QAST and in turn bytecode.
-        # When called from a BEGIN block the captured outer-context chain may
-        # not yet be linked to the setting; in that case thread the setting
-        # through from the currently-compiling CompUnit so lexicals like &say
-        # can still be resolved at compile time.
-        my $outer-setting := $*CU && nqp::istype($*CU, RakuAST::CompUnit)
-            ?? $*CU.setting !! Mu;
+        # The compilation in progress, if any, lends its setting and its
+        # package stack, as it does to a string EVAL.
+        my $outer-setting  := Mu;
+        my $outer-resolver := Mu;
+        if $*CU && nqp::istype($*CU, RakuAST::CompUnit) {
+            $outer-setting  := $*CU.setting;
+            $outer-resolver := $*CU.resolver;
+        }
         my $resolver := RakuAST::Resolver::EVAL.new(
-            :context($eval_ctx), :global(GLOBAL), :setting($outer-setting));
+            :context($eval_ctx), :global(GLOBAL),
+            :setting($outer-setting), :$outer-resolver);
         $comp-unit.begin($resolver);
         $comp-unit.check($resolver);
         if $resolver.has-compilation-errors {
@@ -123,6 +168,7 @@ $lang = 'Raku' if $lang eq 'perl6';
         my $optimize-option = nqp::getcomp('Raku').cli-options<optimize> // '';
         $comp-unit.optimize($resolver)
             unless $optimize-option eq 'off' || $optimize-option eq '0';
+        $comp-unit.IMPL-PUSH-COMPILING-SC if $reused-comp-unit;
         $compiled := compile-rakuast-comp-unit($comp-unit);
     }
     else {
@@ -131,23 +177,16 @@ $lang = 'Raku' if $lang eq 'perl6';
         my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
 
         my $LANG := $context<%?LANG>:exists ?? $context<%?LANG> !! Nil;
+
         my $*INSIDE-EVAL := 1;
-        # The RakuAST frontend (the only frontend with a qast stage) stops
-        # at the AST so the comp-unit can take the same finishing path as
-        # AST EVAL, fixing up code objects to survive an enclosing
-        # compilation's precomp and wrapping nested EVAL output.
-        my $rakuast-frontend := $compiler.exists_stage('qast');
-        my $result := $compiler.compile:
+        $compiled := $compiler.compile:
             $code,
             :outer_ctx($eval_ctx),
             :global(GLOBAL),
-            :language_version(nqp::getcomp('Raku').language_version),
-            |(%(:target('ast'), :compunit_ok(1)) if $rakuast-frontend),
+            # the revision of the unit calling EVAL, not the compiler's
+            :language_version(Rakudo::Internals.LANGUAGE-VERSION-OF-CONTEXT($eval_ctx)),
             |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
             |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
-        $compiled := $rakuast-frontend
-            ?? compile-rakuast-comp-unit($result)
-            !! $result;
     }
 
     if $check {

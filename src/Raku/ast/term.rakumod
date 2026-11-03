@@ -3,11 +3,21 @@
 # kind of RakuAST::Type.
 class RakuAST::Term::Name
   is RakuAST::Term
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
+
+    # Set by the optimize pass when this term resolves to a constant
+    # whose lexical is bound once: the term compiles to its value. The
+    # late lookup this replaces costs on every read, and a setting
+    # name's lookup op keeps the surrounding frame from ever inlining.
+    has int $!compile-to-value;
+
+    method IMPL-SET-COMPILE-TO-VALUE(int $on) {
+        nqp::bindattr_i(self, RakuAST::Term::Name, '$!compile-to-value', $on);
+    }
 
     method new(RakuAST::Name $name) {
         my $obj := nqp::create(self);
@@ -19,15 +29,33 @@ class RakuAST::Term::Name
         self.new(RakuAST::Name.from-identifier($name))
     }
 
-    method has-compile-time-value() {
-        self.is-resolved && self.resolution.has-compile-time-value
+    # Folding must agree with IMPL-EXPR-QAST on which names may use their
+    # resolution: only a leading-:: package search, and not ::GLOBAL.
+    method has-compile-time-value(--> Bool) {
+        ?self.is-resolved
+          && ?self.resolution.has-compile-time-value
+          && (!$!name.is-pseudo-package
+               || ?$!name.is-package-search
+                    && !$!name.without-first-part.is-global-lookup)
     }
 
+    # A name with a trailing :: is a stash reference: evaluating it produces
+    # the .WHO of the resolved package, so the compile-time value is that
+    # stash, not the package itself.
     method maybe-compile-time-value() {
-        self.resolution.compile-time-value
+        my $value := self.resolution.compile-time-value;
+        $!name.is-package-lookup ?? nqp::who($value) !! $value
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # An indirect lookup is a runtime symbolic lookup, which consults the
+        # symbols a require merged into %?REQUIRE-SYMBOLS before anything
+        # visible at compile time. Resolving its constant-string form here
+        # would let consumers fold the parse-time symbol instead, so it stays
+        # unresolved and evaluates where it is written. In a BEGIN-time
+        # context that evaluation still happens during compilation.
+        return Nil if $!name.is-indirect-lookup;
+
         my $resolved := $resolver.resolve-name($!name);
         if $resolved {
             self.set-resolution($resolved);
@@ -56,8 +84,9 @@ class RakuAST::Term::Name
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $name := $!name;
         if $name.is-pseudo-package
-            ?? nqp::istype($name.first-part, RakuAST::Name::Part::Empty) && $name.base-name.is-empty && $name.has-colonpairs
+            ?? nqp::istype($name.first-part, RakuAST::Name::Part::EmptyEdge) && $name.base-name.is-empty && $name.has-colonpairs
             !! ! $name.is-package-lookup && ! $name.is-indirect-lookup && ! self.is-resolved
+              && ! self.IMPL-HEREDOC-REPORT($resolver)
         {
             self.add-sorry:
                 $resolver.build-exception: 'X::NoSuchSymbol', :symbol($!name.canonicalize);
@@ -75,9 +104,28 @@ class RakuAST::Term::Name
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        if $!compile-to-value {
+            my $value := nqp::decont(self.resolution.compile-time-value);
+            $context.ensure-sc($value);
+            return QAST::WVal.new( :value($value) );
+        }
         if $!name.is-pseudo-package {
-            if self-is-resolved {
-                self.resolution.IMPL-LOOKUP-QAST($context);
+            if $!name.is-package-search && !$!name.is-indirect-lookup
+            && (my $stripped := $!name.without-first-part).is-global-lookup {
+                $stripped.IMPL-QAST-PACKAGE-LOOKUP($context, $!package);
+            }
+            elsif self.is-resolved && $!name.is-package-search
+            && !$!name.is-indirect-lookup {
+                my $lookup := self.resolution.IMPL-LOOKUP-QAST($context);
+                $!name.is-package-lookup
+                    ?? QAST::Op.new(:op<who>, $lookup)
+                    !! $lookup;
+            }
+            elsif $!name.is-indirect-lookup {
+                # An unresolved indirect lookup is a runtime symbolic lookup.
+                # Its lookup consults %?REQUIRE-SYMBOLS, which the pseudo-stash
+                # lookup below does not.
+                $!name.IMPL-QAST-INDIRECT-LOOKUP($context);
             }
             else {
                 $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context);
@@ -132,10 +180,11 @@ class RakuAST::Term::False {
 # The self term for getting the current invocant
 class RakuAST::Term::Self
   is RakuAST::Term
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has RakuAST::Var::Attribute::Public $!variable;
+    has RakuAST::Package $!package;
 
     method new(RakuAST::Var::Attribute::Public :$variable) {
         my $obj := nqp::create(self);
@@ -148,6 +197,8 @@ class RakuAST::Term::Self
         if $resolved {
             self.set-resolution($resolved);
         }
+        nqp::bindattr(self, RakuAST::Term::Self, '$!package',
+            $resolver.find-attach-target('package'));
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -166,6 +217,25 @@ class RakuAST::Term::Self
         }
     }
 
+    # The enclosing package's type as the static type of self: an upper
+    # bound, since the run time invocant may be a subclass, which is how
+    # the optimize pass treats a declared variable type as well. Mu
+    # inside a role or another generic or parametric package, whose
+    # concrete type is not known here.
+    method return-type() {
+        if nqp::isconcrete($!package) {
+            my $type := $!package.stubbed-meta-object;
+            my $how := $type.HOW;
+            return $type
+                if nqp::can($how, 'archetypes')
+                && nqp::can($how.archetypes, 'generic')
+                && !$how.archetypes.generic
+                && nqp::can($how.archetypes, 'parametric')
+                && !$how.archetypes.parametric;
+        }
+        Mu
+    }
+
     method IMPL-IS-CONSTANT() { True }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -180,7 +250,7 @@ class RakuAST::Term::Self
 # The term for a dotty operation on the current topic (for example in `.lc with $foo`).
 class RakuAST::Term::TopicCall
   is RakuAST::Term
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
 {
     has RakuAST::Postfixish $.call;
 
@@ -195,9 +265,7 @@ class RakuAST::Term::TopicCall
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        [
-            RakuAST::Var::Lexical.new('$_'),
-        ]
+        [ RakuAST::Var::Lexical.new('$_') ]
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -207,9 +275,9 @@ class RakuAST::Term::TopicCall
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $postfix-ast := $!call.IMPL-POSTFIX-QAST(
           $context,
-          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.IMPL-LOOKUP-QAST($context)
+          self.get-implicit-lookups[0].resolution.IMPL-LOOKUP-QAST($context)
         );
-        nqp::istype($!call, RakuAST::Call::Methodish)
+        nqp::istype($!call, RakuAST::Call::Methodish) && $!call.IMPL-HLLIZE-RESULT
             ?? QAST::Op.new(:op<hllize>, $postfix-ast)
             !! $postfix-ast
     }
@@ -225,7 +293,7 @@ class RakuAST::Term::TopicCall
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
         $!call.IMPL-BIND-POSTFIX-QAST(
           $context,
-          self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0],
+          self.get-implicit-lookups[0],
           $source-qast
         )
     }
@@ -238,8 +306,8 @@ class RakuAST::Term::TopicCall
 # A named term that is implemented by a call to term:<foo>.
 class RakuAST::Term::Named
   is RakuAST::Term
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has str $.name;
     has RakuAST::ArgList $.args;
@@ -268,8 +336,26 @@ class RakuAST::Term::Named
         Nil
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # A term routine declared later in the scope is hoisted to its start,
+        # so adopt it over an earlier `External` resolution.
+        if self.is-resolved && nqp::istype(self.resolution, RakuAST::Declaration::External) {
+            my $lexical := $resolver.resolve-term($!name);
+            if $lexical && !nqp::istype($lexical, RakuAST::Declaration::External) {
+                self.set-resolution($lexical);
+            }
+        }
+
+        # The setting's terms have no effect beyond their result. A
+        # user-defined term is a call like any other and may be made for its
+        # effects.
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+            if self.sunk && self.is-resolved
+            && nqp::istype(self.resolution, RakuAST::Declaration::External::Setting);
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $call := QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) );
+        my $call := QAST::Op.new( :op(self.IMPL-CALL-OP), :name(self.resolution.lexical-name) );
         $!args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
@@ -278,8 +364,8 @@ class RakuAST::Term::Named
 # The empty set term.
 class RakuAST::Term::EmptySet
   is RakuAST::Term
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
@@ -294,15 +380,15 @@ class RakuAST::Term::EmptySet
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
+        QAST::Op.new( :op(self.IMPL-CALL-OP), :name(self.resolution.lexical-name) )
     }
 }
 
 # The rand term.
 class RakuAST::Term::Rand
   is RakuAST::Term
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
@@ -317,7 +403,7 @@ class RakuAST::Term::Rand
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
+        QAST::Op.new( :op(self.IMPL-CALL-OP), :name(self.resolution.lexical-name) )
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -328,7 +414,7 @@ class RakuAST::Term::Rand
 # The whatever (*) term.
 class RakuAST::Term::Whatever
   is RakuAST::Term
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     # The Whatever singleton itself, captured at PERFORM-BEGIN. Storing
     # the singleton rather than the enclosing CompUnit keeps a non
@@ -361,15 +447,23 @@ class RakuAST::Term::Whatever
 # This is what a Term::Whatever often -- but not always -- becomes.
 class RakuAST::WhateverCode::Argument
   is RakuAST::Term
-  is RakuAST::Lookup
-  is RakuAST::BeginTime
+  does RakuAST::Lookup
+  does RakuAST::BeginTime
 {
     has RakuAST::Name $!name;
+    # Set when the argument stands for a ** rather than a *
+    has int $!hyper;
 
     method new() {
         my $obj := nqp::create(self);
         $obj
     }
+
+    method set-hyper() {
+        nqp::bindattr_i(self, RakuAST::WhateverCode::Argument, '$!hyper', 1);
+    }
+
+    method is-hyper(--> Bool) { $!hyper }
 
     method set-name(RakuAST::Name $name) {
         nqp::bindattr(self, RakuAST::WhateverCode::Argument, '$!name', $name);
@@ -400,7 +494,7 @@ class RakuAST::WhateverCode::Argument
 # The hyper whatever (**) term.
 class RakuAST::Term::HyperWhatever
   is RakuAST::Term
-  is RakuAST::BeginTime
+  does RakuAST::BeginTime
 {
     # See comment on RakuAST::Term::Whatever for why we store the
     # singleton rather than the enclosing CompUnit.
@@ -462,8 +556,8 @@ class RakuAST::Term::Capture
 # A reduction meta-operator.
 class RakuAST::Term::Reduce
   is RakuAST::Term
-  is RakuAST::BeginTime
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
 {
     has RakuAST::Infixish $.infix;
     has RakuAST::ArgList $.args;
@@ -497,12 +591,12 @@ class RakuAST::Term::Reduce
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Var::Lexical.new('&infix:<,>'),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($!infix.reducer-name)),
+          RakuAST::Var::Lexical.new('&infix:<,>'),
+          RakuAST::Type::Setting.from-identifier($!infix.reducer-name),
         ]
     }
 
-    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $args := $!args.IMPL-UNWRAP-LIST($!args.args);
         if nqp::elems($args) == 1
             && nqp::istype((my $arg := $args[0]), RakuAST::Circumfix::Parentheses)
@@ -525,14 +619,15 @@ class RakuAST::Term::Reduce
     }
 
     method IMPL-HOP-INFIX() {
-        my &reducer := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].resolution.compile-time-value;
+        my &reducer := self.get-implicit-lookups[1].resolution.compile-time-value;
         $!triangle ?? &reducer($!infix.IMPL-HOP-INFIX, True) !! &reducer($!infix.IMPL-HOP-INFIX)
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        # A reduce of a setting operator forms its meta-op once at compile
-        # time: the operator lookup yields the same code object at run time,
-        # so the formed meta-op is a constant. This is skipped while
+        # A reduce of a setting operator whose name the optimize pass found
+        # still resolving to it forms its meta-op once at compile time: the
+        # operator lookup yields the same code object at every run time
+        # lookup, so the formed meta-op is a constant. This is skipped while
         # compiling a CORE setting itself, where compiler-formed closures
         # must not be serialized into the bootstrap. Anything else (lexical
         # operators, meta-infixes) makes a call to form the meta-op at run
@@ -541,6 +636,7 @@ class RakuAST::Term::Reduce
         if nqp::istype($!infix, RakuAST::Infix)
             && $!infix.is-resolved
             && nqp::istype($!infix.resolution, RakuAST::Declaration::External::Setting)
+            && $!infix.IMPL-HOP-CONSTANT
             && !($*COMPILING_CORE_SETTING // 0)
         {
             my $meta-op := self.IMPL-HOP-INFIX;
@@ -566,8 +662,7 @@ class RakuAST::Term::Reduce
             # Form a List of the arguments and pass it to the reducer. A
             # thunky operator's arguments were already rewritten into thunks
             # by the IMPL-THUNK-ARGUMENTS call at begin time.
-            my $name :=
-              self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
+            my $name := self.get-implicit-lookups[0].resolution.lexical-name;
             my $form-list := QAST::Op.new(:op('call'), :$name);
             $!args.IMPL-ADD-QAST-ARGS($context, $form-list);
             QAST::Op.new( :op<call>, $form-meta, $form-list )

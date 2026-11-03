@@ -236,7 +236,6 @@ my class Attribute { # declared in BOOTSTRAP
 
     method container() is raw { nqp::ifnull($!auto_viv_container,Nil) }
     method readonly() { !self.rw }
-    method package() { $!package }
     method inlined() { $!inlined }
     method dimensions() { $!dimensions } # turn list_i into List
     multi method Str(Attribute:D:) { self.name }

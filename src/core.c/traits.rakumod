@@ -131,7 +131,8 @@ multi sub trait_mod:<is>(Attribute:D $attr, Mu :$default!) {
     my Mu $of := $descriptor.of;
     # When either $of or $default are generics we can't actually typecheck the default at compile time. Therefore we'd
     # have to accept it as is for now.
-    if $of.^archetypes.generic || nqp::istype($default, $of)
+    if $of.^archetypes.generic || $default.^archetypes.generic
+        || nqp::istype($default, $of)
         || nqp::eqaddr($default,Nil) || nqp::eqaddr($of, Mu)
     {
         $descriptor.set_default(nqp::decont($default));
@@ -144,7 +145,14 @@ multi sub trait_mod:<is>(Attribute:D $attr, Mu :$default!) {
             :got(nqp::eqaddr($default,Nil) ?? 'Nil' !! $default)
         ).throw
     }
-    $attr.container = nqp::decont($default) if nqp::isrwcont($attr.container);
+    if nqp::isrwcont($attr.container) {
+        # a generic default only gets its type when the role is composed
+        $default.^archetypes.generic
+          ?? nqp::bindattr(
+               nqp::getattr($attr,Attribute,'$!auto_viv_container'),
+               Scalar,'$!value',nqp::decont($default))
+          !! ($attr.container = nqp::decont($default));
+    }
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :box_target($)!) {
     $attr.set_box_target();
@@ -376,11 +384,24 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
 }
 
 multi sub trait_mod:<is>(Routine:D $r, Str :$revision-gated!) {
+    my role is-revision-gated[$revision] { method REQUIRED-REVISION(--> Int) { $revision } }
+    # One shared parameterization per language revision. Parameterizations
+    # intern by argument identity, and the revision computed at each trait
+    # application site is a distinct Int object during the setting build, so
+    # parameterizing directly would produce a distinct role and mixin type
+    # for every gated routine.
+    my constant REVISION-GATES = nqp::list(
+        is-revision-gated.^parameterize(1),
+        is-revision-gated.^parameterize(2),
+        is-revision-gated.^parameterize(3),
+    );
     my $chars := nqp::chars($revision-gated);
     my $internal-revision := 1 + nqp::ord($revision-gated, $chars - 1) - nqp::ord("c");
     $r.set-revision-gated;
     $r.^mixin(
-        role is-revision-gated[$revision] { method REQUIRED-REVISION(--> Int) { $revision } }.^parameterize($internal-revision)
+        $internal-revision >= 1 && $internal-revision <= nqp::elems(REVISION-GATES)
+            ?? nqp::atpos(REVISION-GATES, $internal-revision - 1)
+            !! is-revision-gated.^parameterize($internal-revision)
     );
 }
 

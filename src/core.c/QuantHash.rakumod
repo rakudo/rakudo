@@ -85,11 +85,12 @@ my role QuantHash does Associative {
     method WHICHIFY(Mu \value) is implementation-detail { value.WHICH }
 }
 
-my role QuantHash::KeyOf[::CONSTRAINT] {
+my role QuantHash::KeyOf[::CONSTRAINT] is implementation-detail {
     method keyof() { CONSTRAINT }
     method is-generic { CONSTRAINT.^archetypes.generic }
     method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
-        self.^parameterize: type-environment.instantiate(CONSTRAINT)
+        self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize:
+          type-environment.instantiate(CONSTRAINT)
     }
 
     # Create the Callable for checking the type of a key value and
@@ -103,5 +104,14 @@ my role QuantHash::KeyOf[::CONSTRAINT] {
         OBJECTIFIER(value).WHICH
     }
 }
+
+# QuantHashes have no meaningful iteration order, so compare sorted pairs
+multi sub infix:<cmp>(QuantHash:D \a, QuantHash:D \b) {
+    nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+      ?? Same
+      !! a.sort cmp b.sort
+}
+multi sub infix:<cmp>(QuantHash:D \a, Iterable:D \b) { a.sort cmp b      }
+multi sub infix:<cmp>(Iterable:D \a, QuantHash:D \b) { a      cmp b.sort }
 
 # vim: expandtab shiftwidth=4

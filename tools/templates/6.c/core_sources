@@ -89,12 +89,15 @@ src/core.c/Array/Shaped3.rakumod
 src/core.c/Array.rakumod
 src/core.c/array_operators.rakumod
 src/core.c/native_array.rakumod
+src/core.c/Array/ShapedView.rakumod
+src/core.c/Array/Jagged.rakumod
 src/core.c/Pair.rakumod
 src/core.c/Map.rakumod
 src/core.c/Hash/Typed.rakumod
 src/core.c/Hash/Object.rakumod
 src/core.c/Hash.rakumod
 src/core.c/Hash/Ordered.rakumod
+src/core.c/Hash/Shaped.rakumod
 src/core.c/Stash.rakumod
 src/core.c/TypeEnv.rakumod
 src/core.c/Label.rakumod
@@ -179,7 +182,6 @@ src/core.c/Cancellation.rakumod
 src/core.c/Awaitable.rakumod
 src/core.c/Awaiter.rakumod
 src/core.c/Scheduler.rakumod
-src/core.c/Env.rakumod
 @if(backend!=js
 src/core.c/ThreadPoolScheduler.rakumod)@
 @if(backend==js
@@ -245,8 +247,6 @@ src/vm/jvm/CompUnit/Repository/JavaRuntime.rakumod)@
 @if(backend==js
 src/vm/js/CompUnit/Repository/FileSystemWithRecording.rakumod
 src/vm/js/CompUnit/Repository/NodeJs.rakumod)@
-src/core.c/Argfiles.rakumod
-src/core.c/Process.rakumod
 src/core.c/Slang.rakumod
 src/core.c/REPL.rakumod
 @if(backend==js
@@ -261,4 +261,5 @@ src/core.c/RakuAST/Deparse.rakumod
 src/core.c/RakuAST/Raku.rakumod
 src/core.c/RakuAST/Literalize.rakumod
 src/core.c/RakuAST/LegacyPodify.rakumod
+src/core.c/Process.rakumod
 src/core.c/core_epilogue.rakumod

@@ -8,12 +8,12 @@ my class Format is Str is Callable {
     has     &!code;
 
     method new(Str:D $format, :$class = Formatter) {
-        my &code := $class.new($format);
+        my $info := $class.fetch($format);
         my $obj  := nqp::create(self);
 
         nqp::bindattr_s($obj,Str,'$!value',$format);
-        nqp::bindattr($obj,Format,'@!directives',@*DIRECTIVES);
-        nqp::bindattr($obj,Format,'&!code',&code);
+        nqp::bindattr($obj,Format,'@!directives',nqp::atpos($info,1));
+        nqp::bindattr($obj,Format,'&!code',nqp::atpos($info,0));
 
         $obj
     }
@@ -114,10 +114,18 @@ my class Format is Str is Callable {
     # Helper method to render a format for the arguments given.
     # Throws appropriate error if number of arguments not correct.
     method render($format, @args) is implementation-detail {
-        (my &render := Formatter.new($format)).count == @args.elems
+        my &render := nqp::atpos(Formatter.fetch($format),0);
+
+        # A format with explicit indices takes any number of arguments
+        # beyond the highest index it needs, giving it an infinite count
+        my $count       := &render.count;
+        my int $indexed  = $count == Inf;
+        @args.elems == $count
+          || ($indexed && @args.elems >= &render.arity)
           ?? render(|@args)
           !! X::Str::Sprintf::Directives::Count.new(
-               :$format, :args-have(@args.elems), :args-used(&render.count)
+               :$format, :args-have(@args.elems),
+               :args-used($indexed ?? &render.arity !! $count)
              ).throw
     }
 }

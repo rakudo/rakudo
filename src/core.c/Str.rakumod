@@ -28,6 +28,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
     my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
 
+    my &CAPTURE-MARKERS := Match.^lookup("CURSOR_CAPTURE_MARKERS");
+
     my &POST-MATCH  := Match.^lookup("MATCH" );  # Match object
     my &POST-STR    := Match.^lookup("STR"   );  # Str object
 
@@ -832,9 +834,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? nqp::findnotcclass(
                nqp::const::CCLASS_WORD,self,0,nqp::chars(self)
              ) == nqp::chars(self)
+               && nqp::not_i(self!prepends-at-end)
             ?? nqp::concat('"',nqp::concat(self,'"'))  # fast path alpha
             !! self!rakufy                             # slow path non-alpha
           !! '""'                                      # empty string
+    }
+
+    # A prepend character at the end of the string, a letter in some
+    # scripts, would take the closing " into its grapheme
+    method !prepends-at-end() {
+        my int $ord = nqp::ordat(self,nqp::chars(self) - 1);
+        nqp::isge_i($ord,768)
+          && nqp::iseq_s(
+               nqp::getuniprop_str(
+                 $ord,
+                 nqp::unipropcode('Grapheme_Cluster_Break')
+               ),
+               'Prepend'
+             )
     }
 
     # Special case escape values for rakufication
@@ -855,6 +872,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $list
     }
 
+    # The Grapheme_Cluster_Break values of a character that joins the
+    # grapheme next to it
+    my constant $joiners = nqp::hash(
+      'Extend', 1, 'SpacingMark', 1, 'ZWJ', 1, 'Prepend', 1
+    );
+
     # Helper method to create hex representation of char
     method !hexify(str $char) is pure {
         nqp::concat(
@@ -871,10 +894,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    # Under NFG-supporting implementations, must be sure that any leading
-    # combiners are escaped, otherwise they will be combined onto the "
-    # under concatenation closure, which ruins round-tripping. Also handle
-    # the \r\n grapheme correctly.
+    # Under NFG-supporting implementations a character that joins the
+    # grapheme next to it is escaped, or it would take the " on that side
+    # into itself under concatenation closure, which ruins round-tripping.
+    # Also handle the \r\n grapheme correctly.
     method !rakufy() {
         my $rakufied := nqp::list_s('"');              # array add chars to
         my int $chars = nqp::chars(self);
@@ -892,20 +915,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?if !jvm
               nqp::if(
                 nqp::isge_i($ord,768)                  # different from "0" ??
-                  && nqp::isgt_i(
-                       nqp::atpos(
-                         nqp::radix_I(10,              # failure -> value 0
-                           nqp::getuniprop_str(
-                             $ord,
-                             nqp::unipropcode('Canonical_Combining_Class')
-                           ),
-                           0,0,Int
-                         ),
-                         0
-                       ),
-                       0
+                  && nqp::existskey(
+                       $joiners,
+                       nqp::getuniprop_str(
+                         $ord,
+                         nqp::unipropcode('Grapheme_Cluster_Break')
+                       )
                      ),
-                self!hexify($char),                    # escape since > 0
+                self!hexify($char),                    # escape since it joins
 #?endif
                 nqp::if(
                   nqp::iseq_s($char,"\r\n"), # <-- this is a synthetic codepoint
@@ -1173,7 +1190,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # All of these !match methods take a nqp::getlexcaller value for the $/
     # to be set as the first parameter.  The second parameter is usually
     # the Match object to be used (or something from which a Match can
-    # be made).
+    # be made).  Each writing method routes that value through
+    # Rakudo::Internals.SLASH-WRITE-TARGET, so a 6.e caller's $/ is left
+    # alone.
 
     # Generic fallback for matching with a pattern
     method !match-pattern(Mu \slash, $pattern, str $name, $value, \opts) {
@@ -1262,7 +1281,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Match object at given position
     method !match-one(Mu \slash, \cursor) {
-        slash
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash)
           = my $match := nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
           ?? cursor.MATCH
           !! Nil;
@@ -1271,7 +1290,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Some object at given position
     method !match-as-one(Mu \slash, \cursor, \as) {
-        slash = my $match := nqp::if(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
           nqp::if(nqp::istype(as,Str), &POST-STR, &POST-MATCH)(cursor),
           Nil
@@ -1281,7 +1300,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Create list from the appropriate Sequence given the move
     method !match-list(Mu \slash, \cursor, \move, \post) {
-        slash
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash)
           = my $match := nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
             ?? Seq.new(POST-ITERATOR.new(cursor, move, post)).list
             !! List.new;
@@ -1334,7 +1353,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give back the nth match found
     method !match-nth-int(Mu \slash, \cursor, \move, \post, int $nth) {
-        slash
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash)
           = my $match := nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
           ?? nqp::eqaddr(
               (my $pulled := POST-ITERATOR.new(cursor, move, post)
@@ -1349,7 +1368,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give back the N-tail match found
     method !match-nth-tail(Mu \slash, \cursor, \move, int $tail) {
-        slash = my $match := nqp::eqaddr(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::eqaddr(
           (my $pulled := Rakudo::Iterator.LastNValues(
             CURSOR-ITERATOR.new(cursor, move), $tail, 'match', 1
           ).pull-one),
@@ -1360,7 +1379,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give last value of given iterator, or Nil if none
     method !match-last(Mu \slash, \cursor, \move) {
-        slash = my $match := nqp::eqaddr(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::eqaddr(
           (my $pulled := Rakudo::Iterator.LastValue(
             CURSOR-ITERATOR.new(cursor, move), 'match')
           ),
@@ -1372,7 +1391,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # These !match methods take an iterator instead of a cursor.
     # Give list with matches found given a range with :nth
     method !match-nth-range(Mu \slash, \iterator, $min, $max) {
-        slash = my $match := nqp::stmts(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::stmts(
           (my int $skip = $min),
           nqp::if(
             nqp::islt_i($skip,1),
@@ -1425,7 +1444,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give list with matches found given an iterator with :nth
     method !match-nth-iterator(Mu \slash, \source, \indexes) {
-        slash = my $match := nqp::stmts(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::stmts(
           Seq.new(Rakudo::Iterator.MonotonicIndexes(
             source, indexes, 1,
             -> $got,$next {
@@ -1463,7 +1482,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::istype($x,Range),
               self!match-x-range(slash, $iterator, $x.min, $x.max),
               nqp::stmts(
-                (slash = Nil),
+                (Rakudo::Internals.SLASH-WRITE-TARGET(slash) = Nil),
                 X::Str::Match::x.new(:got($x)).Failure
               )
             )
@@ -1473,7 +1492,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give list with matches found given a range with :x
     method !match-x-range(Mu \slash, $iterator, $min, $max) {
-        slash = my $match := nqp::stmts(
+        Rakudo::Internals.SLASH-WRITE-TARGET(slash) = my $match := nqp::stmts(
           (my int $todo = nqp::if($max == Inf, 0x7fffffff, $max)),
           (my $matches := nqp::create(IterationBuffer)),
           nqp::until(
@@ -1637,7 +1656,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark), *%options
     ) {
         my $global = %options<g> || %options<global>;
-        my \caller_dollar_slash := nqp::getlexcaller('$/');
+        my \caller_dollar_slash :=
+          Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'));
         my $SET_DOLLAR_SLASH     = nqp::istype($matcher, Regex);
         my $word_by_word = so $samespace || %options<s> || %options<sigspace>;
 
@@ -1668,7 +1688,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $result := nqp::if(
           (my $opts := nqp::getattr(%options,Map,'$!storage'))
             && nqp::isgt_i(nqp::elems($opts),1),
-          self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options),
+          self!SUBST(
+            Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/')),
+            $original,$final,|%options),
           nqp::if(
             nqp::elems($opts),
             nqp::if(                                      # one named
@@ -1677,7 +1699,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::if(                                    # no trueish g/global
                 nqp::existskey($opts,'g') || nqp::existskey($opts,'global'),
                 Rakudo::Internals.TRANSPOSE-ONE(self, $original, $final),
-                self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options)
+                self!SUBST(
+                  Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/')),
+                  $original,$final,|%options)
               )
             ),
             Rakudo::Internals.TRANSPOSE-ONE(self, $original, $final) # no nameds
@@ -1691,7 +1715,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method subst(Str:D: $matcher, $replacement = "", *%options) {
         nqp::istype(
           (my $result := self!SUBST(
-            nqp::getlexcaller('$/'),
+            Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/')),
             $matcher,
             $replacement,
             |%options
@@ -1742,7 +1766,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # need to do something special
         if SDS || space || case || mark || callable {
             my \noargs        := callable ?? $replacement.count == 0 !! False;
-            my \fancy         := space || case || mark || word_by_word;
+            my \fancy         := space || case || mark;
             my \case-and-mark := case && mark;
 
             # fast path for something like `s:g[ \w+ ] = "foo"`
@@ -1776,7 +1800,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
                             ?? -> $w,$p { $w.samemark($p).samecase($p) }
                             !! case
                                 ?? -> $w,$p { $w.samecase($p) }
-                                !! -> $w,$p { $w.samemark($p) }
+                                !! mark
+                                    ?? -> $w,$p { $w.samemark($p) }
+                                    !! Callable;
                             nqp::push_s($result,nqp::unbox_s(
                               $it!word-by-word($mstr,&filter,:samespace(?space))
                             ) );
@@ -1993,7 +2019,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method !ensure-split-sanity($v, $k, $kv, $p) {
         # cannot combine these
-        my int $any = $v.Bool + $k.Bool + $kv.Bool + $p.Bool;
+        my int $any = nqp::eqaddr(nqp::decont($v),Any)
+          && nqp::eqaddr(nqp::decont($k),Any)
+          && nqp::eqaddr(nqp::decont($kv),Any)
+          && nqp::eqaddr(nqp::decont($p),Any)
+          ?? 0
+          !! $v.Bool + $k.Bool + $kv.Bool + $p.Bool;
+        # An adverb nobody passed holds the Any type object, which
+        # boolifies false, so four of those sum to zero without asking.
+        # Every split pays for this check and almost none pass an adverb.
         X::Adverb.new(
           what   => 'split',
           source => 'Str',
@@ -2410,6 +2444,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 unless nqp::existskey($needles-seen,$gist) {
                     nqp::bindkey($needles-seen,$gist,1);
 
+                    my int $markers = $needle.HAS-CAPTURE-MARKERS;
                     my $cursor;
                     my int $pos;
                     my int $c;
@@ -2427,11 +2462,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                                  -1
                                ),
                           nqp::stmts(
+                            nqp::if($markers,CAPTURE-MARKERS($cursor)),
                             nqp::push(
                               $pins,
                               nqp::list_i(
                                 $cursor.from,
-                                $pos - $cursor.from,
+                                ($markers ?? $cursor.to !! $pos) - $cursor.from,
                                 $index
                               )
                             ),
@@ -2448,11 +2484,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                             -1
                           ),
                           nqp::stmts(
+                            nqp::if($markers,CAPTURE-MARKERS($cursor)),
                             nqp::push(
                               $pins,
                               nqp::list_i(
                                 $cursor.from,
-                                $pos - $cursor.from,
+                                ($markers ?? $cursor.to !! $pos) - $cursor.from,
                                 $index
                               )
                             ),
@@ -3208,7 +3245,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         invalid-trans-arg(@specs.are) unless @specs.are(Pair);
 
         # Make sure we have a writable $/
-        $/ := nqp::getlexcaller('$/');
+        $/ := Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'));
         $/ := my $ unless nqp::iscont($/);
 
         # Set up needles and pins
@@ -3274,7 +3311,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my sub trans-with-nameds(Str:D $string, @specs, %_) {
 
         # Make sure we have access to the caller's lexical $/
-        $/ := nqp::getlexcaller('$/');
+        $/ := Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'));
 
         # Get the named arguments manually
         my int $complement = %_<c> // %_<complement> // 0;
@@ -3399,7 +3436,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               && self.chars;
 
         # Callables need access to the lexically visible $/ of the caller
-        $/ := nqp::getlexcaller('$/');
+        $/ := Rakudo::Internals.SLASH-WRITE-TARGET(nqp::getlexcaller('$/'));
 
         # Slow path for any nameds
         if nqp::elems(nqp::getattr(%_,Map,'$!storage')) {

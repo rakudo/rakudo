@@ -25,10 +25,12 @@ class Raku does Systemic {
     }
 
     # until RakuAST becomes default
-    my $legacy := $*LANG.^name eq 'Perl6::Grammar';
-    method legacy(Raku:U:) is implementation-detail { $legacy }
+    method legacy(Raku:U:) is implementation-detail {
+        nqp::gethllsym('Raku','COMPILER-FRONTEND') eq 'legacy'
+    }
 
-    # when RakuAST is default
+    # Change the above to this when RakuAST is default and legacy
+    # is not available anymore
     #method legacy(Raku:U: --> False) is implementation-detail { }
 }
 

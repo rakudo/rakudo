@@ -34,6 +34,11 @@ my role Enumeration { ... }
 my role PositionalBindFailover { ... }
 my role Hash::Typed { ... }
 my role Hash::Object { ... }
+my role Hash::Shaped { ... }
+my class Array::ShapedView { ... }
+my role Array::Jagged { ... }
+my role Array::JaggedRow { ... }
+my role Array::JaggedSlots { ... }
 
 # Make Iterable available for the code-gen.
 BEGIN nqp::bindhllsym('Raku', 'Iterable', Iterable);
@@ -64,7 +69,7 @@ my constant IterationEnd = nqp::create(Mu);
 
 # To allow passing of nqp::hash without being HLLized, we create a HLL class
 # with the same low level REPR as nqp::hash.
-my class Rakudo::Internals::IterationSet is repr('VMHash') {
+my class Rakudo::Internals::IterationSet is repr('VMHash') { # is implementation-detail
     method raku() {
         nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',self)
     }
@@ -72,33 +77,6 @@ my class Rakudo::Internals::IterationSet is repr('VMHash') {
 
 # The value for \n.
 my constant $?NL = "\x0A";
-
-# Make sure we have an environment
-PROCESS::<%ENV> := do {
-    my $env := nqp::hash;
-    my $iter := nqp::iterator(nqp::getenvhash);
-    nqp::while(
-      $iter,
-      nqp::bindkey(
-        $env,
-        nqp::iterkey_s(nqp::shift($iter)),
-        nqp::assign(
-          nqp::p6scalarfromdesc(nqp::null),
-          val(nqp::box_s(nqp::iterval($iter),Str))
-        )
-      )
-    );
-    nqp::p6bindattrinvres(nqp::create(Hash),Map,'$!storage',$env)
-}
-
-# This thread pool scheduler will be the default one.
-#?if !js
-PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
-#?endif
-
-#?if js
-PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
-#?endif
 
 #?if jvm
 BEGIN {nqp::p6setassociativetype(Associative);}

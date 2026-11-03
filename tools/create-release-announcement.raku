@@ -31,12 +31,10 @@ be incremental spec releases this year as well.
 
 If you would like to contribute or get more information, visit
 <https://raku.org>, <https://rakudo.org/community>, or join us
-on IRC (#raku on Libera), the Discord, or the
-<perl6-compiler@perl.org> mailing list.
+on IRC (#raku on Libera), or the Discord.
 
 Additionally, we invite you to make a donation to The Raku Foundation
-to sponsor Raku development: <https://rakufoundation.org/donate>
-(put “Raku Core Development Fund” in the ‘Purpose’ text field)
+to sponsor Raku development: <https://raku.foundation/Donations>.
 
 The next release of Rakudo (#«next-release-num»), is tentatively scheduled for «next-release-date».
 

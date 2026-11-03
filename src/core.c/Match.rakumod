@@ -171,17 +171,17 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::bindattr(self,Match,'$!match',NQPdidMATCH);
     }
 
+    method !CURSOR_FAIL() is implementation-detail {
+        my $cur := self."!cursor_start_cur"();
+        $cur."!cursor_fail"();
+        $cur
+    }
+
     # from !cursor_next in nqp
     method CURSOR_NEXT() is raw is implementation-detail {
-        nqp::if(
-          nqp::defined($!restart),
-          $!restart(self),
-          nqp::stmts(
-            (my $cur := self."!cursor_start_cur"()),
-            $cur."!cursor_fail"(),
-            $cur
-          )
-        )
+        nqp::defined($!restart)
+          ?? $!restart(self)
+          !! self!CURSOR_FAIL
     }
 
 #?if js
@@ -192,31 +192,68 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     # adapted from !cursor_more in nqp
     method CURSOR_OVERLAP() is raw is implementation-detail {
-        my $new := nqp::create(self);
-        nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
-        nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
-        nqp::bindattr_i($new,$?CLASS,'$!from',
-          nqp::bindattr_i($new,$?CLASS,'$!to',-1));
-        nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::add_i($!from,1));
-        $!regexsub($new)
+        if nqp::isnull($!regexsub) {
+            self!CURSOR_FAIL
+        }
+        else {
+            my $new := nqp::create(self);
+            nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
+            nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
+            nqp::bindattr_i($new,$?CLASS,'$!from',
+              nqp::bindattr_i($new,$?CLASS,'$!to',-1));
+            nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::add_i($!from,1));
+            $!regexsub($new)
+        }
     }
 
     # adapted from !cursor_more in nqp
     method CURSOR_MORE() is raw is implementation-detail {
-        my $new := nqp::create(self);
-        nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
-        nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
-        nqp::bindattr_i($new,$?CLASS,'$!from',
-          nqp::bindattr_i($new,$?CLASS,'$!to',-1));
-        nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::isge_i($!from,$!pos)
+        if nqp::isnull($!regexsub) {
+            self!CURSOR_FAIL
+        }
+        else {
+            my $new := nqp::create(self);
+            nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
+            nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
+            nqp::bindattr_i($new,$?CLASS,'$!from',
+              nqp::bindattr_i($new,$?CLASS,'$!to',-1));
+            nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::isge_i($!from,$!pos)
 #?if !js
-          ?? nqp::add_i($!from,1)
+              ?? nqp::add_i($!from,1)
 #?endif
 #?if js
-          ?? nqp::add_i($!from, move_cursor(self.target, $!pos))
+              ?? nqp::add_i($!from, move_cursor(self.target, $!pos))
 #?endif
-          !! $!pos);
-        $!regexsub($new)
+              !! $!pos);
+            $!regexsub($new)
+        }
+    }
+
+    # Transfer capture marker positions from the capture stack into
+    # $!from / $!to.  This is the part of .MATCH that determines the
+    # match extent, without reifying any captures.
+    method CURSOR_CAPTURE_MARKERS(--> Nil) is implementation-detail {
+        my $cstack := nqp::getattr(self,Match,'$!cstack');
+        nqp::if(
+          $cstack,
+          nqp::stmts(
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(++$i,nqp::elems($cstack)),
+              nqp::stmts(
+                (my $cursor := nqp::atpos($cstack,$i)),
+                (my str $name = nqp::getattr_s($cursor,Match,'$!name')),
+                nqp::if(
+                  nqp::not_i(nqp::isnull_s($name))
+                    && (nqp::iseq_s($name,'$!from')
+                         || nqp::iseq_s($name,'$!to')),
+                  nqp::bindattr_i(self,Match,$name,
+                    nqp::getattr_i($cursor,Match,'$!from'))
+                )
+              )
+            )
+          )
+        )
     }
 
     ##### / <:General_Category{$property}> /
@@ -416,11 +453,52 @@ multi sub infix:<eqv>(Match:D $a, Match:D $b) {
 }
 
 
+# Inside a regex frame, attach to the caller's $/ when it belongs to the
+# parse the frame's cursor belongs to, and otherwise to the cursor's
+# match. In a capture group's code block the cursor the block sees can
+# be the enclosing regex's while $/ is the capture's own match, so $/ is
+# the one to attach to. A match run inside the code block overwrites $/
+# with a match of another parse, which leaves the cursor's match as the
+# target. Outside any regex frame, in a 6.e scope where $/ carries the
+# isolation marker, the next candidate is the Match in the immediate
+# caller frame's own $/, i.e. the match that frame most recently
+# established. After that comes a Match topic, so a block
+# iterating match results attaches to its topic even when it never set
+# up a $/ of its own. Everything else attaches to the caller's $/, as
+# in an action method, whose $/ parameter carries no marker in any
+# revision. The caller lookups must stay at routine level. From inside
+# a nested block they would see this routine's own frame as the caller
+# and find its own $/. The topic lookup must stay behind the marker
+# check. A native $_ in the caller chain makes the lexical walk itself
+# die, so callers outside a 6.e scope must never trigger it.
 sub make(Mu \made) {
-    my $slash := nqp::decont(nqp::getlexcaller('$/'));
-    nqp::istype($slash, NQPMatchRole)
-        ?? nqp::bindattr($slash,Match,'$!made',made)
-        !! X::Make::MatchRequired.new(:got($slash)).throw
+    my $cursor      := nqp::decont(nqp::getlexcaller('$¢'));
+    my \pad         := nqp::ctxlexpad(nqp::ctxcallerskipthunks(nqp::ctx()));
+    my \nearby-cont := nqp::existskey(pad,'$/')
+      ?? nqp::atkey(pad,'$/')
+      !! nqp::null();
+    my \slash-cont  := nqp::getlexcaller('$/');
+    my $slash       := nqp::decont(slash-cont);
+    nqp::isconcrete($cursor) && nqp::istype($cursor, NQPMatchRole)
+      ?? nqp::bindattr(
+           nqp::isconcrete($slash) && nqp::istype($slash, Match)
+             && nqp::eqaddr(
+                  nqp::getattr($slash,  Match, '$!shared'),
+                  nqp::getattr($cursor, Match, '$!shared'))
+             ?? $slash
+             !! $cursor.MATCH,
+           Match, '$!made', made)
+      !! Rakudo::Internals.IS-ISOLATED-MATCH(nearby-cont)
+           && nqp::isconcrete(my $nearby := nqp::decont(nearby-cont))
+           && nqp::istype($nearby, NQPMatchRole)
+        ?? nqp::bindattr($nearby, Match, '$!made', made)
+        !! Rakudo::Internals.IS-ISOLATED-MATCH(slash-cont)
+             && nqp::isconcrete(my $topic := nqp::decont(nqp::getlexcaller('$_')))
+             && nqp::istype($topic, NQPMatchRole)
+          ?? nqp::bindattr($topic, Match, '$!made', made)
+          !! nqp::istype($slash, NQPMatchRole)
+            ?? nqp::bindattr($slash,Match,'$!made',made)
+            !! X::Make::MatchRequired.new(:got($slash)).throw
 }
 
 # A concrete Match matcher is a match result already, so the smartmatch

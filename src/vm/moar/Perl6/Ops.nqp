@@ -142,17 +142,19 @@ $ops.add_hll_op('Raku', 'p6capturelex', -> $qastcomp, $op {
     $code_res
 });
 
-$ops.add_hll_op('nqp', 'p6capturelexwhere', -> $qastcomp, $op {
-    my $code_res := $qastcomp.as_mast(nqp::atpos($op, 0), :want($MVM_reg_obj));
-    my $frame := $qastcomp.mast_frame;
-    my uint $callsite_id := $frame.callsites.get_callsite_id_from_args(
-      nqp::list(nqp::atpos($op, 0)), nqp::list($code_res)
-    );
-    op_dispatch_v($frame, 'raku-capture-lex-callers', $callsite_id,
-      nqp::list($code_res.result_reg)
-    );
-    $code_res
-});
+for <nqp Raku> -> $hll {
+    $ops.add_hll_op($hll, 'p6capturelexwhere', -> $qastcomp, $op {
+        my $code_res := $qastcomp.as_mast(nqp::atpos($op, 0), :want($MVM_reg_obj));
+        my $frame := $qastcomp.mast_frame;
+        my uint $callsite_id := $frame.callsites.get_callsite_id_from_args(
+          nqp::list(nqp::atpos($op, 0)), nqp::list($code_res)
+        );
+        op_dispatch_v($frame, 'raku-capture-lex-callers', $callsite_id,
+          nqp::list($code_res.result_reg)
+        );
+        $code_res
+    });
+}
 
 $ops.add_hll_op('Raku', 'p6bindassert', -> $qastcomp, $op {
     my $temp := QAST::Node.unique('bind_value');

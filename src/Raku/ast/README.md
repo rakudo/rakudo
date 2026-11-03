@@ -45,18 +45,9 @@ quite a few other things to do that will be helpful. Specifically:
   remove `lib/.precomp/` after such a build. (done)
 * Fix build system issues (doesn't rebuild if the AST compiler changes, etc.)
   (Difficulty: well, it involves a build system...)
-* Get the AST compiler to support roles, and gradually transition the things
-  that should be roles to actually be roles. (Difficulty: maybe headachey,
-  but you'll live)
-* Make the AST compiler support return types with `-->` and add them to the
-  signature that is generated. Make accessors get these automatically based
-  on the declared type. (Difficulty: not so bad.)
-* Make us check the types that are passed to methods. (Difficulty: depends
-  how we decide to do it. Actually it may be that we just get NQP to do the
-  type checks and then rely on that. In fact, we could teach it to decont
-  incoming arguments too, and support `is raw` too, and then we get to clean
-  up lots of explicit deconts in the bootstrap, MOP, etc. Then we simplify
-  the RakuAST compiler.)
+* Gradually transition the things that should be roles to actually be
+  roles, now that the AST compiler supports them. (Difficulty: maybe
+  headachey, but you'll live)
 * Make us indicate slurpiness when signatures are introspected. (Difficulty:
   easy, just need to make sure the AST compiler passes that along when we
   build the Parameter object.
@@ -99,6 +90,42 @@ And in general:
   threadsafe. Benign races are fine (e.g. both calculate the same thing and
   one wins at installation). Effectively, anything perceived as a read operation
   should be safe in a threaded program.
+* The types declared on node method parameters are checked. NQP checks the
+  object types on its parameters, and the generator adds the checks for the
+  types NQP cannot know the compiler's VM values satisfy. `Mu` and `Any` are
+  unchecked. `str`, `int` and `num` are enforced by the unbox and may appear
+  on any method. Flags are `Bool`, and NQP code may pass a bare adverb or
+  an integer for them, which becomes a Bool on entry. `Str`, `Int`, `List`,
+  `Hash` and `Code` accept the VM value as well as the Raku object, and an
+  undefined value only as their own type object or the NQPMu that NQP code
+  passes for an absent value. An omitted optional of a node type holds the
+  type object. Slurpies are checked per element, `List` contents are not.
+  A return type declared with `-->` is checked the same way and shows in
+  the signature, a generated accessor shows its attribute's type unless
+  that is native, and a `--> Bool` method may return a native integer,
+  which becomes a Bool. The rules live in
+  `tools/build/raku-ast-compiler.nqp`.
+* A declaration is a `class` or a `role`, and a class or role may `does`
+  a role. The roles are composed by the metamodel, so `.^roles`, `~~` and
+  `.does` work as they do on any Raku type, and a class written in Raku
+  may do a node role. `is` names classes and `does` names roles, a role
+  cannot inherit, so a role is never itself a node, and a package is
+  declared once. A class may not do a role that an ancestor or another
+  role it names already does, and a role with attributes may reach a
+  node one way only. Roles without state may be reached through more
+  than one parent. An attribute stays keyed on the package that declares
+  it in the layout of every object that has it, so an explicit access
+  such as `nqp::getattr` or `nqp::bindattr` of a role's attribute names
+  the role, in the role's own methods and in a class that does it alike,
+  and the build refuses a handle naming a declared package that does not
+  declare the attribute. `.^attributes` reports such an attribute with
+  the role as its package, and `IMPL-REPLACE-CHILD` keys its scan the
+  same way. A method whose body is `{ ... }` is a stub: in a role it is
+  required of every class doing the role, which the build refuses when
+  the class neither declares nor inherits it, and `.yada` reports it.
+  Calling a method on a role's type object puns the role, so a helper
+  that is called on a type object lives on a class. These rules live in
+  `tools/build/raku-ast-compiler.nqp` too.
 
 ## Design notes on specific topics
 

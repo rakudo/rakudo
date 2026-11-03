@@ -1,7 +1,6 @@
 # Marker for all kinds of circumfix.
 class RakuAST::Circumfix
-  is RakuAST::Term
-  is RakuAST::Contextualizable { }
+  is RakuAST::Term { }
 
 # Grouping parentheses circumfix.
 class RakuAST::Circumfix::Parentheses
@@ -23,28 +22,10 @@ class RakuAST::Circumfix::Parentheses
             if self.sunk && $!semilist.is-empty;
     }
 
-    # Generally needs to be called before children are visited, which is when the Apply*
-    # expressions implement their currying. After that happens, any RakuAST::Term::Whatever
-    # operands will have been converted to RakuAST::Var::Lexical. At that stage, the below
-    # IMPL-SINGLE-CURRIED-EXPRESSION is the appropriate check.
-    method IMPL-CONTAINS-SINGULAR-CURRYABLE-EXPRESSION() {
-        nqp::elems($!semilist.IMPL-UNWRAP-LIST($!semilist.statements)) == 1
-            && (my $statement-expression := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements)[0])
-            && nqp::istype($statement-expression, RakuAST::Statement::Expression)
-            && (my $expression := $statement-expression.expression)
-            && nqp::istype($expression, RakuAST::WhateverApplicable)
-            && $expression.IMPL-SHOULD-CURRY-DIRECTLY
-                ?? $expression
-                !! Nil
-    }
-
-    method IMPL-SINGULAR-CURRIED-EXPRESSION() {
-        nqp::elems($!semilist.IMPL-UNWRAP-LIST($!semilist.statements)) == 1
-            && (my $statement-expression := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements)[0])
-            && nqp::istype($statement-expression, RakuAST::Statement::Expression)
-            && (my $expression := $statement-expression.expression)
-            && nqp::istype($expression, RakuAST::WhateverApplicable)
-            && $expression.IMPL-CURRIED
+    method IMPL-SINGULAR-PRIMED-EXPRESSION() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::istype($expression, RakuAST::WhateverApplicable)
+            && $expression.IMPL-PRIMED
                 ?? $expression
                 !! Nil
     }
@@ -58,15 +39,26 @@ class RakuAST::Circumfix::Parentheses
         $visitor($!semilist);
     }
 
+    # The expressions of the statements when each is an expression statement
+    # without a modifier, or null.
+    method IMPL-PLAIN-EXPRESSIONS() {
+        return nqp::null() unless nqp::istype($!semilist, RakuAST::SemiList);
+        my @expressions;
+        for self.IMPL-UNWRAP-LIST($!semilist.statements) {
+            return nqp::null()
+              unless nqp::istype($_, RakuAST::Statement::Expression)
+              && !nqp::isconcrete($_.condition-modifier)
+              && !nqp::isconcrete($_.loop-modifier);
+            nqp::push(@expressions, $_.expression);
+        }
+        @expressions
+    }
+
     method IMPL-IS-CONSTANT() {
-        my $statements := $!semilist.IMPL-UNWRAP-LIST($!semilist.statements);
-        for $statements {
-            if nqp::istype($_, RakuAST::Statement::Expression) {
-                return False unless $_.expression.IMPL-IS-CONSTANT;
-            }
-            else {
-                return False;
-            }
+        my $expressions := self.IMPL-PLAIN-EXPRESSIONS;
+        return False if nqp::isnull($expressions);
+        for $expressions {
+            return False unless $_.IMPL-IS-CONSTANT;
         }
         True
     }
@@ -77,6 +69,41 @@ class RakuAST::Circumfix::Parentheses
 
     method maybe-compile-time-value() {
         $!semilist.maybe-compile-time-value;
+    }
+
+    # Grouping parentheses around a single modifier-free expression forward
+    # its type, so an enclosing operator sees a parenthesized native result
+    # as native. A loop modifier yields a List and a condition modifier can
+    # yield Empty, so a modified statement forwards nothing. Some constructs
+    # build parentheses around a bare expression rather than a semilist, so
+    # the payload shape is checked rather than assumed.
+    method return-type() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::isconcrete($expression) ?? $expression.return-type !! Mu
+    }
+
+    method IMPL-STATIC-ARG-TYPE() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::isconcrete($expression) ?? $expression.IMPL-STATIC-ARG-TYPE !! Mu
+    }
+
+    method IMPL-STATIC-ARG-IS-VALUE() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::isconcrete($expression) ?? $expression.IMPL-STATIC-ARG-IS-VALUE !! True
+    }
+
+    method IMPL-FORWARDED-EXPRESSION() {
+        if nqp::istype($!semilist, RakuAST::SemiList)
+          && $!semilist.IMPL-IS-SINGLE-EXPRESSION {
+            my $statement := self.IMPL-UNWRAP-LIST($!semilist.statements)[0];
+            nqp::isconcrete($statement.condition-modifier)
+              || nqp::isconcrete($statement.loop-modifier)
+                ?? Nil
+                !! $statement.expression
+        }
+        else {
+            Nil
+        }
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -96,9 +123,14 @@ class RakuAST::Exception::TooComplex {
     method set-name($name) {
         nqp::bindattr(self, RakuAST::Exception::TooComplex, '$!name', $name);
     }
+    # The text shown when nothing converts this into a typed error.
+    method message() {
+        "Colon pair value '" ~ ($!name // '') ~ "' too complex to use in name"
+    }
     method throw() {
         my $ex := nqp::newexception();
         nqp::setpayload($ex, self);
+        nqp::setmessage($ex, self.message);
         nqp::throw($ex);
     }
 }
@@ -106,10 +138,9 @@ class RakuAST::Exception::TooComplex {
 # Array composer circumfix.
 class RakuAST::Circumfix::ArrayComposer
   is RakuAST::Circumfix
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
-  is RakuAST::ColonPairish
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
+  does RakuAST::ColonPairish
 {
     has RakuAST::SemiList $.semilist;
 
@@ -130,7 +161,9 @@ class RakuAST::Circumfix::ArrayComposer
                 nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_))
                     unless nqp::istype($_, RakuAST::Statement::Expression);
                 RakuAST::Exception::TooComplex.new.throw unless nqp::can($_.expression, 'literal-value');
-                nqp::push(@parts, "'" ~ $_.expression.literal-value ~ "'");
+                my $value := $_.expression.literal-value;
+                RakuAST::Exception::TooComplex.new.throw unless nqp::isconcrete($value);
+                nqp::push(@parts, "'" ~ $value ~ "'");
             }
             @parts ?? '[' ~ nqp::join('; ', @parts) ~ ']' !! '<>'
         }
@@ -159,7 +192,7 @@ class RakuAST::Circumfix::ArrayComposer
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $name := self.resolution.lexical-name;
         QAST::Op.new(
-            :op('call'), :$name,
+            :op(self.IMPL-CALL-OP), :$name,
             $!semilist.IMPL-TO-QAST($context)
         )
     }
@@ -187,17 +220,16 @@ class RakuAST::Circumfix::ArrayComposer
 # on it for performing this disambiguation.
 class RakuAST::Circumfix::HashComposer
   is RakuAST::Circumfix
-  is RakuAST::Lookup
-  is RakuAST::ParseTime
-  is RakuAST::CheckTime
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
 {
     has RakuAST::Expression $.expression;
-    has int $.object-hash;
+    has Bool $.object-hash;
 
-    method new(RakuAST::Expression $expression?, int :$object-hash) {
+    method new(RakuAST::Expression $expression?, Bool :$object-hash) {
         my $obj := nqp::create(self);
         $obj.set-expression($expression);
-        nqp::bindattr_i($obj, RakuAST::Circumfix::HashComposer, '$!object-hash', $object-hash ?? 1 !! 0);
+        nqp::bindattr($obj, RakuAST::Circumfix::HashComposer, '$!object-hash', $object-hash // False);
         $obj
     }
 
@@ -232,7 +264,7 @@ class RakuAST::Circumfix::HashComposer
         my $name := self.resolution.lexical-name;
         my $expression := $!expression;
 
-        my $op := QAST::Op.new(:op<call>, :$name);
+        my $op := QAST::Op.new(:op(self.IMPL-CALL-OP), :$name);
         if $expression {
             $op.push($expression.IMPL-TO-QAST($context))
         }

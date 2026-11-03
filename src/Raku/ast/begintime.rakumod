@@ -1,19 +1,14 @@
 # Done by all things that want to perform some kind of effect at BEGIN time.
 # They may do that effect before their children are visited in resolution or
 # after; the default is after.
-class RakuAST::BeginTime
-  is RakuAST::Node
-{
+role RakuAST::BeginTime {
     has int $!begin-performed;
 
     # Method implemented by a node to perform its begin-time side-effects.
-    # If a class does not implement it, then this will fire
     method PERFORM-BEGIN(
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
-    ) {
-        nqp::die('Missing PERFORM-BEGIN implementation in ' ~ self.HOW.name(self));
-    }
+    ) { ... }
 
     # Ensure the begin-time effects are performed.
     method ensure-begin-performed(
@@ -21,152 +16,18 @@ class RakuAST::BeginTime
       RakuAST::IMPL::QASTContext $context
     ) {
         unless $!begin-performed {
+            my $*BEGIN-TIME-LOOKUP :=
+              RakuAST::Node.IMPL-BEGIN-TIME-LOOKUP-STATE($resolver, $context);
+            my $*IMPL-LOOKUP-NODE := self;
             self.PERFORM-BEGIN($resolver, $context);
-            nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1);
+            self.IMPL-MARK-BEGIN-PERFORMED;
         }
         Nil
     }
 
-    # Called when a BEGIN-time construct needs to evaluate code. Tries to
-    # interpret simple things to avoid the cost of compilation.
-    method IMPL-BEGIN-TIME-EVALUATE(
-                   RakuAST::Node $code,
-               RakuAST::Resolver $resolver,
-      RakuAST::IMPL::QASTContext $context
-    ) {
-        my $*IMPL-COMPILE-DYNAMICALLY := 1;
-
-        # Handle any execution error appropriately
-        CATCH {
-            my $ex := $resolver.convert-exception($_);
-
-            # Can handle it properly
-            if nqp::istype(self,RakuAST::CheckTime) {
-                self.add-sorry: $ex;
-                $resolver.note-deferred-begin-sorry;
-            }
-
-            # Alas, need to rethrow wil line info if possible
-            else {
-                if nqp::can($ex,'SET_FILE_LINE')
-                  && self
-                  && my $origin := self.origin {
-                    my $origin-match := $origin.as-match;
-                    $ex.SET_FILE_LINE($origin-match.file, $origin-match.line);
-                }
-                $ex.rethrow;
-            }
-        }
-
-        # Can interprete, so do that
-        my $result;
-        if $code.IMPL-CAN-INTERPRET {
-            $result := $code.IMPL-INTERPRET(
-              RakuAST::IMPL::InterpContext.new(:$resolver, :$context)
-            )
-        }
-
-        # A deferred phaser like INIT has not run at BEGIN time, so its value
-        # is whatever its cache holds, which is undefined until it runs. Hand
-        # that back rather than the block itself.
-        elsif nqp::istype($code, RakuAST::StatementPrefix::Phaser::Init) {
-            $result := nqp::ifnull(nqp::decont($code.container), Mu)
-        }
-
-        # A code literal's begin-time value is its own code object,
-        elsif nqp::istype($code, RakuAST::Code)
-          # unless it is a value-producing statement prefix (gather, start, and
-          # friends), whose value is what running it produces, not the code,
-          && (!nqp::istype($code, RakuAST::StatementPrefix)
-              # though a phaser is a statement prefix whose caller runs the
-              # code object we hand back, so keep those.
-              || nqp::istype($code, RakuAST::StatementPrefix::Phaser)) {
-            $result := $code.meta-object
-        }
-
-        # Wrap an expression in a thunk
-        elsif nqp::istype($code, RakuAST::Expression) {
-            my $thunk := RakuAST::ExpressionThunk.new;
-            $code.wrap-with-thunk($thunk);
-            $thunk.IMPL-STUB-CODE($resolver, $context);
-            $code.apply-sink(False);
-            $thunk.IMPL-QAST-BLOCK($context, :expression($code));
-            $result := $thunk.meta-object()()
-        }
-        else {
-            nqp::die('BEGIN time evaluation only supported for simple constructs so far')
-        }
-
-        # A native-typed expression evaluates to a bare VM-level box (for
-        # example a BOOTInt) where the same expression at run time would
-        # produce an Int. Such a box has no Raku method table and a null
-        # WHO, so letting it escape into a stash breaks stash consumers
-        # like the compunit GLOBAL merge. Box VM-level scalars into their
-        # Raku types; leave VM-level aggregates alone, as constants holding
-        # nqp hashes and lists rely on staying unboxed.
-        unless nqp::isnull($result) {
-            my $type := nqp::what($result);
-            $result := nqp::hllizefor($result, 'Raku')
-              if nqp::eqaddr($type, nqp::bootint())
-              || nqp::eqaddr($type, nqp::bootnum())
-              || nqp::eqaddr($type, nqp::bootstr());
-        }
-        $result
-    }
-
-    # Evaluate the argument of a pragma, use, import, or require into an
-    # argument list, boxing the result, which is consumed as a Raku List.
-    method IMPL-BEGIN-TIME-ARGLIST(
-                   RakuAST::Node $argument,
-               RakuAST::Resolver $resolver,
-      RakuAST::IMPL::QASTContext $context
-    ) {
-        $argument
-          ?? nqp::hllizefor(
-               self.IMPL-BEGIN-TIME-EVALUATE($argument, $resolver, $context),
-               'Raku'
-             ).List.FLATTENABLE_LIST
-          !! Nil
-    }
-
-    # Called when a BEGIN-time construct wants to evaluate a resolved code
-    # with a set of arguments.
-    method IMPL-BEGIN-TIME-CALL(
-                   RakuAST::Node $callee,
-                RakuAST::ArgList $args,
-               RakuAST::Resolver $resolver,
-      RakuAST::IMPL::QASTContext $context
-    ) {
-        my $*IMPL-COMPILE-DYNAMICALLY := 1;
-
-        # A curried argument (a WhateverCode) may be interpreted here, as
-        # its static block compiles against a real QAST context.
-        my $*IMPL-INTERPRET-CURRIED := 1;
-
-        # Ready to call
-        if $callee.is-resolved
-          && nqp::istype($callee.resolution, RakuAST::CompileTimeValue)
-          && $args.IMPL-CAN-INTERPRET {
-            my $resolved := $callee.resolution.compile-time-value;
-            my @args := $args.IMPL-INTERPRET(
-              RakuAST::IMPL::InterpContext.new(:$resolver, :$context)
-            );
-
-            # Separate out positional/named args first before flattening
-            # them, as NQP is not as smart as is sometimes expected
-            my @pos   := @args[0];
-            my %named := @args[1];
-            $resolved(|@pos, |%named)
-        }
-
-        # Not ready, wrap in a call and evaluate that
-        else {
-            my $call := RakuAST::ApplyPostfix.new(
-              :postfix(RakuAST::Call::Term.new(:$args)),
-              :operand($callee)
-            );
-            $call.to-begin-time($resolver, $context);
-            self.IMPL-BEGIN-TIME-EVALUATE($call, $resolver, $context)
-        }
+    # Record the begin-time effects as performed, which a PERFORM-BEGIN
+    # whose work leads back to this node does first.
+    method IMPL-MARK-BEGIN-PERFORMED() {
+        nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1);
     }
 }

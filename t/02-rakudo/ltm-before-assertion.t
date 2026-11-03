@@ -16,7 +16,7 @@ grammar Expr {
     token operation { <circumfix_operation> | <infix_operation_chain> }
     token infix_term { <circumfix_operation> | <term> }
     my $in_ops = "['/'|'-']";
-    rule infix_operation_chain {<before .+? <$in_ops>><infix_term>[ $<op>=<$in_ops> <infix_term>]+}
+    rule infix_operation_chain {<before .+ <$in_ops>><infix_term>[ $<op>=<$in_ops> <infix_term>]+}
     rule circumfix_operation { '(' <expression> ')' }
 }
 
@@ -35,7 +35,7 @@ grammar QExpr {
     token operation { <circumfix_operation> | <infix_operation_chain> }
     token infix_term { <circumfix_operation> | <term> }
     my $in_ops = "['/'|'-']";
-    rule infix_operation_chain {<?before .+? <$in_ops>><infix_term>[ $<op>=<$in_ops> <infix_term>]+}
+    rule infix_operation_chain {<?before .+ <$in_ops>><infix_term>[ $<op>=<$in_ops> <infix_term>]+}
     rule circumfix_operation { '(' <expression> ')' }
 }
 

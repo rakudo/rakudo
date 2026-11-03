@@ -28,6 +28,8 @@ augment class RakuAST::Node {
         }
     }
 
+    multi method raku(RakuAST::Node:U: --> Str:D) { self.^name }
+
 #-------------------------------------------------------------------------------
 # Helper subs
 
@@ -53,6 +55,12 @@ augment class RakuAST::Node {
                 "(\n$list,\n$*INDENT)"
             }
         }
+        # an itemized empty List writes as $( ), a parameter list as ()
+        elsif nqp::istype($value,List)
+          && $value.defined
+          && nqp::eqaddr($value.WHAT,List) {
+            '()'
+        }
         else {
             nqp::istype($value,Bool)
               ?? ($value.defined ?? $value ?? "True" !! "False" !! 'Bool')
@@ -65,8 +73,13 @@ augment class RakuAST::Node {
 
     method !none() { self.^name ~ '.new' }
 
-    method !literal($value) {
-        self.^name ~ '.new(' ~ nqp::decont($value).raku ~ ')';
+    # a junction value must not autothread, and the base class is only
+    # made through from-value
+    method !literal(Mu $value) {
+        (nqp::eqaddr(self.WHAT,RakuAST::Literal)
+          ?? 'RakuAST::Literal.from-value('
+          !! self.^name ~ '.new('
+        ) ~ nqp::decont($value).raku ~ ')'
     }
 
     method !positional($value) {
@@ -99,6 +112,9 @@ augment class RakuAST::Node {
         my $special := nqp::hash(
           'abbreviated', -> {
               :abbreviated if self.abbreviated && !self.directive
+          },
+          'is-array', -> {
+              :is-array if self.is-array
           },
           'adverbs', -> {
               my $adverbs := nqp::decont(self.adverbs);
@@ -141,8 +157,10 @@ augment class RakuAST::Node {
               }
           },
           'config', -> {
-              my $config := nqp::decont(self.config);
-              :config($config.Hash) if $config
+              :config(self.config-pairs) if self.config
+          },
+          'destructive', -> {
+              :destructive(self.destructive)
           },
           'directive', -> {
               :directive if self.directive
@@ -176,13 +194,20 @@ augment class RakuAST::Node {
           'how', -> {
               my $how := self.how;
               as-class('how', $how.^name.subst("Perl6::"))
-                unless nqp::eqaddr($how,self.default-how)
+                unless nqp::eqaddr($how,self.declarator-how)
           },
           'implicit-topic', -> {
               :implicit-topic if self.implicit-topic
           },
           'inverted', -> {
               :inverted if self.inverted
+          },
+          'parameters', -> {
+              :parameters(self.parameters) if self.parameters-initialized
+          },
+          'parsed-declarator', -> {
+              my str $parsed-declarator = self.parsed-declarator;
+              :$parsed-declarator if $parsed-declarator ne self.declarator
           },
           'labels', -> {
               my $labels := nqp::decont(self.labels);
@@ -194,7 +219,7 @@ augment class RakuAST::Node {
           },
           'level', -> {
               my $level := self.level;
-              :$level if $level
+              :level($level.Int) if $level
           },
           'margin', -> {
               my $margin := self.margin;
@@ -203,9 +228,16 @@ augment class RakuAST::Node {
           'match-immediately', -> {
               :match-immediately if self.match-immediately
           },
+          'may-have-signature', -> {
+              :may-have-signature if self.may-have-signature
+          },
           'meta', -> {
               my $meta := self.meta;
               :$meta if $meta
+          },
+          'modifier', -> {
+              my $modifier := self.modifier;
+              :$modifier if $modifier ne self.key
           },
           'module-names', -> {
               my $module-names := nqp::decont(self.module-names);
@@ -236,6 +268,10 @@ augment class RakuAST::Node {
           'sigil', -> {
               my $sigil := self.sigil;
               :$sigil if $sigil
+          },
+          'smiley', -> {
+              my $smiley := self.smiley;
+              :$smiley if $smiley
           },
           'signature', -> {
               my $signature := self.signature;
@@ -347,7 +383,11 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Block:D: --> Str:D) {
         self!add-WHY: self!nameds:
-          <implicit-topic required-topic exception body>
+          <implicit-topic required-topic exception may-have-signature body>
+    }
+
+    multi method raku(RakuAST::BracketedInfix:D: --> Str:D) {
+        self!positional(self.infix)
     }
 
     multi method raku(RakuAST::Blockoid:D: --> Str:D) {
@@ -363,8 +403,8 @@ augment class RakuAST::Node {
         self!nameds: <name args>
     }
 
-    multi method raku(RakuAST::Call::BlockMethod:D: --> Str:D) {
-        self!nameds: <block args dispatch>
+    multi method raku(RakuAST::Call::TermAsMethod:D: --> Str:D) {
+        self!nameds: <callee args dispatch>
     }
 
     multi method raku(RakuAST::Call::Methodish:D: --> Str:D) {
@@ -437,7 +477,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Declaration::ResolvedConstant:D: --> Str:D) {
-        self!literal(self.compile-time-value)
+        self!nameds: <compile-time-value>
     }
 
 #- Doc -------------------------------------------------------------------------
@@ -520,7 +560,7 @@ augment class RakuAST::Node {
 #- L ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Label:D: --> Str:D) {
-        self!nameds: <name>
+        self!literal(self.name)
     }
 
     # handles all RakuAST::xxxLiteral classes
@@ -543,6 +583,10 @@ augment class RakuAST::Node {
         self!positional(self.postfix)
     }
 
+    multi method raku(RakuAST::MetaPrefix::Hyper:D: --> Str:D) {
+        self!positional(self.prefix)
+    }
+
     multi method raku(RakuAST::Method:D: --> Str:D) {
         my str @nameds = 'name';
         @nameds.unshift("private")   if self.private;
@@ -558,15 +602,27 @@ augment class RakuAST::Node {
 #- N ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Name:D: --> Str:D) {
-        my @parts := self.parts;
-        if nqp::istype(@parts.are, RakuAST::Name::Part::Simple) {
+        my @parts      := self.parts;
+
+        if @parts
+          && @parts.are(RakuAST::Name::Part::Simple)
+          && !self.colonpairs {
+            my str $args = @parts.map(*.name.raku).join(',');
             self.^name ~ (@parts.elems == 1
-              ?? ".from-identifier(@parts.head.name.raku())"
-              !! ".from-identifier-parts(@parts.map(*.name.raku).join(','))"
+              ?? ".from-identifier($args)"
+              !! ".from-identifier-parts($args)"
             )
         }
         else {
-            self!positionals(@parts)
+            indent;
+            my $colonpairs := self.colonpairs;
+            my str @lines   = @parts.map({ $*INDENT ~ rakufy($_) });
+            @lines.push($*INDENT ~ 'colonpairs => ' ~ rakufy($colonpairs))
+              if $colonpairs;
+            dedent;
+            @lines
+              ?? self.^name ~ ".new(\n" ~ @lines.join(",\n") ~ "\n$*INDENT)"
+              !! self.^name ~ '.new()'
         }
     }
 
@@ -610,9 +666,10 @@ augment class RakuAST::Node {
         }
 
         self!add-WHY: $self!nameds:
-          <scope name how repr traits body>,
+          <scope parsed-declarator name how repr traits body>,
           (parameterization => $signature
-            if $signature && $signature.parameters.elems)
+            if $signature && $signature.parameters.elems),
+          (:is-stub if self.is-stub)
     }
 
     multi method raku(RakuAST::Pragma:D: --> Str:D) {
@@ -623,9 +680,18 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Parameter:D: --> Str:D) {
         my str @nameds;
-        @nameds.push("type") if self.type && self.type.DEPARSE ne 'Any';
+        # Any is the implicit type of a target, the type of a list
+        # declaration is written by the declaration, a parameter that is
+        # only a type has nothing else
+        my $type := self.type;
+        @nameds.push("type")
+          if $type
+          && !self.outer-type
+          && ($type.DEPARSE ne 'Any' || !self.target);
         @nameds.push("names") if self.names.elems;
         @nameds.push("type-captures") if self.type-captures.elems;
+        @nameds.push("invocant") if self.invocant;
+        @nameds.push("default-rw") if self.default-rw;
         @nameds.append: <
           target optional slurpy traits default where sub-signature value
         >;
@@ -684,6 +750,10 @@ augment class RakuAST::Node {
         self!literal(self.operator)
     }
 
+    multi method raku(RakuAST::Prefix::Multislice:D: --> Str:D) {
+        self!none
+    }
+
 #- Q ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::QuotedRegex:D: --> Str:D) {
@@ -694,7 +764,10 @@ augment class RakuAST::Node {
         my str @parts = "RakuAST::QuotedString.new(";
         indent;
         if self.processors -> @processors {
-            @parts.push: $*INDENT ~ "processors => <@processors[]>,";
+            @parts.push: $*INDENT ~ "processors => " ~ (@processors == 1
+              ?? "(\"@processors[0]\",),"
+              !! "<@processors[]>,"
+            );
         }
         @parts.push: $*INDENT ~ "segments   => " ~ rakufy(self.segments);
         dedent;
@@ -758,7 +831,8 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Regex::Assertion::Named::Args:D: --> Str:D) {
-        self!nameds: <name args capturing>
+        # the constructor requires the args, even when there are none
+        self!nameds: 'name', Pair.new('args', self.args), 'capturing'
     }
 
     multi method raku(RakuAST::Regex::Assertion::Named::RegexArg:D: --> Str:D) {
@@ -774,7 +848,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Regex::Assertion::Recurse:D: --> Str:D) {
-        self!positional(self.node)
+        self!none
     }
 
 #- Regex::B --------------------------------------------------------------------
@@ -858,6 +932,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::RegexDeclaration:D: --> Str:D) {
         my str @nameds = 'name';
+        @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
         @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
@@ -902,6 +977,10 @@ augment class RakuAST::Node {
         self!nameds: <name regex>
     }
 
+    multi method raku(RakuAST::Regex::Nested:D: --> Str:D) {
+        self!positionals([self.goal, self.expr])
+    }
+
 #- Regex::Q --------------------------------------------------------------------
 
     multi method raku(RakuAST::Regex::QuantifiedAtom:D: --> Str:D) {
@@ -934,6 +1013,10 @@ augment class RakuAST::Node {
 
 #- Regex::S --------------------------------------------------------------------
 
+    multi method raku(RakuAST::Regex::Sym:D: --> Str:D) {
+        self!positional(self.colonpair)
+    }
+
     multi method raku(RakuAST::Regex::Sequence:D: --> Str:D) {
         self!positionals(self.terms)
     }
@@ -963,7 +1046,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Signature:D: --> Str:D) {
-        self!nameds: <parameters returns>
+        self!nameds: <parameters returns is-array>
     }
 
 #- Statement -------------------------------------------------------------------
@@ -978,6 +1061,14 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Statement::Default:D: --> Str:D) {
         self!nameds: <labels body>
+    }
+
+    multi method raku(RakuAST::Statement::Also:D: --> Str:D) {
+        self!nameds: <labels traits>
+    }
+
+    multi method raku(RakuAST::Statement::Trusts:D: --> Str:D) {
+        self!nameds: <labels type>
     }
 
     multi method raku(RakuAST::Statement::Empty:D: --> Str:D) {
@@ -1005,6 +1096,10 @@ augment class RakuAST::Node {
         self!nameds: <labels module-name argument>
     }
 
+    multi method raku(RakuAST::Statement::LanguageVersion:D: --> Str:D) {
+        self!literal(self.version)
+    }
+
     multi method raku(RakuAST::Statement::Loop:D: --> Str:D) {
         self!nameds: <labels setup condition increment body>
     }
@@ -1030,7 +1125,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Statement::Require:D: --> Str:D) {
-        self!nameds: <labels module-name>
+        self!nameds: <labels module-name file argument>
     }
 
     multi method raku(RakuAST::Statement::Unless:D: --> Str:D) {
@@ -1077,15 +1172,14 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::StatementPrefix::Phaser::Post:D: --> Str:D) {
         # skip the auto-generated code
-        self!positional(
-          self.blorst.body
-            .statement-list.statements.head.condition-modifier.expression
-        )
+        self!positional(self.original-blorst)
     }
 
     multi method raku(RakuAST::StatementPrefix::Phaser::Pre:D: --> Str:D) {
         # skip the auto-generated code
-        self!positional(self.blorst.condition-modifier.expression)
+        self!positional(RakuAST::Statement::Expression.new(
+          expression => self.blorst.condition-modifier.expression
+        ))
     }
 
      multi method raku(RakuAST::StatementPrefix::Phaser::First:D: --> Str:D) {
@@ -1113,6 +1207,8 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Submethod:D: --> Str:D) {
         my str @nameds = 'name';
+        @nameds.unshift("private")   if self.private;
+        @nameds.unshift("multiness") if self.multiness;
         @nameds.push("signature") if self.signature && self.signature.parameters-initialized;
         @nameds.append: <traits body>;
 
@@ -1138,6 +1234,10 @@ augment class RakuAST::Node {
         self!positional(self.source)
     }
 
+    multi method raku(RakuAST::Term::Declaration:D: --> Str:D) {
+        self!positional(self.value)
+    }
+
     multi method raku(RakuAST::Term::Enum:D: --> Str:D) {
         self.^name ~ ".from-identifier('" ~ self.name.canonicalize ~ "')"
     }
@@ -1154,8 +1254,9 @@ augment class RakuAST::Node {
         self!nameds: <radix multi-part value>
     }
 
+    # the argument list is required, even an empty one
     multi method raku(RakuAST::Term::Reduce:D: --> Str:D) {
-        self!nameds: <triangle infix args>
+        self!nameds: 'triangle', 'infix', Pair.new('args', self.args)
     }
 
     multi method raku(RakuAST::Term::TopicCall:D: --> Str:D) {
@@ -1174,6 +1275,10 @@ augment class RakuAST::Node {
         self!positional(self.term)
     }
 
+    multi method raku(RakuAST::Trait::Trusts:D: --> Str:D) {
+        self!nameds: <type>
+    }
+
     multi method raku(RakuAST::Trait::Is:D: --> Str:D) {
         self!nameds: <name argument type>
     }
@@ -1184,23 +1289,51 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Trait::Will:D: --> Str:D) {
-        self!nameds: <type expr>
+        self!nameds: <phase block>
     }
 
     multi method raku(RakuAST::Trait::WillBuild:D: --> Str:D) {
         self!positional(self.expr)
     }
 
+#- Transliteration -------------------------------------------------------------
+
+    multi method raku(RakuAST::Transliteration:D: --> Str:D) {
+        self!nameds: <destructive left right adverbs>
+    }
+
 #- Type ------------------------------------------------------------------------
 
     multi method raku(RakuAST::Type::Capture:D: --> Str:D) {
-        self!positional(self.name)
+        my $Name := self.name;
+        my @parts = $Name.parts;
+        if @parts == 1
+          && nqp::istype(@parts.head, RakuAST::Name::Part::Simple)
+          && !$Name.colonpairs {
+            self.^name ~ ".from-identifier(@parts.head.name.raku())"
+        }
+        else {
+            indent;
+            my str $name = $*INDENT ~ $Name.raku;
+            dedent;
+            my str $nameds = self!nameds: <smiley>;
+            $nameds.ends-with('.new')
+              ?? self.^name ~ ".new(\n$name\n$*INDENT)"
+              !! $nameds.subst(".new(\n", ".new(\n$name,\n")
+        }
     }
 
     multi method raku(RakuAST::Type::Coercion:D: --> Str:D) {
-        self!nameds: (try self.constraint.name.canonicalize eq 'Any')
+        # only the setting Any the constructor supplies is left out
+        my $constraint := self.constraint;
+        self!nameds: nqp::istype($constraint,RakuAST::Type::Setting)
+          && $constraint.name.canonicalize eq 'Any'
           ?? <base-type>
           !! <base-type constraint>
+    }
+
+    multi method raku(RakuAST::Type::AnyDefinedness:D: --> Str:D) {
+        self!nameds: <base-type>
     }
 
     multi method raku(RakuAST::Type::Definedness:D: --> Str:D) {
@@ -1215,12 +1348,21 @@ augment class RakuAST::Node {
         self!nameds: <base-type args>
     }
 
-    multi method raku(RakuAST::Type::Setting:D: --> Str:D) {
-        self!positional(self.name)
-    }
-
     multi method raku(RakuAST::Type::Simple:D: --> Str:D) {
-        self!positional(self.name)
+        my $name := self.name;
+        my @parts = $name.parts;
+        if @parts
+          && @parts.are(RakuAST::Name::Part::Simple)
+          && !$name.colonpairs {
+            my str $args = @parts.map(*.name.raku).join(',');
+            self.^name ~ (@parts.elems == 1
+              ?? ".from-identifier($args)"
+              !! ".from-identifier-parts($args)"
+            )
+        }
+        else {
+            self!positional($name)
+        }
     }
 
     multi method raku(RakuAST::Type::Subset:D: --> Str:D) {
@@ -1237,8 +1379,17 @@ augment class RakuAST::Node {
         self!nameds: <name args>
     }
 
+    multi method raku(RakuAST::Var::Compiler::Distribution:D: --> Str:D) {
+        self!none
+    }
+
     multi method raku(RakuAST::Var::Compiler::File:D: --> Str:D) {
         self!positional(self.file)
+    }
+
+    # the cursor of the compilation the .raku is evaluated in
+    multi method raku(RakuAST::Var::Compiler::Lang:D: --> Str:D) {
+        self.^name ~ '.new($?LANG)'
     }
 
     multi method raku(RakuAST::Var::Compiler::Line:D: --> Str:D) {
@@ -1247,6 +1398,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Var::Compiler::Lookup:D: --> Str:D) {
         self!positional(self.name)
+    }
+
+    multi method raku(RakuAST::Var::Compiler::Resources:D: --> Str:D) {
+        self!none
     }
 
     multi method raku(RakuAST::Var::Compiler::Routine:D: --> Str:D) {
@@ -1262,8 +1417,15 @@ augment class RakuAST::Node {
         self!literal($name.starts-with('$whatevercode_arg_') ?? '*' !! $name)
     }
 
+    # the index is the positional, the sigil and colonpairs are named
     multi method raku(RakuAST::Var::NamedCapture:D: --> Str:D) {
-        self!positional(self.index)
+        indent;
+        my str $index = $*INDENT ~ self.index.raku;
+        dedent;
+        my str $nameds = self!nameds: <sigil colonpairs>;
+        $nameds.ends-with('.new')
+          ?? self.^name ~ ".new(\n$index\n$*INDENT)"
+          !! $nameds.subst(".new(\n", ".new(\n$index,\n")
     }
 
     multi method raku(RakuAST::Var::Package:D: --> Str:D) {
@@ -1272,6 +1434,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Var::Doc:D: --> Str:D) {
         self!positional(self.name)
+    }
+
+    multi method raku(RakuAST::Var::Slang:D: --> Str:D) {
+        self!nameds: <name>
     }
 
     multi method raku(RakuAST::Var::PositionalCapture:D: --> Str:D) {
@@ -1289,7 +1455,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::VarDeclaration::Constant:D: --> Str:D) {
-        self!nameds: <scope type name traits initializer>
+        self!add-WHY: self!nameds: <scope type name traits initializer>
     }
 
     multi method raku(RakuAST::VarDeclaration::Implicit:D: --> Str:D) {
@@ -1322,13 +1488,29 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::VarDeclaration::Simple:D: --> Str:D) {
+        # the build trait of an attribute is made from its initializer
+        my @traits = self.traits.grep({
+            nqp::not_i(nqp::istype($_,RakuAST::Trait::WillBuild))
+        });
         self!add-WHY:
           self!nameds:
-            <scope original-type shape sigil twigil desigilname traits initializer where>
+            <scope original-type shape sigil twigil desigilname>,
+            (:@traits if @traits),
+            <initializer where>
     }
 
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {
-        self!nameds: <scope type name initializer>
+        self!add-WHY: self!nameds: <scope type name initializer>
+    }
+
+#- WhateverCode ----------------------------------------------------------------
+
+    # BEGIN time makes one from the * or ** of a WhateverCode expression
+    multi method raku(RakuAST::WhateverCode::Argument:D: --> Str:D) {
+        (self.is-hyper
+          ?? RakuAST::Term::HyperWhatever
+          !! RakuAST::Term::Whatever
+        ).new.raku
     }
 }
 
@@ -1355,8 +1537,12 @@ augment class RakuAST::Name::Part {
 
 #- Name::Part-------------------------------------------------------------------
 
-    multi method raku(RakuAST::Name::Part::Empty:U: --> Str:D) {
+    multi method raku(RakuAST::Name::Part::EmptyEdge:U: --> Str:D) {
         self.^name
+    }
+
+    multi method raku(RakuAST::Name::Part::EmptyEdge:D: --> Str:D) {
+        self.^name ~ '.new'
     }
 
     multi method raku(RakuAST::Name::Part::Expression:D: --> Str:D) {

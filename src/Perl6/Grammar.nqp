@@ -209,8 +209,11 @@ role STD {
         }
     }
 
-    token cheat_heredoc {
-        <?{ nqp::elems($*W.herestub_queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
+    token cheat_heredoc($closer?) {
+        <?{ nqp::elems($*W.herestub_queue) }> \h*
+        $<closer>=[ <?{ nqp::isconcrete($closer) }> $closer | <!{ nqp::isconcrete($closer) }> <[ ; } ]> ]
+        [ <?{ $<closer> eq '}' }> \h* ';' ]?
+        \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
     }
 
     method queue_heredoc($delim, $grammar) {
@@ -350,7 +353,7 @@ role STD {
         <?{ $*COMPILING_CORE_SETTING
             || ((try $*W.find_single_symbol('EXPERIMENTAL-' ~ nqp::uc($feature)))
                 && ($feature ne 'macros'
-                    || nqp::getcomp('Raku').language_revision < 3)) }>
+                    || $*LANGUAGE-REVISION < 3)) }>
         || <.typed_panic('X::Experimental', :$feature)>
     }
 
@@ -491,15 +494,26 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
+    # The slangs every compilation starts with besides MAIN, by name, each
+    # a grammar and its actions. A slang variable built outside a parse
+    # takes its grammar from here.
+    method standard-slangs() {
+        nqp::hash(
+          'Quote',   [Perl6::QGrammar,       Perl6::QActions],
+          'Regex',   [Perl6::RegexGrammar,   Perl6::RegexActions],
+          'P5Regex', [Perl6::P5RegexGrammar, Perl6::P5RegexActions],
+          'Pod',     [Perl6::PodGrammar,     Perl6::PodActions],
+        )
+    }
+
     method TOP() {
         # Language braid.
         my $*LANG := self;
         my $*LEAF := self;  # the leaf cursor, workaround for when we can't pass via $/ into world
-        self.define_slang('MAIN',    self.WHAT,             self.actions);
-        self.define_slang('Quote',   Perl6::QGrammar,       Perl6::QActions);
-        self.define_slang('Regex',   Perl6::RegexGrammar,   Perl6::RegexActions);
-        self.define_slang('P5Regex', Perl6::P5RegexGrammar, Perl6::P5RegexActions);
-        self.define_slang('Pod',     Perl6::PodGrammar,     Perl6::PodActions);
+        self.define_slang('MAIN', self.WHAT, self.actions);
+        for self.standard-slangs {
+            self.define_slang($_.key, $_.value[0], $_.value[1]);
+        }
 
         # Old language braid, going away eventually
         # XXX TODO: if these are going out, be sure to make similar change
@@ -705,6 +719,17 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]*
     }
 
+    # Whitespace between regex atoms.  Like ws, but without unspace:
+    # in a regex a backslash always starts an escape such as \# or \s.
+    token regex-ws {
+        :dba('whitespace')
+        [
+        | [\r\n || \v] <.heredoc>
+        | <.unv>
+        | <.vcs-conflict>
+        ]*
+    }
+
     token vws {
         :dba('vertical whitespace')
         [
@@ -741,7 +766,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?before v\d+\w*
             [ '.' \d
               || <!{ $*W.is_lexical(~$/) }> ]>
-        'v' $<vstr>=[<vnum>+ % '.' '+'?]
+        'v' $<vstr>=[<vnum>+ % '.' ['+' | '-' <!before \w>]? ]
         <!before '-'|\'> # cheat because of LTM fail
     }
 
@@ -837,9 +862,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # for runaway detection
         :my $*LASTQUOTE := [0,0];
 
+        # Revision checks read this rather than the compiler object, which
+        # every unit compiled in the process writes to
+        :my $*LANGUAGE-REVISION;
         {
             nqp::getcomp('Raku').reset_language_version();
-            $*W.comp_unit_stage0($/)
+            $*W.comp_unit_stage0($/);
+            $*LANGUAGE-REVISION := nqp::getcomp('Raku').language_revision;
         }
 
         <.bom>?
@@ -1081,7 +1110,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <!!{ $*VARIABLE := '' if $*VARIABLE; 1 }>
             <statementlist(1)>
             { $*CURPAD := $*W.pop_lexpad() }
-            [<.cheat_heredoc> || '}']
+            [<.cheat_heredoc('}')> || '}']
             <?ENDSTMT>
         || <.missing_block($borg, $has_mystery)>
         ]
@@ -1201,7 +1230,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<whenever> {
         <sym><.kok>
         [
-        || <?{ nqp::getcomp('Raku').language_revision == 1 || $*WHENEVER_COUNT >= 0 }>
+        || <?{ $*LANGUAGE-REVISION == 1 || $*WHENEVER_COUNT >= 0 }>
         || <.typed_panic('X::Comp::WheneverOutOfScope')>
         ]
         { $*WHENEVER_COUNT++ }
@@ -1303,7 +1332,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             { $/.typed_panic: 'X::Language::TooLate', version => ~$<version> }
         | <module_name>
             [
-            || <.spacey> <arglist> <.cheat_heredoc>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
+            || <.spacey> <arglist> <.cheat_heredoc(';')>? <?{ $<arglist><EXPR> }> <.explain_mystery> <.cry_sorrows>
                 {
                     my $oldmain := %*LANG<MAIN>;
                     $*W.do_pragma_or_load_module($/,1);
@@ -1460,7 +1489,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token blorst {
-        [ <?[{]> <block> | <![;]> <statement> <.cheat_heredoc>? || <.missing: 'block or statement'> ]
+        [ <?[{]> <block> | <![;]> <statement> <.cheat_heredoc(';')>? || <.missing: 'block or statement'> ]
     }
 
     ## Statement modifiers
@@ -2224,6 +2253,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                           where => "in a subscope"
                         ) unless $outer =:= $*UNIT;
 
+                        # The body of a unit scoped package is entered once
+                        # from the mainline. A role body runs per
+                        # specialization, so it is left out.
+                        $*W.cur_lexpad().annotate('unit_body', 1)
+                            unless $*PKGDECL eq 'role';
+
                         $*begin_compunit := 0;
                     }
                     { $*IN_DECL := ''; }
@@ -2479,7 +2514,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || ';'
             {
                 # Allow all subs with ; but require "unit" scope from 6.e
-                if nqp::getcomp('Raku').language_revision >= 3 {
+                if $*LANGUAGE-REVISION >= 3 {
                     $/.typed_panic("X::UnitScope::MustHaveUnit", :what<sub>)
                       unless $*SCOPE eq 'unit';
                 }
@@ -2680,7 +2715,9 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
         <.ws>
         [
-        | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
+        | <?before '-->' | ')' | ']' | '{' | ';;' >
+        | <?before ':'\s>
+          { $/.typed_sorry('X::Syntax::Signature::InvocantMarker') }
         | <parameter>
         ]+ % <param_sep>
         <.ws>
@@ -2925,8 +2962,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
           { $*IN_DECL := '' }
            <.newpad>
           [ [ ':'?'(' <signature('sig', 1)> ')' ] | <trait> ]*
-          '{'
-          [
+          '{'<.regex-ws>[
           | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
           | <nibble(self.quote_lang(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), '{', '}'))>
           ]
@@ -3030,13 +3066,13 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
         || <.missing: "initializer on constant declaration">
         ]
 
-        <.cheat_heredoc>?
+        <.cheat_heredoc(';')>?
     }
 
     proto token initializer { <...> }
     token initializer:sym<=> {
-            [<!{$*IN_SIG_DECL // 0 }> || <.typed_panic: "X::Syntax::Variable::SignatureAssignment"> ]
         <sym>
+        [<!{$*IN_SIG_DECL // 0 }> || <.typed_panic: "X::Syntax::Variable::SignatureAssignment"> ]
         [
             <.ws>
             [
@@ -3107,7 +3143,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     token term:sym<time> { <sym> <.tok> }
 
     token term:sym<nano> {
-        <?{ (nqp::getcomp('Raku').language_revision >= 3)
+        <?{ ($*LANGUAGE-REVISION >= 3)
             || $*W.is_name(['&term:<nano>']) }>
         <sym> <.tok>
     }
@@ -3320,6 +3356,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     token numish {
         [
         | 'NaN' >>
+        | <hex_float>
         | <integer>
         | <dec_number>
         | <rad_number>
@@ -3338,6 +3375,18 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
         | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
         | $<coeff> = [ <int=.decint>                    ] <escale>
         ]
+    }
+
+    # C99 hexadecimal floating point, e.g. 0x1.8p+1; the binary exponent
+    # is mandatory, which keeps 0x1.abs parsing as a method call
+    token hex_float {
+        :dba('hexadecimal float')
+        0x '_'?
+        [
+        | <int=.hexint> [ '.' <frac=.hexint> ]?
+        |               '.' <frac=.hexint>
+        ]
+        <[pP]> <sign> <exp=.decint>
     }
 
     token signed-integer { <sign> <integer> }
@@ -3393,10 +3442,10 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     token sign { '+' | '-' | '−' | '' }
 
     token rat_number { '<' <bare_rat_number> '>' }
-    token bare_rat_number { <?before <.[-−+0..9<>:boxd]>+? '/'> <nu=.signed-integer> '/' <de=integer> }
+    token bare_rat_number { <?before <.[-−+0..9<>:boxd]>+ '/'> <nu=.signed-integer> '/' <de=integer> }
 
     token complex_number { '<' <bare_complex_number> '>' }
-    token bare_complex_number { <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+? 'i'> <re=.signed-number> <?[-−+]> <im=.signed-number> \\? 'i' }
+    token bare_complex_number { <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+ 'i'> <re=.signed-number> <?[-−+]> <im=.signed-number> \\? 'i' }
 
     token typename(:$needs-whitespace) {
         :my %colonpairs;
@@ -3537,7 +3586,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     }
 
     token quote:sym</null/> {
-        :my $rev := nqp::getcomp('Raku').language_revision;
+        :my $rev := $*LANGUAGE-REVISION;
           <?{ $rev < 3 }>
           '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
         | <?{ $rev >= 3 }>
@@ -4130,7 +4179,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
     }
     token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
     token prefix:sym<//>  {
-        <?{ nqp::getcomp('Raku').language_revision >= 3 }>
+        <?{ $*LANGUAGE-REVISION >= 3 }>
         <sym> <O(|%symbolic_unary)>
     }
 
@@ -4646,7 +4695,7 @@ sub, perhaps you accidentally placed a semicolon after routine's definition?"
             self.typed_panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>") && nqp::getcomp('Raku').language_revision < 2;
+              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*LANGUAGE-REVISION < 2;
 
             self.typed_panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')
@@ -5592,47 +5641,59 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
     }
 
     token do_nibbling {
-        :my $from := self.pos;
-        :my $to   := $from;
+        :my @nibbles := @*nibbles;
+        :my @from := nqp::list_i(self.pos);   # a list so the subrules can advance it
         [
             <!stopper>
             [
-            || <starter> <nibbler> <stopper>
-                {
-                    my $c := $/;
-                    $to   := $<starter>[-1].from;
-                    if $from != $to {
-                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
-                    }
-
-                    nqp::push(@*nibbles, $<starter>[-1].Str);
-                    nqp::push(@*nibbles, $<nibbler>[-1]);
-                    nqp::push(@*nibbles, $<stopper>[-1].Str);
-
-                    $from := $to := $c.pos;
-                }
-            || <escape>
-                {
-                    my $c := $/;
-                    $to   := $<escape>[-1].from;
-                    if $from != $to {
-                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
-                    }
-
-                    nqp::push(@*nibbles, $<escape>[-1]);
-
-                    $from := $to := $c.pos;
-                }
+            || <.nibble_nesting(@from, @nibbles)>
+            || <.nibble_escape(@from, @nibbles)>
             || .
             ]
         ]*
         {
             my $c := $/;
-            $to   := $c.pos;
+            my int $from := nqp::atpos_i(@from, 0);
+            my int $to   := $c.pos;
             $*LASTQUOTE := [self.pos, $to];
-            if $from != $to || !@*nibbles {
-                nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+            if $from != $to || !@nibbles {
+                nqp::push(@nibbles, nqp::substr($c.orig, $from, $to - $from));
             }
+        }
+    }
+
+    # separate tokens so each block sees a short capture stack, not the whole string's
+    token nibble_nesting(@from, @nibbles) {
+        <starter> <nibbler> <stopper>
+        {
+            my $c := $/;
+            my int $from := nqp::atpos_i(@from, 0);
+            my int $to   := $<starter>.from;
+            if $from != $to {
+                nqp::push(@nibbles, nqp::substr($c.orig, $from, $to - $from));
+            }
+
+            nqp::push(@nibbles, $<starter>.Str);
+            nqp::push(@nibbles, $<nibbler>);
+            nqp::push(@nibbles, $<stopper>.Str);
+
+            nqp::bindpos_i(@from, 0, $c.pos);
+        }
+    }
+
+    token nibble_escape(@from, @nibbles) {
+        <escape>
+        {
+            my $c := $/;
+            my int $from := nqp::atpos_i(@from, 0);
+            my int $to   := $<escape>.from;
+            if $from != $to {
+                nqp::push(@nibbles, nqp::substr($c.orig, $from, $to - $from));
+            }
+
+            nqp::push(@nibbles, $<escape>);
+
+            nqp::bindpos_i(@from, 0, $c.pos);
         }
     }
 
@@ -5819,7 +5880,7 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPacka
     method throw_solitary_quantifier() { self.typed_panic('X::Syntax::Regex::SolitaryQuantifier') }
     method throw_solitary_backtrack_control() { self.typed_sorry('X::Syntax::Regex::SolitaryBacktrackControl') }
 
-    token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
+    token normspace { <?before \s | '#'> <.LANG('MAIN', 'regex-ws')> }
 
     token rxstopper { <stopper> }
 

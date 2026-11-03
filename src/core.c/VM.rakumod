@@ -146,8 +146,4 @@ class VM does Systemic {
     }
 }
 
-Rakudo::Internals.REGISTER-DYNAMIC: '$*VM', {
-    PROCESS::<$VM> := VM.new;
-}
-
 # vim: expandtab shiftwidth=4

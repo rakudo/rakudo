@@ -11,7 +11,7 @@ Getopt::Long::Configure(qw<no_permute>);
 my %params = ( output_timeout => 180, timeout => 900,
                verbose => 0, heartbeat => 30, );
 Getopt::Long::GetOptions( \%params, 'output_timeout|output-timeout=i', 'timeout=i', 'verbose!',
-                          'description|descr|what=s', 'hearbeat=i', 'bypass!' );
+                          'description|descr|what=s', 'heartbeat=i', 'bypass!' );
 
 if ($params{bypass}) {
     exit system(@ARGV);

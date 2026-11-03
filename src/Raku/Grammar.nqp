@@ -1,4 +1,3 @@
-use NQPP5QRegex;
 use Raku::Actions;
 
 sub p6ize_recursive($x) {
@@ -52,7 +51,7 @@ role Raku::Common {
     token fatty { \h* [ '=>' | '⇒' ] }
 
     # The current language revision (1 = 6.c, 2 = 6.d, 3 = 6.e)
-    method language-revision() { nqp::getcomp('Raku').language_revision }
+    method language-revision() { $*LANGUAGE-REVISION }
 
     # Helper method for chars of match
     method leading-char()   { nqp::substr(self.orig, self.from,     1) }
@@ -65,10 +64,13 @@ role Raku::Common {
 
     # Control special functionality associated with rx adverbs, also in
     # natural slangs
-    method adverb-rx2str-control(str $key) {
+    my constant SIGSPACE-ADVERBS := nqp::hash(
+      's', 1, 'sigspace', 1, 'ss', 1, 'samespace', 1
+    );
+    method adverb-rx2str-control(str $key, int $negated = 0) {
         my str $translated := self.adverb-rx2str($key);
-        if $translated eq 's' {
-            try $*WHITESPACE-OK := 1;
+        if nqp::existskey(SIGSPACE-ADVERBS, $translated) {
+            %*RX<sigspace> := $negated ?? 0 !! 1;
         }
         $translated
     }
@@ -154,7 +156,7 @@ role Raku::Common {
 #-------------------------------------------------------------------------------
 # Quote parsing
 
-    method Regex($P5?) { self.slang_grammar($P5 ?? 'P5Regex' !! 'Regex') }
+    method Regex() { self.slang_grammar('Regex') }
 
     method Quote() { self.slang_grammar('Quote') }
 
@@ -351,9 +353,15 @@ role Raku::Common {
         has $!delim;
         has $!orignode;
         has $!grammar;
+        has $!resolver-state;
+        has $!lang;
+        has $!package;
         method delim() { $!delim }
         method orignode() { $!orignode }
         method grammar() { $!grammar }
+        method resolver-state() { $!resolver-state }
+        method lang() { $!lang }
+        method package() { $!package }
     }
 
     role herestop {
@@ -378,7 +386,21 @@ role Raku::Common {
                         last;
                     }
                 }
-                my $doc := $here.nibble($lang);
+                # The body is parsed after its line ends but runs where the
+                # heredoc starts, so it takes the scopes, pragmas and package
+                # from there.
+                my $*LANG := $herestub.lang;
+                my $*PACKAGE := $herestub.package;
+                $*R.IMPL-ENTER-HEREDOC-BODY($herestub.resolver-state);
+                my $doc;
+                {
+                    CATCH {
+                        $*R.IMPL-LEAVE-HEREDOC-BODY;
+                        nqp::rethrow($_);
+                    }
+                    $doc := $here.nibble($lang);
+                }
+                $*R.IMPL-LEAVE-HEREDOC-BODY;
                 if $doc {
                     # Match stopper.
                     my $stop := self.lang-cursor-at($lang, $doc.pos).stopper;
@@ -393,6 +415,11 @@ role Raku::Common {
                     $heredoc.replace-segments-from($doc.MATCH.ast);
                     $heredoc.steal-processors-from($doc.MATCH.ast);
                     $heredoc.set-stop(~$stop);
+                    my int $body-to := $stop.pos;
+                    --$body-to if $body-to > $doc.from && nqp::iscclass(
+                      nqp::const::CCLASS_NEWLINE, self.orig, $body-to - 1);
+                    $heredoc.set-body-origin(self.Nodify('Origin').new(
+                      :from($doc.from), :to($body-to)));
                     my str $ws := $stop.MATCH<ws>.Str;
                     my int $actualchars := nqp::chars($ws);
                     my int $indent := $actualchars;
@@ -411,6 +438,7 @@ role Raku::Common {
                     self.panic("Ending delimiter $*DELIM not found");
                 }
             }
+            $*R.IMPL-HEREDOC-BODIES-ATTACHED;
             $here.pass-at-current;
             $here.set_actions($actions);
             $here
@@ -420,20 +448,37 @@ role Raku::Common {
         }
     }
 
-    token cheat-heredoc {
+    # Takes the queued heredoc bodies after the given closer when it ends the
+    # line, or after either closer given none. A statement passes a semicolon
+    # so a closing brace stays with its block, which a semicolon may follow.
+    token cheat-heredoc($closer?) {
+        :my $scope;
+        :my $package;
         <?{ nqp::elems($*CU.herestub-queue) }>
         \h*
-        <[ ; } ]>
+        $<closer>=[
+          | <?{ nqp::isconcrete($closer) }> $closer
+          | <!{ nqp::isconcrete($closer) }> <[ ; } ]>
+        ]
+        [ <?{ $<closer> eq '}' }> \h* ';' ]?
         \h*
         <?before \n | '#'>
 
-        # <.ws> is where the heredoc body splices in. Leave this scope for
-        # it, then restore the same one. Re-entering a fresh scope would
-        # drop the declarations already registered into it, so begin-time
-        # code later could not resolve any enclosing lexical.
-        :my $scope := $*R.leave-scope;
+        # <.ws> splices in the heredoc body. After a closing brace the body is
+        # parsed outside the block, and outside a package the block is the
+        # body of, so leave those scopes and re-enter the same objects.
+        {
+            if $<closer> eq '}' {
+                $scope := $*R.leave-scope;
+                $package := $*R.leave-scope
+                  if nqp::istype($*R.current-scope, self.Nodify('Package'));
+            }
+        }
         <.ws>
-        { $*R.re-enter-scope($scope) }
+        {
+            $*R.re-enter-scope($package) if nqp::isconcrete($package);
+            $*R.re-enter-scope($scope) if nqp::isconcrete($scope);
+        }
         <?MARKER('end-statement')>
     }
 
@@ -463,11 +508,13 @@ role Raku::Common {
 
         {
             if nqp::can($lang,'herelang') {
-                my $delim := $<nibble>.ast.literal-value // $/.panic(
+                my $delim := $<nibble>.ast.IMPL-AWAIT-BODY // $/.panic(
                   "Stopper '" ~ $<nibble> ~ "' too complex for heredoc"
                 );
                 $*CU.queue-heredoc(Herestub.new(
-                  :$delim, :grammar($lang.herelang), :orignode(self)
+                  :$delim, :grammar($lang.herelang), :orignode(self),
+                  :resolver-state($*R.IMPL-HEREDOC-STATE), :lang($*LANG),
+                  :package($*PACKAGE)
                 ));
             }
         }
@@ -609,12 +656,12 @@ role Raku::Common {
         self.set-pos($original-pos);
     }
     method typed-worry($name, *%opts) {
-        $*R.add-worry: self.build-exception($name, |%opts);
+        $*R.add-worry: self.build-exception($name, :worry, |%opts);
         self
     }
 
     # Build an exception by name through the current resolver
-    method build-exception($name, *%opts) {
+    method build-exception($name, :$worry, *%opts) {
         # Set up absolute path if possible
         my $file := nqp::getlexdyn('$?FILES');
         if nqp::isnull($file) {
@@ -622,11 +669,19 @@ role Raku::Common {
         }
         elsif !nqp::eqat($file,'/', 0)    # does not start with /
           &&  !nqp::eqat($file,'-e',0)    # and it's not -e
+          &&  !nqp::eqat($file,'-M',0)    # and it's not -M
           &&  !nqp::eqat($file,':', 1) {  # and no drive letter at start
             $file := nqp::cwd ~ '/' ~ $file;
         }
 
         my $cursor := %opts<precursor> ?? self.PRECURSOR !! self;
+        # A failed cursor's position is a negative sentinel. Report from the
+        # furthest position the parse reached instead. A cursor positioned
+        # deliberately, like a check time error pointing at a name, is left
+        # alone.
+        if $cursor.pos < 0 && $cursor.'!highwater'() >= 0 {
+            $cursor.'!cursor_pos'($cursor.'!highwater'());
+        }
         my @prepost := self.prepost($cursor);
         my $pre := @prepost[0];
         my $post := @prepost[1];
@@ -639,7 +694,10 @@ role Raku::Common {
         elsif %opts<expected> {
             @expected := %opts<expected>;
         }
-        elsif $high >= $cursor.pos() {
+        # A worry is raised on the cursor where it belongs and is never a
+        # parse failure, so it keeps that position and the expectations
+        # gathered at the highwater mark do not apply to it.
+        elsif $high >= $cursor.pos() && !$worry {
             my @raw_expected := $cursor.'!highexpect'();
             $cursor.'!cursor_pos'($high);
             my %seen;
@@ -732,8 +790,9 @@ role Raku::Common {
         my int $prestart := $pos - $distance;
         $prestart := 0 if $prestart < 0;
 
-        # FIXME workaround for when $pos is -3. Need to figure out how to
-        # get the real pos
+        # A failed cursor's position is a negative sentinel; the caller
+        # normally repositions such a cursor to its highwater mark first.
+        # When even that was unavailable, fall back to the source start.
         $pos := 0 if $pos < 0;
 
         my $pre := nqp::substr($orig,$prestart,$pos - $prestart);
@@ -885,6 +944,13 @@ role Raku::Common {
 
         elsif ($*VARIABLE-NAME && $*VARIABLE-NAME eq $name) {
             self.typed-panic: 'X::Syntax::Variable::Initializer', :$name;
+        }
+
+        elsif (my str $refusal := $*R.IMPL-HEREDOC-REFUSED($name)) eq 'ambiguous' {
+            self.typed-panic: 'X::Syntax::Heredoc::AmbiguousName', symbol => $name;
+        }
+        elsif $refusal eq 'hidden' {
+            self.typed-panic: 'X::Syntax::Heredoc::HiddenName', symbol => $name;
         }
 
         # Not resolved and not a Callable
@@ -1167,14 +1233,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
+    # The slangs every compilation starts with besides MAIN, by name, each
+    # a grammar and its actions. A slang variable built outside a parse
+    # takes its grammar from here.
+    method standard-slangs() {
+        nqp::hash(
+          'Quote',   [Raku::QGrammar,       Raku::QActions],
+          'Regex',   [Raku::RegexGrammar,   Raku::RegexActions],
+        )
+    }
+
     method TOP() {
         # Set up the language braid.
         my $*LANG := self;
         my $*MAIN := 'MAIN';
-        self.define_slang('MAIN',    self.WHAT,            self.actions);
-        self.define_slang('Quote',   Raku::QGrammar,       Raku::QActions);
-        self.define_slang('Regex',   Raku::RegexGrammar,   Raku::RegexActions);
-        self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
+        self.define_slang('MAIN', self.WHAT, self.actions);
+        for self.standard-slangs {
+            self.define_slang($_.key, $_.value[0], $_.value[1]);
+        }
 
         # we default to strict!
         self.set_pragma('strict',1);
@@ -1198,6 +1274,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # This contains the given options, from the command line if invoked
         # from there, otherwise from EVAL invocations.
         my %*OPTIONS := %*COMPILING<%?OPTIONS>;
+
+        # HLL::Compiler dumps the match tree for a parse target, spelled in
+        # any case, so that keeps the whole tree. Everything else reads only
+        # the nodes, so finished statements drop their captures.
+        my $*DROP-STATEMENT-CAPTURES :=
+          nqp::lc(nqp::atkey(%*OPTIONS, 'target')) ne 'parse';
 
         # Package declarator to meta-package mapping. Starts pretty much empty;
         # we get the mappings either imported or supplied by the setting. One
@@ -1224,8 +1306,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # of doc blocks to statements that will not actually be CHECKed
         my $*PARSING-DOC-BLOCK;
 
-        # RakuDoc blocks collected so far, to be included with next statement
-        # into its statement list.
+        # RakuDoc blocks collected so far, each stored with a statement id
+        # mark and its source position.  A statement claims blocks marked
+        # at or above its own statement list's mark and below its own id.
+        # That makes the
+        # statement that follows a block in the same statement list claim
+        # it, rather than the first statement completed inside a nested
+        # statement list.
         my $*DOC-BLOCKS-COLLECTED := [];
 
         # RakuDoc aliases (=alias -> A<>) collected so far
@@ -1248,19 +1335,48 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Set up the language to be used, possibly specified by "use vxxx"
     rule lang-setup($*OUTER-CU) {
-        [ <.ws>? use <version> ';'? ]?
+        [ <.ws>? $<use>=use <version> ';'? ]?
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a
     # Raku level grammar.  Takes the language (usually 'MAIN') and the
     # name of the regex to be executed.
-    method FOREIGN-LANG($langname, $regex) {
+    method FOREIGN-LANG($langname, $regex, *@args, *%named) {
         my $grammar := self.slang_grammar($langname);
+        self.panic("No language '" ~ $langname ~ "' is registered")
+          if nqp::isnull($grammar);
         if nqp::istype($grammar, NQPMatch) {
-            self.LANG($langname, $regex);
+            self.LANG($langname, $regex, |@args, |%named);
         }
         else {
-            nqp::die('FOREIGN-LANG non-NQP branch NYI')
+            # The foreign cursor cannot reuse this parse's shared state
+            # because regexes of a Raku level grammar expect their own
+            # shared type.
+            my $lang-cursor := $grammar.'!cursor_init'(self.orig, :p(self.pos));
+            $lang-cursor.clone_braid_from(self);
+            $lang-cursor.set_actions(self.slang_actions($langname));
+            my $ret := $lang-cursor."$regex"(|@args, |%named);
+
+            # Rebuild the Raku level match as an NQP one so the calling
+            # grammar can consume its extent and made value like any
+            # other subrule result.  Captures of the foreign parse stay
+            # behind, so values must cross the boundary through make.
+            my $Match := $*R.type-from-setting('Match');
+
+            # Transfer the extent the capture markers of the foreign
+            # regex determined, without reifying its captures.
+            $ret.CURSOR_CAPTURE_MARKERS;
+            my $new := nqp::create(NQPMatch);
+            nqp::bindattr($new, NQPMatch, '$!shared', self.'!shared'());
+            nqp::bindattr_i($new, NQPMatch, '$!from',
+              nqp::getattr_i($ret, $Match, '$!from'));
+            nqp::bindattr_i($new, NQPMatch, '$!pos',
+              nqp::getattr_i($ret, $Match, '$!pos'));
+            nqp::bindattr_i($new, NQPMatch, '$!to',
+              nqp::getattr_i($ret, $Match, '$!to'));
+            nqp::bindattr($new, NQPMatch, '$!made',
+              nqp::getattr($ret, $Match, '$!made'));
+            $new.set_braid_from(self)
         }
     }
 
@@ -1275,6 +1391,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*ORIGIN-SOURCE;   # current RakuAST::Origin::Source object
         :my @*ORIGIN-NESTINGS := [];  # handling nested origins
         :my $*R;               # current RakuAST::Resolver::xxx object
+        :my $*LANGUAGE-REVISION;  # language revision of this compilation unit
         :my $*LITERALS;        # current RakuAST::LiteralBuilder object
         :my &*DD;              # debug helper to dd()
         {
@@ -1294,7 +1411,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*EXPORT;
         :my $*NEXT-STATEMENT-ID := 0;  # to give each statement an ID
         :my $*START-OF-COMPUNIT := 1;  # flag: start of a compilation unit?
-        <.lang-setup($outer-cu)>  # set the above variables
+        <lang-setup($outer-cu)>  # set the above variables
         :my $*PACKAGE;
 
         # Further needed initializations
@@ -1316,6 +1433,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              {self.typed-panic: 'X::Syntax::Confused', reason => 'Unexpected closing bracket'}
           || {self.typed-panic: 'X::Syntax::Confused'}  # huh??
         ]
+        # A heredoc on a last line that has no newline gets no body.
+        [
+          <?{ nqp::elems($*CU.herestub-queue) }>
+          <.panic("Ending delimiter " ~ $*CU.herestub-queue[0].delim ~ " not found")>
+        ]?
         { $*R.leave-scope }
     }
 
@@ -1325,6 +1447,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Parsing zero or more statements, e.g. inside a (pointy) block
     rule statementlist {
         :dba('statement list')
+        :my $*STATEMENT-LIST-MARK := $*NEXT-STATEMENT-ID;
         <.ws>
         :my $*LANG;              # Define this scope to be a new language
         <!!{ $*LANG := $/.clone_braid_from(self); 1 }>
@@ -1343,6 +1466,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Parsing zero or more statements in an expression, e.g @a[10;20]
     rule semilist {
         :dba('list composer')
+        :my $*STATEMENT-LIST-MARK := $*NEXT-STATEMENT-ID;
         ''
         [
           | <?before <.[)\]}]> >  # bumping into  ) ] }
@@ -1356,6 +1480,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Parsing zero or more statements in a contextualizer, e.g $(10;20)
     rule sequence {
         :dba('sequence of statements')
+        :my $*STATEMENT-LIST-MARK := $*NEXT-STATEMENT-ID;
         ''
         [
           | <?before <.[)\]}]> >  # bumping into  ) ] }
@@ -1394,11 +1519,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                  <statement-mod-loop>
                  {
                      unless $*LANG.pragma('p5isms') {
+                         # The do prefix captures its keyword token, which
+                         # a translation may override, so its presence is
+                         # what identifies a do rather than the text.
                          my $sp := $<EXPR><statement-prefix>;
                          $/.obs(
-                           "do..." ~ $<statement-mod-loop><sym>,
+                           "do..."
+                             ~ nqp::atpos(nqp::split(' ', ~$<statement-mod-loop>), 0),
                            "repeat...while or repeat...until"
-                         ) if $sp && $sp<sym> eq 'do';
+                         ) if $sp && $sp<stmt-prefix-do>;
                      }
                  }
             ]?
@@ -1473,7 +1602,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # Parsing a block *without* a signature (e.g. phasers)
-    token block($kind = 'Block', :$parameterization) {
+    token block($kind = 'Block', :$parameterization, :$package-body) {
         :dba('scoped block')
         :my $borg := $*BORG;                        # keep current context
         :my $has-mystery := 0;  # never set, see missing-block
@@ -1481,7 +1610,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BLOCK;                                # localize block to here
         [
           || <?[{]>                                 # block without signature
-             <.enter-block-scope($kind, $parameterization)>
+             <.enter-block-scope($kind, $parameterization, $package-body)>
              {
                  if nqp::istype($*BLOCK, self.Nodify('ParseTime')) {
                      $*BLOCK.ensure-parse-performed($*R, $*CU.context);
@@ -1505,8 +1634,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | '{YOU_ARE_HERE}' <you_are_here>
           | :dba('block')
             '{'                                     # actual block start
+            <.enter-block-body>
             <statementlist=.key-origin('statementlist')>
-            [<.cheat-heredoc> || '}']               # actual block end
+            [<.cheat-heredoc('}')> || '}' <.leave-block-body>]  # actual block end
             <?end-statement>              # mark line-ending } as a terminator
           || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
@@ -1521,14 +1651,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # Parsing any unit scoped block (either package or sub)
-    token unit-block($decl, $kind = 'Block', :$parameterization) {
+    token unit-block($decl, $kind = 'Block', :$parameterization, :$package-body) {
         :my $*BLOCK;
         {                                           # entry check
-            $/.typed_panic("X::UnitScope::MustHaveUnit",:what($decl))
+            $/.typed-panic("X::UnitScope::MustHaveUnit",:what($decl))
               unless $*SCOPE eq 'unit';
         }
         { $*IN-DECL := ''; }                        # not inside declaration
-        <.enter-block-scope($kind, $parameterization)>
+        <.enter-block-scope($kind, $parameterization, $package-body)>
         {
             if nqp::istype($*BLOCK, self.Nodify('ParseTime')) {
                 $*BLOCK.ensure-parse-performed($*R, $*CU.context);
@@ -1540,9 +1670,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Helper token to set the kind of scope a block is in, *and* have
     # any appropriate actions executed on them
-    token enter-block-scope($*SCOPE-KIND, $*PARAMETERIZATION = Mu) { <?> }
+    token enter-block-scope($*SCOPE-KIND, $*PARAMETERIZATION = Mu, $*PACKAGE-BODY = Mu) { <?> }
+
+    # Helper token to enter the body of a package ahead of its traits, as the
+    # body holds what they declare
+    token enter-package-body($*SCOPE-KIND, $*PARAMETERIZATION) { <?> }
+
+    # Helper token to mark the end of the traits of a package
+    token leave-package-header { <?> }
+
+    # Helper token to claim the leading doc of a declaration that is made
+    # after the expression it holds
+    token claim-leading-doc() { <?> }
 
     # Helper token to make the actions handle the end of a scope
+    token enter-block-body()  { <?> }
+    token leave-block-body()  { <?> }
     token leave-block-scope() { <?> }
 
 #-------------------------------------------------------------------------------
@@ -1644,9 +1787,34 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?before 'my'? '$'\w+\s+'(' >
           <.typed-panic: 'X::Syntax::P5'>
         ]?
-        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
-          <.obs: 'C-style "for (;;)" loop', '"loop (;;)"'>
-        ]?
+        <?MARKER('for-source')>
+    }
+
+    # A for source that starts with a parenthesized list of three expressions
+    # separated by semicolons, any of them empty, is a C-style loop. Checking
+    # it in a lookahead would parse it twice and declare everything in it twice.
+    method vet-c-style-for(int $from, $semilist) {
+        my int $semicolons;
+        my int $part-statements;
+        for $semilist<statement> {
+            if $_.to > $_.from {
+                my $ast := $_.ast;
+                return self unless ++$part-statements == 1
+                  && nqp::istype($ast, self.Nodify('Statement::Expression'))
+                  && !nqp::isconcrete($ast.condition-modifier)
+                  && !nqp::isconcrete($ast.loop-modifier)
+                  && !nqp::elems($ast.IMPL-UNWRAP-LIST($ast.labels));
+            }
+            if nqp::eqat(self.orig, ';', $_.to) {
+                ++$semicolons;
+                $part-statements := 0;
+            }
+        }
+        if $semicolons == 2 && !$*LANG.pragma('p5isms') {
+            self.'!clear_highwater'();
+            self.new-cursor-at($from).obs('C-style "for (;;)" loop', '"loop (;;)"');
+        }
+        self
     }
 
     # Handle "for"
@@ -1766,9 +1934,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
+    # Unlike the legacy grammar, this does not re-enter the parse through the
+    # braid when a loaded module replaces the MAIN slang, so a module that
+    # switches the language mid-parse is not supported yet.
     token statement-control:sym<use> {
         :my $*IN-DECL := 'use';
-        # TODO this is massively simplified
+        # A DOC-prefixed use loads the module only when compiling
+        # documentation.
+        $<doc>=[ <.phaser-DOC> \h+ ]?
         <.use-use>
         <.ws>
         [
@@ -1776,7 +1949,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             { $/.typed-panic: 'X::Language::TooLate', version => ~$<version> }
 
           | <module-name=.longname>
-            [ <.spacey> <arglist> <.cheat-heredoc>? ]?
+            [ <.spacey> <arglist> <.cheat-heredoc(';')>? ]?
         ]
         <.ws>
     }
@@ -1873,7 +2046,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-prefix:sym<NEXT>  { <.phaser-NEXT>  <.kok> <blorst> }
     token statement-prefix:sym<POST>  { <.phaser-POST>  <.kok> <blorst> }
     token statement-prefix:sym<PRE>   { <.phaser-PRE>   <.kok> <blorst> }
-    token statement-prefix:sym<QUIT>  { <.phaser-QUIT>  <.kok> <blorst> }
+    token statement-prefix:sym<QUIT>  { <.phaser-QUIT>  <.kok> <blorst=.block> }
     token statement-prefix:sym<TEMP>  { <.phaser-TEMP>  <.kok> <blorst> }
     token statement-prefix:sym<UNDO>  { <.phaser-UNDO>  <.kok> <blorst> }
 
@@ -1903,15 +2076,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
           | <![;]>
             <block=.statement>
-            <.cheat-heredoc>?
+            <.cheat-heredoc(';')>?
               || <.missing: 'block or statement'>
         ]
     }
 
     # Simple prefixes that just take a blorst
     token statement-prefix:sym<do> {
-        <.sym> <.kok> <blorst>
-#        <.stmt-prefix-do> <.kok> <blorst>  # XXX needs fixing
+        <stmt-prefix-do> <.kok> <blorst>
     }
     token statement-prefix:sym<eager> {
         <.stmt-prefix-eager> <.kok> <blorst>
@@ -1987,8 +2159,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # The EXPR method implements an operator precedence parsing algorithm.
     # One needs a stack for that and there's not a neat way to express it
     # within the rule language.
-    method EXPR(str $preclim = '') {
+    method EXPR(str $preclim = '', int $invocant-ok = 0) {
         my $*LEFTSIGIL := '';
+        my $*INVOCANT_OK := $invocant-ok;
         my int $noinfix := $preclim eq 'y=';
 
         my $here    := self.new-cursor;
@@ -2124,11 +2297,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 }
                 elsif $inassoc eq 'list' {
                     my $op1 := @opstack[nqp::elems(@opstack)-1]<OPER>.Str;
-                    my $op2 := $infix.Str;
+                    my $op2 := $infix<OPER>.Str;
                     self.EXPR-nonlistassoc($infix, $op1, $op2)
                       if $op1 ne $op2 && $op1 ne ':';
                 }
             }
+
+            # A comma ends the first argument, the only one a call can take as its invocant
+            $*INVOCANT_OK := 0 if $inprec eq 'g=';
 
             nqp::push(@opstack, $infix); # The Shift
             $here.set-pos($pos);
@@ -2620,13 +2796,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postfix:sym<⚛++> { <sym> }
     token postfix:sym<⚛--> { <sym> }
 
-    # TODO: report the correct bracket in error message
     token postfix:sym«->» {
         <sym>
         [
-          | ['[' | '{' | '(' ]
-            <.obs: '->(), ->{} or ->[] as postfix dereferencer',
-              '.(), .[] or .{} to deref, or whitespace to delimit a pointy block'>
+          | $<bracket>=['[' | '{' | '(' ]
+            {
+                my str $open := ~$<bracket>;
+                my str $pair := $open eq '['
+                  ?? '[]'
+                  !! $open eq '{' ?? '{}' !! '()';
+                $/.obs(
+                  '->' ~ $pair ~ ' as postfix dereferencer',
+                  '.' ~ $pair ~ ' to deref'
+                    ~ ($open eq '['
+                        ?? ''
+                        !! ', or whitespace to delimit a pointy block')
+                );
+            }
 
           | <.obs: '-> as postfix',
               'either . to call a method, or whitespace to delimit a pointy block'>
@@ -3020,8 +3206,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto token circumfix {*}
     token circumfix:sym<( )> {
         :my $*ADVERB-AS-INFIX := 0;
+        :my $for-source := self.MARKED('for-source') ?? 1 !! 0;
         :dba('parenthesized expression')
         '(' ~ ')' <semilist>
+        { $/.vet-c-style-for(self.pos, $<semilist>) if $for-source }
     }
 
     token circumfix:sym<[ ]> {
@@ -3371,11 +3559,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                '('
                <.ws>
                [
-                 || <accept=.maybe-typename>
+                 # A :: before a name looks the type up, as a term would,
+                 # rather than declaring a type capture in the enclosing scope.
+                 || [ '::' <?before <.ident>> ]? <accept=.maybe-typename(:allow-capture(0))>
                     <?{
-                        my $it := $<accept>.ast;
-                        nqp::istype($it,self.Nodify('Type::Coercion'))
-                          || $*R.is-name-type($it.name)
+                        my $it := $<accept>.ast.IMPL-BASE-TYPE;
+                        nqp::istype($it, self.Nodify('Type::Simple'))
+                          && $*R.is-name-type($it.name)
                     }>
                  || $<accept_any>=<?>
                ]
@@ -3837,28 +4027,31 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BLOCK;
         :my $*PACKAGE;
         :my $*PACKAGE-BEGIN-SORRY-BASE := $*R.deferred-begin-sorries;
+        :my $*PACKAGE-HEADER-GENERATED := 0;
+        :my $*PACKAGE-HEADER-GENERATED-END := 0;
         :my $scope;
+        :my $body-scope;
         <!!{ $/.clone_braid_from(self) }>
         <longname>? {}
         <.stub-package($<longname>)>
         [ :dba('generic role')
-          <?{ ($*PKGDECL // '') eq 'role' }>
+          <?{ $*PACKAGE.declarator eq 'role' }>
           '[' ~ ']' <signature(:DECLARE-TARGETS(1))>
           { $*IN-DECL := ''; }
         ]?
         { $/.set_package($*PACKAGE) }
-        :my $*ALSO-TARGET := $*PACKAGE;
-        :my $*TRUSTS-TARGET := $*PACKAGE;
+        <.enter-package-body($*PACKAGE.declarator eq 'role' ?? 'RoleBody' !! 'Block', $<signature> ?? $<signature>.ast !! Mu)>
         <trait($*PACKAGE)>*
-        { $scope := $*R.leave-scope() }
-        <.enter-package-scope($<signature>, $scope)>
+        <.leave-package-header>
+        { $body-scope := $*R.leave-scope(); $scope := $*R.leave-scope() }
+        <.enter-package-scope($<signature>, $scope, $body-scope)>
         [
-          || <?[{]> { $*START-OF-COMPUNIT := 0; } <block($*PKGDECL eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
+          || <?[{]> { $*START-OF-COMPUNIT := 0; } <block($*PACKAGE.declarator eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu), :package-body($body-scope))>
           || ';'
              [
                || <?{ $*START-OF-COMPUNIT }>
                   { $*START-OF-COMPUNIT := 0; }
-                  <unit-block($*PKGDECL, $*PKGDECL eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu))>
+                  <unit-block($*PKGDECL, $*PACKAGE.declarator eq 'role' ?? 'RoleBody' !! 'Block', :parameterization($<signature> ?? $<signature>.ast !! Mu), :package-body($body-scope))>
 
                || { $/.typed-panic: "X::UnitScope::TooLate", what => $*PKGDECL }
              ]
@@ -3870,7 +4063,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token stub-package($*PACKAGE-NAME) { <?> }
-    token enter-package-scope($*SIGNATURE, $*LEXICAL-SCOPE) { <?> }
+    token enter-package-scope($*SIGNATURE, $*LEXICAL-SCOPE, $*BODY-SCOPE = Mu) { <?> }
     token leave-package-scope { <?> }
 
     proto token scope-declarator {*}
@@ -4052,7 +4245,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                        '{' ~ '}' <semilist>
                        {
                            self.typed-sorry('X::Syntax::Reserved',
-                             reserved => "{} shape syntax with the $sigil sigil"
+                             reserved => '{} shape syntax with the ' ~ $sigil ~ ' sigil'
                            ) if $sigil ne '%';
                        }
 
@@ -4162,7 +4355,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 }
                 my $canname := $category
                   ~ ':sym'
-                  ~ self.Nodify('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
+                  ~ self.Nodify('ColonPair').IMPL-QUOTE-VALUE(~$opname);
 
                 $/.add-categorical(
                   $category, $opname, $canname, $name.ast.canonicalize, $*BLOCK
@@ -4170,7 +4363,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
         }
         [ '(' <signature(:ON-ROUTINE(1))> ')' ]?
-        :my $*ALSO-TARGET := $*BLOCK;
         <trait($*BLOCK)>* :!s
         { if $<signature> { $*BLOCK.replace-signature($<signature>.ast); } }
         { $*IN-DECL := ''; }
@@ -4178,8 +4370,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || ';'
              {
                  # Allow all subs with ; but require "unit" scope from 6.e
-                 if nqp::getcomp('Raku').language_revision >= 3 {
-                     $/.typed_panic("X::UnitScope::MustHaveUnit","sub")
+                 if $*LANGUAGE-REVISION >= 3 {
+                     $/.typed-panic("X::UnitScope::MustHaveUnit","sub")
                        unless $*SCOPE eq 'unit';
                  }
 
@@ -4227,7 +4419,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
         {
             # Declare self early for attribute parameters
-            $*R.declare-lexical($/.Nodify('VarDeclaration::Implicit::Self').new)
+            $*R.declare-lexical($*BLOCK.IMPL-SELF-DECLARATION)
         }
         [ '(' <signature(1, :ON-ROUTINE(1))> ')' ]?
         <trait($*BLOCK)>* :!s
@@ -4255,7 +4447,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN-DECL := 'rule';
-        :my $*WHITESPACE-OK := 1;
+        { %*RX<sigspace> := 1 }
         <regex-def>
     }
 
@@ -4289,13 +4481,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               }
           }
           { if $<deflongname> { %*RX<name> := $*BLOCK.name } }
-          { $*IN-DECL := '' }
           [ '(' <signature> ')' ]?
+          { $*IN-DECL := '' }
           <trait($*BLOCK)>*
-          '{'
-          [
+          '{'<.regex-whitespace>[
             | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-            | <nibble(self.quote-lang(self.Regex(%*RX<P5>), '{', '}'))>
+            | <nibble(self.quote-lang(self.Regex, '{', '}'))>
           ]
           '}'<!RESTRICTED><?end-statement>
           <.leave-block-scope>
@@ -4308,7 +4499,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $categorical := $name ~~ /^'&'((\w+) [ ':<'\s*(\S+?)\s*'>' | ':«'\s*(\S+?)\s*'»' ])$/;
         my $cat := ~$categorical[0][0];
         if $categorical && nqp::can(self, $cat) {
-            my $canop := self.Nodify('ColonPairish').IMPL-QUOTE-VALUE($categorical[0][1]);
+            my $canop := self.Nodify('ColonPair').IMPL-QUOTE-VALUE($categorical[0][1]);
             my $canname := $cat ~ ':sym' ~ $canop;
             self.add-categorical($cat, ~$categorical[0][1], $canname, ~$categorical[0], :current-scope);
         }
@@ -4347,13 +4538,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             || <.typed-panic: "X::Syntax::Missing", :what('initializer on constant declaration')>
         ]
 
-        <.cheat-heredoc>?
+        <.cheat-heredoc(';')>?
     }
 
     token type-declarator:sym<enum> {
         <.typer-enum>
         <.kok>
         :my $*IN-DECL := 'enum';
+        :my $*CLAIMED-DOC;
+        <.claim-leading-doc>
         [
           | <longname>
           | <variable>
@@ -4365,6 +4558,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait>*
 
         [ <?[<(«]>
+          <.claim-leading-doc>
           <term>
           <.ws>
             || <.panic: 'An enum must supply an expression using <>, «», or ()'>
@@ -4374,12 +4568,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule type-declarator:sym<subset> {
         <.typer-subset><.kok>
         :my $*IN-DECL := 'subset';
+        :my $*CLAIMED-DOC;
+        <.claim-leading-doc>
         [
           [
             [ <longname> ]
             { $*IN-DECL := '' }
             <trait>*
-            [ <.constraint-where> <EXPR('e=')> ]?
+            [ <?before <.constraint-where>> <.claim-leading-doc>
+              <.constraint-where> <EXPR('e=')> ]?
           ] || <.malformed: 'subset'>
         ]
     }
@@ -4446,6 +4643,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token numish {
         [
           | 'NaN' »
+          | <hex-float>
           | <integer>
           | <decimal-number>
           | <radix-number>
@@ -4511,6 +4709,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token escale { <[Ee]> <sign> <decint> }
 
+    # C99 hexadecimal floating point, e.g. 0x1.8p+1; the binary exponent
+    # is mandatory, which keeps 0x1.abs parsing as a method call
+    token hex-float {
+        :dba('hexadecimal float')
+        0x '_'?
+        [
+        | <int=.hexint> [ '.' <frac=.hexint> ]?
+        |               '.' <frac=.hexint>
+        ]
+        <[pP]> <sign> <exp=.decint>
+    }
+
     token sign { '+' | '-' | '−' | '' }
 
     token radix-number {
@@ -4548,13 +4758,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
     token bare-rational-number {
-        <?before <.[-−+0..9<>:boxd]>+? '/'>
+        <?before <.[-−+0..9<>:boxd]>+ '/'>
         <nu=.signed-integer> '/' <de=integer>
     }
 
     token complex-number { '<' <bare-complex-number> '>' }
     token bare-complex-number {
-        <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+? 'i'>
+        <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+ 'i'>
         <re=.signed-number> <?[-−+]> <im=.signed-number> \\? 'i'
     }
 
@@ -4562,7 +4772,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <?before v\d+\w*
             [ '.' \d
               || <!{ $*R.resolve-lexical(~$/) }> ]>
-        'v' $<vstr>=[<vnum>+ % '.' ['+' | '-']? ]
+        'v' $<vstr>=[<vnum>+ % '.' ['+' | '-' <!before \w>]? ]
         <!before '-'|\'> # cheat because of LTM fail
     }
 
@@ -4698,7 +4908,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token quote:sym</ /> {
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        :my $*WHITESPACE-OK := 0;
         '/'
         <nibble(self.quote-lang(self.Regex, '/', '/'))>
         [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
@@ -4708,11 +4917,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-rx>
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <quibble(self.Regex(%*RX<P5>))>
+        <quibble(self.Regex)>
         <!old-rx-modifiers>
     }
 
@@ -4720,11 +4928,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-m>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <quibble(self.Regex(%*RX<P5>))>
+        <quibble(self.Regex)>
         <!old-rx-modifiers>
     }
 
@@ -4732,11 +4939,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-ms>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 1;
-        { %*RX<s> := 1 }
+        { %*RX<s> := 1; %*RX<sigspace> := 1 }
         <.qok($/)>
         <rx-adverbs>
-        <quibble(self.Regex(%*RX<P5>))>
+        <quibble(self.Regex)>
         <!old-rx-modifiers>
     }
 
@@ -4744,11 +4950,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-s>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
+        <sibble(self.Regex, self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4756,11 +4961,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-ss>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 1;
-        { %*RX<s> := 1 }
+        { %*RX<s> := 1; %*RX<sigspace> := 1 }
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
+        <sibble(self.Regex, self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4768,11 +4972,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-S>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
+        <sibble(self.Regex, self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4780,11 +4983,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-Ss>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE-OK := 1;
-        { %*RX<s> := 1 }
+        { %*RX<s> := 1; %*RX<sigspace> := 1 }
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
+        <sibble(self.Regex, self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4901,7 +5103,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {
             for $<quotepair> {
                 my $ast := $_.ast;
-                $ast.set-key(self.adverb-rx2str-control($ast.key));
+                $ast.set-key(
+                  self.adverb-rx2str-control($ast.key,
+                    $_<neg> || ($_<num> && !+~$_<num>) ?? 1 !! 0)
+                );
             }
         }
     }
@@ -4961,7 +5166,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]?
         <.unspace>?
         [ <?{ $coercion }> <?[(]>
-          '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>]
+          '(' ~ ')' [<.ws> [
+            [ <!{ $allow-capture }> '::' <?before <.ident>> ]?
+            <accept=.typename(:$allow-capture)>
+            || $<accept_any>=<?>
+          ] <.ws>]
         ]?
         [<.ws> <.traitmod-of> <.ws> <typename> ]?
     }
@@ -4971,17 +5180,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {
             my $longname := $<longname>.ast.canonicalize;
             my $method := $panic ?? 'typed-panic' !! 'typed-sorry';
-            $/."$method"('X::Undeclared',
-              what   => "Type",
-              symbol => $longname,
-              suggestions => $*R.suggest-typename($longname)
-            );
+            my str $refusal := $*R.IMPL-HEREDOC-REFUSED($longname);
+            $refusal eq 'ambiguous'
+              ?? $/."$method"('X::Syntax::Heredoc::AmbiguousName', symbol => $longname)
+              !! $refusal eq 'hidden'
+                ?? $/."$method"('X::Syntax::Heredoc::HiddenName', symbol => $longname)
+                !! $/."$method"('X::Undeclared',
+                     what   => "Type",
+                     symbol => $longname,
+                     suggestions => $*R.suggest-typename($longname)
+                   );
         }
     }
 
-    method maybe-typename() {
+    method maybe-typename(*%options) {
         CATCH { return self.new-cursor }
-        self.typename;
+        self.typename(|%options);
     }
 
 #-------------------------------------------------------------------------------
@@ -5005,7 +5219,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my @*SEPS := nqp::list();
         <.ws>
         [
-          | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
+          | <?before '-->' | ')' | ']' | '{' | ';;' >
+          | <?before ':'\s>
+            { $/.typed-sorry('X::Syntax::Signature::InvocantMarker') }
           | <parameter>
         ]+ % <param-sep>
         <.ws>
@@ -5108,11 +5324,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     rule post-constraint {
         :my $*IN-DECL := '';
+        :my $*OFTYPE;
         :dba('constraint')
         [
-          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE))>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ON-VARDECLARATION($*ON-VARDECLARATION))>
 
-          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE))>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ON-VARDECLARATION($*ON-VARDECLARATION))>
 
           | <.constraint-where> <EXPR('i=')>
         ]
@@ -5120,10 +5337,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token param-var {
         :dba('formal parameter')
+        # a sub-signature does not take the type of the declaration
+        # holding it as its return type; in a list declaration its
+        # variables are declared like those of the signature that holds
+        # it, and the type reaches them through the declaration
+        :my $*OFTYPE;
         [
-          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ARRAY)>
+          | '[' ~ ']' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ON-VARDECLARATION($*ON-VARDECLARATION), :ARRAY)>
 
-          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE))>
+          | '(' ~ ')' <signature(:DECLARE-TARGETS($*DECLARE-TARGETS), :ON-ROUTINE($*ON-ROUTINE), :ON-VARDECLARATION($*ON-VARDECLARATION))>
 
           | $<declname>=[
               <sigil>
@@ -5202,25 +5424,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Argument lists and captures
 
-    token args($*INVOCANT_OK = 0) {
+    token args($invocant-ok = 0) {
         :my $*INVOCANT;
         :my $*GOAL := '';
         :my $*ADVERB-AS-INFIX := 0;
         :dba('argument list')
         [
-          | '(' ~ ')' <semiarglist>             # keep these two lines
-          | <.unspace> '(' ~ ')' <semiarglist>  # separate for performance
-          | [ \s <arglist> ]
+          | '(' ~ ')' <semiarglist($invocant-ok)>             # keep these two lines
+          | <.unspace> '(' ~ ')' <semiarglist($invocant-ok)>  # separate for performance
+          | [ \s <arglist($invocant-ok)> ]
           | <?>
         ]
     }
 
-    token semiarglist {
-        <arglist>+ % ';'
+    token semiarglist($invocant-ok = 0) {
+        <arglist($invocant-ok)> [ ';' <arglist> ]*
         <.ws>
     }
 
-    token arglist {
+    token arglist($invocant-ok = 0) {
         :my $*GOAL := 'endargs';
         :my $*QSIGIL := '';
         <.ws>
@@ -5228,7 +5450,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           | <?stdstopper>
 
-          | <EXPR('e=')>
+          | <EXPR('e=', $invocant-ok)>
             {
                 sub handle-any-named($ast) {
                     $ast.set-key(self.named2str($ast.key))
@@ -5334,7 +5556,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                           ?? $nibble.ast.literal-value(:stringify) // ~$nibble
                           !! $ccf<semilist>;
                     }
-                    my $canop := self.Nodify('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
+                    my $canop := self.Nodify('ColonPair').IMPL-QUOTE-VALUE(~$opname);
                     my $canname := $category ~ ':sym' ~ $canop;
                     my $termname := $category ~ ':' ~ $canop;
                     $/.add-categorical($category, $opname, $canname, $termname, :defterm, :current-scope);
@@ -5457,9 +5679,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             return 0;
         }
 
-        # Work out what default precedence we want, or if it's more special
-        # than just an operator.
-        my %prec;
+        # Precedence needs no attention here: at expression parse time an
+        # operator's properties are resolved from the operator's sub itself,
+        # which is how traits like "is tighter" take effect.
         my int $is-operator;
         my @parts := nqp::split(' ', $opname);
 
@@ -5471,7 +5693,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               :$category, :needs(1)
             ) unless @parts == 1;
 
-            %prec := $OperatorProperties."$category"().prec;  # XXX for now
             $is-operator := 1;
         }
 
@@ -5518,15 +5739,6 @@ only have 1 MAIN grammar, otherwise it will slow down loading of
 Rakudo significantly on *every* run."
         ) if $*COMPILING_CORE_SETTING;
 
-        $declarand := $declarand.compile-time-value if $declarand;
-
-        # when importing, reuse known precedence overrides
-        if %prec && nqp::can($declarand,'prec') {
-            for $declarand.prec.FLATTENABLE_HASH {
-                %prec{$_.key} := $_.value;
-            }
-        }
-
         # Mix an appropriate role into the grammar for parsing the new term
         my $grammar-mixin;
         if $category eq 'term' {
@@ -5538,26 +5750,22 @@ Rakudo significantly on *every* run."
 
         # Mix an appropriate role into the grammar for parsing the new op
         elsif $is-operator {
-            my role Oper[$meth-name, $op, $precedence, $declarand] {
+            my role Oper[$meth-name, $op] {
                 token ::($meth-name) {
                     $<sym>=[$op]
                 }
             }
-            $grammar-mixin := Oper.HOW.curry(
-              Oper, $canname, $opname, %prec, $declarand
-            );
+            $grammar-mixin := Oper.HOW.curry(Oper, $canname, $opname);
         }
 
-        # Find opener and closer and parse an EXPR between them.
-        # XXX One day semilist would be nice, but right now that
-        # runs us into fun with terminators.
+        # Find opener and closer and parse a semilist between them.
         elsif $category eq 'postcircumfix' {
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
                     :my $cursor := nqp::getlex('$¢');
                     :my $stub := $cursor.define_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
-                    $starter ~ $stopper [ <.ws> <statement> ]
+                    $starter ~ $stopper <semilist>
                 }
             }
             $grammar-mixin := Postcircumfix.HOW.curry(
@@ -5565,7 +5773,7 @@ Rakudo significantly on *every* run."
             );
         }
 
-        # Find opener and closer and parse an EXPR between them.
+        # Find opener and closer and parse a semilist between them.
         else {  # $category eq 'circumfix'
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
@@ -5588,21 +5796,6 @@ Rakudo significantly on *every* run."
         self.HOW.mixin(self, $grammar-mixin);
         %*LANG<MAIN> := self.WHAT;
 
-        # Declarand should get precedence traits.
-        if $is-operator && nqp::isconcrete($declarand) {
-            my $base_prec := %prec<prec>;
-            #$declarand.add-trait(self.Nodify('Trait::Is').new(
-            #    :name(self.Nodify('Name').from-lexical('prec')),
-            #    :argument(self.Nodify('Circumfix::Parentheses').new(
-            #        self.Nodify('SemiList').new(
-            #            self.action.r('')
-            #        )
-            #    )),
-            #));
-            #$*W.apply_trait(self.MATCH, '&trait_mod:<is>', $declarand,
-            #    :prec(nqp::hash('prec', $base_prec)));
-        }
-
         # May also need to add to the actions.
         my $actions-mixin := nqp::null;
         if $category eq 'postcircumfix' {
@@ -5610,7 +5803,7 @@ Rakudo significantly on *every* run."
                 method ::($meth)($/) {
                     my $ast := self.r('Call::Name').new(
                         :name(self.r('Name').from-identifier($subname)),
-                        :args(self.r('ArgList').new($<statement>.ast))
+                        :args(self.r('ArgList').new(|$<semilist>.ast.FLATTENABLE_LIST))
                     );
                     self.attach: $/, $ast;
                 }
@@ -5715,6 +5908,17 @@ Rakudo significantly on *every* run."
         ]*
     }
 
+    # Whitespace between regex atoms.  Like ws, but without unspace:
+    # in a regex a backslash always starts an escape such as \# or \s.
+    token regex-whitespace {
+        :dba('whitespace')
+        [
+          | [ \r\n || \v ] <.heredoc>
+          | <.horizontal-whitespace>
+          | <.vcs-conflict>
+        ]*
+    }
+
     # Handle vertical whitespace including version control markers
     token vertical-whitespace {
         :dba('vertical whitespace')
@@ -5772,7 +5976,7 @@ Rakudo significantly on *every* run."
 
     token comment:sym<#=> { '#=' \h $<attachment>=[\N*] }
     token comment:sym<#=(...)> {
-        '#=' <?opener> <attachment=.quibble(self.Quote)> \n?
+        '#=' <?opener> <attachment=.quibble(self.Quote)>
     }
 
 #-------------------------------------------------------------------------------
@@ -5798,6 +6002,16 @@ Rakudo significantly on *every* run."
     # handle =finish
     token doc-block:sym<finish> {
         ^^ \h* '=finish' $<level>=\d* <doc-newline> $<finish> = .*
+    }
+
+    # handle =begin ignore
+    token doc-block:sym<ignore-block> {
+
+        ^^ $<margin>=[ \h* ] '=begin' \h+ ignore <.doc-newline>
+
+        $<ignored>=[ [ <.ignore-block>+ | .  ]*? ]
+
+        [ ^^ \h* '=end' \h+ ignore <.doc-newline> | $ ]
     }
 
     # handle =alias
@@ -6049,7 +6263,7 @@ Rakudo significantly on *every* run."
         <.doc-newline>
 
         # and any following lines as well
-        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
+        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' <!before \w> ] \N* \n? ]* \n*]
     }
 
     token doc-block:sym<abbreviated> {
@@ -6074,7 +6288,7 @@ Rakudo significantly on *every* run."
         [ [ \h+ $<header>=[\N+ \n?]? ] | <.doc-newline> ]
 
         # and any following lines as well
-        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
+        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' <!before \w> ] \N* \n? ]* \n*]
     }
 
     token doc-block:sym<lines> {
@@ -6397,51 +6611,59 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     }
 
     token do-nibbling {
-        :my int $from := self.pos;
-        :my int $to   := $from;
-        :my $orig     := self.orig;
+        :my @from := nqp::list_i(self.pos);   # a list so the subrules can advance it
         :my @NIBBLES;
         [
           <!stopper>
           [
-            || <starter>
-               <nibbler>
-               <stopper>
-               {
-                   my $c := $/;
-                   my $starter := $<starter>.pop;
-                   $to   := $starter.from;
-                   nqp::push(@NIBBLES,nqp::substr($orig,$from,$to - $from))
-                     if $from != $to;
-
-                   nqp::push(@NIBBLES,$starter.Str);
-                   nqp::push(@NIBBLES,$<nibbler>.pop);
-                   nqp::push(@NIBBLES,$<stopper>.pop.Str);
-
-                   $from := $to := $c.pos;
-               }
-            || <escape>
-               {
-                   my $c      := $/;
-                   my $escape := $<escape>.pop;
-                   $to        := $escape.from;
-                   nqp::push(@NIBBLES,nqp::substr($orig,$from,$to - $from))
-                     if $from != $to;
-
-                   nqp::push(@NIBBLES,$escape);
-
-                   $from := $to := $c.pos;
-               }
+            || <.nibble-nesting(@from, @NIBBLES)>
+            || <.nibble-escape(@from, @NIBBLES)>
             || .
           ]
         ]*
         {
             my $c := $/;
-            $to   := $c.pos;
+            my int $from := nqp::atpos_i(@from,0);
+            my int $to   := $c.pos;
             $*LASTQUOTE := [self.pos, $to];
-            nqp::push(@NIBBLES,nqp::substr($orig,$from,$to - $from))
+            nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
               if $from != $to || !@NIBBLES;
             @*NIBBLES := @NIBBLES;
+        }
+    }
+
+    # separate tokens so each block sees a short capture stack, not the whole string's
+    token nibble-nesting(@from, @NIBBLES) {
+        <starter>
+        <nibbler>
+        <stopper>
+        {
+            my $c := $/;
+            my int $from := nqp::atpos_i(@from,0);
+            my int $to   := $<starter>.from;
+            nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+              if $from != $to;
+
+            nqp::push(@NIBBLES,$<starter>.Str);
+            nqp::push(@NIBBLES,$<nibbler>);
+            nqp::push(@NIBBLES,$<stopper>.Str);
+
+            nqp::bindpos_i(@from,0,$c.pos);
+        }
+    }
+
+    token nibble-escape(@from, @NIBBLES) {
+        <escape>
+        {
+            my $c := $/;
+            my int $from := nqp::atpos_i(@from,0);
+            my int $to   := $<escape>.from;
+            nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+              if $from != $to;
+
+            nqp::push(@NIBBLES,$<escape>);
+
+            nqp::bindpos_i(@from,0,$c.pos);
         }
     }
 
@@ -6478,33 +6700,23 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         }
         token escape:ch { $<ch> = [\S] { self.ccstate($<ch>) } }
 
+        # Every escape here names a character.  A class like \d names none, so
+        # it is left to the unrecognized sequence panic.
         token backslash:delim { <text=.starter> | <text=.stopper> }
         token backslash:sym<\\> { <text=.sym> }
         token backslash:sym<a> { :i <sym> }
         token backslash:sym<b> { :i <sym> }
         token backslash:sym<c> { :i <sym> <charspec> }
-        token backslash:sym<d> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<e> { :i <sym> }
         token backslash:sym<f> { :i <sym> }
-        token backslash:sym<h> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<N> { <?before 'N{'<.[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>  }
         token backslash:sym<n> { :i <sym> }
         token backslash:sym<o> { :i :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ] }
         token backslash:sym<r> { :i <sym> }
-        token backslash:sym<s> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<t> { :i <sym> }
-        token backslash:sym<v> { :i <sym> { $*CCSTATE := '' } }
-        token backslash:sym<w> { :i <sym> { $*CCSTATE := '' } }
         token backslash:sym<x> { :i :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
 
-        # keep random backslashes like qq does
-        token backslash:misc { {}
-            [
-            | $<text>=(\W)
-            | $<x>=(\w) <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$<x>)>
-            ]
-        }
         multi method tweak_q($v) { self.panic("Too late for :q") }
         multi method tweak_qq($v) { self.panic("Too late for :qq") }
         multi method tweak_cc($v) { self.panic("Too late for :cc") }
@@ -6551,7 +6763,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         self.typed-sorry: 'X::Syntax::Regex::SolitaryBacktrackControl';
     }
 
-    token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
+    token normspace { <?before \s | '#'> <.LANG('MAIN', 'regex-whitespace')> }
 
     token rxstopper { <stopper> }
 
@@ -6622,7 +6834,9 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         :my $*MODIFIER;
         {
             $*NEGATED := $<n>[0] gt '' ?? ($<n>[0] eq '!' ?? 1 !! !+$<n>[0]) !! 0;
-            $*MODIFIER := self.slangs<MAIN>.adverb-rx2str-control(~$<modifier>);
+            $*MODIFIER := self.slangs<MAIN>.adverb-rx2str-control(
+              ~$<modifier>, $*NEGATED ?? 1 !! 0
+            );
         }
     }
 
@@ -6678,7 +6892,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         [
           | \w
           [ <?before ' ' \w <!before <.quantifier> > >
-            <!{ $*WHITESPACE-OK }>
+            <!{ %*RX<sigspace> || $*HAS_GOAL }>
             <.typed-worry: 'X::Syntax::Regex::InsignificantWhitespace'>
           ]?
           <.SIGOK>
@@ -6708,29 +6922,5 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         :my $*IN_REGEX_ASSERTION := 1;
         <!RESTRICTED>
         <arglist=.LANG('MAIN','arglist')>
-    }
-}
-
-#-------------------------------------------------------------------------------
-# Grammar to parse PCRE like regexes
-
-grammar Raku::P5RegexGrammar is QRegex::P5Regex::Grammar does Raku::Common {
-    token rxstopper { <stopper> }
-
-    token p5metachar:sym<(?{ })> {
-        '(?' <?[{]> <codeblock> ')'
-    }
-
-    token p5metachar:sym<(??{ })> {
-        '(??' <?[{]> <codeblock> ')'
-    }
-
-    token p5metachar:sym<var> {
-        <?[$]> <var=.LANG('MAIN', 'variable')>
-    }
-
-    token codeblock {
-        :my $*ESCAPEBLOCK := 1;
-        <block=.LANG('MAIN','block')>
     }
 }

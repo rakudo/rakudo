@@ -1,7 +1,7 @@
 # Work stages are individual steps in a hyper/race pipeline. They are chained
 # in a linked list by the source attribute. Roles for different kinds of stages
 # follow.
-my role Rakudo::Internals::HyperWorkStage {
+my role Rakudo::Internals::HyperWorkStage is implementation-detail {
     has Rakudo::Internals::HyperWorkStage $.source;
 }
 
@@ -9,13 +9,19 @@ my role Rakudo::Internals::HyperWorkStage {
 # created with an Iterable of some kind, and divide up the work into batches
 # of the appropriate size. Such a stage always lives at the start of a piece
 # of parallel processing pipeline.
-my role Rakudo::Internals::HyperBatcher does Rakudo::Internals::HyperWorkStage {
+my role Rakudo::Internals::HyperBatcher
+  does Rakudo::Internals::HyperWorkStage
+  is implementation-detail
+{
     method produce-batch(int $batch-size --> Rakudo::Internals::HyperWorkBatch) { ... }
 }
 
 # A HyperProcessor performs some operation in a work batch, updating it to
 # reflect the results of the operation.
-my role Rakudo::Internals::HyperProcessor does Rakudo::Internals::HyperWorkStage {
+my role Rakudo::Internals::HyperProcessor
+  does Rakudo::Internals::HyperWorkStage
+  is implementation-detail
+{
     method process-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) { ... }
 }
 
@@ -26,7 +32,10 @@ my role Rakudo::Internals::HyperProcessor does Rakudo::Internals::HyperWorkStage
 # the pipeline. A HyperRebatcher should produce one output batch for each
 # input batch it gets (though may produce no batches on one call, and two on
 # the next, for example).
-my role Rakudo::Internals::HyperRebatcher does Rakudo::Internals::HyperWorkStage {
+my role Rakudo::Internals::HyperRebatcher
+  does Rakudo::Internals::HyperWorkStage
+  is implementation-detail
+{
     method rebatch(Rakudo::Internals::HyperWorkBatch $batch --> List) { ... }
 }
 
@@ -36,7 +45,10 @@ my role Rakudo::Internals::HyperRebatcher does Rakudo::Internals::HyperWorkStage
 # used. This allows for backpressure control: a sequential iterator at the
 # end of a parallel pipeline can choose to call batch-used only at the point
 # when the downstream iterator has actually eaten all the values in a batch.
-my role Rakudo::Internals::HyperJoiner does Rakudo::Internals::HyperWorkStage {
+my role Rakudo::Internals::HyperJoiner
+  does Rakudo::Internals::HyperWorkStage
+  is implementation-detail
+{
     has $!batch-used-channel;
     method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) { ... }
     method consume-error(Exception \e) { ... }

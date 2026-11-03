@@ -3,7 +3,7 @@ use nqp;
 use Test;
 use Test::Helpers;
 
-plan 17;
+plan 39;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -83,11 +83,6 @@ is-run ｢my $ = ^2 .grep: {try 1 after 0}; my $ = {try 5 == 5}()｣,
 is-run ｢my @a; sink @a; my $b := gather { print 'meow' }; sink $b｣,
     :out<meow>, 'no warnings when sinking variables';
 
-todo('Macros NYI') if %*ENV<RAKUDO_RAKUAST>;
-is-run ｢use experimental :macros; macro z($) { quasi {} };
-    z $; z <x>; print "pass"｣, :compiler-args[<-I lib>], :out<pass>,
-    'args to macros do not cause useless use warnings';
-
 # https://github.com/rakudo/rakudo/issues/2554
 is-run ｢my @a[Int] = 1,2,3; dd @a｣,
     'ignored shape specification issues a warning',
@@ -130,5 +125,112 @@ is-run ｢package Foo::Bar { class Foo::Bar {} }; print "ran"｣,
 is-run ｢use fatal; package Foo::Bar { class Foo::Bar {} }; print "ran"｣,
     'use fatal promotes the same-named enclosing package worry to an error',
     :err(/'inside an enclosing package of the same name'/), :exitcode(1);
+
+# https://github.com/rakudo/rakudo/issues/6074
+is-run ｢print do given 5 { when 5 { 42; 43 } }｣,
+    'the last statement of a when block in value position stays wanted',
+    :out<43>,
+    :err{ .contains('constant integer 42') && !.contains('constant integer 43') };
+
+is-run ｢my $_; class A { }; class B { }; print "ran"｣,
+    'a worry followed by package declarations is printed once',
+    :out<ran>, :err{ .comb('Potential difficulties').elems == 1 && .comb('Redeclaration').elems == 1 };
+
+is-run ｢my $_; my Int:X $x; class B { }; class C { }; BEGIN note "later"; print "ran"｣,
+    'an error known at a package declaration is thrown there with the earlier worry inside it once',
+    :out(''), :exitcode(1),
+    :err{ !.contains('later')
+        && .comb('Invalid type smiley').elems == 1
+        && .comb('potential difficulties').elems == 1
+        && .comb('Redeclaration').elems == 1 };
+
+is-run ｢my $_; class A { }; foo()｣,
+    'a worry before a package declaration survives an error at the end of the unit',
+    :exitcode(1),
+    :err{ .comb('Redeclaration').elems == 1 && .contains('Undeclared routine') };
+
+{
+    my $setting := make-temp-dir.add('yah.setting');
+    $setting.spurt(｢{YOU_ARE_HERE}; print "ran"｣);
+    my $proc := run $*EXECUTABLE, $setting, :out, :err;
+    is $proc.out.slurp(:close), 'ran',
+      'a setting file with {YOU_ARE_HERE} as a statement runs';
+    is $proc.err.slurp(:close), '',
+      'a sunk {YOU_ARE_HERE} is not a useless use';
+}
+
+if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+    is-run ｢my $a = 1; 1 == 2; print "ran"｣,
+        'a worry shows the source around the statement it is about',
+        :out<ran>, :err(/'Useless use' .*? '------> my $a = 1; <HERE>1 == 2;'/);
+}
+else {
+    skip 'the source split is placed by the RakuAST frontend', 1;
+}
+
+# https://github.com/rakudo/rakudo/issues/2765
+is-run ｢print so "a b" ~~ m:s/a b/｣,
+    ':s on a match does not warn about a space between atoms',
+    :out<True>, :err('');
+
+is-run ｢print so "(ab)" ~~ / "(" ~ ")" [ a b ] /｣,
+    'a space between atoms after a goal separator does not warn',
+    :out<True>, :err('');
+
+is-run ｢$_ = "a b"; s:ss/a b/x/; print $_｣,
+    ':ss on a substitution parses the regex with sigspace and does not warn',
+    :out<x>, :err('');
+
+is-run ｢print so "a b" ~~ m:sigspace/a b/｣,
+    ':sigspace on a match does not warn about a space between atoms',
+    :out<True>, :err('');
+
+is-run ｢print S:samespace/a b/x/ given "a b"｣,
+    ':samespace on a non-destructive substitution does not warn',
+    :out<x>, :err('');
+
+is-run ｢grammar G { token T { :s a b } }; print so "a b" ~~ /<G::T>/｣,
+    ':s inside a token does not warn about a space between atoms',
+    :out<True>, :err('');
+
+is-run ｢grammar G { regex T { :sigspace a b } }; print so "a b" ~~ /<G::T>/｣,
+    ':sigspace inside a regex does not warn about a space between atoms',
+    :out<True>, :err('');
+
+is-run ｢$_ = "ab"; s:!s/a b/x/; print $_｣,
+    'a negated :s on a substitution still warns about a space between atoms',
+    :out<x>, :err(/'Space is not significant'/);
+
+is-run ｢print so "ab" ~~ m:!sigspace/a b/｣,
+    'a negated :sigspace on a match still warns about a space between atoms',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢$_ = "ab"; s:0s/a b/x/; print $_｣,
+    'a :0s adverb on a substitution still warns about a space between atoms',
+    :out<x>, :err(/'Space is not significant'/);
+
+is-run ｢print so "ab" ~~ / :!s a b /｣,
+    'a negated :s inside a regex still warns about a space between atoms',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢grammar G { rule T { :!s a b } }; print so "ab" ~~ /<G::T>/｣,
+    'a negated :s inside a rule still warns about a space between atoms',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢grammar G { rule T { a [ :!s b ] c d } }; print so "a b c d" ~~ /<G::T>/｣,
+    'a negated :s inside a group does not reach the rest of the rule',
+    :out<True>, :err('');
+
+is-run ｢print so "ab cd e f gh" ~~ / a [ :s b [ :!s cd ] e f ] g h /｣,
+    'sigspace changes inside nested groups do not reach the rest of the regex',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢print so "abc de" ~~ / a [ :s bc ] d e /｣,
+    'a :s inside a group does not silence the warning after the group',
+    :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢grammar G { rule R { a { my token T { c d } } b } }; print so "a b" ~~ /<G::R>/｣,
+    'a token declared inside a rule body block warns about a space between atoms',
+    :out<True>, :err(/'Space is not significant'/);
 
 # vim: expandtab shiftwidth=4

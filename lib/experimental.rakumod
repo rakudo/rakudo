@@ -22,14 +22,6 @@ package EXPORT::cached {
     OUR::{'&trait_mod:<is>'} := &trait_mod:<is>;
 }
 
-package EXPORT::macros {
-    # A load-independent marker. This our-symbol is GLOBAL-merged into every
-    # consumer, so a value that varies by language revision collides on merge
-    # once a 6.e consumer is precompiled. The 6.e macro ban lives in the
-    # grammar's experimental token instead.
-    OUR::<EXPERIMENTAL-MACROS> := True;
-}
-
 package EXPORT::smallnatives {
     our native int1 is repr('P6int') is Int is nativesize( 1) { }
     our native int2 is repr('P6int') is Int is nativesize( 2) { }

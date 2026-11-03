@@ -16,7 +16,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #   has $!todo;
 
     # The object that goes into $!todo.
-    class Reifier {
+    class Reifier is implementation-detail {
         # Our copy of the reified elements in the list so far.
         has $!reified;
 
@@ -377,14 +377,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           nqp::if(
             (my int $elems = self.elems), # reify
             nqp::stmts(
-              (my $sum  := 0),
-              (my int $i = -1),
+              (my $reified := $!reified),
+              (my $sum     := 0),
+              (my int $i    = -1),
               nqp::while(
                 nqp::islt_i(++$i,$elems),
-                ($sum := $sum + nqp::ifnull(nqp::atpos($!reified,$i),0))
+                ($sum := $sum + nqp::ifnull(nqp::atpos($reified,$i),0))
               ),
               $sum
             )
+            # no else, 0 of condition propagates
           )
         )
     }
@@ -530,38 +532,36 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         X::Bind.new.throw
     }
 
-    multi method EXISTS-POS(List:D: uint $pos --> Bool:D) {
+    multi method EXISTS-POS(List:D: uint $pos) {
         nqp::hllbool(
           nqp::if(
-            nqp::isconcrete($!reified)
-              && nqp::islt_i($pos,nqp::elems($!reified)),
-            nqp::existspos($!reified,$pos),
-            nqp::if(
-              nqp::isconcrete($!todo),
-              nqp::stmts(
-                $!todo.reify-at-least(nqp::add_i($pos,1)),
-                nqp::existspos($!reified,$pos)
-              )
+            nqp::isconcrete(my $reified := $!reified),
+            nqp::stmts(
+              nqp::if(
+                nqp::isconcrete($!todo)
+                  && nqp::isge_i($pos,nqp::elems($reified)),
+                $!todo.reify-at-least(nqp::add_i($pos,1))
+              ),
+              nqp::existspos($reified,$pos)
             )
+            # no else, 0 propagates
           )
         )
     }
-    multi method EXISTS-POS(List:D: Int:D $pos --> Bool:D) {
+    multi method EXISTS-POS(List:D: Int:D $pos) {
         nqp::hllbool(
           nqp::if(
-            nqp::isge_i($pos,0),
-            nqp::if(  # should just refer to uint candidate when that inlines
-              nqp::isconcrete($!reified)
-                && nqp::islt_i($pos,nqp::elems($!reified)),
-              nqp::existspos($!reified,$pos),
+            nqp::isge_i($pos,0)
+              && nqp::isconcrete(my $reified := $!reified),
+            nqp::stmts(
               nqp::if(
-                nqp::isconcrete($!todo),
-                nqp::stmts(
-                  $!todo.reify-at-least(nqp::add_i($pos,1)),
-                  nqp::existspos($!reified,$pos)
-                )
-              )
+                nqp::isconcrete($!todo)
+                  && nqp::isge_i($pos,nqp::elems($reified)),
+                $!todo.reify-at-least(nqp::add_i($pos,1))
+              ),
+              nqp::existspos($reified,$pos)
             )
+            # no else, 0 of condition propagates
           )
         )
     }
@@ -925,18 +925,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
     }
     method FLATTENABLE_LIST() is implementation-detail {
-        nqp::if(
-          nqp::isconcrete($!todo),
-          nqp::stmts(
-            $!todo.reify-all,
-            $!reified
-          ),
-          nqp::if(
-            nqp::isconcrete($!reified),
-            $!reified,
-            nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
-          )
-        )
+        $!todo.reify-all if nqp::isconcrete($!todo);
+
+        nqp::isconcrete($!reified)
+          ?? $!reified
+          !! nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
     }
     method FLATTENABLE_HASH() is implementation-detail { nqp::hash() }
 
@@ -1197,71 +1190,72 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method join(List:D: Str(Cool) $separator = '') is nodal {
-        nqp::stmts(
-          nqp::if(
-            nqp::isconcrete($!todo),
-            nqp::stmts(                          # need to reify first
-              $!todo.reify-until-lazy,
-              nqp::if(
-                $!todo.fully-reified,
-                ($!todo := nqp::null),           # all reified
-                (my int $infinite = 1)           # still stuff left to do
-              )
+        nqp::if(
+          nqp::isconcrete($!todo),
+          nqp::stmts(                          # need to reify first
+            $!todo.reify-until-lazy,
+            nqp::if(
+              $!todo.fully-reified,
+              ($!todo := nqp::null),           # all reified
+              (my int $infinite = 1)           # still stuff left to do
             )
-          ),
-          nqp::if(
-            nqp::isconcrete($!reified)
-              && (my int $elems = nqp::elems($!reified)),
-            nqp::stmts(                          # something to join
-              (my $strings := nqp::list_s),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(++$i,$elems),
-                nqp::stmts(                      # something left to check
-                  (my $tmp := nqp::ifnull(
-                    nqp::atpos($!reified,$i),
-                    nqp::if(
-                      nqp::isconcrete(my $default),
-                      $default,                  # seen before
-                      ($default := nqp::if(      # first time we see null
-                        nqp::can(self,'default'),
-                        self.default.Str,
-                        ''
-                      ))
-                    )
-                  )),
+          )
+        );
+
+        nqp::if(
+          nqp::isconcrete(my $reified := $!reified)
+            && (my int $n = nqp::elems($reified)),
+          nqp::stmts(                          # something to join
+            nqp::setelems(
+              (my $strings := nqp::setelems(nqp::create(IterationBuffer),$n)),0
+            ),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(++$i,$n),
+              nqp::stmts(                      # something left to check
+                (my $tmp := nqp::decont(nqp::ifnull(
+                  nqp::atpos($reified,$i),
                   nqp::if(
-                    nqp::isconcrete($tmp),
-                    nqp::if(                     # not a type object
-                      nqp::istype($tmp,Junction),
-                      (return self!JUNCTIONIZE(  # follow Junction path
-                        $separator, $strings, $i, $elems, $tmp
-                      )),
-                      nqp::push_s(               # no special action needed
-                        $strings,
+                    nqp::isconcrete(my $default),
+                    $default,                  # seen before
+                    ($default := nqp::if(      # first time we see null
+                      nqp::can(self,'default'),
+                      self.default.Str,
+                      ''
+                    ))
+                  )
+                ))),
+                nqp::if(
+                  nqp::isconcrete($tmp),
+                  nqp::if(                     # not a type object
+                    nqp::istype($tmp,Junction),
+                    (return self!JUNCTIONIZE(  # follow Junction path
+                      $separator, $strings, $i, $n, $tmp
+                    )),
+                    nqp::push(               # no special action needed
+                      $strings,
+                      nqp::if(
+                        nqp::istype($tmp,Str),
+                        $tmp,
                         nqp::if(
-                          nqp::istype($tmp,Str),
-                          $tmp,
-                          nqp::if(
-                            nqp::can($tmp,'Str'),
-                            $tmp.Str,
-                            nqp::box_s($tmp,Str)
-                          )
+                          nqp::can($tmp,'Str'),
+                          $tmp.Str,
+                          nqp::box_s($tmp,Str)
                         )
                       )
-                    ),
-                    nqp::push_s($strings,$tmp.Str)   # type object
-                  )
+                    )
+                  ),
+                  nqp::push($strings,$tmp.Str)   # type object
                 )
-              ),
-              nqp::if($infinite,nqp::push_s($strings,'...')),
-              nqp::box_s(                            # done
-                nqp::join($separator,$strings),
-                Str
               )
             ),
-            nqp::if($infinite,'...','')          # nothing to join
-          )
+            nqp::if($infinite,nqp::push($strings,'...')),
+            nqp::box_s(                            # done
+              nqp::join($separator,$strings),
+              Str
+            )
+          ),
+          nqp::if($infinite,'...','')          # nothing to join
         )
     }
 
@@ -1313,7 +1307,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     ),
                     ($junction := infix:<~>($junction, $tmp))
                   ),
-                  nqp::push_s(strings,nqp::if(   # not a Junction
+                  nqp::push(strings,nqp::if(   # not a Junction
                     nqp::istype($tmp,Str),
                     $tmp,
                     nqp::if(
@@ -1323,7 +1317,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     )
                   ))
                 ),
-                nqp::push_s(strings,$tmp.Str)    # type object
+                nqp::push(strings,$tmp.Str)    # type object
               )
             )
           ),
@@ -1411,8 +1405,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method tail(List:D:) is raw {
         nqp::isconcrete($!todo)
           ?? self.Any::tail
-          !! nqp::isconcrete($!reified) && nqp::elems($!reified)
-            ?? nqp::atpos($!reified,nqp::sub_i(nqp::elems($!reified),1))
+          !! nqp::isconcrete(my $reified := $!reified)
+               && nqp::elems($reified)
+            ?? nqp::atpos($reified,nqp::sub_i(nqp::elems($reified),1))
             !! Nil
     }
     multi method tail(List:D: $n --> Seq:D) {

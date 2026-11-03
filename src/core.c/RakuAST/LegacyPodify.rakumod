@@ -101,7 +101,7 @@ class RakuAST::LegacyPodify {
     }
 
     # create podified contents for atoms
-    method !contentify(@source) {
+    method !contentify(@source, :$keep-leading) {
         my str @parts;
         my @atoms = @source.map({
             nqp::istype($_,Str)
@@ -132,12 +132,64 @@ class RakuAST::LegacyPodify {
         @atoms.push: @parts.join if @parts;
 
         # string at left needs to be trimmed left
-        if @atoms.head <-> $_ {
-            $_ = .trim-leading if nqp::istype($_,Str);
+        unless $keep-leading {
+            if @atoms.head <-> $_ {
+                $_ = .trim-leading if nqp::istype($_,Str);
+            }
         }
 
         # return strings if just strings
         nqp::istype(@atoms.are,Str) ?? @atoms.join !! @atoms
+    }
+
+    # split the meta of D<> into synonyms at semicolons, and the meta of X<>
+    # into index entries at semicolons with their levels at commas, leaving
+    # any markup such as V<> whole
+    method !split-meta(str $letter, @source) {
+        my $separators := $letter eq 'X' ?? /<[;,]>/ !! /';'/;
+        my @meta = @source;
+        @meta[0] = @meta[0].trim-leading if nqp::istype(@meta[0],Str);
+
+        my @entries;
+        my @levels;
+        my @level;
+
+        my sub end-level() {
+            if @level {
+                my $level := self!contentify(@level, :keep-leading);
+                @levels.push(nqp::istype($level,Str) ?? $level !! $level.List);
+            }
+            @level = ();
+        }
+        my sub end-entry() {
+            end-level();
+            @entries.push(@levels.List) if @levels;
+            @levels = ();
+        }
+
+        for @meta {
+            if nqp::istype($_,Str) {
+                for .split($separators, :v) {
+                    if nqp::istype($_,Match) {
+                        $_ eq ',' ?? end-level() !! end-entry()
+                    }
+                    elsif $_ {
+                        @level.push($_)
+                    }
+                }
+            }
+            else {
+                @level.push($_)
+            }
+        }
+        end-entry();
+
+        # a single index entry of a single level is not nested
+        $letter eq 'D'
+          ?? @entries.map(*.head)
+          !! @entries == 1 && @entries.head == 1
+            ?? @entries.head.head.List
+            !! @entries.map(*.Array)
     }
 
     proto method podify(|) {*}
@@ -172,9 +224,11 @@ class RakuAST::LegacyPodify {
                    type     => $letter,
                    meta     => $letter eq 'E'
                      ?? $ast.meta.map(*.key)
-                     !! @meta,
+                     !! $letter eq 'D' || $letter eq 'X'
+                       ?? self!split-meta($letter, $ast.meta)
+                       !! @meta,
                    contents => $letter eq 'C'
-                     ?? $ast.atoms.join.subst("\n", ' ', :g)
+                     ?? $ast.atoms.join.trim-leading.subst("\n", ' ', :g)
                      !! $letter eq 'E'
                        ?? $ast.meta.map(*.value)
                        !! self!contentify($ast.atoms)
@@ -291,16 +345,13 @@ class RakuAST::LegacyPodify {
 
             # from here on without level
             else {
+                my $head := $ast.paragraphs.head;
                 $type eq 'comment'
                   ?? Pod::Block::Comment.new(
-                       :$config, :contents([
-                         $ast.paragraphs.head.trim-trailing ~ "\n"
-                       ])
+                       :$config, :contents([.trim-trailing ~ "\n" with $head])
                      )
                   !! $type eq 'config' && $ast.abbreviated
-                    ?? Pod::Config.new(
-                         :type($ast.paragraphs.head), :$config
-                       )
+                    ?? Pod::Config.new(:type($head), :$config)
                     !! Pod::Block::Named.new(:name($type), :$config, :$contents)
             }
         }
@@ -352,8 +403,11 @@ class RakuAST::LegacyPodify {
 
         # wrap up
         $headers := [spread .cells.map(&table-sanitize)] with $headers;
+        # a legacy caption is a string, so :caption<a b> joins its words
+        # and a bare :caption or :!caption gives no caption
+        my $caption := $config<caption>;
         Pod::Block::Table.new(
-          caption  => $config<caption> // "",
+          caption  => nqp::istype($caption,Bool) ?? "" !! ($caption // "").Str,
           headers  => $headers // [],
           config   => $config,
           contents => @rows.map({ [spread .cells.map(&table-sanitize)] })
@@ -400,7 +454,14 @@ class RakuAST::LegacyPodify {
         Pod::Defn.new: :$term, :@contents, :$config
     }
 
-    multi method podify(RakuAST::Doc::Declarator:D $ast, $WHEREFORE) {
+    # Given the Pod::Block::Declarator made for the same WHEREFORE before,
+    # fills that in again rather than making a new one. A type's doc is set
+    # through its HOW, as the type may not be composed yet.
+    multi method podify(
+      RakuAST::Doc::Declarator:D $ast,
+      Mu $WHEREFORE,
+      $pod?
+    ) {
         sub normalize(@paragraphs) {
             @paragraphs
               .map(*.lines.map({.trim if $_}).Slip)
@@ -418,9 +479,18 @@ class RakuAST::LegacyPodify {
         %args<leading>   =  $leading   if $leading;
         %args<trailing>  = [$trailing] if $trailing;
 
-        my $pod := Pod::Block::Declarator.new(|%args);
-        $WHEREFORE.set_why($pod);
-        $pod
+        my $declarator := Pod::Block::Declarator.new(|%args);
+        if $pod {
+            for <@!leading @!trailing> -> $name {
+                nqp::bindattr(nqp::decont($pod),Pod::Block::Declarator,$name,
+                  nqp::getattr($declarator,Pod::Block::Declarator,$name));
+            }
+            $declarator := nqp::decont($pod);
+        }
+        nqp::isconcrete($WHEREFORE)
+          ?? $WHEREFORE.set_why($declarator)
+          !! $WHEREFORE.HOW.set_why($declarator);
+        $declarator
     }
 }
 

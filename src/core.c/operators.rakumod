@@ -259,7 +259,13 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
               ?? GLOBAL::.AT-KEY($first)
               !! nqp::iseq_s($first,'GLOBAL')
                 ?? GLOBAL
-                !! not-found($name);
+                # At BEGIN time the walk cannot reach what the unit being
+                # compiled declares, so ask the compiler as a last resort.
+                !! nqp::isnull(nqp::getlexdyn('$*BEGIN-TIME-LOOKUP'))
+                  ?? not-found($name)
+                  !! (my $declaration := $root.BEGIN-TIME-DECLARATION($first))
+                    ?? $declaration.compile-time-value
+                    !! not-found($name);
 
         nqp::while(
           nqp::elems($parts)

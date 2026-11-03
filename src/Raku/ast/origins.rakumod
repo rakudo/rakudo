@@ -17,6 +17,10 @@ class RakuAST::Origin {
     # Normally nestings would be defined by the <statement> token.
     has Mu $.nestings;
 
+    # The position diagnostics and line numbers refer to, when a span was
+    # widened to start before it. Stored one higher, so 0 means unset.
+    has int $!locus;
+
     method new(int :$from, int :$to, Mu :$nestings, RakuAST::Origin::Source :$source) {
         my $obj := nqp::create(self);
         nqp::bindattr_i($obj, RakuAST::Origin, '$!from', $from);
@@ -34,9 +38,21 @@ class RakuAST::Origin {
         nqp::bindattr(self, RakuAST::Origin, '$!nestings', $nestings);
     }
 
-    method is-key() { nqp::isconcrete($!nestings) ?? True !! False }
+    method is-key(--> Bool) { nqp::isconcrete($!nestings) }
+
+    method locus() { $!locus ?? $!locus - 1 !! $!from }
+
+    method set-locus(int $locus) {
+        nqp::bindattr_i(self, RakuAST::Origin, '$!locus', $locus + 1);
+    }
 
     method as-match() { $!source.match-from(self) }
+
+    # A match at the start of the span, where the code it covers begins,
+    # rather than at the locus.
+    method as-start-match() {
+        $!source.match-from(RakuAST::Origin.new(:from($!from), :to($!to), :source($!source)))
+    }
 
     method Str() {
         nqp::substr($!source.orig, $!from, $!to - $!from)
@@ -98,11 +114,11 @@ class RakuAST::Origin::Source {
         nqp::bindattr_s($obj, RakuAST::Origin::Source, '$!orig', $orig);
 
         my $file := %*COMPILING<%?OPTIONS><source-name>;
-        if !nqp::isconcrete($file) {
-            if nqp::isnull($file := nqp::getlexdyn('$?FILES')) {
-                $file := '<unknown file>';
-            }
-        }
+        $file := nqp::ifnull(
+          nqp::getlexdyn('$?FILES'),
+          '<unknown file>'
+        ) unless nqp::isconcrete($file);
+
         nqp::bindattr($obj, RakuAST::Origin::Source, '$!line-file', nqp::list(nqp::list(0, 0, $file)));
 
         my $line-ends := nqp::list;
@@ -203,10 +219,34 @@ class RakuAST::Origin::Source {
         self.location-of-pos($pos)[1]
     }
 
+    # The source on either side of a position, cut to the line the
+    # position is on and to a fixed width.
+    method prepost-of-pos(int $pos) {
+        my int $width := 40;
+        my int $chars := nqp::chars($!orig);
+        $pos := 0 if $pos < 0;
+        $pos := $chars if $pos > $chars;
+
+        my int $linestart := $pos - (self.original-line-column($pos)[1] - 1);
+        my int $prestart := $pos - $width;
+        $prestart := $linestart if $prestart < $linestart;
+        my str $pre := nqp::substr($!orig, $prestart, $pos - $prestart);
+        $pre := '<BOL>' if $pre eq '';
+
+        my int $postend := nqp::findcclass(nqp::const::CCLASS_NEWLINE,
+            $!orig, $pos, $pos + $width > $chars ?? $chars - $pos !! $width);
+        my str $post := nqp::substr($!orig, $pos, $postend - $pos);
+        $post := '<EOL>' if $post eq '';
+
+        [$pre, $post]
+    }
+
     # $from-to can be either NQPMatch, or Match, or RakuAST::Origin,
     # or anything else with .from/.to methods available
     method match-from($from-to) {
-        my $from := $from-to.from();
+        my $from := nqp::istype($from-to, RakuAST::Origin)
+          ?? $from-to.locus
+          !! $from-to.from();
         my @location := self.location-of-pos($from);
         RakuAST::Origin::Match.new(
             :from($from), :to($from-to.to()), :orig($!orig),

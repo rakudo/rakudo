@@ -1,4 +1,4 @@
-my role Array::Shaped1 does Array::Shaped {
+my role Array::Shaped1 does Array::Shaped is implementation-detail {
     multi method AT-POS(::?CLASS:D: uint $one) is raw {
         nqp::ifnull(
           nqp::atpos(
@@ -134,7 +134,10 @@ my role Array::Shaped1 does Array::Shaped {
           ?? nqp::getattr(self,List,'$!reified')
           !! self!RE-INITIALIZE;
         my \desc := nqp::getattr(self,Array,'$!descriptor');
-        my \iter := in.iterator;
+        # a view must have the shape of the array
+        my \iter := nqp::istype(in,Array::ShapedView)
+          ?? Rakudo::Internals.SHAPED-ITERATOR(in, self.shape, 0)
+          !! in.iterator;
         my int $i = -1;
         my uint $elems = nqp::elems(list);
         nqp::until(
@@ -148,6 +151,10 @@ my role Array::Shaped1 does Array::Shaped {
         nqp::atpos(list,$i) # too many values on non-lazy iter, error
           unless nqp::islt_i($i,$elems) || iter.is-lazy;
         self
+    }
+    # a row not made yet of a jagged array gives the values of a new one
+    multi method STORE(::?CLASS:D: Array::JaggedRow:U \in, :$INITIALIZE) {
+        self.STORE(in.new, :$INITIALIZE)
     }
     multi method STORE(::?CLASS:D: Mu \item, :$INITIALIZE) {
         my \list := $INITIALIZE

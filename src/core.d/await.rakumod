@@ -42,7 +42,10 @@ my role X::React::Died {
     }
 }
 
-my class Rakudo::Internals::ReactAwaitable does Awaitable {
+my class Rakudo::Internals::ReactAwaitable
+  does Awaitable
+  is implementation-detail
+{
     has $!handle;
 
     method new($handle) {
@@ -55,7 +58,10 @@ my class Rakudo::Internals::ReactAwaitable does Awaitable {
 
     method get-await-handle() { $!handle }
 }
-my class Rakudo::Internals::ReactAwaitHandle does Awaitable::Handle {
+my class Rakudo::Internals::ReactAwaitHandle
+  does Awaitable::Handle
+  is implementation-detail
+{
     has &!react-block;
 
     method not-ready(&react-block) {
@@ -73,7 +79,10 @@ my class Rakudo::Internals::ReactAwaitHandle does Awaitable::Handle {
             quit => { subscriber(False, $_) };
     }
 }
-my class Rakudo::Internals::ReactOneWheneverAwaitHandle does Awaitable::Handle {
+my class Rakudo::Internals::ReactOneWheneverAwaitHandle
+  does Awaitable::Handle
+  is implementation-detail
+{
     has &!react-block;
 
     method not-ready(&react-block) {

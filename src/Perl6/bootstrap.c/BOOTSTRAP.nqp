@@ -115,6 +115,54 @@ my stub Int64PosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 #?endif
 
+#- NativeInstantiation ---------------------------------------------------------
+# Role bodies compile against generic types with object access ops and boxed
+# value semantics, and are never recompiled for an instantiation. A generic
+# type that instantiates to a native type therefore has to degrade to the
+# native type's box type wherever the instantiation decides storage or
+# checks values.
+my class NativeInstantiation {
+    # Returns the box type for a native type, rewrapped for a definite type
+    # over a native type, or null when no boxing applies. Callers pass
+    # values as well as types through this. Container descriptor defaults
+    # and auto_viv container values arrive here, and a concrete value
+    # reports null. The box is selected by primitive spec, so a native
+    # type with unrelated object ancestors still constrains its values to
+    # what the storage can hold.
+    method box($type) {
+        return nqp::null()
+          if nqp::isnull($type) || nqp::isconcrete_nd($type);
+
+        my $prim_type    := $type;
+        my $how          := $type.HOW;
+        my int $definite := 0;
+        if nqp::can($how, 'archetypes')
+          && $how.archetypes($type).definite
+          && nqp::can($how, 'base_type') {
+            $prim_type := $how.base_type($type);
+            $definite  := 1;
+        }
+
+        my int $spec := nqp::objprimspec($prim_type);
+        if $spec {
+            my $box := $spec == 2 ?? Num !! $spec == 3 ?? Str !! Int;
+            return $definite
+              ?? Perl6::Metamodel::DefiniteHOW.new_type(
+                   :base_type($box), :definite($how.definite($type)))
+              !! $box;
+        }
+        nqp::null()
+    }
+
+    # Returns the box type when boxing applies and the type itself
+    # otherwise.
+    method box_or_self($type) {
+        my $box := self.box($type);
+        nqp::isnull($box) ?? $type !! $box
+    }
+}
+nqp::bindhllsym('Raku', 'NativeInstantiation', NativeInstantiation);
+
 #- Binder ----------------------------------------------------------------------
 # Implement the signature binder.
 # The JVM backend really only uses trial_bind,
@@ -310,7 +358,9 @@ my class Binder {
         }
     }
 
-    # Binds a single parameter.
+    # Binds a single parameter. $implicit_default is set when the value
+    # being bound is the implicit default of an optional parameter that
+    # was not passed an argument, so failures can report that context.
     sub bind_one_param(
       $sig,
       $lexpad,
@@ -321,7 +371,8 @@ my class Binder {
       $oval,
       int $ival,
       num $nval,
-      str $sval
+      str $sval,
+      $implicit_default = 0
     ) {
         # Grab flags and variable name.
         my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
@@ -349,9 +400,18 @@ my class Binder {
                       !! nqp::not_i(nqp::iscont_s($oval))
                         ?? "str"
                         !! 0 -> $expected {
-                    nqp::bindpos($error, 0,
-                      "Expected a modifiable native $expected argument for '$varname'"
-                    ) if nqp::defined($error);
+                    nqp::bindpos($error, 0, {
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                          'X::Parameter::RW',
+                          "Expected a modifiable native $expected argument for '$varname'",
+                          :got($got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
+                                 ?? nqp::box_n($nval, Num)
+                                 !! $got_native == nqp::const::SIG_ELEM_NATIVE_STR_VALUE
+                                   ?? nqp::box_s($sval, Str)
+                                   !! nqp::box_i($ival, Int)),
+                          :symbol($varname)
+                        )
+                    }) if nqp::defined($error);
 
                     return nqp::const::BIND_RESULT_FAIL;
                 }
@@ -426,6 +486,11 @@ my class Binder {
                 if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
                     $param_type :=
                       $param_type.HOW.instantiate_generic($param_type, $lexpad);
+
+                    # The parameter binds a boxed value, so a native
+                    # instantiation checks against the box type.
+                    my $box := NativeInstantiation.box($param_type);
+                    $param_type := $box unless nqp::isnull($box);
                 }
 
                 # If the expected type is Positional, see if we need to do the
@@ -579,9 +644,18 @@ my class Binder {
                     # provided and make it rw if it's an `is copy`.
                     else {
                         my $new_cont := nqp::create(Scalar);
-                        nqp::bindattr($new_cont, Scalar, '$!descriptor',
-                          nqp::getattr($param, Parameter, '$!container_descriptor')
-                        );
+                        my $desc :=
+                          nqp::getattr($param, Parameter, '$!container_descriptor');
+                        # A generic descriptor still carries the unresolved
+                        # type variable and would reject every assignment
+                        # into the container. Resolve it against the binding
+                        # context, which reaches type captures and role type
+                        # environments through the frame chain.
+                        $desc := $desc.instantiate_generic($lexpad)
+                          if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC
+                          && nqp::isconcrete($desc)
+                          && $desc.is_generic;
+                        nqp::bindattr($new_cont, Scalar, '$!descriptor', $desc);
                         nqp::bindattr($new_cont, Scalar, '$!value', $bindee);
                         $bindee := $new_cont;
                     }
@@ -662,7 +736,8 @@ my class Binder {
                           :expected($cons_type),
                           :symbol($varname),
                           :parameter($param),
-                          :constraint(nqp::hllboolfor(1, 'Raku'))
+                          :constraint(nqp::hllboolfor(1, 'Raku')),
+                          :omitted(nqp::hllboolfor($implicit_default, 'Raku'))
                         )
                     }) if nqp::defined($error);
 
@@ -1015,7 +1090,9 @@ my class Binder {
                       handle_optional($param, $flags, $lexpad),
                       0,
                       0.0,
-                      ''
+                      '',
+                      nqp::isnull(nqp::getattr($param, Parameter, '$!default_value'))
+                        && nqp::not_i($flags +& nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER)
                     );
 
                     return $bind_fail if $bind_fail;
@@ -1067,7 +1144,9 @@ my class Binder {
                           handle_optional($param, $flags, $lexpad),
                           0,
                           0.0,
-                          ''
+                          '',
+                          nqp::isnull(nqp::getattr($param, Parameter, '$!default_value'))
+                            && nqp::not_i($flags +& nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER)
                         );
                     }
                     elsif $arity_fail {
@@ -1229,11 +1308,46 @@ my class Binder {
         )
     }
 
+    # The name of a variable the signature binds, if it binds any.
+    sub bound_name($sig) {
+        my @params := nqp::getattr($sig, Signature, '@!params');
+        my int $num_params := nqp::elems(@params);
+        my int $i := -1;
+        while ++$i < $num_params {
+            my $param := nqp::atpos(@params, $i);
+            my str $varname := nqp::getattr_s($param, Parameter, '$!variable_name');
+            return $varname unless nqp::isnull_s($varname);
+            my $type_caps := nqp::getattr($param, Parameter, '@!type_captures');
+            return nqp::atpos_s($type_caps, 0)
+              unless nqp::isnull($type_caps) || nqp::elems($type_caps) == 0;
+            my $subsig := nqp::getattr($param, Parameter, '$!sub_signature');
+            unless nqp::isnull($subsig) {
+                my str $name := bound_name($subsig);
+                return $name if $name;
+            }
+        }
+        ''
+    }
+
+    # A declaration binds its variables in the frame declaring them, which is
+    # further out than the caller when a thunk around the declaration binds.
     method bind_cap_to_sig($sig, $capture) {
+        my $ctx := nqp::ctxcaller(nqp::ctx);
+        my @params := nqp::getattr($sig, Signature, '@!params');
+        my str $name := nqp::elems(@params)
+          ?? nqp::getattr_s(nqp::atpos(@params, 0), Parameter, '$!variable_name')
+          !! nqp::null_s;
+        $name := bound_name($sig) if nqp::isnull_s($name);
+        if $name {
+            my $declarer := $ctx;
+            $declarer := nqp::ctxouter($declarer)
+              until nqp::isnull($declarer) || nqp::existskey($declarer, $name);
+            $ctx := $declarer unless nqp::isnull($declarer);
+        }
         if bind(
              make_vm_capture($capture),
              $sig,
-             nqp::ctxcaller(nqp::ctx),
+             $ctx,
              0,
              my @error
         ) {
@@ -1480,6 +1594,13 @@ class ContainerDescriptor does Perl6::Metamodel::Explaining {
 # descriptor is used as a marker
 class ContainerDescriptor::Untyped is ContainerDescriptor { }
 
+#- ContainerDescriptor::IsolatedMatch ------------------------------------------
+# Container descriptor for the implicit $/ of a 6.e scope. The type is used
+# as a marker: method forms such as .match and .subst leave a container with
+# this descriptor alone instead of writing the match into their caller's $/,
+# while operator forms assign through it as with any other container.
+class ContainerDescriptor::IsolatedMatch is ContainerDescriptor::Untyped { }
+
 #- ContainerDescriptor::Whence -------------------------------------------------
 # Role for container descriptors that need to bind the container to some place
 # (hence the "whence") on first assignment.  Most commonly used for elements
@@ -1516,7 +1637,10 @@ class ContainerDescriptor::BindArrayPos does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { self.next.name ~ '[' ~ $!pos ~ ']' }
+    method name() {
+        my str $name := self.next.name;
+        $name ?? $name ~ '[' ~ $!pos ~ ']' !! $name
+    }
     method assigned($scalar) {
         nqp::bindpos($!target, $!pos, $scalar);
     }
@@ -1601,7 +1725,10 @@ class ContainerDescriptor::BindArrayPosND does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { 'element of ' ~ self.next.name }  # XXX show indexes
+    method name() {  # XXX show indexes
+        my str $name := self.next.name;
+        $name ?? 'element of ' ~ $name !! $name
+    }
     method assigned($scalar) {
         nqp::bindposnd($!target, $!idxs, $scalar);
     }
@@ -1625,7 +1752,10 @@ class ContainerDescriptor::BindHashKey does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
+    method name() {
+        my str $name := self.next.name;
+        $name ?? $name ~ "\{'" ~ $!key ~ "'\}" !! $name
+    }
     method assigned($scalar) {
         my $hash := nqp::getattr($!target, Map, '$!storage');
         $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
@@ -1658,7 +1788,10 @@ class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
         $self
     }
 
-    method name() { 'element of ' ~ self.next.name }  # XXX correct key
+    method name() {  # XXX correct key
+        my str $name := self.next.name;
+        $name ?? 'element of ' ~ $name !! $name
+    }
     method assigned($scalar) {
         my $hash := nqp::getattr($!target, Map, '$!storage');
         $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
@@ -1667,30 +1800,89 @@ class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
     }
 }
 
+# Binds the assigned scalar in place of a slot of a new container through the
+# slot's own descriptor, as assigning the slot would, without checking the
+# value again. Yields null for any other slot.
+sub bind_into_slot($slot, $scalar) {
+    nqp::istype_nd($slot, Scalar)
+      && nqp::can(nqp::getattr($slot, Scalar, '$!descriptor'), 'assigned')
+      ?? nqp::stmts(
+           nqp::getattr($slot, Scalar, '$!descriptor').assigned($scalar),
+           $scalar)
+      !! nqp::null
+}
+
+# The type that a subset, definite or coercion type of a container vivifies
+sub nominal_type($type) {
+    $type.HOW.archetypes($type).nominalizable
+      ?? $type.HOW.nominalize($type)
+      !! $type
+}
+
 #- ContainerDescriptor::VivifyArray --------------------------------------------
 # Container descriptor that will bind to position in an array to be vivified
 # on first assignment
 class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
     has $!target;
     has int $!pos;
+    has $!type;
+    has int $!typed;
 
+    # A typed array type object vivifies its own type, whose element
+    # descriptor gives the element its type and default
     method new($target, int $pos) {
         my $self := nqp::create(self);
         nqp::bindattr($self, ContainerDescriptor::VivifyArray,
             '$!target', $target);
         nqp::bindattr_i($self, ContainerDescriptor::VivifyArray,
             '$!pos', $pos);
+        my $type := nqp::decont($target);
+        $self.set-type($type)
+          if nqp::istype($type, Array) && nqp::not_i(nqp::eqaddr($type, Array));
         $self
     }
+    method set-type($type) {
+        $!type  := $type;
+        $!typed := 1;
+        my $descriptor := $type.ELEMENT-DESCRIPTOR;
+        nqp::bindattr(self, ContainerDescriptor::VivifyArray,
+            '$!next-descriptor', $descriptor) if nqp::isconcrete($descriptor);
+    }
 
-    method name() { self.next.name ~ '[' ~ $!pos ~ ']' }
+    method name() {
+        my str $name := self.next.name;
+        $name ?? $name ~ '[' ~ $!pos ~ ']' !! $name
+    }
     method assigned($scalar) {
         my $target := $!target;
 
-        (nqp::isconcrete($target)
-          ?? $target
-          !! nqp::assign($target, Array.new)
-        ).BIND-POS($!pos, $scalar)
+        if nqp::isconcrete($target) {
+            my $result := $target.BIND-POS($!pos, $scalar);
+            $result.throw
+              if nqp::istype_nd($result, nqp::gethllsym('Raku', 'Failure'))
+              && nqp::not_i(nqp::eqaddr($result, nqp::decont($scalar)));
+        }
+        elsif nqp::not_i($!typed) && nqp::isge_i($!pos, 0) {
+            nqp::assign($target, Array.new).BIND-POS($!pos, $scalar)
+        }
+        else {
+            self.vivify($target, $scalar);
+        }
+    }
+
+    # The element is stored before the array is, so a refused index or value
+    # leaves no array
+    method vivify($target, $scalar) {
+        my $Failure := nqp::gethllsym('Raku', 'Failure');
+        my int $pos := $!pos;
+        my $array   := $!typed ?? nominal_type($!type).new !! Array.new;
+        my $slot    := nqp::islt_i($pos, 0) ?? nqp::null !! $array.AT-POS($pos);
+        $slot.throw if nqp::istype_nd($slot, $Failure);
+        my $result  := bind_into_slot($slot, $scalar);
+        $result := $array.BIND-POS($pos, $scalar) if nqp::isnull($result);
+        $result.throw
+          if nqp::istype_nd($result, $Failure) && nqp::not_i($array.elems);
+        nqp::assign($target, $array);
     }
 }
 
@@ -1700,24 +1892,67 @@ class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
 class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
     has $!target;
     has $!key;
+    has $!type;
+    has int $!typed;
 
+    # A typed hash type object vivifies its own type, whose element
+    # descriptor gives the element its type and default
     method new($target, $key) {
         my $self := nqp::create(self);
         nqp::bindattr($self, ContainerDescriptor::VivifyHash,
             '$!target', $target);
         nqp::bindattr($self, ContainerDescriptor::VivifyHash,
-            '$!key', $key);
+            '$!key', nqp::decont($key));
+        my $type := nqp::decont($target);
+        $self.set-type($type)
+          if nqp::istype($type, Hash) && nqp::not_i(nqp::eqaddr($type, Hash));
         $self
     }
+    method set-type($type) {
+        $!type  := $type;
+        $!typed := 1;
+        my $descriptor := $type.ELEMENT-DESCRIPTOR;
+        nqp::bindattr(self, ContainerDescriptor::VivifyHash,
+            '$!next-descriptor', $descriptor) if nqp::isconcrete($descriptor);
+    }
 
-    method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
+    method name() {
+        my str $name := self.next.name;
+        $name ?? $name ~ "\{'" ~ $!key ~ "'\}" !! $name
+    }
     method assigned($scalar) {
         my $target := $!target;
 
-        (nqp::isconcrete($target)
-          ?? $target
-          !! nqp::assign($target, Hash.new)
-        ).BIND-KEY($!key, $scalar)
+        if nqp::isconcrete($target) {
+            my $result := $target.BIND-KEY($!key, $scalar);
+            $result.throw
+              if nqp::istype_nd($result, nqp::gethllsym('Raku', 'Failure'))
+              && nqp::not_i(nqp::eqaddr($result, nqp::decont($scalar)));
+        }
+        elsif nqp::not_i($!typed) && nqp::iscont($target) {
+            nqp::assign($target, Hash.new).BIND-KEY($!key, $scalar)
+        }
+        else {
+            self.vivify($target, $scalar);
+        }
+    }
+
+    # The element is stored before the hash is, so a refused key or value
+    # leaves no hash
+    method vivify($target, $scalar) {
+        Perl6::Metamodel::Configuration.throw_or_die('X::Assignment::RO',
+          'Cannot modify an immutable value', :value($target)
+        ) unless nqp::iscont($target);
+        my $Failure := nqp::gethllsym('Raku', 'Failure');
+        my $key     := $!key;
+        my $hash    := $!typed ?? nominal_type($!type).new !! Hash.new;
+        my $slot    := $hash.AT-KEY($key);
+        $slot.throw if nqp::istype_nd($slot, $Failure);
+        my $result  := bind_into_slot($slot, $scalar);
+        $result := $hash.BIND-KEY($key, $scalar) if nqp::isnull($result);
+        $result.throw
+          if nqp::istype_nd($result, $Failure) && nqp::not_i($hash.elems);
+        nqp::assign($target, $hash);
     }
 }
 
@@ -1995,6 +2230,12 @@ BEGIN {
 
         nqp::getattr($self, Attribute, '$!type')
     }));
+    Attribute.HOW.add_method(Attribute, 'package',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Attribute, '$!package')
+    }));
 
     Attribute.HOW.add_method(Attribute, 'container_descriptor',
       nqp::getstaticcode(sub ($self) {
@@ -2212,9 +2453,16 @@ BEGIN {
         my $bc   := nqp::getattr($self, Attribute, '$!build_closure');
         my $ci   := nqp::getattr($self, Attribute, '$!container_initializer');
 
-        nqp::bindattr($ins, Attribute, '$!type',
-          $type.HOW.instantiate_generic($type, $type_environment)
-        ) if $type.HOW.archetypes($type).generic;
+        # Native storage cannot serve the object flavored accesses the
+        # role body compiled, so a native instantiation stores under the
+        # box type instead.
+        if $type.HOW.archetypes($type).generic {
+            my $ins_type :=
+              $type.HOW.instantiate_generic($type, $type_environment);
+            my $box := NativeInstantiation.box($ins_type);
+            $ins_type := $box unless nqp::isnull($box);
+            nqp::bindattr($ins, Attribute, '$!type', $ins_type);
+        }
 
         nqp::bindattr($ins, Attribute, '$!container_initializer',
 #?if !jvm
@@ -2228,6 +2476,10 @@ BEGIN {
         my $cd_ins := $cd;
         if $cd.is_generic {
             $cd_ins := $cd.instantiate_generic($type_environment);
+            my $of_box := NativeInstantiation.box($cd_ins.of);
+            $cd_ins.set_of($of_box) unless nqp::isnull($of_box);
+            my $default_box := NativeInstantiation.box($cd_ins.default);
+            $cd_ins.set_default($default_box) unless nqp::isnull($default_box);
             nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
         }
 
@@ -2265,6 +2517,13 @@ BEGIN {
 
                 nqp::bindattr($avc-copy, $avc_mro, '$!descriptor', $cd_ins)
                   if $avc_mro.HOW.has_attribute($avc_mro, '$!descriptor');
+
+                if $avc_mro.HOW.has_attribute($avc_mro, '$!value') {
+                    my $value_box := NativeInstantiation.box(
+                      nqp::getattr($avc-copy, $avc_mro, '$!value'));
+                    nqp::bindattr($avc-copy, $avc_mro, '$!value', $value_box)
+                      unless nqp::isnull($value_box);
+                }
             }
             nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc-copy);
         }
@@ -2361,7 +2620,8 @@ BEGIN {
                         }
                         my $what := $desc.WHAT;
                         unless nqp::eqaddr($what, ContainerDescriptor) ||
-                               nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                               nqp::eqaddr($what, ContainerDescriptor::Untyped) ||
+                               nqp::eqaddr($what, ContainerDescriptor::IsolatedMatch) {
                             $desc.assigned($cont)
                                 unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
                             nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
@@ -2387,7 +2647,8 @@ BEGIN {
                 my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
                 my $what := $desc.WHAT;
                 unless nqp::eqaddr($what, ContainerDescriptor) ||
-                       nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                       nqp::eqaddr($what, ContainerDescriptor::Untyped) ||
+                       nqp::eqaddr($what, ContainerDescriptor::IsolatedMatch) {
                     $desc.assigned($cont)
                         unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
                     nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
@@ -2660,10 +2921,18 @@ BEGIN {
         }
 
         my $returns := nqp::getattr($self, Signature, '$!returns');
-        nqp::bindattr($ins, Signature, '$!returns',
-          $returns.HOW.instantiate_generic($returns, $type_environment)
-        ) if nqp::not_i(nqp::isnull($returns))
-          && $returns.HOW.archetypes($returns).generic;
+        if nqp::not_i(nqp::isnull($returns))
+          && $returns.HOW.archetypes($returns).generic {
+            my $ins_returns :=
+              $returns.HOW.instantiate_generic($returns, $type_environment);
+
+            # The routine body produces boxed values, so a native
+            # instantiation checks returns against the box type.
+            my $box := NativeInstantiation.box($ins_returns);
+            $ins_returns := $box unless nqp::isnull($box);
+
+            nqp::bindattr($ins, Signature, '$!returns', $ins_returns);
+        }
 
         $ins
     }));
@@ -2801,8 +3070,21 @@ BEGIN {
 
         if $type.HOW.archetypes($type).generic {
             $ins_type := $type.HOW.instantiate_generic($type,$type_environment);
-            $ins_cd   := $cd.instantiate_generic($type_environment)
-              unless nqp::isnull($cd);
+
+            # The routine body treats the parameter as a boxed value, so a
+            # native instantiation takes the box type, as a generic
+            # attribute's storage does.
+            my $box := NativeInstantiation.box($ins_type);
+            $ins_type := $box unless nqp::isnull($box);
+
+            unless nqp::isnull($cd) {
+                $ins_cd := $cd.instantiate_generic($type_environment);
+                my $of_box := NativeInstantiation.box($ins_cd.of);
+                $ins_cd.set_of($of_box) unless nqp::isnull($of_box);
+                my $default_box := NativeInstantiation.box($ins_cd.default);
+                $ins_cd.set_default($default_box)
+                  unless nqp::isnull($default_box);
+            }
         }
 
         $ins_ap := $ap.HOW.instantiate_generic($ap, $type_environment)
@@ -3704,12 +3986,16 @@ BEGIN {
                         # Wider; skip over here so we don't go counting this
                         # as tied in the next branch.
                     }
-                    elsif nqp::istype($type_obj_a, $type_obj_b) {
+                    # Mu accepts any value, so every other type is narrower
+                    # than it, even a type without Mu in its MRO.
+                    elsif nqp::eqaddr($type_obj_b, Mu)
+                      || nqp::istype($type_obj_a, $type_obj_b) {
                         # Narrower - note it and we're done.
                         ++$narrower;
                     }
 
-                    elsif nqp::not_i(nqp::istype($type_obj_b, $type_obj_a)) {
+                    elsif nqp::not_i(nqp::eqaddr($type_obj_a, Mu))
+                      && nqp::not_i(nqp::istype($type_obj_b, $type_obj_a)) {
                         # Make sure it's tied, rather than the other way around.
                         ++$tied;
                     }
@@ -3852,10 +4138,54 @@ BEGIN {
       nqp::getstaticcode(sub ($self, $caller-revision, @candidates) {
         $self := nqp::decont($self);
 
+        # Whether two signatures are interchangeable for revision gating:
+        # the same parameter shapes and types in the same order, differing
+        # at most in parameter names. Anything a name-blind comparison
+        # cannot vouch for (named, slurpy, capture or sub-signature
+        # parameters, constraints, type captures) makes them
+        # non-interchangeable, so such candidates each stand on their own,
+        # as any two distinct signatures do.
+        my sub signatures-equivalent($sig-a, $sig-b) {
+          my @params-a := nqp::getattr($sig-a, Signature, '@!params');
+          my @params-b := nqp::getattr($sig-b, Signature, '@!params');
+          return 0 unless nqp::elems(@params-a) == nqp::elems(@params-b);
+
+          my int $n := nqp::elems(@params-a);
+          my int $i := -1;
+          while ++$i < $n {
+            my $a := nqp::atpos(@params-a, $i);
+            my $b := nqp::atpos(@params-b, $i);
+
+            my int $flags := nqp::getattr_i($a, Parameter, '$!flags');
+            return 0 unless $flags == nqp::getattr_i($b, Parameter, '$!flags');
+            return 0 if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS
+                                +| nqp::const::SIG_ELEM_SLURPY_NAMED
+                                +| nqp::const::SIG_ELEM_SLURPY_LOL
+                                +| nqp::const::SIG_ELEM_SLURPY_ONEARG
+                                +| nqp::const::SIG_ELEM_IS_CAPTURE);
+            return 0 unless nqp::isnull(nqp::getattr($a, Parameter, '@!named_names'))
+                         && nqp::isnull(nqp::getattr($b, Parameter, '@!named_names'));
+            return 0 unless nqp::isnull(nqp::getattr($a, Parameter, '@!post_constraints'))
+                         && nqp::isnull(nqp::getattr($b, Parameter, '@!post_constraints'));
+            return 0 unless nqp::isnull(nqp::getattr($a, Parameter, '@!type_captures'))
+                         && nqp::isnull(nqp::getattr($b, Parameter, '@!type_captures'));
+            return 0 if nqp::getattr($a, Parameter, '$!sub_signature')
+                     || nqp::getattr($b, Parameter, '$!sub_signature');
+            return 0 if nqp::defined(nqp::getattr($a, Parameter, '$!signature_constraint'))
+                     || nqp::defined(nqp::getattr($b, Parameter, '$!signature_constraint'));
+
+            return 0 unless nqp::eqaddr(
+              nqp::getattr($a, Parameter, '$!type'),
+              nqp::getattr($b, Parameter, '$!type'));
+          }
+          1
+        }
+
         my int $idx := 0;
         my int $allowed-idx := 0;
         my @allowed-candidates;
         my %gated-candidates;
+        my @gated-idxs;
         while $idx < nqp::elems(@candidates) {
           my $candidate := nqp::atpos(@candidates, $idx++);
 
@@ -3869,22 +4199,43 @@ BEGIN {
           my $is-revision-specified := nqp::isconcrete($required-revision);
           if !$is-revision-specified || $required-revision <= $caller-revision  {
             if (nqp::existskey($candidate, 'signature')) && $is-revision-specified {
-              my $signature := nqp::atkey($candidate, 'signature').raku;
+              my $sig := nqp::atkey($candidate, 'signature');
+              my $signature := $sig.raku;
+
+              # Find the admitted candidate this one supersedes or is
+              # superseded by. The rendered signature catches the exact
+              # same text cheaply; the structural comparison catches
+              # signatures that differ in parameter names only.
+              my int $candidate-idx := -1;
               if nqp::existskey(%gated-candidates, $signature) {
-                my $candidate-idx := nqp::atkey(%gated-candidates, $signature);
+                $candidate-idx := nqp::atkey(%gated-candidates, $signature);
+              }
+              else {
+                for @gated-idxs {
+                  if signatures-equivalent($sig,
+                      nqp::atkey(nqp::atpos(@allowed-candidates, $_), 'signature')) {
+                    $candidate-idx := $_;
+                    last;
+                  }
+                }
+              }
+
+              if $candidate-idx >= 0 {
                 my $last-seen-revision := nqp::atkey(
                         nqp::atpos(@allowed-candidates, $candidate-idx),
                         'required_revision'
                                                                                       );
 
                 if $last-seen-revision < $required-revision {
-                  nqp::bindkey(%gated-candidates, $signature, $candidate-idx);
                   nqp::bindpos(@allowed-candidates, $candidate-idx, $candidate);
                   # Do *not* bump $allowed-idx here
                 }
+                nqp::bindkey(%gated-candidates, $signature, $candidate-idx);
               } else {
+                nqp::bindkey(%gated-candidates, $signature, $allowed-idx);
+                nqp::push(@gated-idxs, $allowed-idx);
                 nqp::push(@allowed-candidates, $candidate);
-                nqp::bindkey(%gated-candidates, $signature, $allowed-idx++);
+                $allowed-idx++;
               }
             } else {
               nqp::push(@allowed-candidates, $candidate);
@@ -4984,6 +5335,18 @@ BEGIN {
         method has-captures() {
             nqp::elems(@!named-capture-counts)
               || nqp::elems(@!pos-capture-counts)
+        }
+
+        # Are there any capture markers?  '<(' and ')>' compile into
+        # named captures called '$!from' and '$!to'.
+        method has-capture-markers() {
+            my int $i := nqp::elems(@!named-capture-names);
+            my int $found := 0;
+            while --$i >= 0 {
+                my str $name := nqp::atpos_s(@!named-capture-names, $i);
+                $found := 1 if $name eq '$!from' || $name eq '$!to';
+            }
+            $found
         }
 
         ## Raku Match object building
@@ -6223,5 +6586,23 @@ Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
 # does not yet work.
 nqp::bindhllsym('Raku', 'QASTRegex', QAST::Regex);
 nqp::bindhllsym('Raku', 'QRegex', QRegex);
+
+# NQP calls this when an argument does not satisfy the object type a
+# parameter of NQP compiled code declares, the RakuAST node methods
+# included. Throw the exception the Raku binder would, or die with the
+# message while the setting is being built and the exception types do not
+# exist yet.
+nqp::bindhllsym('nqp', 'parameter-type-check-failure', sub ($value, $type, $name, $code, $definedness?) {
+    my str $got-name := nqp::isnull($value) ?? 'null' !! $value.HOW.name($value);
+    Perl6::Metamodel::Configuration.throw_or_die(
+        'X::TypeCheck::Binding::Parameter',
+        "Type check failed in binding to parameter '" ~ $name ~ "' of '"
+          ~ nqp::getcodename($code) ~ "'; expected " ~ $type.HOW.name($type)
+          ~ " but got " ~ $got-name,
+        :got(nqp::isnull($value) ?? Mu !! $value),
+        :expected($type),
+        :symbol($name)
+    );
+});
 
 # vim: expandtab sw=4

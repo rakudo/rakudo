@@ -3,7 +3,7 @@ my class RakuAST::LegacyPodify { ... }
 # A class that acts as a Hash as well as an Array, with $=data semantics.
 # This needs to live rather late to have "handles" support actually working
 # in the setting.
-my class Hashray does Iterable {
+my class Hashray does Iterable is implementation-detail {
     has %.Hash handles <
       AT-KEY ASSIGN-KEY BIND-KEY EXISTS-KEY DELETE-KEY Map
       keys kv pairs anti-pairs
@@ -216,6 +216,12 @@ my class RakuAST::Doc::LegacyRow is RakuAST::Node {
     has      $.cells          is built(:bind);  # Str or Markup
     has Bool $.multi-line     is built(False);  # columns are multi-line
 
+    # the .raku writes the offsets as a list
+    submethod TWEAK() {
+        $!column-offsets := (my int @ = $!column-offsets)
+          if nqp::istype($!column-offsets,List);
+    }
+
     # Stringify all cells (needed for headers)
     method stringify-cells(RakuAST::Doc::LegacyRow:D: --> Nil) {
         $!cells := $!cells.map(*.Str).List;
@@ -308,7 +314,8 @@ my class RakuAST::Doc::LegacyRow is RakuAST::Node {
                 @parts.join.trim-trailing ~ "\n"
             }
             else {
-                cells.join('  ') ~ "\n"
+                # an empty last cell would leave the gap before it
+                cells.join('  ').trim-trailing ~ "\n"
             }
         }
 
@@ -346,8 +353,11 @@ augment class RakuAST::Doc {
     multi method podify() {
         RakuAST::LegacyPodify.podify(self)
     }
-    multi method podify($WHEREFORE) {
+    multi method podify(Mu $WHEREFORE) {
         RakuAST::LegacyPodify.podify(self, $WHEREFORE)
+    }
+    multi method podify(Mu $WHEREFORE, $pod) {
+        RakuAST::LegacyPodify.podify(self, $WHEREFORE, $pod)
     }
 }
 
@@ -785,7 +795,9 @@ augment class RakuAST::Doc::Block {
     # return True if a legacy, visual type of table
     method visual-table(RakuAST::Doc::Block:D:) {
         $!type eq 'table' | 'numtable'
-          && nqp::istype($!paragraphs[0],RakuAST::Doc::LegacyRow)
+          && nqp::hllize($!paragraphs).first({
+               nqp::istype($_,RakuAST::Doc::LegacyRow)
+             }).defined
     }
 
     # return a Map with allowed markup codes as keys, conceptually
@@ -900,7 +912,7 @@ augment class RakuAST::Doc::Block {
 
         # verbatim, no postprocessing
         my str $type = $block.type;
-        if $type eq 'comment' | 'data' {
+        if $type eq 'comment' | 'data' | 'ignore' {
             $block.add-paragraph($_) for @paragraphs;
         }
 
@@ -953,7 +965,6 @@ augment class RakuAST::Doc::Block {
 
     my int32 $space     =  32;  # " "
     my int32 $plus      =  43;  # "+"
-    my int32 $backslash =  92;  # "\\"
     my int32 $pipe      = 124;  # "|"
     my int   $gcprop = nqp::unipropcode("General_Category");
 
@@ -997,14 +1008,18 @@ augment class RakuAST::Doc::Block {
             }
         }
 
+        # is a given codepoint horizontal whitespace
+        my sub is-ws(int $codepoint) {
+            nqp::iseq_i($codepoint,$space)
+              || nqp::iseq_s(nqp::getuniprop_str($codepoint,$gcprop),'Zs')
+        }
+
         # Error handling for mixed column divider types
         my sub mixed-up($line) {
             die # self.sorry-ad-hoc:  XXX need better solution
               "Table has a mixture of visible and invisible column-separator types
 in line '$line'";
         }
-
-        my %config = self.config;
 
         # Parse the given lines assuming virtual dividers were used.
         # Quits if actual dividers were found after it found rows with
@@ -1055,9 +1070,11 @@ in line '$line'";
                           nqp::atpos_i(@row-dividers,$curr),
                           nqp::if(                         # a divider
                             $is-row
-                              && nqp::isne_i($prev,$backslash)
                               && (nqp::iseq_i($curr,$pipe)
-                                   || nqp::iseq_i($curr,$plus)),
+                                   || nqp::iseq_i($curr,$plus))
+                              && is-ws($prev)
+                              && (nqp::iseq_i(nqp::add_i($i,1),$elems)
+                                   || is-ws(nqp::atpos_i(@codes,nqp::add_i($i,1)))),
                             nqp::if(                       # visual divider
                               @codes-per-row.elems,
                               mixed-up($line),             # mixed, give up
@@ -1146,19 +1163,13 @@ in line '$line'";
 
         # Parse the given line and find out offsets of columns and dividers
         my sub columnify($line) {
-
-            # is a given codepoint horizontal whitespace
-            my sub is-ws(int $codepoint) {
-                nqp::iseq_i($codepoint,$space)
-                  || nqp::iseq_s(nqp::getuniprop_str($codepoint,$gcprop),'Zs')
-            }
-
             nqp::strtocodes($line,nqp::const::NORMALIZE_NFC,my int32 @codes);
 
             my int $elems = nqp::elems(@codes);
             @codes.push($space);  # create virtual space at end for trailing |
-            my str @dividers;     # strings of dividers encountered
+            my str @dividers;     # strings of column dividers encountered
             my int @offsets;      # offsets where columns start (except first)
+            my int $seen-divider; # a | or + occurred, column divider or not
 
             # Check the current line for column dividers.  Sets the @dividers
             # and @offsets arrays, returns whether this line should be
@@ -1174,10 +1185,11 @@ in line '$line'";
                     nqp::iseq_i(($curr = nqp::atpos_i(@codes,$i)),$pipe)
                       || nqp::iseq_i($curr,$plus),
                     nqp::stmts(                         # | or +
-                      nqp::push_s(@dividers,nqp::chr($curr)),
+                      ($seen-divider = 1),
                       nqp::if(
                         is-ws($prev) && is-ws(nqp::atpos_i(@codes,$i + 1)),
                         nqp::stmts(                     # real column divider
+                          nqp::push_s(@dividers,nqp::chr($curr)),
                           nqp::push_i(@offsets,nqp::add_i(++$i,1)),
                           ($prev = 0),
                         )
@@ -1199,7 +1211,7 @@ in line '$line'";
             if inspect-real-dividers() {
 
                 # no dividers found, must have at least one
-                mixed-up($line) unless nqp::elems(@dividers);
+                mixed-up($line) unless $seen-divider;
 
                 my     $cells := nqp::create(IterationBuffer);
                 my int $chars  = nqp::chars($line);
@@ -1294,10 +1306,11 @@ in line '$line'";
 
         # no explicit header specification: use legacy heuristic of
         # second divider being different from the first divider
-        unless %config<header-row> {
+        unless self.config<header-row> {
             my $seen-row;
             my $first-divider;
             my int $other-dividers;
+            my $header-row;
 
             for @paragraphs {
                 # is it a divider?
@@ -1306,7 +1319,7 @@ in line '$line'";
                     # seen a divider after a row before?
                     if $first-divider.defined {
                         if $_ ne $first-divider {
-                            %config<header-row> := RakuAST::IntLiteral.new(0);
+                            $header-row := RakuAST::IntLiteral.new(0);
                             last;  # different, we're done!
                         }
                         ++$other-dividers;
@@ -1325,16 +1338,16 @@ in line '$line'";
             }
 
             # set headers if only one divider was seen after the first row
-            %config<header-row> := RakuAST::IntLiteral.new(0)
-              if %config<header-row>:!exists
+            $header-row := RakuAST::IntLiteral.new(0)
+              if !$header-row.defined
               && $first-divider.defined
               && !$other-dividers;
+            self.add-config('header-row', $_) with $header-row;
         }
 
         # post-process and save
         @paragraphs.prepend(@leading-dividers) if @leading-dividers;
         @paragraphs.push($_) with $last-divider;
-        self.set-config(%config.Map);
         self.set-paragraphs(@paragraphs);
     }
 
@@ -1363,7 +1376,7 @@ in line '$line'";
             self.add-paragraph(
               RakuAST::Doc::Block.new(
                 :margin($current-ws), :type<implicit-code>,
-                :paragraphs(RakuAST::Doc::Paragraph.from-string(@codes.join))
+                :paragraphs((RakuAST::Doc::Paragraph.from-string(@codes.join),))
               )
             );
             @codes = ();
@@ -1436,6 +1449,12 @@ in line '$line'";
 
     multi method Str(RakuAST::Doc::Block:D:) {
         self.paragraphs.map(*.Str).join
+    }
+
+    # the config as pairs, in deparse order
+    method config-pairs() {
+        my %config := self.config;
+        self.config-keys.map({ $_ => %config{$_} }).List
     }
 
     # Post-process any unresolved asts in the config

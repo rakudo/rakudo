@@ -1,8 +1,7 @@
 # Marker for all compile-time literals
 class RakuAST::Literal
   is RakuAST::Term
-  is RakuAST::CheckTime
-  is RakuAST::CompileTimeValue
+  does RakuAST::CompileTimeValue
 {
     has Str $!typename;
     has Mu  $.value;
@@ -39,6 +38,7 @@ class RakuAST::Literal
     method expression() { self }
     method return-type() { $!value.WHAT }
     method native-type-flag() { Nil }
+    method IMPL-NATIVE-LITERAL-KIND() { self.native-type-flag }
     method compile-time-value() { $!value }
     method IMPL-CAN-INTERPRET() { True }
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
@@ -53,12 +53,11 @@ class RakuAST::Literal
     }
 
     method ast-type {
-        my $type := RakuAST::Type::Simple.new(
-          RakuAST::Name.from-identifier(
-            nqp::ifnull(
-              $!typename,
-              nqp::bindattr(self,RakuAST::Literal,'$!typename',
-                $!value.HOW.name($!value))
+        my $type := RakuAST::Type::Simple.from-identifier(
+          nqp::ifnull(
+            $!typename,
+            nqp::bindattr(self,RakuAST::Literal,'$!typename',
+              $!value.HOW.name($!value)
             )
           )
         );
@@ -87,7 +86,25 @@ class RakuAST::Constant
 class RakuAST::IntLiteral
   is RakuAST::Literal
 {
-    method native-type-flag() { 1 }
+    # Whether the value is exactly representable as a native int. Asking how
+    # the Int is stored answers a different question: the small-value slot is
+    # narrower than a native int, so a value that fits one may still be held
+    # as a bigint. The round trip through the native settles it, and declines
+    # rather than propagates should the unbox refuse a value it cannot hold.
+    method IMPL-FITS-NATIVE-INT() {
+        my $value := self.value;
+        my int $big;
+        try $big := nqp::isbig_I($value);
+        return 1 unless $big;
+        my int $fits;
+        try $fits := nqp::iseq_I(
+            nqp::box_i(nqp::unbox_i($value), nqp::what($value)), $value);
+        $fits
+    }
+
+    # A value that does not fit a native int cannot take part in a native
+    # dispatch.
+    method native-type-flag() { self.IMPL-FITS-NATIVE-INT ?? 1 !! Nil }
 
     method type-name() { 'integer' }
 
@@ -95,13 +112,13 @@ class RakuAST::IntLiteral
         my $value := self.value;
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
-        nqp::isbig_I($value)
-          ?? $wval
-          !! QAST::Want.new(
+        self.IMPL-FITS-NATIVE-INT
+          ?? QAST::Want.new(
                $wval,
                'Ii',
                QAST::IVal.new(:value(nqp::unbox_i($value)))
              )
+          !! $wval
     }
 }
 
@@ -153,9 +170,9 @@ class RakuAST::StrLiteral
 # are "words", "quotewords", "val", and "exec", and are applied in the order
 # that they are specified here).
 class RakuAST::QuotedString
-  is RakuAST::ColonPairish
   is RakuAST::Term
-  is RakuAST::ImplicitLookups
+  does RakuAST::ImplicitLookups
+  does RakuAST::ColonPairish
 {
     has Mu $!segments;
     has Mu $!processors;
@@ -166,14 +183,6 @@ class RakuAST::QuotedString
 
     # Allow subclasses to set these attributes transparently
     method SET-SELF(List $segments, List $processors) {
-        nqp::bindattr(self, RakuAST::QuotedString, '$!segments',
-            self.IMPL-UNWRAP-LIST($segments));
-        nqp::bindattr(self, RakuAST::QuotedString, '$!processors',
-            self.IMPL-CHECK-PROCESSORS($processors));
-        self
-    }
-
-    method IMPL-CHECK-PROCESSORS(Mu $processors) {
         my constant VALID := nqp::hash(
           'words',      Mu,
           'quotewords', Mu,
@@ -182,16 +191,21 @@ class RakuAST::QuotedString
           'heredoc',    Mu,
           'format',     Mu
         );
-        my @result;
-        for self.IMPL-UNWRAP-LIST($processors // []) {
-            if nqp::existskey(VALID, $_) {
-                nqp::push(@result, nqp::box_s($_, Str));
-            }
-            else {
-                nqp::die("Unsupported quoted string processor '$_'");
+
+        nqp::bindattr(self, RakuAST::QuotedString, '$!segments',
+          self.IMPL-UNWRAP-LIST($segments)
+        );
+
+        nqp::bindattr(self,RakuAST::QuotedString,'$!processors',my @result);
+        if $processors {
+            for self.IMPL-UNWRAP-LIST($processors) {
+                nqp::existskey(VALID, $_)
+                  ?? nqp::push(@result, nqp::box_s($_, Str))
+                  !! nqp::die("Unsupported quoted string processor '$_'");
             }
         }
-        @result
+
+        self
     }
 
     method segments() {
@@ -237,9 +251,14 @@ class RakuAST::QuotedString
             if self.sunk && $value;
     }
 
+    # Whether anything in the string is interpolated, a nested quote
+    # counts by its own segments
     method has-variables() {
         for $!segments {
-            return True if nqp::istype($_,RakuAST::Var);
+            my $segment := nqp::istype($_,RakuAST::QuoteWordsAtom) ?? $_.atom !! $_;
+            return True unless nqp::istype($segment,RakuAST::StrLiteral)
+              || (nqp::istype($segment,RakuAST::QuotedString)
+                   && !$segment.has-variables);
         }
         False
     }
@@ -255,6 +274,19 @@ class RakuAST::QuotedString
         }
     }
 
+    # A constant quoted string compiles to the same Want shape a str literal
+    # does, so it takes part in native pairing the same way. A processor
+    # changes what the value compiles to, so any processor declines.
+    method IMPL-NATIVE-LITERAL-KIND() {
+        if $!processors {
+            Nil
+        }
+        else {
+            my $value := self.literal-value;
+            nqp::isconcrete($value) && nqp::istype($value, Str) ?? 3 !! Nil
+        }
+    }
+
     method ast-type {
         if $!processors {
             # Can probably figure some of these out.
@@ -262,7 +294,7 @@ class RakuAST::QuotedString
         }
         else {
             # Always a string if no processors.
-            my $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'));
+            my $type := RakuAST::Type::Simple.from-identifier('Str');
             $type.set-resolution:
                 RakuAST::Declaration::ResolvedConstant.new(
                     compile-time-value => Str
@@ -273,7 +305,7 @@ class RakuAST::QuotedString
 
     method IMPL-WORDS-AUTODEREF(str $str) {
         my $result := nqp::list();
-        my int $pos := 0;
+        my int $pos;
         my int $eos := nqp::chars($str);
         my int $ws;
         my constant NBSP := nqp::hash(
@@ -296,6 +328,7 @@ class RakuAST::QuotedString
 
     method IMPL-PROCESS-PART($result, $part, :$protected) {
         return Nil if $part =:= Nil;
+
         for $!processors {
             if $_ eq 'words' || $_ eq 'quotewords' {
                 # A part that came from a quoted atom is protected: quote
@@ -311,11 +344,10 @@ class RakuAST::QuotedString
                 }
             }
             elsif $_ eq 'val' {
-                my $val-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
-                my $val := $val-lookup.is-resolved
-                    ?? $val-lookup.resolution.compile-time-value
-                    !! -> $val { $val };
-                $part := $val(nqp::hllizefor($part, 'Raku'));
+                my $val-lookup := nqp::atpos(self.get-implicit-lookups, 0);
+                $part := $val-lookup.resolution.compile-time-value()(
+                  nqp::hllizefor($part,'Raku')
+                ) if $val-lookup.is-resolved;
             }
             elsif $_ eq 'heredoc' {
             }
@@ -411,79 +443,58 @@ class RakuAST::QuotedString
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+
         # If we can constant fold it, just produce the constant.
         my $literal-value := self.literal-value;
         if nqp::isconcrete($literal-value) {
 
             # format string
             if $!processors && $!processors[0] eq 'format' {
-                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
-
-# The below code "should" work, but doesn't because references to internal
-# subs (such as "str-right-justified") appear to be QASTed correctly, but
-# when executed, do *not* call the unit in question, but simply return the
-# arguments that were given.  Not sure what is going on here.  For now,
-# create the format at run-time: it will still get cached, but *will* incur
-# a performance penalty at runtime, which is too bad because the whole idea
-# of a quote string format, was to create all of this at compile time.
-#
-#                my $format := $Format.new($literal-value);
-#                $context.ensure-sc($format);
-#                return QAST::WVal.new(:value($format));
-
-                # for now, until above fixed
-                $context.ensure-sc($literal-value);
-                return QAST::Op.new(
-                  :op('callmethod'), :name('new'),
-                  QAST::WVal.new( :value($Format) ),
-                  QAST::WVal.new( :value($literal-value) )
-                );
+                my $Format := self.get-implicit-lookups[0].resolution.compile-time-value;
+                my $format := $Format.new($literal-value);
+                $context.ensure-sc($format);
+                QAST::WVal.new(:value($format));
             }
 
-            $context.ensure-sc($literal-value);
-            my $wval := QAST::WVal.new( :value($literal-value) );
-            return nqp::istype($literal-value, Str)
-                ?? QAST::Want.new(
-                     $wval,
-                     'Ss',
-                     QAST::SVal.new( :value(nqp::unbox_s($literal-value)) )
-                   )
-                !! $wval;
+            # other literal string value
+            else {
+                $context.ensure-sc($literal-value);
+                my $wval := QAST::WVal.new( :value($literal-value) );
+                nqp::istype($literal-value, Str)
+                  ?? QAST::Want.new(
+                       $wval,
+                       'Ss',
+                       QAST::SVal.new( :value(nqp::unbox_s($literal-value)) )
+                     )
+                  !! $wval
+            }
         }
 
         # Otherwise, needs compilation.
-        my @segment-asts;
-        for $!segments {
-            if $_.return-type =:= Str || nqp::istype($_, RakuAST::QuoteWordsAtom) {
-                @segment-asts.push($_.IMPL-TO-QAST($context));
-            }
-            else {
-                my $inter-qast := $_.IMPL-TO-QAST($context);
-                if nqp::istype($_, RakuAST::Block) {
-                    $inter-qast := QAST::Op.new( :op('call'), $inter-qast );
-                }
-                @segment-asts.push(QAST::Op.new(
-                    :op('callmethod'), :name('Stringy'),
-                    $inter-qast
-                ));
-            }
-        }
-        my int $seg-count := nqp::elems(@segment-asts);
-        my $qast;
-        if $seg-count == 1 {
-            $qast := @segment-asts[0];
-        }
-        elsif $seg-count == 2 {
-            $qast := QAST::Op.new( :op('concat'), @segment-asts[0], @segment-asts[1] )
-        }
         else {
-            $qast := QAST::Op.new(
-                :op('join'),
-                QAST::SVal.new( :value('') ),
-                QAST::Op.new( :op('list_s'), |@segment-asts )
-            )
+            my @qasts;
+            for $!segments {
+                my $qast := $_.IMPL-TO-QAST($context);
+
+                # Further processing needed
+                unless $_.return-type =:= Str
+                  || nqp::istype($_, RakuAST::QuoteWordsAtom) {
+                    $qast := QAST::Op.new(:op<call>, $qast)
+                      if nqp::istype($_, RakuAST::Block);
+                    $qast := QAST::Op.new(:op<callmethod>, :name<Stringy>, $qast);
+                }
+                @qasts.push($qast);
+            }
+
+            my $qast := nqp::shift(@qasts);
+            while @qasts {
+                $qast := QAST::Op.new(:op<callstatic>, :name('&infix:<~>'),
+                  $qast, nqp::shift(@qasts)
+                );
+            }
+
+            self.IMPL-QAST-PROCESSORS($context, $qast)
         }
-        self.IMPL-QAST-PROCESSORS($context, $qast)
     }
 
     method IMPL-WALK($context, $node, $result) {
@@ -550,7 +561,7 @@ class RakuAST::QuotedString
             }
             elsif $_ eq 'val' {
                 my $name :=
-                  self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.lexical-name;
+                  self.get-implicit-lookups[0].resolution.lexical-name;
                 $qast := QAST::Op.new(:op('call'), :$name, $qast);
             }
             elsif $_ eq 'exec' {
@@ -559,12 +570,15 @@ class RakuAST::QuotedString
                 );
             }
             elsif $_ eq 'heredoc' {
+                # The block being formed is formed again once the body arrives.
+                $*IMPL-FORM-AGAIN := 1
+                  unless nqp::isnull(nqp::getlexdyn('$*IMPL-FORM-AGAIN'));
                 $qast := QAST::Op.new(
                     :op('die_s'), QAST::SVal.new( :value("Premature heredoc consumption") )
                 );
             }
             elsif $_ eq 'format' {
-                my $Format := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].resolution.compile-time-value;
+                my $Format := self.get-implicit-lookups[0].resolution.compile-time-value;
                 $qast := QAST::Op.new(
                   :op('callmethod'), :name('new'),
                   QAST::WVal.new( :value($Format)),
@@ -611,6 +625,11 @@ class RakuAST::Heredoc
 {
     has Str $!stop;
     has int $!indent;
+    has Str $!pending-delimiter;
+
+    # The origin of the body, from its first line to the end of the
+    # terminator line. The origin of the heredoc covers its introducer.
+    has RakuAST::Origin $.body-origin;
 
     method new(List :$segments!, List :$processors, Str :$stop) {
         my $obj := nqp::create(self).SET-SELF($segments, $processors);
@@ -635,16 +654,15 @@ class RakuAST::Heredoc
         }
         # Also steal the implicit lookups as any processor related lookups will
         # have been done before we got to stealing those processors.
-        nqp::bindattr(
-            self,
-            RakuAST::ImplicitLookups,
-            '$!implicit-lookups-cache',
-            nqp::getattr($source, RakuAST::ImplicitLookups, '$!implicit-lookups-cache')
-        );
+        self.IMPL-SET-IMPLICIT-LOOKUPS($source.get-implicit-lookups);
     }
 
     method set-stop(Str $stop) {
         nqp::bindattr(self, RakuAST::Heredoc, '$!stop', $stop);
+    }
+
+    method set-body-origin(RakuAST::Origin $origin) {
+        nqp::bindattr(self, RakuAST::Heredoc, '$!body-origin', $origin);
     }
     method stop() { $!stop }
 
@@ -652,7 +670,63 @@ class RakuAST::Heredoc
         nqp::bindattr_i(self, RakuAST::Heredoc, '$!indent', $indent);
     }
 
+    # A heredoc the parser queued holds only its delimiter until its body is
+    # attached, so it has no value to fold. Code compiled from it before then
+    # dies when run.
+    method literal-value(:$force, :$stringify) {
+        nqp::isconcrete($!pending-delimiter)
+          ?? Nil
+          !! nqp::findmethod(RakuAST::QuotedString, 'literal-value')(
+               self, :$force, :$stringify)
+    }
+
+    # Marks the heredoc as awaiting its body and returns its delimiter, or
+    # Nil when the delimiter has no literal value.
+    method IMPL-AWAIT-BODY() {
+        my $delimiter := nqp::findmethod(RakuAST::QuotedString, 'literal-value')(self);
+        nqp::bindattr(self, RakuAST::Heredoc, '$!pending-delimiter', $delimiter)
+          if nqp::isconcrete($delimiter);
+        $delimiter
+    }
+    method IMPL-AWAITS-BODY() { nqp::isconcrete($!pending-delimiter) ?? True !! False }
+    method IMPL-PENDING-DELIMITER() { $!pending-delimiter }
+
+    # The first heredoc awaiting its body in code that runs with the node.
+    # A closure or a WhateverCode runs later, so its code is skipped, unless
+    # it is the block of a statement prefix such as do.
+    method IMPL-AWAITING-IN(Mu $node, Mu $parent?) {
+        return $node if nqp::istype($node, RakuAST::Heredoc) && $node.IMPL-AWAITS-BODY;
+        return Mu if nqp::istype($node, RakuAST::Expression) && $node.IMPL-PRIMED
+          || (nqp::istype($node, RakuAST::Block) || nqp::istype($node, RakuAST::Routine))
+          && !nqp::istype($parent, RakuAST::StatementPrefix);
+        my $found := Mu;
+        $node.visit-children(-> $child {
+            $found := RakuAST::Heredoc.IMPL-AWAITING-IN($child, $node)
+              unless nqp::isconcrete($found);
+        }) if nqp::can($node, 'visit-children');
+        $found
+    }
+
+    # Whether a heredoc awaiting its body is anywhere in the node.
+    method IMPL-AWAITING-ANYWHERE-IN(Mu $node) {
+        return True if nqp::istype($node, RakuAST::Heredoc) && $node.IMPL-AWAITS-BODY;
+        my $found := False;
+        $node.visit-children(-> $child {
+            $found := RakuAST::Heredoc.IMPL-AWAITING-ANYWHERE-IN($child) unless $found;
+        }) if nqp::can($node, 'visit-children');
+        $found
+    }
+
+    # Dies for code that needs the value before the body arrives, located at
+    # the heredoc while compiling.
+    method IMPL-PREMATURE() {
+        self.IMPL-THROW-IF-COMPILING('X::Comp::AdHoc',
+          :payload('Premature heredoc consumption'));
+        nqp::die('Premature heredoc consumption');
+    }
+
     method trim() {
+        nqp::bindattr(self, RakuAST::Heredoc, '$!pending-delimiter', Str);
         # Remove heredoc postprocessor to defuse the "Premature heredoc consumption" error
         my $processors := nqp::getattr(self, RakuAST::QuotedString, '$!processors');
         my $new_processors := [];

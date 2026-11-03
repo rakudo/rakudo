@@ -157,9 +157,10 @@ class CompUnit::RepositoryRegistry {
         $prefix = $prefix.subst(:g, '/', $sep) if Rakudo::Internals.IS-WIN;
 
         # set up custom libs
-        my str $core   = 'inst#' ~ $prefix ~ $sep ~ 'core';
-        my str $vendor = 'inst#' ~ $prefix ~ $sep ~ 'vendor';
-        my str $site   = 'inst#' ~ $prefix ~ $sep ~ 'site';
+        my str $custom = 'inst#' ~ $prefix ~ $sep;
+        my str $core   = $custom ~ 'core';
+        my str $vendor = $custom ~ 'vendor';
+        my str $site   = $custom ~ 'site';
 
         my str $home;
         my str $home-spec;

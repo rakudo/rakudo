@@ -325,7 +325,10 @@ my class Proc::Async {
     method !capture(\callbacks,\std,\the-supply --> Promise) {
         my $promise := Promise.new;
         my $vow := $promise.vow;
+        # A merged stream is fed by two pipes, so it ends with two
+        # end of stream reports.
         my $ss := Rakudo::Internals::SupplySequencer.new(
+            dones-expected => std eq 'merge' ?? 2 !! 1,
             on-data-ready => -> \data { the-supply.emit(data) },
             on-completed  => -> { the-supply.done(); $vow.keep(the-supply) },
             on-error      => -> \err { the-supply.quit(err); $vow.keep((the-supply,err)) });
@@ -335,20 +338,15 @@ my class Proc::Async {
         $promise
     }
 
-    method !win-quote-CommandLineToArgvW(*@args) {
-        my @quoted_args;
-        for @args -> $arg {
-            if !$arg.contains(' ') && !$arg.contains('"') && !$arg.contains('\t') && !$arg.contains('\n') && !$arg.contains('\v') {
-                @quoted_args.push: $arg;
-            }
-            else {
-                my $quoted_arg = $arg;
-                $quoted_arg ~~ s:g/ ( \\* ) \" /$0$0\\\"/;
-                $quoted_arg ~~ s/ ( \\+ ) $ /$0$0/;
-                @quoted_args.push: '"' ~ $quoted_arg ~ '"';
-            }
-        }
-        @quoted_args.join: ' '
+    method !win-quote-CommandLineToArgvW(@args) {
+        @args.map({
+            $_ && !.contains(/ \s | '"' /)
+              ?? $_              # no quoting needed
+              !! '"'             # needs quoting
+                   ~ .subst(/ ( \\* ) \" /, { qq/$0$0\\"/ }, :g)
+                     .subst(/ ( \\+ ) $ /,  { "$0$0" } )
+                   ~ '"'
+        }).join(' ');
     }
 
     method start(Proc::Async:D:
@@ -449,9 +447,20 @@ my class Proc::Async {
           $!stderr_descriptor_used
         )) if $!stderr_supply;
 
-        @!promises.push(
-          self!capture($callbacks,'merge',$!merge_supply)
-        ) if $!merge_supply;
+        if $!merge_supply {
+            @!promises.push(
+              self!capture($callbacks,'merge',$!merge_supply)
+            );
+#?if moar
+            # MoarVM reports a spawn failure under the stdout_bytes and
+            # stderr_bytes keys, also when the pipes were created for a
+            # merged stream.
+            nqp::bindkey($callbacks, 'stdout_bytes',
+              nqp::atkey($callbacks, 'merge_bytes'));
+            nqp::bindkey($callbacks, 'stderr_bytes',
+              nqp::atkey($callbacks, 'merge_bytes'));
+#?endif
+        }
 
         nqp::bindkey($callbacks, 'buf_type', nqp::create(buf8.^pun));
         nqp::bindkey($callbacks, 'write', True) if $.w;
@@ -463,6 +472,13 @@ my class Proc::Async {
             nqp::bindkey($callbacks, 'pty', True);
             nqp::bindkey($callbacks, 'pty-cols', $!pty-cols);
             nqp::bindkey($callbacks, 'pty-rows', $!pty-rows);
+#?if moar
+            # A pty reports spawn failures under the stdout_bytes key even
+            # when nothing is set up to read stdout. The error callback
+            # reports the failure regardless.
+            nqp::bindkey($callbacks, 'stdout_bytes', -> Mu, Mu, Mu { })
+              unless nqp::existskey($callbacks, 'stdout_bytes');
+#?endif
         }
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue(:hint-affinity),

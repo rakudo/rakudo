@@ -63,7 +63,10 @@ multi sub infix:<<(==)>>(Map:D \a, Map:D \b --> Bool:D) {
 
 multi sub infix:<<(==)>>(Iterable:D \a, Map:D \b --> Bool:D) {
     my \iterator := a.iterator;
-    my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage');
+    my \braw := nqp::getattr(
+      nqp::istype(b,Hash::Shaped) ?? b.WHICH-KEYED !! nqp::decont(b),
+      Map,'$!storage'
+    );
 
     return False                          # can never find all values
       if nqp::istype(iterator,PredictiveIterator)

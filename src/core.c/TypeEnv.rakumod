@@ -7,7 +7,7 @@
 # underlying context is preserved after that and a new TypeEnv gets created it would become a new primary and will start
 # producing new instantiations for the same generics.
 
-my class TypeEnv { # declared in BOOTSTRAP
+my class TypeEnv is implementation-detail { # declared in BOOTSTRAP
 # my class TypeEnv is Map {
 #     has $!primary;
 #     has $!WHICH;
@@ -28,7 +28,11 @@ my class TypeEnv { # declared in BOOTSTRAP
                 my Mu \pair = nqp::shift(iter);
                 my $sym := nqp::iterkey_s(pair);
                 unless nqp::existskey(ctx-hash, $sym) {
-                    nqp::bindkey(ctx-hash, $sym, (my \v = nqp::iterval(pair)));
+                    # A lexical can hold an unhandled Failure, which throws
+                    # when sunk, so the copied value must not be this
+                    # block's value.
+                    nqp::bindkey(ctx-hash, $sym, nqp::iterval(pair));
+                    Nil
                 }
             }
 

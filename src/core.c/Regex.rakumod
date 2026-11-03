@@ -86,6 +86,15 @@ my class Regex { # declared in BOOTSTRAP
         )
     }
 
+    # Whether this regex contains the capture markers '<(' or ')>'
+    method HAS-CAPTURE-MARKERS(Regex:D:) is implementation-detail {
+        nqp::hllbool(
+          nqp::not_i(nqp::isnull($!caps))
+            && nqp::isconcrete($!caps)
+            && $!caps.has-capture-markers
+        )
+    }
+
     multi method Bool(Regex:D:) {
         my Mu \topic = $!topic;
         nqp::istype_nd(topic, Rakudo::Internals::RegexBoolification6cMarker)

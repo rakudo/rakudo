@@ -18,7 +18,7 @@ my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 sub block_closure($code, :$regex) {
     my $clone := QAST::Op.new( :op('callmethod'), :name('clone'), $code );
     if $regex {
-        if nqp::getcomp('Raku').language_revision < 2 {
+        if $*LANGUAGE-REVISION < 2 {
             my $marker := $*W.find_symbol(['Rakudo', 'Internals', 'RegexBoolification6cMarker']);
             $clone.push(QAST::WVal.new( :value($marker), :named('topic') ));
         }
@@ -1435,7 +1435,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
               QAST::WVal.new(:value($main<value>)),
               $mainline             # run the mainline and get its result
             );
-            unless nqp::getcomp('Raku').language_revision < 2 {
+            unless $*LANGUAGE-REVISION < 2 {
                 $mainline.push(
                   QAST::WVal.new( # $*IN as $*ARGSFILES
                     value => $world.find_symbol(['Bool','True'], :setting-only),
@@ -1632,7 +1632,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $ast := $statements[0].ast;
 
                 # an op and 6e or higher?
-                if nqp::istype($ast,QAST::Op) && nqp::getcomp('Raku').language_revision >= 3 {
+                if nqp::istype($ast,QAST::Op) && $*LANGUAGE-REVISION >= 3 {
                     sub is-pipe-pipe($ast) {
                         nqp::istype($ast,QAST::Op)
                           && $ast.name eq '&prefix:<|>'
@@ -2572,7 +2572,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub single_top_level_whenever($block) {
         if $*WHENEVER_COUNT == 1
-        && nqp::getcomp('Raku').language_revision > 1 {
+        && $*LANGUAGE-REVISION > 1 {
             my $stmts := $block[1];
             if nqp::istype($stmts, QAST::Stmts) {
                 my @stmts := $stmts.list;
@@ -2657,7 +2657,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::WVal.new( :value($world.find_single_symbol_in_setting('Promise')) ),
             $<blorst>.ast
         );
-        if nqp::getcomp('Raku').language_revision > 1 {
+        if $*LANGUAGE-REVISION > 1 {
             $qast.push(QAST::WVal.new(
                 :value($world.find_symbol(['Bool', 'True'])),
                 :named('report-broken-if-sunk')
@@ -2905,12 +2905,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method colonpair_variable($/) {
         if $<capvar> {
-            make QAST::Op.new(
+            my $past := QAST::Op.new(
                 :op('call'),
                 :name('&postcircumfix:<{ }>'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
                 $*W.add_string_constant(~$<desigilname>)
             );
+            my str $sigil := ~$<sigil>;
+            if $sigil eq '@' || $sigil eq '%' {
+                my $name := $sigil eq '@' ?? 'list' !! 'hash';
+                $past := QAST::Op.new( :op('callmethod'), :name($name), $past );
+            }
+            make $past;
         }
         else {
             make make_variable($/, [~$/]);
@@ -3017,7 +3023,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method contextualizer($/) {
         my $past := $<coercee>.ast;
-        my $has_magic := nqp::getcomp('Raku').language_revision < 2 && $<coercee> eq '';
+        my $has_magic := $*LANGUAGE-REVISION < 2 && $<coercee> eq '';
         my $sigil := ~$<sigil>;
 
         if $has_magic && $sigil eq '$' { # for '$()'
@@ -3081,7 +3087,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         if nqp::existskey(%variable_deprecations, $name)
             && nqp::isge_i(
-                nqp::getcomp('Raku').language_revision,
+                $*LANGUAGE-REVISION,
                 %variable_deprecations{$name}[0])
         {
             @deprecation := nqp::clone(%variable_deprecations{$name});
@@ -3178,7 +3184,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # under 6.e so that an if/while/etc. CONDITION (which is
             # parsed in the outer pad, before the body's new pad gets
             # pushed) doesn't try to redeclare an explicit *@_ parameter.
-            if (nqp::getcomp('Raku').language_revision < 3
+            if ($*LANGUAGE-REVISION < 3
                 && $world.nearest_signatured_block_declares('@_'))
               || +$world.cur_lexpad().symbol('@_') {
                 $past.scope('lexical');
@@ -3191,7 +3197,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $name eq '%_' {
             # Same 6.e gate as @_ above. The $*METHODTYPE check stays
             # unconditional: methods auto-have *%_ in every revision.
-            if (nqp::getcomp('Raku').language_revision < 3
+            if ($*LANGUAGE-REVISION < 3
                 && $world.nearest_signatured_block_declares('%_'))
               || +$world.cur_lexpad().symbol('%_')
               || $*METHODTYPE {
@@ -3480,7 +3486,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             for @usages {
                 my $past := $_;
                 my $attr := $world.get_attribute_meta_object($past.node, $name);
-                $past.returns($attr.type);
+                my $type := $attr.type;
+                $past.returns($type);
+                if nqp::objprimspec($type) {
+                    $world.throw($past.node // $/, ['X', 'Bind', 'NativeType'],
+                        name => $name
+                    ) if $past.ann('attribute_bind_target');
+                    $past.scope('attributeref');
+                }
             }
         }
 
@@ -3651,73 +3664,39 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $<signature> {
             # Go over the params and declare the variable defined in them.
-            my $list      := QAST::Op.new( :op('call'), :name('&infix:<,>') );
             my @params    := $<signature>.ast<parameters>;
             my $common_of := $*OFTYPE;
             my @nosigil;
-            for @params {
-                my $*OFTYPE := $common_of;
-                if nqp::existskey($_, 'of_type') && nqp::existskey($_, 'of_type_match') {
-                    if $common_of {
-                        ($_<node> // $<signature>).typed_sorry(
-                            'X::Syntax::Variable::ConflictingTypes',
-                            outer => $common_of.ast, inner => $_<of_type>);
-                    }
-                    $*OFTYPE := $_<of_type_match>;
-                    $*OFTYPE.make($_<of_type>);
-                }
-
-                my $post := $_<post_constraints> ?? $_<post_constraints> !! [];
-                if $_<variable_name> {
-                    my $name := $_<variable_name>;
-                    my $sigil := $_<sigil>;
-                    my $twigil := $_<twigil>;
-                    my $desigilname := $_<desigilname>;
-                    if $desigilname {
-                        ensure_unused_in_scope($/, $name, $twigil)
-                    }
-                    my $past := QAST::Var.new( :$name );
-                    $past := declare_variable($/, $past, $sigil, $twigil,
-                        $desigilname, $<trait>, :$post);
-                    unless nqp::istype($past, QAST::Op) && $past.op eq 'null' {
-                        $list.push($past);
-                        if $sigil eq '' {
-                            nqp::push(@nosigil, ~$desigilname);
-                        }
-                    }
-                }
-                else {
-                    my $world := $*W;
-                    $world.handle_OFTYPE_for_pragma($/,'parameters');
-                    my @value_type := $*OFTYPE ?? [$*OFTYPE.ast] !! [];
-                    if @value_type && $_<defined_only> {
-                        @value_type[0] := $world.create_definite_type(
-                            $world.resolve_mo($/, 'definite'),
-                            @value_type[0], 1);
-                    }
-                    elsif @value_type && $_<undefined_only> {
-                        @value_type[0] := $world.create_definite_type(
-                            $world.resolve_mo($/, 'definite'),
-                            @value_type[0], 0);
-                    }
-                    my %cont_info := $world.container_type_info($/, :$post,
-                      $_<sigil> || '$', @value_type, []);
-                    $list.push($world.build_container_past(
-                      %cont_info,
-                      $world.create_container_descriptor(
-                        %cont_info<value_type>, 'anon', %cont_info<default_value>)));
-                }
-            }
+            my @groups;
+            my $assign := $<initializer> && $<initializer><sym> eq '=';
+            my $list := list_declaration_targets($/, @params, $<trait>,
+                $common_of, @nosigil, @groups, $assign, 1);
 
             if $<initializer> {
-                my $orig_list := $list;
+                # the value of a state declaration on a later entry is
+                # the containers, built again since the assignment's
+                # targets declare their placeholder locals
+                my $orig_list := $assign && @groups && $*SCOPE eq 'state'
+                    ?? list_declaration_targets($/, @params, $<trait>,
+                        $common_of, [], [], 0, 0)
+                    !! $list;
                 my $initast := $<initializer>.ast;
                 if $<initializer><sym> eq '=' {
                     $/.panic("Cannot assign to a list of 'has' scoped declarations")
                         if $*SCOPE eq 'has';
                     $list := assign_op($/, $list, $initast);
-                    if @nosigil {
+                    if @groups || @nosigil {
                         $list := QAST::Stmts.new( :resultchild(0), $list );
+                        # a sub-signature inside a group queues its own group
+                        my int $i := 0;
+                        while $i < nqp::elems(@groups) {
+                            my $group := @groups[$i];
+                            $list.push(assign_op($/,
+                                list_declaration_targets($/, $group[1], $<trait>,
+                                    $common_of, @nosigil, @groups, $assign, 1),
+                                QAST::Op.new( :op('decont'), $group[0] )));
+                            $i++;
+                        }
                         for @nosigil {
                             $list.push(QAST::Op.new(
                                 :op('bind'),
@@ -3734,6 +3713,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 else {
                     my %sig_info := $<signature>.ast;
+                    type_list_params($/, %sig_info<parameters>, $common_of.ast)
+                        if $common_of;
                     my $signature := $*W.create_signature_and_params($/, %sig_info, $*W.cur_lexpad(), 'Mu');
                     $list := QAST::Op.new(
                         :op('p6bindcaptosig'),
@@ -3893,6 +3874,151 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
+    # The list of what the parameters of a list declaration store into:
+    # the variable each declares, a typed placeholder for an anonymous
+    # one, and for a sub-signature its own list, or when assigning a
+    # placeholder that the sub-signature's list is assigned from after
+    # the whole list, queued in @groups with its source. Sigilless
+    # names go to @nosigil to be rebound afterwards. Without $declare
+    # the variables are looked up, for a list built a second time.
+    sub list_declaration_targets($/, @params, $trait, $common_of, @nosigil, @groups, $assign, $declare) {
+        my $list := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+        for @params {
+            my $*OFTYPE := $common_of;
+            if nqp::existskey($_, 'of_type') && nqp::existskey($_, 'of_type_match') {
+                if $common_of && $declare {
+                    ($_<node> // $/<signature>).typed_sorry(
+                        'X::Syntax::Variable::ConflictingTypes',
+                        outer => $common_of.ast, inner => $_<of_type>);
+                }
+                $*OFTYPE := $_<of_type_match>;
+                $*OFTYPE.make($_<of_type>);
+            }
+
+            my $post := $_<post_constraints> ?? $_<post_constraints> !! [];
+            my @nested := nqp::existskey($_, 'sub_signature_params')
+                ?? $_<sub_signature_params><parameters>
+                !! [];
+            if $_<variable_name> {
+                my $name := $_<variable_name>;
+                my $sigil := $_<sigil>;
+                my $twigil := $_<twigil>;
+                my $desigilname := $_<desigilname>;
+                if $declare {
+                    if $desigilname {
+                        ensure_unused_in_scope($/, $name, $twigil)
+                    }
+                    my $past := QAST::Var.new( :$name );
+                    $past := declare_variable($/, $past, $sigil, $twigil,
+                        $desigilname, $trait, :$post);
+                    unless nqp::istype($past, QAST::Op) && $past.op eq 'null' {
+                        $list.push($past);
+                        if $sigil eq '' {
+                            nqp::push(@nosigil, ~$desigilname);
+                        }
+                    }
+                }
+                else {
+                    $list.push(QAST::Var.new( :$name, :scope('lexical') ));
+                }
+                if @nested {
+                    $assign
+                        ?? nqp::push(@groups, [QAST::Var.new( :$name, :scope('lexical') ), @nested])
+                        !! list_declaration_targets($/, @nested, $trait,
+                            $common_of, @nosigil, @groups, $assign, $declare);
+                }
+            }
+            elsif @nested {
+                if $assign {
+                    my $world := $*W;
+                    my $name := QAST::Node.unique('list_declaration_group');
+                    # the placeholder holds Nil until assigned, so a short
+                    # list leaves the sub-signature's variables at their
+                    # defaults. It is declared where it is bound, so a
+                    # thunk around the statement takes it along.
+                    $list.push(QAST::Op.new( :op('bind'),
+                        QAST::Var.new( :$name, :scope('local'), :decl('var') ),
+                        QAST::Op.new( :op('p6scalarfromdesc'),
+                            QAST::WVal.new( :value($world.create_container_descriptor(
+                              $world.find_single_symbol_in_setting('Mu'), 'anon',
+                              $world.find_single_symbol_in_setting('Nil'))) ))));
+                    nqp::push(@groups, [QAST::Var.new( :$name, :scope('local') ), @nested]);
+                }
+                else {
+                    $list.push(list_declaration_targets($/, @nested, $trait,
+                        $common_of, @nosigil, @groups, $assign, $declare));
+                }
+            }
+            else {
+                my $world := $*W;
+                $world.handle_OFTYPE_for_pragma($/,'parameters');
+                my @value_type := $*OFTYPE ?? [$*OFTYPE.ast] !! [];
+                if @value_type && $_<defined_only> {
+                    @value_type[0] := $world.create_definite_type(
+                        $world.resolve_mo($/, 'definite'),
+                        @value_type[0], 1);
+                }
+                elsif @value_type && $_<undefined_only> {
+                    @value_type[0] := $world.create_definite_type(
+                        $world.resolve_mo($/, 'definite'),
+                        @value_type[0], 0);
+                }
+                my %cont_info := $world.container_type_info($/, :$post,
+                  $_<sigil> || '$', @value_type, []);
+                $list.push($world.build_container_past(
+                  %cont_info,
+                  $world.create_container_descriptor(
+                    %cont_info<value_type>, 'anon', %cont_info<default_value>)));
+            }
+        }
+        $list
+    }
+
+    # The type of a list declaration is the type of every parameter it
+    # binds through that has no type of its own, so the binder checks it
+    sub type_list_params($/, @params, $of_type) {
+        my $world := $*W;
+        for @params {
+            type_list_params($/, $_<sub_signature_params><parameters>, $of_type)
+                if nqp::existskey($_, 'sub_signature_params');
+            next if nqp::existskey($_, 'of_type')
+                || !($_<variable_name> || nqp::existskey($_, 'sigil'))
+                || $_<pos_slurpy> || $_<pos_lol> || $_<pos_onearg>
+                || $_<named_slurpy> || $_<is_capture>;
+            my $type := $of_type;
+            my $archetypes := $type.HOW.archetypes($type);
+            # a signature bound to at runtime is never instantiated
+            next if $archetypes.generic;
+            if $archetypes.definite && nqp::eqaddr($type.HOW.wrappee($type, :definite), $type) {
+                if $type.HOW.definite($type) {
+                    $_<defined_only> := 1;
+                }
+                else {
+                    $_<undefined_only> := 1;
+                }
+                $type := $type.HOW.base_type($type);
+                $archetypes := $type.HOW.archetypes($type);
+            }
+            if $archetypes.nominalizable
+                && !$archetypes.nominal
+                && !$archetypes.coercive
+                && !$archetypes.generic {
+                $_<post_constraints> := [] unless $_<post_constraints>;
+                $_<post_constraints>.push($type);
+                $type := $type.HOW.nominalize($type);
+            }
+            my $sigil := $_<sigil>;
+            my $role := $sigil eq '@' ?? 'Positional'
+              !! $sigil eq '%' ?? 'Associative'
+              !! $sigil eq '&' ?? 'Callable'
+              !! '';
+            $type := $world.parameterize_type_with_args($/,
+                $world.find_single_symbol_in_setting($role), [$type], nqp::hash())
+                if $role;
+            $_<type> := $type;
+        }
+    }
+
     sub declare_variable($/, $past, $sigil, $twigil, $desigilname, $trait_list, $shape?, :@post) {
         my $world := $*W;
         my $name  := $sigil ~ $twigil ~ $desigilname;
@@ -3907,7 +4033,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*OFTYPE {
             $of_type := $*OFTYPE.ast;
             my $archetypes := $of_type.HOW.archetypes($of_type);
-            unless $archetypes.nominalish
+            unless $archetypes.nominal
+                || $archetypes.nominalizable
                 || $archetypes.generic
                 || $archetypes.definite
                 || $archetypes.coercive {
@@ -4143,6 +4270,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $varvar.implicit-lexical-usage {
                     $world.mark_lexical_used_implicitly($BLOCK, $name);
                 }
+                # an is default trait can give the container a generic
+                # default, which needs the same reification as a generic type
+                if nqp::istype($past, QAST::Var) && $descriptor.is_default_generic {
+                    $past := QAST::Op.new(
+                        :op('callmethod'), :name('instantiate_generic'),
+                        QAST::Op.new( :op('p6var'), $past ),
+                        QAST::Op.new( :op('curlexpad') ));
+                }
             }
         }
         elsif $scope eq '' {
@@ -4187,7 +4322,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub decontrv_op() {
 #?if moar
-        nqp::getcomp('Raku').language_revision < 2
+        $*LANGUAGE-REVISION < 2
           ?? 'p6decontrv_6c'
           !! 'p6decontrv'
 #?endif
@@ -5537,7 +5672,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         if $sigil eq '%' {
             nqp::defined($*OFTYPE) && $world.throw: $/, 'X::ParametricConstant';
-            nqp::getcomp('Raku').language_revision < 2
+            $*LANGUAGE-REVISION < 2
               ?? check-type($world.find_symbol: ['Associative'])
               !! check-type-maybe-coerce('Map', $world.find_symbol: ['Associative'])
         }
@@ -5970,7 +6105,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my str $typename := ~$<typename>;
             if nqp::eqat($typename, '::', 0) && !nqp::eqat($typename, '?', 2) {
                 # Set up signature so it will find the typename.
-                my str $desigilname := nqp::substr($typename, 2);
+                my str $desigilname := nqp::substr(~$<typename><longname><name>, 2);
                 unless %param_info<type_captures> {
                     %param_info<type_captures> := nqp::list_s()
                 }
@@ -5981,6 +6116,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # view it's a type variable to be reified.
                 $world.install_lexical_symbol($world.cur_lexpad(), $desigilname,
                     $<typename>.ast);
+
+                if $<typename><colonpairs> {
+                    my $ast := $<typename><colonpairs>.ast;
+                    %param_info<defined_only>   := 1 if $ast<D>;
+                    %param_info<undefined_only> := 1 if $ast<U>;
+                }
             }
             else {
                 if nqp::existskey(%param_info,'type') {
@@ -6491,10 +6632,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make make_yada('&die', $/);
     }
 
+    my %mop_ops := nqp::hash(
+        'what', 1, 'how', 1, 'who', 1, 'where', 1,
+        'p6var', 1, 'p6reprname', 1, 'p6definite', 1);
     method term:sym<dotty>($/) {
         my $past := $<dotty>.ast;
         $past.unshift(WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'dotty') );
-        make QAST::Op.new( :op('hllize'), $past);
+        # The MOP ops act on the value itself, so their result is never foreign
+        make nqp::istype($past, QAST::Op) && nqp::existskey(%mop_ops, $past.op)
+            ?? $past
+            !! QAST::Op.new( :op('hllize'), $past);
     }
 
     sub find_macro_routine(@symbol) {
@@ -7829,15 +7976,24 @@ Did you mean a call like '"
 
             # Now go by scope.
             if $target.scope eq 'attribute' {
-                # Source needs type check.
+                # An attribute used ahead of its declaration has no type
+                # yet, so its bindability is only checked at class close.
+                $target.annotate('attribute_bind_target', 1);
+
+                # Source needs type check. An attribute used ahead of its
+                # declaration is not on the package yet, so it gets no
+                # assertion here.
                 my $type;
+                my int $found := 0;
                 try {
                     my $package := $/.package;
                     $type := $package.HOW.get_attribute_for_usage(
                         $package, $target.name
                     ).type;
+                    $found := 1;
                 }
-                unless $type =:= $world.find_single_symbol_in_setting('Mu') {
+                if $found
+                  && !($type =:= $world.find_single_symbol_in_setting('Mu')) {
                     $source := QAST::Op.new(
                         :op('p6bindassert'),
                         $source, QAST::WVal.new( :value($type) ))
@@ -7867,7 +8023,8 @@ Did you mean a call like '"
                 nqp::istype($target[0], QAST::Op) && $target[0].op eq 'call' &&
                 ((my $target_0_name := $target[0].name) eq '&postcircumfix:<[ ]>' ||
                  $target_0_name eq '&postcircumfix:<{ }>' ||
-                 $target_0_name eq '&postcircumfix:<[; ]>') {
+                 $target_0_name eq '&postcircumfix:<[; ]>' ||
+                 $target_0_name eq '&postcircumfix:<{; }>') {
             $source.named('BIND');
             $target[0].push($source);
             $target.nosink(1);
@@ -7876,7 +8033,8 @@ Did you mean a call like '"
         elsif nqp::istype($target, QAST::Op) && $target.op eq 'call' &&
               ((my $target_name := $target.name) eq '&postcircumfix:<[ ]>' ||
                $target_name eq '&postcircumfix:<{ }>' ||
-               $target_name eq '&postcircumfix:<[; ]>') {
+               $target_name eq '&postcircumfix:<[; ]>' ||
+               $target_name eq '&postcircumfix:<{; }>') {
             $source.named('BIND');
             $target.push($source);
             $target.nosink(1);
@@ -8002,7 +8160,8 @@ Did you mean a call like '"
         elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'call' &&
               ((my $lhs_ast_name := $lhs_ast.name) eq '&postcircumfix:<[ ]>' ||
                $lhs_ast_name eq '&postcircumfix:<{ }>' ||
-               $lhs_ast_name eq '&postcircumfix:<[; ]>') &&
+               $lhs_ast_name eq '&postcircumfix:<[; ]>' ||
+               $lhs_ast_name eq '&postcircumfix:<{; }>') &&
                 +@($lhs_ast) == 2 { # no adverbs
             $lhs_ast.push($rhs_ast);
             $past := $lhs_ast;
@@ -8039,14 +8198,18 @@ Did you mean a call like '"
                     CATCH { $past.push($rhs); }
                 }
             }
+            elsif (!$rhs.name || $rhs.name eq '&postcircumfix:<{ }>')
+              && +@($rhs) == 2
+              && $rhs[0].has_compile_time_value
+              && !nqp::isconcrete($rhs[0].compile_time_value) {
+                # Role<value> and Role(value) are split into the role and a
+                # named value; any other call is one argument even when its
+                # own arguments look the same.
+                $past.push($rhs[0]); $rhs[1].named('value');
+                $past.push($rhs[1]);
+            }
             else {
-                if +@($rhs) == 2 && $rhs[0].has_compile_time_value {
-                    $past.push($rhs[0]); $rhs[1].named('value');
-                    $past.push($rhs[1]);
-                }
-                else {
-                    $past.push($rhs);
-                }
+                $past.push($rhs);
             }
         }
         elsif nqp::istype($rhs, QAST::Stmts) && +@($rhs) == 1 &&
@@ -8685,6 +8848,7 @@ Did you mean a call like '"
         if $<integer> {
             make $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
         }
+        elsif $<hex_float>      { make $<hex_float>.ast; }
         elsif $<dec_number>     { make $<dec_number>.ast; }
         elsif $<rad_number>     { make $<rad_number>.ast; }
         elsif $<rat_number>     { make $<rat_number>.ast; }
@@ -8749,6 +8913,42 @@ Did you mean a call like '"
             $ast.node($/);
             make $ast;
         }
+    }
+
+    method hex_float($/) {
+        # The mantissa hex digits form an integer H with $f bits shifted
+        # into the fraction, so the value is H * 2 ** ($exp - $f).  H is
+        # exact in bigint arithmetic and the power-of-two scaling is
+        # applied in two steps so the intermediate product stays exact
+        # for any representable result: a single correctly rounded
+        # conversion in total.
+        my $Int := $*W.find_single_symbol_in_setting('Int');
+        my str $digits := ($<int> ?? $<int>.Str !! '') ~ ($<frac> ?? $<frac>.Str !! '');
+        my $H := nqp::radix_I(16, $digits, 0, 0, $Int)[0];
+
+        my int $f := 0;
+        if $<frac> {
+            my str $fs := $<frac>.Str;
+            my int $i  := 0;
+            my int $n  := nqp::chars($fs);
+            while $i < $n {
+                $f := $f + 4 unless nqp::eqat($fs, '_', $i);
+                $i := $i + 1;
+            }
+        }
+
+        my str $estr := nqp::join('', nqp::split('_', $<exp>.Str));
+        my int $k := nqp::chars($estr) > 6
+            ?? 999999   # any such exponent over/underflows anyway
+            !! nqp::radix(10, $estr, 0, 0)[0];
+        $k := -$k if $<sign> eq '-' || $<sign> eq '−';
+        $k := $k - $f;
+
+        my int $k1 := nqp::div_i($k, 2);
+        my num $value := nqp::mul_n(
+            nqp::mul_n(nqp::tonum_I($H), nqp::pow_n(2.0, $k1)),
+            nqp::pow_n(2.0, $k - $k1));
+        make $*W.add_numeric_constant($/, 'Num', $value);
     }
 
     method rad_number($/) {
@@ -8908,17 +9108,17 @@ Did you mean a call like '"
                 if $<arglist> || $<typename> {
                     $/.panic("Cannot put type parameters on a type capture");
                 }
-                if $<accepts> || $<accepts_any> {
+                if $<accept> || $<accept_any> {
                     $/.panic("Cannot base a coercion type on a type capture");
                 }
                 if $str_longname eq '::' {
                     $/.panic("Cannot use :: as a type name");
                 }
-                if $world.cur_lexpad.symbol(nqp::substr($str_longname, 2)) {
-                    $world.throw($/, ['X', 'Redeclaration'],
-                        symbol => nqp::substr($str_longname, 2));
+                my str $capture := nqp::substr(~$<longname><name>, 2);
+                if $world.cur_lexpad.symbol($capture) {
+                    $world.throw($/, ['X', 'Redeclaration'], symbol => $capture);
                 }
-                make $world.pkg_create_mo($/, $world.resolve_mo($/, 'generic'), :name(nqp::substr($str_longname, 2)));
+                make $world.pkg_create_mo($/, $world.resolve_mo($/, 'generic'), :name($capture));
             }
         }
         else {
@@ -9715,10 +9915,40 @@ Did you mean a call like '"
                         return 0;
                     }
 
+                    # A generic class such as Array[T] is generic and
+                    # nominal, unlike a type capture. No typevar binding
+                    # exists under its name, so only the full binder can
+                    # instantiate and check it.
+                    if $ptype_archetypes.nominal {
+                        return 0;
+                    }
+
+                    # The signature these parameters were compiled against
+                    # is instantiated with the box type when the capture
+                    # resolves to a native type, since the body treats the
+                    # parameter as a boxed value. Accept what the
+                    # instantiated signature accepts.
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                        :op('istype_nd'),
-                        QAST::Var.new( :name(get_decont_name()), :scope('local') ),
-                        QAST::Var.new( :name($genericname), :scope<typevar> )
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            QAST::Var.new( :name(get_decont_name()), :scope('local') ),
+                            QAST::Var.new( :name($genericname), :scope<typevar> )
+                        ),
+                        QAST::IVal.new( :value(1) ),
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            QAST::Var.new( :name(get_decont_name()), :scope('local') ),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('box_or_self'),
+                                QAST::Op.new(
+                                    :op('gethllsym'),
+                                    QAST::SVal.new( :value('Raku') ),
+                                    QAST::SVal.new( :value('NativeInstantiation') )
+                                ),
+                                QAST::Var.new( :name($genericname), :scope<typevar> )
+                            )
+                        )
                     )));
                 } elsif !($param_type =:= $world.find_single_symbol_in_setting('Mu')) {
                     if $ptype_archetypes.generic {
@@ -10077,13 +10307,29 @@ Did you mean a call like '"
                         }
                     }
                     if $wrap {
+                        my $descriptor_ast;
+                        if nqp::existskey(%info, 'container_descriptor') {
+                            $descriptor_ast := QAST::WVal.new( :value(%info<container_descriptor>) );
+                            # A generic descriptor still carries the unresolved
+                            # type variable and would reject every assignment
+                            # into the container. Resolve it in the current
+                            # frame, where type captures and role type
+                            # environments are visible as lexicals.
+                            if %info<container_descriptor>.is_generic {
+                                $descriptor_ast := QAST::Op.new(
+                                    :op('callmethod'), :name('instantiate_generic'),
+                                    $descriptor_ast,
+                                    QAST::Op.new( :op('ctx') )
+                                );
+                            }
+                        }
                         $var.push(QAST::Op.new(
                             :op('bind'),
                             WANTED(QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),'lower_signature/wrap'),
-                            nqp::existskey(%info, 'container_descriptor')
+                            $descriptor_ast
                                 ?? QAST::Op.new(
                                         :op('p6scalarwithvalue'),
-                                        QAST::WVal.new( :value(%info<container_descriptor>) ),
+                                        $descriptor_ast,
                                         QAST::Var.new( :name(get_decont_name() || $name), :scope('local') )
                                    )
                                 !! QAST::Op.new(
@@ -11654,6 +11900,64 @@ class Perl6::QActions is HLL::Actions does STDActions {
 
 class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
+    method nibbler($/) {
+        self.reject-modifier-only($<termseq><termaltseq>, 0);
+        make $<termseq>.ast;
+    }
+
+    method termaltseq($/) {
+        self.reject-modifier-only-branches($/, 'termconjseq');
+        nqp::findmethod(QRegex::P6Regex::Actions, 'termaltseq')(self, $/)
+    }
+    method termconjseq($/) {
+        self.reject-modifier-only-branches($/, 'termalt');
+        nqp::findmethod(QRegex::P6Regex::Actions, 'termconjseq')(self, $/)
+    }
+    method termalt($/) {
+        self.reject-modifier-only-branches($/, 'termconj');
+        nqp::findmethod(QRegex::P6Regex::Actions, 'termalt')(self, $/)
+    }
+    method termconj($/) {
+        self.reject-modifier-only-branches($/, 'termish');
+        nqp::findmethod(QRegex::P6Regex::Actions, 'termconj')(self, $/)
+    }
+
+    # A lone part is not a branch. The nibbler checks it as the whole regex.
+    method reject-modifier-only-branches($/, str $key) {
+        my @parts := nqp::atkey($/, $key);
+        if nqp::elems(@parts) > 1 {
+            for @parts { self.reject-modifier-only($_, 1) }
+        }
+    }
+
+    # Internal modifiers are not atoms, so a regex, or a branch of an
+    # alternation or conjunction, holding nothing but modifiers would match
+    # the empty string. Walk down through the levels that hold a single part
+    # to the termish and refuse it when every noun is a modifier, from 6.e
+    # on. Earlier revisions compile it as that empty match.
+    method reject-modifier-only($branch, int $in-branch) {
+        return 0 if nqp::getcomp('Raku').language_revision < 3;
+        my $termish := $branch;
+        until $termish<noun> {
+            my $inner := $termish<termconjseq> || $termish<termalt>
+                || $termish<termconj> || $termish<termish>;
+            return 0 unless $inner && nqp::elems($inner) == 1;
+            $termish := $inner[0];
+        }
+        my @modifiers;
+        for $termish<noun> {
+            my $metachar := $_<atom><metachar>;
+            return 0 unless $metachar && $metachar<mod_internal>;
+            @modifiers.push(~$metachar);
+        }
+        my $pos := $termish.pos;
+        $termish.'!clear_highwater'();
+        $termish.'!cursor_pos'($termish.from);
+        $termish.typed_sorry('X::Syntax::Regex::SolitaryModifier',
+            :modifiers($*W.p6ize_recursive(@modifiers)), :branch($in-branch));
+        $termish.'!cursor_pos'($pos);
+    }
+
     # Duplicates the QRegex::P6Regex::Actions base, adding the 6.e gate below.
     # It lives here, not in the base, so NQP's own regexes stay ungated. Keep
     # the c/w handling in sync with the base.
@@ -11673,7 +11977,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         else {
             # Any name other than w/c is a typo: an error from 6.e. Before then
             # $qast stays null, which the base matches as the empty string.
-            if nqp::getcomp('Raku').language_revision >= 3 {
+            if $*LANGUAGE-REVISION >= 3 {
                 $/.typed_panic('X::Syntax::Regex::UnrecognizedBoundary', :boundary($name));
             }
         }
@@ -11856,6 +12160,9 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method assertion:sym<var>($/) {
+        if nqp::eqat(~$<var>, '%', 0) {
+            $<var>.typed_panic('X::Syntax::Reserved', :reserved('use of a hash as a regex assertion'))
+        }
         if $<arglist> {
             my $ast := make QAST::Regex.new(
                 QAST::NodeList.new(

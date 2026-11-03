@@ -3,7 +3,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 21;
+plan 24;
 
 compile_test_lib('02-simple-args');
 
@@ -41,6 +41,16 @@ my $str = 'ok 7 - checked previously passed string';
 explicitly-manage($str);
 SetString($str);
 is CheckString(), 7, 'checked previously passed string';
+
+# https://github.com/rakudo/rakudo/issues/5955
+sub FreeString(Str) is native('./02-simple-args') { * }
+my $managed = explicitly-manage('will be freed by the callee');
+does-ok $managed, NativeCall::Types::ExplicitlyManagedString,
+    'explicitly-manage returns the managed string';
+FreeString($managed);
+pass 'callee freed an explicitly-managed string variable';
+FreeString(explicitly-manage('will also be freed by the callee'));
+pass 'callee freed the result of explicitly-manage passed directly';
 
 # Make sure wrapped subs work
 sub wrapped(int32) returns int32 is native('./02-simple-args') { * }

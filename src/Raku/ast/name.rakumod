@@ -1,35 +1,53 @@
 # A name. Names range from simple (a single identifier) up to rather more
 # complex (including pseudo-packages, interpolated parts, etc.)
 class RakuAST::Name
-  is RakuAST::ImplicitLookups
+  is RakuAST::Node
+  does RakuAST::ImplicitLookups
 {
     has List $!parts;
     has List $.colonpairs;
 
-    method new(*@parts) {
+    method new(*@parts, List :$colonpairs) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Name, '$!parts', @parts);
-        nqp::bindattr($obj, RakuAST::Name, '$!colonpairs', []);
+
+        if $colonpairs {
+            for self.IMPL-UNWRAP-LIST($colonpairs) {
+                $obj.add-colonpair($_);  # need typechecking
+            }
+        }
+
         $obj
     }
 
     method from-identifier(Str $identifier) {
-        self.new(RakuAST::Name::Part::Simple.new($identifier))
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Name, '$!parts',
+          nqp::list(RakuAST::Name::Part::Simple.new($identifier))
+        );
+        $obj
     }
 
     method from-identifier-parts(*@identifiers) {
+        self.from-identifier-list(@identifiers)
+    }
+
+    method from-identifier-list(@identifiers) {
         my @parts;
         for @identifiers {
-            unless nqp::istype($_, Str) || nqp::isstr($_) {
-                nqp::die('Expected identifier parts to be Str, but got ' ~ $_.HOW.name($_));
-            }
-            @parts.push(RakuAST::Name::Part::Simple.new($_));
+            nqp::istype($_,Str) || nqp::isstr($_)
+              ?? @parts.push(RakuAST::Name::Part::Simple.new($_))
+              !! nqp::die('Expected identifier parts to be Str, but got ' ~ $_.HOW.name($_));
         }
-        self.new(|@parts)
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Name, '$!parts', @parts);
+        $obj
     }
 
     method add-colonpair(RakuAST::ColonPairish $pair) {
-        $!colonpairs.push: $pair;
+        nqp::bindattr(self, RakuAST::Name, '$!colonpairs', [])
+          unless $!colonpairs;
+        nqp::push($!colonpairs, $pair);
     }
 
     method set-colonpairs(@pairs) {
@@ -37,7 +55,7 @@ class RakuAST::Name
     }
 
     method colonpairs() {
-        self.IMPL-WRAP-LIST($!colonpairs)
+        $!colonpairs ?? self.IMPL-WRAP-LIST($!colonpairs) !! nqp::create(List)
     }
 
     method parts() {
@@ -53,45 +71,51 @@ class RakuAST::Name
     }
 
     method root-part() {
-        nqp::die("Can't get root-part of empty name") unless nqp::elems($!parts);
-        my $root := $!parts[0];
-        $root := $!parts[1] if nqp::elems($!parts) > 1 && nqp::istype($root, RakuAST::Name::Part::Empty);
-        $root
+        my $parts := $!parts;
+        nqp::elems($parts)
+          ?? $parts[
+               nqp::elems($parts) > 1
+                 && nqp::istype($parts[0], RakuAST::Name::Part::EmptyEdge)
+             ]
+          !! nqp::die("Can't get root-part of empty name")
     }
 
-    method is-multi-part() {
-        nqp::elems($!parts) > 1 && !(nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::Empty))
+    method is-multi-part(--> Bool) {
+        nqp::elems($!parts) > 1
+          && !(nqp::elems($!parts) == 2
+                 && nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
     }
 
-    method is-identifier() {
-        nqp::elems($!parts) == 1 && (
-            nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
-            || nqp::istype($!parts[0], RakuAST::Name::Part::Expression)
-                && $!parts[0].has-compile-time-name
-                && nqp::index($!parts[0].name, '::') == -1
+    method is-identifier(--> Bool) {
+        my $parts := $!parts;
+        nqp::elems($parts) == 1 && (
+            nqp::istype($parts[0], RakuAST::Name::Part::Simple)
+            || nqp::istype($parts[0], RakuAST::Name::Part::Expression)
+                && ?$parts[0].has-compile-time-name
+                && nqp::index($parts[0].name, '::') == -1
         )
-        || nqp::elems($!parts) == 2 && (
-            nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+        || nqp::elems($parts) == 2 && (
+            nqp::istype($parts[0], RakuAST::Name::Part::EmptyEdge)
             && (
-                nqp::istype($!parts[1], RakuAST::Name::Part::Simple)
-                || nqp::istype($!parts[1], RakuAST::Name::Part::Expression)
-                    && $!parts[1].has-compile-time-name
-                    && nqp::index($!parts[1].name, '::') == -1
+                nqp::istype($parts[1], RakuAST::Name::Part::Simple)
+                || nqp::istype($parts[1], RakuAST::Name::Part::Expression)
+                    && ?$parts[1].has-compile-time-name
+                    && nqp::index($parts[1].name, '::') == -1
             )
         )
     }
 
-    method is-empty() {
+    method is-empty(--> Bool) {
         nqp::elems($!parts) == 0 || (nqp::elems($!parts) == 1 && $!parts[0].is-empty)
     }
 
-    method is-anonymous() {
+    method is-anonymous(--> Bool) {
         nqp::elems($!parts) == 2 && $!parts[0].is-empty && $!parts[1].is-empty # name is just '::'
     }
 
     # True when this name denotes a symbol that gets installed in a
     # scope.
-    method is-installable() {
+    method is-installable(--> Bool) {
         !self.is-empty && !self.is-anonymous
     }
 
@@ -109,21 +133,20 @@ class RakuAST::Name
         nqp::isconcrete(self)
           && nqp::elems($!parts) == 1
           && nqp::istype((my $obj := $!parts[0]),RakuAST::Name::Part::Simple)
-          && $obj.name
+          ?? $obj.name
+          !! ''
     }
 
-    method is-package-lookup() {
+    method is-package-lookup(--> Bool) {
         nqp::elems($!parts)
-          && nqp::istype($!parts[nqp::elems($!parts) - 1],RakuAST::Name::Part::Empty)
+          && nqp::istype($!parts[nqp::elems($!parts) - 1],RakuAST::Name::Part::EmptyEdge)
     }
 
     method base-name() {
         my @parts := nqp::clone($!parts);
         @parts.pop if self.is-package-lookup;
         my $name := RakuAST::Name.new(|@parts);
-        for $!colonpairs {
-            $name.add-colonpair($_);
-        }
+        $name.set-colonpairs(nqp::clone($!colonpairs)) if $!colonpairs;
         $name
     }
 
@@ -131,59 +154,64 @@ class RakuAST::Name
         for $!parts {
             return True if nqp::istype($_, RakuAST::Name::Part::Expression);
         }
+        False
     }
 
     method indirect-lookup-part() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
-            ?? $!parts[1]
-            !! $!parts[0]
+        nqp::atpos($!parts,nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge))
     }
 
-    method has-colonpairs() {
-        nqp::hllboolfor(nqp::elems($!colonpairs), 'Raku')
-    }
+    method has-colonpairs(--> Bool) { nqp::istrue($!colonpairs) }
 
     method has-colonpair($key) {
-        for $!colonpairs {
-            return True if $_.key eq $key;
+        if $!colonpairs {
+            for $!colonpairs {
+                return True if $_.key eq $key;
+            }
         }
         False
     }
 
     method first-colonpair($key) {
-        for $!colonpairs {
-            return $_ if $_.key eq $key;
+        if $!colonpairs {
+            for $!colonpairs {
+                return $_ if $_.key eq $key;
+            }
         }
         Nil
     }
 
     method without-colonpair($key) {
+
         my @parts := nqp::clone($!parts);
-        my $type := RakuAST::Name.new(|@parts);
-        for $!colonpairs {
-            $type.add-colonpair($_) if !nqp::istype($_, RakuAST::ColonPair) || $_.key ne $key;
+        my $name  := RakuAST::Name.new(|@parts);
+        if $!colonpairs {
+            for $!colonpairs {
+                $name.add-colonpair($_)
+                  if !nqp::istype($_, RakuAST::ColonPair) || $_.key ne $key;
+            }
         }
-        $type
+        $name
     }
 
     method without-colonpairs() {
         my @parts := nqp::clone($!parts);
-        my $type := RakuAST::Name.new(|@parts);
-        for $!colonpairs {
-            $type.add-colonpair($_)
-              unless nqp::istype($_, RakuAST::ColonPair);
+        my $name  := RakuAST::Name.new(|@parts);
+        if $!colonpairs {
+            for $!colonpairs {
+                $name.add-colonpair($_)
+                  unless nqp::istype($_, RakuAST::ColonPair);
+            }
         }
-        $type
+        $name
     }
 
     method without-first-part() {
         my @parts := nqp::clone($!parts);
         @parts.shift;
-        my $type := RakuAST::Name.new(|@parts);
-        for $!colonpairs {
-            $type.add-colonpair($_)
-        }
-        $type
+        my $name := RakuAST::Name.new(|@parts);
+        $name.set-colonpairs(nqp::clone($!colonpairs)) if $!colonpairs;
+        $name
     }
 
     method visit-children(Code $visitor) {
@@ -191,13 +219,16 @@ class RakuAST::Name
             for $!parts {
                 $_.visit-children($visitor);
             }
-            for $!colonpairs {
-                $visitor($_);
+            if $!colonpairs {
+                for $!colonpairs {
+                    $visitor($_);
+                }
             }
         }
     }
 
     method colonpair-suffix() {
+        return '' unless $!colonpairs;
         my $name := '';
         for $!colonpairs -> $cp {
             if nqp::istype($cp, RakuAST::ColonPairish) {
@@ -205,16 +236,28 @@ class RakuAST::Name
                 CATCH {
                     if nqp::istype(nqp::getpayload($_), RakuAST::Exception::TooComplex) {
                         my $content := '';
-                        $cp.visit-children(-> $child {
-                            $content := $content ~ $child.DEPARSE;
-                        });
+                        my $origin  := nqp::istype($cp, RakuAST::ColonPair::Value)
+                          ?? $cp.value.origin
+                          !! $cp.origin;
+                        if nqp::isconcrete($origin) && nqp::isconcrete($origin.source) {
+                            $content := $origin.Str;
+                            my int $last := nqp::chars($content) - 1;
+                            $content := nqp::substr($content, 1, $last - 1)
+                              if nqp::eqat($content, '[', 0) && nqp::eqat($content, ']', $last)
+                              || nqp::eqat($content, '(', 0) && nqp::eqat($content, ')', $last);
+                        }
+                        else {
+                            $cp.visit-children(-> $child {
+                                $content := $content ~ $child.DEPARSE;
+                            });
+                        }
                         nqp::getpayload($_).set-name($content);
+                        nqp::setmessage($_, nqp::getpayload($_).message);
+                        $cp.IMPL-THROW-IF-COMPILING(
+                          'X::Syntax::Extension::TooComplex', :name($content));
                     }
                     nqp::rethrow($_);
                 }
-            }
-            elsif nqp::istype($cp, RakuAST::Term::Name) && $cp.name.canonicalize eq 'Nil' {
-                $name := $name ~ ':<>'
             }
             else {
                 nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $cp.HOW.name($cp));
@@ -230,7 +273,7 @@ class RakuAST::Name
             if nqp::istype($_, RakuAST::Name::Part::Simple) {
                 nqp::push_s($canon-parts, $_.name);
             }
-            elsif nqp::istype($_, RakuAST::Name::Part::Empty) {
+            elsif nqp::istype($_, RakuAST::Name::Part::EmptyEdge) {
                 nqp::push_s($canon-parts, '') unless $first;
             }
             elsif nqp::istype($_, RakuAST::Name::Part::Expression) {
@@ -255,13 +298,14 @@ class RakuAST::Name
         $name
     }
 
-    method is-pseudo-package() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].is-pseudo-package
-        || nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+    method is-pseudo-package(--> Bool) {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
+          && $!parts[0].is-pseudo-package
+               || nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
     }
 
-    method is-package-search() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
+    method is-package-search(--> Bool) {
+        nqp::istype($!parts[0], RakuAST::Name::Part::EmptyEdge)
     }
 
     method qualified-with(RakuAST::Name $target) {
@@ -279,8 +323,9 @@ class RakuAST::Name
         }
     }
 
-    method is-global-lookup() {
-        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL'
+    method is-global-lookup(--> Bool) {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
+          && $!parts[0].name eq 'GLOBAL'
     }
 
     method contains-pseudo-package-illegal-for-declaration() {
@@ -298,22 +343,24 @@ class RakuAST::Name
     }
 
     method IMPL-IS-NQP-OP() {
-        nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'nqp'
-            ?? $!parts[1].name
-            !! ''
+        nqp::elems(my $parts := $!parts) == 2
+          && nqp::istype($parts[0], RakuAST::Name::Part::Simple)
+          && $parts[0].name eq 'nqp'
+          ?? $parts[1].name
+          !! ''
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&INDIRECT_NAME_LOOKUP')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
+          RakuAST::Type::Setting.from-identifier('&INDIRECT_NAME_LOOKUP'),
+          RakuAST::Type::Setting.from-identifier('PseudoStash'),
         ]
     }
 
     method IMPL-LOOKUP-PARTS() {
         my @parts := nqp::clone($!parts);
-        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::Empty);
-        if nqp::elems(@parts) && nqp::elems($!colonpairs) {
+        nqp::shift(@parts) if nqp::istype(@parts[0], RakuAST::Name::Part::EmptyEdge);
+        if nqp::elems(@parts) && $!colonpairs {
             my $final := nqp::pop(@parts);
             $final := RakuAST::Name.from-identifier($final.name);
             $final.set-colonpairs($!colonpairs);
@@ -325,7 +372,7 @@ class RakuAST::Name
     method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil, str :$twigil) {
         my @parts := self.IMPL-LOOKUP-PARTS;
         my $final := @parts[nqp::elems(@parts) - 1];
-        my $PseudoStash-lookup := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
+        my $PseudoStash-lookup := self.get-implicit-lookups[1];
         my $result := QAST::Op.new(
           :op<callmethod>,
           :name<new>,
@@ -344,7 +391,7 @@ class RakuAST::Name
         $result
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil, str :$twigil, Bool :$global-fallback) {
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil, str :$twigil, Bool :$global-fallback, Bool :$global-root) {
         my $result;
         my $final := $!parts[nqp::elems($!parts) - 1];
         my int $first;
@@ -357,6 +404,11 @@ class RakuAST::Name
                 unless $lexical.lexical-name eq $!parts[0].name;
             $first := 1;
             $result := $lexical.IMPL-LOOKUP-QAST($context);
+        }
+        elsif $global-root {
+            # Walk every part starting from the merged run-time GLOBAL
+            # rather than a package fixed at compile time.
+            $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
         }
         else {
             $result := QAST::WVal.new(:value($start-package));
@@ -384,9 +436,9 @@ class RakuAST::Name
         my @parts   := self.IMPL-LOOKUP-PARTS;
         # A trailing `::` designates the package itself and adds no lookup chunk,
         # so drop the empty final part.
-        nqp::pop(@parts) if nqp::istype(@parts[nqp::elems(@parts) - 1], RakuAST::Name::Part::Empty);
+        nqp::pop(@parts) if nqp::istype(@parts[nqp::elems(@parts) - 1], RakuAST::Name::Part::EmptyEdge);
         my $final   := @parts[nqp::elems(@parts) - 1];
-        my $lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         my $result  := QAST::Op.new(
             :op<call>,
             $lookups[0].IMPL-TO-QAST($context),
@@ -415,8 +467,16 @@ class RakuAST::Name::Part {
     method visit-children(Code $visitor) {
     }
 
-    method is-empty() { # returns Bool
+    method is-empty(--> Bool) {
         nqp::die("is-empty not implemented on " ~ self.HOW.name(self));
+    }
+
+    method IMPL-PSEUDOS() {
+        my constant PSEUDOS := nqp::hash(
+          'CALLER', 1, 'CALLERS', 1, 'CLIENT', 1, 'DYNAMIC', 1, 'CORE', 1,
+          'LEXICAL', 1, 'MY', 1, 'OUR', 1, 'OUTER', 1, 'OUTERS', 1,
+          'SETTING', 1, 'UNIT', 1, 'COMPILING', 1
+        )
     }
 }
 
@@ -432,24 +492,11 @@ class RakuAST::Name::Part::Simple
         $obj
     }
 
-    method is-pseudo-package() {
-        my $name := $!name;
-           $name eq 'CALLER'
-        || $name eq 'CALLERS'
-        || $name eq 'CLIENT'
-        || $name eq 'DYNAMIC'
-        || $name eq 'CORE'
-        || $name eq 'LEXICAL'
-        || $name eq 'MY'
-        || $name eq 'OUR'
-        || $name eq 'OUTER'
-        || $name eq 'OUTERS'
-        || $name eq 'SETTING'
-        || $name eq 'UNIT'
-        || $name eq 'COMPILING' # seems to be reserved
+    method is-pseudo-package(--> Bool) {
+        nqp::existskey(self.IMPL-PSEUDOS,$!name)
     }
 
-    method is-empty() {
+    method is-empty(--> Bool) {
         $!name eq ''
     }
 
@@ -525,7 +572,7 @@ class RakuAST::Name::Part::Expression
         $visitor($!expr);
     }
 
-    method has-compile-time-name() {
+    method has-compile-time-name(--> Bool) {
         nqp::defined(try $!expr.literalize)
     }
 
@@ -533,16 +580,19 @@ class RakuAST::Name::Part::Expression
         $!expr.literalize // nqp::die('Name ' ~ $!expr.DEPARSE ~ ' is not compile-time known')
     }
 
-    method is-empty() {
-        my $name := try $!expr.literalize;
-        nqp::defined($name)
+    method is-empty(--> Bool) {
+        nqp::defined(my $name := try $!expr.literalize)
           && (nqp::istype($name, Str) || nqp::isstr($name))
           && $name eq ''
+    }
+
+    method is-pseudo-package(--> Bool) {
+        self.IMPL-PSEUDOS(try self.name)
     }
 }
 
 # An empty name part, implying .WHO
-class RakuAST::Name::Part::Empty
+class RakuAST::Name::Part::EmptyEdge
   is RakuAST::Name::Part
 {
     method new() {

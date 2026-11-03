@@ -541,7 +541,14 @@ class Perl6::World is HLL::World {
         }
     }
 
+    # !load-lang-ver returns early on several paths, so the unit's
+    # revision is recorded here
     method load-lang-ver($ver-match, $comp) {
+        self.'!load-lang-ver'($ver-match, $comp);
+        $*LANGUAGE-REVISION := $comp.language_revision;
+    }
+
+    method !load-lang-ver($ver-match, $comp) {
         if $*INSIDE-EVAL && $!have_outer {
             # XXX Calling typed_panic is the desirable behavior. But it breaks some code. Just ignore version change for
             # now.
@@ -810,8 +817,8 @@ class Perl6::World is HLL::World {
             $*UNIT, '$=pod', $*POD_PAST.compile_time_value
         );
 
-        # Install $?LANGUAGE-REVISION to whatever the current compiler version is
-        self.install_lexical_symbol($*UNIT, '$?LANGUAGE-REVISION', nqp::getcomp('Raku').language_revision);
+        # Install $?LANGUAGE-REVISION as the revision of this compilation unit
+        self.install_lexical_symbol($*UNIT, '$?LANGUAGE-REVISION', $*LANGUAGE-REVISION);
 
         # Tag UNIT with a magical lexical unless it is CORE.
         self.add_unit_marker($/, '!UNIT_MARKER') unless $*COMPILING_CORE_SETTING;
@@ -1657,7 +1664,7 @@ class Perl6::World is HLL::World {
                 # legacy silent-replace behavior where the new package
                 # simply overwrites the module in the outer stash via
                 # steal_WHO below.
-                my $use-nested := nqp::getcomp('Raku').language_revision >= 3
+                my $use-nested := $*LANGUAGE-REVISION >= 3
                     && +@parts == 1
                     && nqp::existskey($resolved_pkg.WHO, $name)
                     && ($resolved_pkg.WHO){$name} =:= $package;
@@ -1724,7 +1731,7 @@ class Perl6::World is HLL::World {
     # kind on pre-6.e code. All gating lives here so the installer
     # call site stays readable.
     method maybe_worry_same_name_as_enclosing($/, $existing, $symbol, $pkgdecl, $package) {
-        if nqp::getcomp('Raku').language_revision < 3
+        if $*LANGUAGE-REVISION < 3
           && $existing =:= $package {
             my $existing-how := $existing.HOW.HOW.name($existing.HOW);
             my $enclosing-kind :=
@@ -1787,7 +1794,7 @@ class Perl6::World is HLL::World {
     # the type of container to install.
     method install_lexical_container($block, str $name, %cont_info, $descriptor,
             :$scope, :$package, :$cont = self.build_container_and_add_to_sc(%cont_info, $descriptor),
-            :$init_removal) {
+            :$init_removal, :$magical) {
         # Add to block, if needed. Note that it doesn't really have
         # a compile time value.
         my $var;
@@ -1825,7 +1832,7 @@ class Perl6::World is HLL::World {
             elsif $prim == 2 {
                 $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    nqp::getcomp('Raku').language_revision < 2
+                    $*LANGUAGE-REVISION < 2
                       ?? QAST::Op.new(:op<nan>)
                       !! QAST::NVal.new(:value(0e0))
                 );
@@ -1851,7 +1858,26 @@ class Perl6::World is HLL::World {
 
         # Tweak var to have container.
         $var.value($cont);
-        $var.decl($scope eq 'state' ?? 'statevar' !! 'contvar');
+        # The unit block and the body of a unit scoped package each run once,
+        # so their containers stay the ones compile_in_context already hands
+        # to code run at BEGIN time. A magical stays cloned, since every
+        # block of the unit shares its master.
+        $var.decl($scope eq 'state'
+            ?? 'statevar'
+            !! ($block =:= $*UNIT || $block.ann('unit_body')) && !$magical
+                ?? 'static'
+                !! 'contvar');
+
+        # A static container is the serialized one, so a module that uses
+        # the unit and changes it while precompiling repossesses it, and
+        # loading that module hands back the state its precompilation saw.
+        # The neverrepossess mark is not serialized, so it is set at unit
+        # entry. A package scoped container is bound from the stash at
+        # entry, as the RakuAST frontend declares it, and is left alone.
+        if $var.decl eq 'static' && $scope ne 'our' {
+            $block[0].push(QAST::Op.new( :op('neverrepossess'),
+                QAST::Var.new( :name($name), :scope('lexical') ) ));
+        }
 
         # Evaluate to the container.
         $cont
@@ -2073,31 +2099,25 @@ class Perl6::World is HLL::World {
             }
             if $shape {
                 @value_type[0] := self.find_single_symbol_in_setting(
-                    nqp::getcomp('Raku').language_revision >= 3 ?? 'Mu' !! 'Any'
+                    $*LANGUAGE-REVISION >= 3 ?? 'Mu' !! 'Any'
                 ) unless +@value_type;
-                my $shape_ast := $shape[0].ast;
-                if nqp::istype($shape_ast, QAST::Stmts) {
-                    if +@($shape_ast) == 1 {
-                        if $shape_ast[0].has_compile_time_value {
-                            @value_type[1] := $shape_ast[0].compile_time_value;
-                        } elsif nqp::istype(
-                          (my $op_ast := $shape_ast[0]), QAST::Op) {
-                            if $op_ast.op eq "call" && +@($op_ast) == 2 {
-                                if !nqp::isconcrete($op_ast[0].value) && !nqp::isconcrete($op_ast[1].value) {
-                                    self.throw($/, 'X::Comp::NYI',
-                                        feature => "coercive type declarations");
-                                }
-                            }
-                        } else {
-                            self.throw($/, "X::Comp::AdHoc",
-                                payload => "Invalid hash shape; type expected");
-                        }
-                    } elsif +@($shape_ast) > 1 {
-                        self.throw($/, 'X::Comp::NYI',
-                            feature => "multidimensional shaped hashes");
+                my @statements := $shape[0]<statement> || [];
+                my @key_types;
+                for @statements -> $statement {
+                    my $key_ast := $statement<EXPR> && $statement.ast;
+                    if $key_ast && $key_ast.has_compile_time_value
+                      && !nqp::isconcrete($key_ast.compile_time_value)
+                      && !nqp::eqaddr($key_ast.compile_time_value, NQPMu) {
+                        nqp::push(@key_types, $key_ast.compile_time_value);
                     }
-                } else {
-                    self.throw($/, "X::Comp::AdHoc",
+                }
+                if @key_types && nqp::elems(@key_types) == nqp::elems(@statements) {
+                    @value_type[1] := nqp::elems(@key_types) > 1
+                      ?? @key_types
+                      !! @key_types[0];
+                }
+                else {
+                    $/.typed_sorry('X::Comp::AdHoc',
                         payload => "Invalid hash shape; type expected");
                 }
             }
@@ -2108,8 +2128,16 @@ class Perl6::World is HLL::World {
                 }
                 %info<container_type>  := self.parameterize_type_with_args($/,
                     %info<container_base>, @value_type, nqp::hash());
-                %info<bind_constraint> := self.parameterize_type_with_args($/,
-                    %info<bind_constraint>, @value_type, nqp::hash());
+                # A coercive role argument matches any type its coercion
+                # accepts, so a keyed hash whose value or key type coerces
+                # binds only a hash of its own type, as does a shaped hash.
+                %info<bind_constraint> := nqp::elems(@value_type) > 1
+                  && (nqp::islist(@value_type[1])
+                      || @value_type[0].HOW.archetypes(@value_type[0]).coercive
+                      || @value_type[1].HOW.archetypes(@value_type[1]).coercive)
+                    ?? %info<container_type>
+                    !! self.parameterize_type_with_args($/,
+                         %info<bind_constraint>, @value_type, nqp::hash());
                 %info<value_type>      := @value_type[0];
                 %info<default_value>
                     := self.maybe-nominalize: @value_type[0];
@@ -2168,7 +2196,7 @@ class Perl6::World is HLL::World {
     method maybe-definite-how-base($v) {
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
-        nqp::getcomp('Raku').language_revision >= 2
+        $*LANGUAGE-REVISION >= 2
             && nqp::eqaddr($v.HOW, self.find_symbol(['Metamodel','DefiniteHOW'], :setting-only))
             ?? $v.HOW.base_type: $v
             !! $v
@@ -2181,7 +2209,7 @@ class Perl6::World is HLL::World {
         !$v-how.archetypes($v).coercive
             && (nqp::can($v-how, 'language_revision')
                     ?? $v-how.language_revision($v) < 3
-                    !! nqp::getcomp('Raku').language_revision < 3)
+                    !! $*LANGUAGE-REVISION < 3)
             ?? self.maybe-definite-how-base($v)
             !! ($v-how.archetypes($v).nominalizable
                 ?? $v-how.nominalize($v)
@@ -2194,7 +2222,7 @@ class Perl6::World is HLL::World {
         my %magical_cds := self.context().magical_cds();
 
         if nqp::atkey(%magical_cds, $name) -> @mcd {
-            self.install_lexical_container($block, $name, @mcd[0], @mcd[1], :cont(@mcd[2]));
+            self.install_lexical_container($block, $name, @mcd[0], @mcd[1], :cont(@mcd[2]), :magical);
         }
         else {
             my $Mu     := self.find_single_symbol_in_setting('Mu');
@@ -2209,13 +2237,13 @@ class Perl6::World is HLL::World {
                 'default_value',   $WHAT,
                 'scalar_value',    $WHAT,
             );
-            my $dynamic := nqp::getcomp('Raku').language_revision < 2 || $name ne '$_';
+            my $dynamic := $*LANGUAGE-REVISION < 2 || $name ne '$_';
             my $desc := self.create_container_descriptor($Mu, $name, $WHAT, $dynamic);
 
             my $cont := self.build_container_and_add_to_sc(%info, $desc);
 
             %magical_cds{$name} := [%info, $desc, $cont];
-            self.install_lexical_container($block, $name, %info, $desc, :cont($cont));
+            self.install_lexical_container($block, $name, %info, $desc, :cont($cont), :magical);
         }
     }
 
@@ -2470,7 +2498,7 @@ class Perl6::World is HLL::World {
                 unless nqp::can($package.HOW, 'hidden') && $package.HOW.hidden($package) {
                     @params.push(hash(
                         variable_name => '%_',
-                        type => self.find_single_symbol_in_setting('Mu'),
+                        type => self.find_single_symbol_in_setting('Associative'),
                         named_slurpy => 1,
                         is_multi_invocant => 1,
                         sigil => '%'
@@ -2696,6 +2724,7 @@ class Perl6::World is HLL::World {
         # Locate various interesting symbols.
         my $code_type    := self.find_single_symbol_in_setting('Code');
         my $routine_type := self.find_single_symbol_in_setting('Routine');
+        my $sig_type     := self.find_single_symbol_in_setting('Signature');
 
         # Attach code object to QAST node.
         $code_past.annotate('code_object', $code);
@@ -2732,7 +2761,16 @@ class Perl6::World is HLL::World {
 #?if !js
             # Temporarily disabled for js until we figure the bug out
             unless nqp::isnull($code_obj) {
-                return $code_obj(|@pos, |%named);
+                my $result := $code_obj(|@pos, |%named);
+                # This stub is NQP code, so a native return arrives boxed
+                # into NQP's bootstrap types, not the Raku ones.
+                my $signature := nqp::getattr($code_obj, $code_type, '$!signature');
+                my $returns := nqp::isconcrete($signature)
+                    ?? nqp::ifnull(nqp::getattr($signature, $sig_type, '$!returns'), Mu)
+                    !! Mu;
+                return nqp::objprimspec($returns)
+                    ?? nqp::hllizefor($result, 'Raku')
+                    !! $result;
             }
 #?endif
 
@@ -3211,7 +3249,16 @@ class Perl6::World is HLL::World {
     method add_numeric_constant($/, $type, $value) {
         my $node := $/;
         if $type eq 'Int' && (try $value.HOW.name($value)) eq 'Int' {
+            # Whether the value is exactly representable as a native int.
+            # How the Int is stored answers a different question, since the
+            # small-value slot is narrower than a native int.
+            my int $fits := 1;
             if nqp::isbig_I($value) {
+                $fits := 0;
+                try $fits := nqp::iseq_I(
+                    nqp::box_i(nqp::unbox_i($value), nqp::what($value)), $value);
+            }
+            unless $fits {
                 # cannot unbox to int without loss of information
                 my $const := self.add_constant('Int', 'bigint', $value);
                 $const.node: $node;

@@ -236,13 +236,20 @@ my class X::Method::NotFound is Exception {
     }
 
     method !create-message() {
+        # The accessor would call .item on the invocant, which an uncomposed
+        # class that declares no parent does not have yet
         my @message = $.private
           ?? "No such private method '!$.method' for invocant $.of-type"
-          !! nqp::istype($.invocant,Str)
+          !! nqp::istype($!invocant,Str)
             ?? "No such method '$.method' for string '$.invocant'"
             !! "No such method '$.method' for invocant $.of-type";
 
         @!tips.push: "You actually called '$.method' on a container, was that what you intended?" if $.containerized;
+
+        my $how := $!invocant.HOW;
+        @!tips.push: "'$.typename' is not composed yet, so its multi methods and any methods from its roles or its default parent are not available yet."
+          if nqp::istype($how,Metamodel::ClassHOW)
+          && !$how.is_composed($!invocant);
 
         @message.push: $.addendum if $.addendum;
 
@@ -585,28 +592,47 @@ sub COMP_EXCEPTION(|) is implementation-detail {
 do {
 
     sub print_exception(|) {
-        my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
+        my Mu $args := nqp::p6argvmarray();
+        my Mu $ex := nqp::atpos($args, 0);
+        # The context line opens the default report. Output from a
+        # configured exceptions handler replaces the whole report,
+        # context included.
+        my $context := nqp::isgt_i(nqp::elems($args), 1)
+          ?? nqp::atpos($args, 1)
+          !! Nil;
         my $e := EXCEPTION($ex);
         $*EXIT      = 1;
         $*EXCEPTION = $e;
+        my Mu $err := $*ERR;
 
         if %*ENV<RAKU_EXCEPTIONS_HANDLER> -> $handler {
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {
                 temp %*ENV<RAKU_EXCEPTIONS_HANDLER> = ""; # prevent looping
-                unless $class.process($e) {
+                my $continue := try $class.process($e);
+                if $! -> $handler-ex {
+                    $err.say("Exception handler Exceptions::$handler died with: "
+                      ~ ((try $handler-ex.message) // $handler-ex.^name));
+                }
+                elsif !$continue {
                     nqp::getcurhllsym('&THE_END')();
                     return
                 }
             }
         }
 
-        my Mu $err := $*ERR;
         try {
+            $err.say($context) if $context.defined;
             my $v := $e.vault-backtrace;
 
             $e.backtrace;  # This is where most backtraces actually happen
-            if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
+            # The compiler renders its own low level variant for the
+            # mainline and exits before ever calling this.
+            if Rakudo::Internals.LL-EXCEPTION {
+                $err.say($e.message);
+                $err.say($e.backtrace.full);
+            }
+            elsif $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
                 $err.say($e.gist);
                 if $v and !$e.gist.ends-with($v.Str) {
                     $err.say("Actually thrown at:");
@@ -627,12 +653,14 @@ do {
             CONTROL { when CX::Warn { .resume } }
         }
         if $! -> $secondary-ex {
+            my Mu $vm-secondary := nqp::getattr(nqp::decont($secondary-ex),
+              Exception, '$!ex');
             $err.say: "===SORRY!=== Error while reporting exception " ~ $e.^name
                 ~ (try { ": secondary " ~ $secondary-ex.^name ~ " has been thrown" } || "")
                 ~ (try { "\n  The original message was: " ~ $e.message } || "")
                 ~ (try { "\n  The secondary message is: " ~ $secondary-ex.message } || "")
                 ~ (try { "\n  The original backtrace:\n" ~ $e.backtrace.Str.indent(4) } || "");
-            nqp::rethrow(nqp::getattr(nqp::decont($!), Exception, '$!ex'))
+            nqp::rethrow($vm-secondary)
         }
     }
 
@@ -686,8 +714,11 @@ do {
     my Mu $comp := nqp::getcomp('Raku');
     $comp.^add_method('handle-exception',
         method (|) {
-            my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 1);
-            print_exception($ex);
+            my Mu $args := nqp::p6argvmarray();
+            my Mu $ex := nqp::atpos($args, 1);
+            nqp::isgt_i(nqp::elems($args), 2)
+              ?? print_exception($ex, nqp::atpos($args, 2))
+              !! print_exception($ex);
             nqp::exit(1);
             0;
         }
@@ -948,6 +979,10 @@ my role X::Comp is Exception {
         $!line     = $line;
         $!is-compile-time = True;
     }
+    method SET_PRE_POST($pre, $post) is implementation-detail {
+        $!pre  = $pre;
+        $!post = $post;
+    }
 }
 
 class X::Comp::Group is Exception {
@@ -1015,6 +1050,11 @@ my class X::Comp::BeginTime does X::Comp {
     multi method gist(::?CLASS:D: :$sorry = True) {
         my $r = $sorry ?? self.sorry_heading() !! "";
         $r ~= "$.message\nat $.filename():$.line";
+        if defined $.pre {
+            my ($red,$clear,$green,$yellow,$eject) =
+              Rakudo::Internals.error-rcgye;
+            $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear";
+        }
         for @.modules.reverse.skip {
             my $line = nqp::p6box_i($_<line>);
             $r ~= $_<module>.defined
@@ -1580,15 +1620,6 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
     }
 }
 
-my class X::Parameter::Named::SubsetTypeWithoutDefault does X::Comp {
-    has Str $.parameter;
-    has Mu $.subset;
-    method message() {
-        "Optional named parameter '$.parameter' with subset type {$.subset.^name} needs a valid default value\n"
-        ~ "otherwise it will throw exceptions when a value is absent at the callsite"
-    }
-}
-
 my role X::BadType {
     has Mu $.type;
     method action() {...}
@@ -1852,6 +1883,19 @@ my class X::Syntax::Variable::Match does X::Syntax {
 my class X::Syntax::Variable::Initializer does X::Syntax {
     has $.name = '<anon>';
     method message() { "Cannot use variable $!name in declaration to initialize itself" }
+}
+
+my class X::Syntax::Heredoc::AmbiguousName does X::Syntax {
+    has $.symbol;
+    method message() {
+        "Name '$!symbol' in a heredoc body is ambiguous: it means one declaration where the heredoc starts and another where its body is written".naive-word-wrapper
+    }
+}
+
+my class X::Syntax::Heredoc::HiddenName is X::Undeclared {
+    method message() {
+        "Name '$.symbol' in a heredoc body is declared only inside a block that closes on the heredoc's line, before the body. Move the closing brace of the block after the body to use it".naive-word-wrapper
+    }
 }
 
 my class X::Syntax::Variable::SignatureAssignment does X::Syntax {
@@ -2266,6 +2310,25 @@ my class X::Syntax::Regex::NullRegex does X::Syntax {
     method message() { "Null regex not allowed.  Please use .comb if you wanted to produce a sequence of characters from a string.".naive-word-wrapper }
 }
 
+my class X::Syntax::Regex::SolitaryModifier is X::Syntax::Regex::NullRegex {
+    has @.modifiers;
+    has Bool $.branch;
+    submethod BUILD(:@!modifiers, Bool() :$!branch) {}
+    method message() {
+        my $modifiers = @!modifiers.join(' ');
+        my $plural = @!modifiers > 1;
+        my $message = $plural
+          ?? "The regex modifiers $modifiers do not match anything by themselves"
+          !! "The regex modifier $modifiers does not match anything by itself";
+        ("Null regex not allowed. $message" ~ ($!branch
+          ?? ", so this branch would match the empty string. To apply "
+               ~ ($plural ?? 'them' !! 'it')
+               ~ " to every branch, put the branches in a group: $modifiers [ ... ]"
+          !! '.'
+        )).naive-word-wrapper
+    }
+}
+
 my class X::Syntax::Regex::MalformedRange does X::Syntax {
     method message() {
         'Malformed Range. If attempting to use variables for end points, '
@@ -2412,14 +2475,36 @@ my class X::Syntax::Extension::SpecialForm does X::Syntax {
 my class X::Syntax::InfixInTermPosition does X::Syntax {
     has $.infix;
     method message() {
-        my $infix := $!infix.trim;
-        "Preceding context expects a term, but found infix $infix instead."
-        ~ (
-            $.post && $.post.starts-with('end ')
-                ?? "\nDid you forget '=begin $.post.substr(4)' Pod marker?"
-                !! "\nDid you make a mistake in Pod syntax?"
-            if $infix eq '='
-        )
+        my $post := $.post // "";
+
+        # Looks like a rakudoc error
+        if $!infix eq '='
+          && $post.contains(/^ [ begin | end | for <!before \w> ] /) {
+            my   $type := Raku.legacy ?? 'Pod' !! 'RakuDoc';
+            my str $tag = $post.starts-with('end ')
+              ?? "a '=begin $post.substr(4)'"
+              !! $post.starts-with('begin ')
+                ?? "an '=end $post.substr(6)'"
+                !! "";
+
+            my str @parts = "An error in $type syntax is suspected.";
+            @parts.push($tag
+              ?? "Perhaps $tag marker was forgotten or was improperly nested?"
+              !! "Perhaps the name on a '=for' marker was forgotten?"
+            );
+            @parts.push(
+              "Or such a marker was absorbed by an unclosed '=begin ignore' marker?"
+            ) if $type eq 'RakuDoc' && $post.starts-with('begin ');
+            @parts.push(
+              "Alternately, an infix '=' was seen where a term was expected."
+            );
+            @parts.join(" ").naive-word-wrapper
+        }
+
+        # Probably not a rakudoc error
+        else {
+            "Preceding context expects a term, but found infix $!infix.trim() instead."
+        }
     }
 }
 
@@ -2974,6 +3059,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
     has Parameter $.parameter;
     has Bool $.constraint;
     has Str $.what;
+    has Bool $.omitted;
     method expectedn() {
         $.constraint && nqp::istype(self.expected, Code)
             ?? 'anonymous constraint to be met'
@@ -2999,7 +3085,10 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
             ?? "expected type $.expectedn cannot be itself"
             !! self.explain;
         my $what-check = $.what // ($.constraint ?? 'Constraint type' !! 'Type');
-        self.priors() ~ "$what-check check failed in $.operation$to; $expected";
+        my $omitted = $.omitted
+            ?? "\n" ~ ("The parameter is optional and was not passed an argument, so its implicit default value was checked against the constraint. Give the parameter a default value that satisfies the constraint, mark it as required, or make the constraint accept the implicit default.".naive-word-wrapper)
+            !! "";
+        self.priors() ~ "$what-check check failed in $.operation$to; $expected$omitted";
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {
@@ -3019,7 +3108,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method operation { 'assignment' }
     method message {
         my $symbol := $!symbol // $!desc.name;
-        my $location = !$symbol.defined || $symbol eq '$'
+        my $location = !$symbol || $symbol eq '$'
             ?? "in assignment"
             !! $symbol.starts-with("@" | "%")
                 ?? "for an element of $symbol"
@@ -3043,7 +3132,7 @@ my class X::Syntax::Number::LiteralType is X::TypeCheck::Assignment does X::Synt
     has $.vartype;
     has $.value;
     has $.valuetype      = $!value.^name;
-    has $.suggestiontype = ($!vartype,$!valuetype).are.^name;
+    has $.suggestiontype = ($!vartype,$!value).are.^name;
     has $.native         = nqp::objprimspec($!valuetype);
 
     method message() {
@@ -3074,14 +3163,22 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     has $.objname;
     has $.signature;
     method message {
-            my $multi = $!signature && $!signature.contains("\n");
+            # The dispatch analysis passes the signature as a list: a
+            # single gist, or one entry per multi candidate, undefined
+            # when its gist failed. Stringifying the list or an
+            # undefined entry warns, and a setting compile reporting an
+            # error here has no warning handler.
+            my $signature = nqp::istype($!signature, Positional)
+              ?? $!signature.grep(*.defined).join
+              !! $!signature;
+            my $multi = $signature && $signature.contains("\n");
             "Calling {$!objname}({
                 .join(', ') with @!arguments
             }) will never work with " ~ (
                 $!protoguilt ?? 'signature of the proto ' !!
                 $multi       ?? 'any of these multi signatures:' !!
                                 'declared signature '
-            ) ~ $!signature;
+            ) ~ $signature;
     }
 }
 
@@ -3697,6 +3794,16 @@ my class X::WhateverCode::SmartMatch::LHS {
     }
 }
 
+my class X::Whatever::ShortCircuit {
+    has $.what;
+    has $.operator;
+    method message() {
+        "$!what tested first by $!operator does not curry the $!operator expression,\n"
+            ~ "and is always true and defined.\n"
+            ~ "Try a block using \$_ instead if results are not as expected."
+    }
+}
+
 my class X::EXPORTHOW::InvalidDirective does X::Comp {
     has $.directive;
     method message() {
@@ -3831,8 +3938,9 @@ my class X::NotEnoughDimensions is Exception {
     has $.operation;
     has $.got-dimensions;
     has $.needed-dimensions;
+    has $.aggregate = 'array';
     method message() {
-        "Cannot $.operation a $.needed-dimensions dimension array with only $.got-dimensions dimensions"
+        "Cannot $.operation a $.needed-dimensions dimension $.aggregate with only $.got-dimensions dimensions"
     }
 }
 
@@ -3840,8 +3948,9 @@ my class X::TooManyDimensions is Exception {
     has $.operation;
     has $.got-dimensions;
     has $.needed-dimensions;
+    has $.aggregate = 'array';
     method message() {
-        "Cannot $.operation a $.needed-dimensions dimension array with $.got-dimensions dimensions"
+        "Cannot $.operation a $.needed-dimensions dimension $.aggregate with $.got-dimensions dimensions"
     }
 }
 
@@ -3857,7 +3966,7 @@ my class X::ArrayShapeMismatch is Exception {
     has $.target-shape;
     has $.source-shape;
     method message() {
-        "Cannot assign an array of shape $.source-shape to an array of shape $.target-shape"
+        "Cannot $.action an array of shape $.source-shape to an array of shape $.target-shape"
     }
 }
 my class X::Assignment::ArrayShapeMismatch is X::ArrayShapeMismatch {

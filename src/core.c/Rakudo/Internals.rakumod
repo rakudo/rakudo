@@ -7,6 +7,7 @@ my class List::Reifier { ... }
 my class Proc { ... }
 my class Proc::Async { ... }
 
+my class X::Assignment::ArrayShapeMismatch { ... }
 my class X::Assignment::ToShaped { ... }
 my class X::IllegalDimensionInShape { ... }
 my class X::IllegalOnFixedDimensionArray { ... }
@@ -17,9 +18,9 @@ my class X::Str::Sprintf::Directives::Unsupported { ... }
 my class X::TypeCheck { ... }
 
 # Marker symbol for 6.c-mode regex boolification.
-my class Rakudo::Internals::RegexBoolification6cMarker { }
+my class Rakudo::Internals::RegexBoolification6cMarker is implementation-detail { }
 
-my class Rakudo::Internals {
+my class Rakudo::Internals is implementation-detail {
 
     # Return the CallFrame of the real client of any core code
     method client-callframe() {
@@ -110,7 +111,7 @@ my class Rakudo::Internals {
     # for use in nqp::splice
     my $empty := nqp::list;
 
-    our class CompilerServices {
+    our class CompilerServices is implementation-detail {
         has Mu $!compiler;
         has Mu $!current-match;
 
@@ -125,7 +126,7 @@ my class Rakudo::Internals {
     }
 
     # Marker symbol for lexicals that we have lowered away.
-    class LoweredAwayLexical {
+    class LoweredAwayLexical is implementation-detail {
         method dynamic() { False }
     }
 
@@ -217,7 +218,13 @@ my class Rakudo::Internals {
     method EXPORT_SYMBOL(Str:D $name, @tags, Mu \sym) {
         $export-symbol-lock.protect: {
             my @export_packages = $*EXPORT;
-            for $*R ?? $*R.packages.map({$_.stubbed-meta-object}) !! nqp::hllize(@*PACKAGES).list {
+            # A package an EVAL takes from its context is not exported into,
+            # as with the legacy frontend.
+            for $*R
+              ?? $*R.packages.grep({
+                     nqp::not_i(nqp::istype($_, RakuAST::Declaration::External::Package))
+                   }).map({$_.stubbed-meta-object})
+              !! nqp::hllize(@*PACKAGES).list {
                 # PRODUCE-STUBBED-META-OBJECT returns Nil for augmented
                 # roles (the real X::Augment::Illegal sorry fires later);
                 # skip them so we don't blow up on Nil.WHO first.
@@ -447,6 +454,55 @@ my class Rakudo::Internals {
         )
     }
 
+    # The container to write a match into on behalf of a caller. An
+    # untyped $/ compiled by the RakuAST frontend in a 6.e scope carries
+    # the IsolatedMatch descriptor, which asks method forms not to write
+    # into it; a throwaway container takes the write instead, so shared
+    # write paths need no other check. Anything else passes through
+    # untouched: an unmarked container, a non-container from a rebound
+    # $/, and a non-Scalar container such as a native reference, which
+    # has no descriptor to inspect.
+    method SLASH-WRITE-TARGET(Mu \cont) is raw {
+        nqp::if(
+          Rakudo::Internals.IS-ISOLATED-MATCH(cont),
+          nqp::p6scalarfromdesc(nqp::null),
+          cont
+        )
+    }
+
+    # Whether the given value is a container carrying the IsolatedMatch
+    # descriptor, the $/ of a 6.e scope.
+    method IS-ISOLATED-MATCH(Mu \cont) {
+        nqp::eqaddr(nqp::what_nd(cont),Scalar)
+          && nqp::isrwcont(cont)
+          && nqp::eqaddr(
+               nqp::what_nd(nqp::ifnull(
+                 nqp::getattr(cont,Scalar,'$!descriptor'),Mu
+               )),
+               ContainerDescriptor::IsolatedMatch
+             )
+    }
+
+    # The revision of the unit a context belongs to, or the compiler's
+    # for a context without one
+    method LANGUAGE-REVISION-OF-CONTEXT(Mu \ctx) {
+        my \context  := nqp::decont(ctx);
+        my \revision := nqp::isconcrete(context)
+          ?? nqp::getlexrel(context, '$?LANGUAGE-REVISION')
+          !! nqp::null;
+        nqp::isnull(revision)
+          ?? nqp::getcomp('Raku').language_revision
+          !! nqp::unbox_i(revision)
+    }
+
+    # The same as the language version string a compile takes, without a
+    # modifier, which the compiler does not keep after a pragma either
+    method LANGUAGE-VERSION-OF-CONTEXT(Mu \ctx) {
+        '6.' ~ nqp::getcomp('Raku').lvs.p6rev(
+          self.LANGUAGE-REVISION-OF-CONTEXT(ctx)
+        )
+    }
+
     method TRANSPOSE(str $string, str $original, str $final) {
         nqp::join($final,nqp::split($original,$string))
     }
@@ -530,7 +586,7 @@ my class Rakudo::Internals {
         )
     }
 
-    our role ImplementationDetail {
+    our role ImplementationDetail is implementation-detail {
         method new(|) { die self.gist }
         method Str( --> Str:D) { self.^name }
         method gist(--> Str:D) { self.^name }
@@ -539,7 +595,7 @@ my class Rakudo::Internals {
         }
     }
 
-    our role ShapedArrayCommon {
+    our role ShapedArrayCommon is implementation-detail {
         method !illegal($operation) {
             X::IllegalOnFixedDimensionArray.new(:$operation).throw
         }
@@ -674,21 +730,154 @@ my class Rakudo::Internals {
         }
     }
 
-    our class SupplySequencer {
+    # The iterator of a value assigned to the dimensions of a shaped array
+    # from the one given. A shaped array or view gives its rows, and must
+    # have the shape of as many of those dimensions as it has.
+    method SHAPED-ITERATOR(\value, \dims, int $from) {
+        if nqp::istype(value,Rakudo::Internals::ShapedArrayCommon)
+          || nqp::istype(value,Array::ShapedView) {
+            my \given := value.shape.List;
+            my \shape := dims.skip($from).List;
+            X::Assignment::ArrayShapeMismatch.new(
+              source-shape => given,
+              target-shape => shape
+            ).throw unless nqp::isle_i(given.elems,shape.elems)
+              && given eqv shape.head(given.elems).List;
+            nqp::isgt_i(given.elems,1)
+              ?? (^given.AT-POS(0)).map({ value.AT-POS($_) }).iterator
+              !! value.iterator
+        }
+        else {
+            value.iterator
+        }
+    }
+
+    # Whether a shape of more than one dimension leaves the length of any
+    # of them unset
+    method JAGGED-SHAPE(\shape) {
+        my int $elems = shape.elems;  # reifies
+        my $reified  := nqp::getattr(nqp::decont(shape),List,'$!reified');
+        my int $i     = -1;
+        nqp::while(
+          nqp::isgt_i($elems,1) && nqp::islt_i(++$i,$elems),
+          nqp::if(
+            nqp::istype(nqp::atpos($reified,$i),Whatever),
+            (return True)
+          )
+        );
+        False
+    }
+
+    # The shape given by the key of a jagged array type, which joins the
+    # length of each dimension or * for one of no set length with commas
+    method JAGGED-SHAPE-OF(Str:D $key) {
+        $key.split(',').map({ $_ eq '*' ?? Whatever.new !! .Int }).List
+    }
+
+    # An array of a shape that leaves the length of a dimension unset, of
+    # the type given without any shape it has. Arrays of the same type and
+    # shape share a type, other than one made while precompiling.
+    my $jagged-types := nqp::hash;
+    my $jagged-lock  := Lock.new;
+    method JAGGED-ARRAY(\type, \shape) is raw {
+        my \base := type.^mro.first({
+            nqp::not_i(
+              nqp::istype($_,Rakudo::Internals::ShapedArrayCommon)
+                || nqp::istype($_,Array::Jagged)
+                || nqp::istype($_,Array::JaggedRow)
+            )
+        });
+        my str $key = shape.map({
+            nqp::istype($_,Whatever)
+              ?? '*'
+              !! nqp::istype((my $dim := .Int),Failure)
+                ?? $dim.throw
+                !! nqp::isbig_I($dim) || nqp::isle_i($dim,0)
+                  ?? X::IllegalDimensionInShape.new(:$dim).throw
+                  !! $dim
+        }).join(',');
+        my str $which = nqp::concat(base.WHICH.Str,nqp::concat('|',$key));
+        my $what := nqp::atkey($jagged-types,$which);
+        $what := $jagged-lock.protect({
+            nqp::ifnull(
+              nqp::atkey($jagged-types,$which),
+              self!JAGGED-TYPE(base, $key, $which)
+            )
+        }) if nqp::isnull($what);
+        self.JAGGED-INSTANCE($what)
+    }
+
+    # A new jagged array of a type, with each row of a set length made
+    method JAGGED-INSTANCE(\what) is raw {
+        my \array := nqp::create(what);
+        nqp::bindattr(array,Array,'$!descriptor',
+          ContainerDescriptor.new(:of(what.JAGGED-ROW), :default(what.JAGGED-ROW)));
+        array.STORE(())
+    }
+
+    # Whether a row is the one a write through a container of a row not
+    # made yet made for it, which takes its place rather than a copy of it
+    method JAGGED-MADE(\container, Mu \row) {
+        my $container := nqp::getlexdyn('$*JAGGED-CONTAINER');
+        nqp::hllbool(
+          nqp::not_i(nqp::isnull($container))
+            && nqp::eqaddr($container,container)
+            && nqp::eqaddr(nqp::getlexdyn('$*JAGGED-ROW'),nqp::decont(row))
+        )
+    }
+
+    # Whether a write to an array was refused, which it reports with a
+    # Failure other than the value it was to write
+    method JAGGED-REFUSED(Mu \result, Mu \value) {
+        nqp::hllbool(
+          nqp::istype_nd(result,Failure)
+            && nqp::not_i(nqp::eqaddr(nqp::decont(result),nqp::decont(value)))
+        )
+    }
+
+    # The type of a jagged array, made once while holding the lock
+    method !JAGGED-TYPE(\base, Str:D $key, str $which) is raw {
+        # each array of the first dimension is of a type of its shape
+        my str $row-key = nqp::substr($key,nqp::add_i(nqp::index($key,','),1));
+        my \row-shape := self.JAGGED-SHAPE-OF($row-key);
+        my \row-base  := base.new(:shape(row-shape)).^mro.head;
+        my $row := row-base.^mixin(Array::JaggedRow[base, $row-key]);
+        $row := $row.^mixin(Array::JaggedSlots[base.of])
+          if nqp::eqaddr(row-base,base) && nqp::not_i(nqp::istype(base,Array));
+        $row.^set_name(row-base.^name);
+        my \row := nqp::decont($row.new).WHAT;
+
+        my $what := nqp::istype(base,Array)
+          ?? base.^mixin(Array::Jagged[base, $key, row])
+          !! Array.^mixin(Positional[base.of]).^mixin(Array::Jagged[base, $key, row]);
+        $what.^set_name(base.^name);
+
+        # a copy is changed, so a thread reading it never sees it change
+        my $types := nqp::clone($jagged-types);
+        nqp::bindkey($types,$which,$what);
+        $jagged-types := $types;
+        $what
+    }
+
+    our class SupplySequencer is implementation-detail {
         has &!on-data-ready;
         has &!on-completed;
         has &!on-error;
         has $!buffer;
         has int $!buffer-start-seq;
-        has int $!done-target;
+        has int $!dones-expected;
+        has int $!dones-seen;
+        has int $!completed;
         has int $!bust;
         has $!lock;
 
         submethod BUILD(
-          :&!on-data-ready!, :&!on-completed!, :&!on-error! --> Nil) {
+          :&!on-data-ready!, :&!on-completed!, :&!on-error!,
+          :$!dones-expected = 1 --> Nil) {
             $!buffer := nqp::list();
             $!buffer-start-seq = 0;
-            $!done-target = -1;
+            $!dones-seen = 0;
+            $!completed = 0;
             $!bust = 0;
             $!lock := Lock::Async.new;
         }
@@ -696,8 +885,14 @@ my class Rakudo::Internals {
         method process(Mu \seq, Mu \data, Mu \err) {
             $!lock.protect: {
                 if err {
-                    &!on-error(err);
-                    $!bust = 1;
+                    # Both pipes behind a merged output stream can
+                    # report failures. The completion and error
+                    # callbacks are mutually exclusive and run at most
+                    # once.
+                    unless $!bust || $!completed {
+                        &!on-error(err);
+                        $!bust = 1;
+                    }
                 }
                 elsif nqp::isconcrete(data) {
                     my int $insert-pos = seq - $!buffer-start-seq;
@@ -705,7 +900,10 @@ my class Rakudo::Internals {
                     self!emit-events();
                 }
                 else {
-                    $!done-target = seq;
+                    # An end of stream report consumes a sequence number
+                    # that no output ever fills.
+                    nqp::bindpos($!buffer, seq - $!buffer-start-seq, Mu);
+                    $!dones-seen = $!dones-seen + 1;
                     self!emit-events();
                 }
             }
@@ -714,10 +912,14 @@ my class Rakudo::Internals {
         method !emit-events() {
             unless $!bust {
                 until nqp::elems($!buffer) == 0 || nqp::isnull(nqp::atpos($!buffer, 0)) {
-                    &!on-data-ready(nqp::shift($!buffer));
+                    my \item = nqp::shift($!buffer);
+                    &!on-data-ready(item) if nqp::isconcrete(item);
                     $!buffer-start-seq = $!buffer-start-seq + 1;
                 }
-                if $!buffer-start-seq == $!done-target {
+                if !$!completed
+                  && $!dones-seen == $!dones-expected
+                  && nqp::elems($!buffer) == 0 {
+                    $!completed = 1;
                     &!on-completed();
                 }
             }
@@ -726,7 +928,7 @@ my class Rakudo::Internals {
 
     my int $sprintfHandlerInitialized = 0;
     method initialize-sprintf-handler(--> Nil) {
-        class SprintfHandler {
+        class SprintfHandler is implementation-detail {
             method mine($x) { nqp::reprname($x) eq "P6opaque"; }
 
             proto method int(|) {*}
@@ -784,6 +986,15 @@ my class Rakudo::Internals {
             ?? +%*ENV.AT-KEY(key)
             !! 0
           !! Nil
+    }
+
+    # Kept out of its caller, since a frame that looks up a dynamic
+    # variable is never inlined.
+    method UPGRADE-OVERFLOWING-RAT(
+      Int:D $nu,
+      Int:D $de
+    ) is raw is implementation-detail {
+        $*RAT-OVERFLOW.UPGRADE-RAT($nu, $de)
     }
 
     method error-rcgye() {  # red clear green yellow eject
@@ -1123,82 +1334,6 @@ my class Rakudo::Internals {
              && nqp::iseq_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i))
          )
         )
-    }
-
-    my $initializers;
-#nqp::print("running mainline\n");
-#method INITIALIZERS() { $initializers }
-
-    method REGISTER-DYNAMIC(
-      str $name,
-      &code,
-      str $version = '6.c',
-      :$override
-    --> Nil) {
-#my $id := nqp::p6box_i(nqp::threadid(nqp::currentthread));
-#nqp::say("$id: Registering $name");
-        $initializers := nqp::hash unless $initializers;
-        my str $with   = nqp::concat($version,nqp::concat("\0",$name));
-
-        nqp::if(
-          $override,
-          nqp::stmts(
-            nqp::bindkey($initializers,$with,&code),
-            nqp::bindkey($initializers,$name,&code)
-          ),
-          nqp::stmts(
-            nqp::if(
-              nqp::existskey($initializers,$with),
-              (die "Already have initializer for '$name' ('$version')"),
-              nqp::bindkey($initializers,$with,&code)
-            ),
-            nqp::unless(  # first come, first kept
-              nqp::existskey($initializers,$name),
-              nqp::bindkey($initializers,$name,&code)
-            )
-          )
-        )
-    }
-    my $dynamics-not-found := nqp::hash;
-    sub dynamic-not-found(str $key, str $name) {
-#nqp::say("failed: $name");
-        nqp::ifnull(
-          nqp::atkey($dynamics-not-found,$key),
-          nqp::bindkey($dynamics-not-found,$key,
-            X::Dynamic::NotFound.new(:$name).Failure
-          )
-        )
-    }
-    my $DYNAMIC-INITIALIZATION-LOCK := Lock.new;
-    method INITIALIZE-DYNAMIC(str $name, @deprecation?) is raw {
-        my str $key = nqp::replace($name,1,1,'');
-        $DYNAMIC-INITIALIZATION-LOCK.protect: {
-#my $id := nqp::p6box_i(nqp::threadid(nqp::currentthread));
-#nqp::say("$id: Initializing $name");
-            PROCESS::.EXISTS-KEY($key)   # beat another thread us to it?
-              ?? PROCESS::.AT-KEY($key)  # yes, so just return that
-              !! nqp::isnull(
-                   my $code := nqp::ifnull(
-                     nqp::atkey(
-                       $initializers,
-                       nqp::concat(
-                         nqp::getcomp('Raku').language_version,
-                         nqp::concat("\0",$name)
-                       )
-                     ),
-                     nqp::atkey($initializers,$name)
-                   )
-                 ) ?? dynamic-not-found($key, $name)
-                   !! do {
-                       Rakudo::Deprecations.DEPRECATED(@deprecation[1],
-                                                       '6.' ~ @deprecation[0],
-                                                       :what($name),
-                                                       :file(@deprecation[2]),
-                                                       :line(@deprecation[3]))
-                        if @deprecation;
-                       $code()
-                   }
-        }
     }
 
     my int $VERBATIM-EXCEPTION = 0;
@@ -1840,16 +1975,6 @@ my constant $?BITS = nqp::objprimbits(int);
 # we need this to run *after* the mainline of Rakudo::Internals has run
 PROCESS::<$EXIT> = 0;
 PROCESS::<$EXCEPTION> = Exception;
-Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
-    PROCESS::<&EXIT> := sub exit($status) {
-        state $exit = $status;  # first call to exit sets value
-
-        $*EXIT = $exit;
-        nqp::getcurhllsym('&THE_END')()
-          ?? $exit
-          !! nqp::exit(nqp::unbox_i($exit.Int))
-    }
-}
 
 proto sub exit($?, *%) {*}
 multi sub exit() { &*EXIT(0) }

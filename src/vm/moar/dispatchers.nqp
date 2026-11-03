@@ -741,7 +741,8 @@ sub guard-type-concreteness($tracker) {
             }
 
             # A container assignment without type information
-            elsif nqp::eqaddr($desc-WHAT, ContainerDescriptor::Untyped) {
+            elsif nqp::eqaddr($desc-WHAT, ContainerDescriptor::Untyped)
+               || nqp::eqaddr($desc-WHAT, ContainerDescriptor::IsolatedMatch) {
                 if nqp::eqaddr($value, Nil) {
                     # Nil case is NYI.
                 }
@@ -1054,14 +1055,17 @@ nqp::register('raku-call', -> $capture {
     if nqp::istype_nd($callee, Method)
       && (my str $meth-name := $callee.name)
       && (my $inv_param := try { $callee.signature.params.AT-POS(0) }) {
-        nqp::guard('literal', $Tcallee);
+        # The closures taken of a method share its signature, which gives the
+        # invocant type, so they share this program. Deferral takes the name
+        # from the callee, as a clone may be named apart from the method.
+        nqp::guard('literal', nqp::track('attr', $Tcallee, Code, '$!signature'));
 
-        # Add the type and method name to capture as expected
-        $capture := nqp::syscall('dispatcher-insert-arg-literal-str',
+        # Add the type and the callee to capture as expected
+        $capture := nqp::syscall('dispatcher-insert-arg',
           nqp::syscall('dispatcher-insert-arg-literal-obj',
             $capture, 1, $inv_param.type
           ),
-          2, $meth-name
+          2, $Tcallee
         );
 
         $delegate := 'raku-meth-call-resolved';
@@ -1209,6 +1213,11 @@ nqp::register('raku-meth-call-mega', -> $capture {
     if nqp::isconcrete(nqp::atkey(%lookup, $name)) {
         my $Tobj := nqp::track('arg', $capture, 0);
         my $Thow := nqp::track('how', $Tobj);
+
+        # A table that came from deserialization carries the tag of the
+        # process that built it, so it fails this guard and gets rebuilt
+        nqp::guard('literal', nqp::track('attr',
+          $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table_epoch'));
         my $Ttable := nqp::track('attr',
           $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
         my $Tname := nqp::track('arg', $capture, 1);
@@ -1444,8 +1453,8 @@ sub nil-or-callwith-propagation-terminal($capture) {
 
 # Resolved method call dispatcher. This is used to call a method, once we have
 # already resolved it to a callee. Its first arg is the callee, the second and
-# third are the type and name (used in deferral), and the rest are the args to
-# the method.
+# third are the type and name, or the callee to take the name from (used in
+# deferral), and the rest are the args to the method.
 nqp::register('raku-meth-call-resolved',
 
     # Initial dispatch
@@ -1536,9 +1545,12 @@ nqp::register('raku-meth-call-resolved',
             my $Tname := nqp::track('arg', $init, 1);
             nqp::guard('literal', $Tname);
 
-            # Build up the list of methods to defer through.
+            # Build up the list of methods to defer through. A call of a method
+            # already resolved carries the method in place of its name.
             my $start_type := nqp::captureposarg($init, 0);
-            my str $name := nqp::captureposarg_s($init, 1);
+            my str $name := nqp::captureposprimspec($init, 1) == nqp::const::BIND_VAL_STR
+              ?? nqp::captureposarg_s($init, 1)
+              !! nqp::captureposarg($init, 1).name;
             my $start_type_how := nqp::how_nd($start_type);
             my @mro := nqp::can($start_type_how, 'mro_unhidden')
               ?? $start_type_how.mro_unhidden($start_type)
@@ -2839,6 +2851,48 @@ sub multi-ambiguous-handler($ambig-call, $target, $capture) {
     );
 }
 
+# Whether two signatures are interchangeable for revision gating: the
+# same parameter shapes and types in the same order, differing at most
+# in parameter names. Anything a name-blind comparison cannot vouch for
+# (named, slurpy, capture or sub-signature parameters, constraints,
+# type captures) makes them non-interchangeable, so such candidates
+# each stand on their own, as any two distinct signatures do.
+sub revision-gated-signatures-equivalent($sig-a, $sig-b) {
+    my @params-a := nqp::getattr($sig-a, Signature, '@!params');
+    my @params-b := nqp::getattr($sig-b, Signature, '@!params');
+    return 0 unless nqp::elems(@params-a) == nqp::elems(@params-b);
+
+    my int $n := nqp::elems(@params-a);
+    my int $i := -1;
+    while ++$i < $n {
+        my $a := nqp::atpos(@params-a, $i);
+        my $b := nqp::atpos(@params-b, $i);
+
+        my int $flags := nqp::getattr_i($a, Parameter, '$!flags');
+        return 0 unless $flags == nqp::getattr_i($b, Parameter, '$!flags');
+        return 0 if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS
+                            +| nqp::const::SIG_ELEM_SLURPY_NAMED
+                            +| nqp::const::SIG_ELEM_SLURPY_LOL
+                            +| nqp::const::SIG_ELEM_SLURPY_ONEARG
+                            +| nqp::const::SIG_ELEM_IS_CAPTURE);
+        return 0 unless nqp::isnull(nqp::getattr($a, Parameter, '@!named_names'))
+                     && nqp::isnull(nqp::getattr($b, Parameter, '@!named_names'));
+        return 0 unless nqp::isnull(nqp::getattr($a, Parameter, '@!post_constraints'))
+                     && nqp::isnull(nqp::getattr($b, Parameter, '@!post_constraints'));
+        return 0 unless nqp::isnull(nqp::getattr($a, Parameter, '@!type_captures'))
+                     && nqp::isnull(nqp::getattr($b, Parameter, '@!type_captures'));
+        return 0 if nqp::getattr($a, Parameter, '$!sub_signature')
+                 || nqp::getattr($b, Parameter, '$!sub_signature');
+        return 0 if nqp::defined(nqp::getattr($a, Parameter, '$!signature_constraint'))
+                 || nqp::defined(nqp::getattr($b, Parameter, '$!signature_constraint'));
+
+        return 0 unless nqp::eqaddr(
+            nqp::getattr($a, Parameter, '$!type'),
+            nqp::getattr($b, Parameter, '$!type'));
+    }
+    1
+}
+
 # Helper sub to filter out revision-gated multi-candidates
 sub multi-filter-revision-gated-candidates($proto, $caller-revision) {
     my @candidates := $proto.dispatch_order;
@@ -2848,6 +2902,7 @@ sub multi-filter-revision-gated-candidates($proto, $caller-revision) {
     my int $allowed-idx := 0;
     my @allowed-candidates;
     my %gated-candidates;
+    my @gated-idxs;
     while $idx < nqp::elems(@candidates) {
         my $candidate := nqp::atpos(@candidates, $idx++);
 
@@ -2861,23 +2916,43 @@ sub multi-filter-revision-gated-candidates($proto, $caller-revision) {
         my $required-revision := nqp::atkey($candidate, 'required_revision') // $proto-revision;
         if $required-revision <= $caller-revision {
             if nqp::existskey($candidate, 'signature') {
-                my $signature := nqp::atkey($candidate, 'signature').gist;
+                my $sig := nqp::atkey($candidate, 'signature');
+                my $signature := $sig.gist;
 
+                # Find the admitted candidate this one supersedes or is
+                # superseded by. The rendered signature catches the exact
+                # same text cheaply; the structural comparison catches
+                # signatures that differ in parameter names only.
+                my int $candidate-idx := -1;
                 if nqp::existskey(%gated-candidates, $signature) {
-                    my $candidate-idx := nqp::atkey(%gated-candidates, $signature);
+                    $candidate-idx := nqp::atkey(%gated-candidates, $signature);
+                }
+                else {
+                    for @gated-idxs {
+                        if revision-gated-signatures-equivalent($sig,
+                            nqp::atkey(nqp::atpos(@allowed-candidates, $_), 'signature')) {
+                            $candidate-idx := $_;
+                            last;
+                        }
+                    }
+                }
+
+                if $candidate-idx >= 0 {
                     my $last-seen-revision := nqp::atkey(
                         nqp::atpos(@allowed-candidates, $candidate-idx),
                         'required_revision'
                     );
 
                     if $last-seen-revision < $required-revision {
-                        nqp::bindkey(%gated-candidates, $signature, $candidate-idx);
                         nqp::bindpos(@allowed-candidates, $candidate-idx, $candidate);
                         # Do *not* bump $allowed-idx here
                     }
+                    nqp::bindkey(%gated-candidates, $signature, $candidate-idx);
                 } else {
+                    nqp::bindkey(%gated-candidates, $signature, $allowed-idx);
+                    nqp::push(@gated-idxs, $allowed-idx);
                     nqp::push(@allowed-candidates, $candidate);
-                    nqp::bindkey(%gated-candidates, $signature, $allowed-idx++);
+                    $allowed-idx++;
                 }
             } else {
                 nqp::push(@allowed-candidates, $candidate);
@@ -3992,6 +4067,12 @@ nqp::register('raku-find-meth-mega', -> $capture {
     # Make sure there's a method table from now on
     $how.all_method_table($obj);
 
+    # A table that came from deserialization carries the tag of the
+    # process that built it, so it fails this guard and gets rebuilt
+    my $Thow := nqp::track('how', nqp::track('arg', $capture, 0));
+    nqp::guard('literal', nqp::track('attr',
+      $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table_epoch'));
+
     # Track the HOW and then the attribute holding the table.  Do the
     # lookup of the method in the table we found in the meta-object.
     # If it's not found, the outcome will be a null, which is exactly
@@ -4000,9 +4081,7 @@ nqp::register('raku-find-meth-mega', -> $capture {
       $capture,
       nqp::syscall('dispatcher-index-tracked-lookup-table',
         nqp::track('attr',
-          nqp::track('how', nqp::track('arg', $capture, 0)),
-          Perl6::Metamodel::ClassHOW,
-          '$!cached_all_method_table'
+          $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table'
         ),
         nqp::track('arg', $capture, 1)
       )
@@ -4068,6 +4147,140 @@ nqp::register('raku-isinvokable', -> $capture {
         $capture, 0, nqp::istype(nqp::captureposarg($capture, 0), Code)
       )
     );
+});
+
+#- raku-concrete-value-of ------------------------------------------------------
+# Evaluates to the first argument, taken out of a Scalar or a native
+# reference when it is in one, when that is a concrete instance of the type
+# given as the second, else to null. A Proxy is never fetched.
+
+# The boxed value a native reference holds, or null for another container
+sub native-ref-value($ref) {
+    nqp::iscont_u($ref) ?? nqp::box_u(nqp::decont_u($ref), Int)
+      !! nqp::iscont_i($ref) ?? nqp::box_i(nqp::decont_i($ref), Int)
+      !! nqp::iscont_n($ref) ?? nqp::box_n(nqp::decont_n($ref), Num)
+      !! nqp::iscont_s($ref) ?? nqp::box_s(nqp::decont_s($ref), Str)
+      !! nqp::null()
+}
+
+# A value taken out of a Scalar or a native reference, else as given
+sub concrete-value($value) {
+    nqp::isconcrete_nd($value) && nqp::iscont($value)
+      ?? (nqp::eqaddr(nqp::what_nd($value), Scalar)
+           ?? nqp::getattr($value, Scalar, '$!value')
+           !! native-ref-value($value))
+      !! $value
+}
+
+# Read of a native reference at a site whose guards fix its kind
+my $native-ref-value := -> $ref, $type { native-ref-value($ref) };
+
+# The first argument taken out of a Scalar or a native reference, under
+# guards that fix what was read, as the value, its tracker and whether
+# it came out of a native reference
+sub track-concrete-arg($capture) {
+    my $value  := nqp::captureposarg($capture, 0);
+    my $Tvalue := nqp::track('arg', $capture, 0);
+    guard-type-concreteness($Tvalue);
+    my int $native := 0;
+    if nqp::isconcrete_nd($value) && nqp::iscont($value) {
+        if nqp::eqaddr(nqp::what_nd($value), Scalar) {
+            $value  := nqp::getattr($value, Scalar, '$!value');
+            $Tvalue := nqp::track('attr', $Tvalue, Scalar, '$!value');
+            guard-type-concreteness($Tvalue);
+        }
+        else {
+            $value  := native-ref-value($value);
+            $native := 1;
+        }
+    }
+    [$value, $Tvalue, $native]
+}
+
+# Delegates to the value track-concrete-arg read when it passed, else to null
+sub delegate-concrete-arg($capture, @read, int $passed) {
+    if !$passed {
+        delegate-constant($capture, nqp::null());
+    }
+    elsif @read[2] {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 0, $native-ref-value
+          )
+        );
+    }
+    else {
+        delegate-value($capture, @read[1]);
+    }
+}
+
+# Late-bound check for a megamorphic site
+my $concrete-value-of := -> $value, $type {
+    $value := concrete-value($value);
+    !nqp::isnull($value) && nqp::isconcrete($value) && nqp::istype($value, $type)
+      ?? $value
+      !! nqp::null()
+};
+
+nqp::register('raku-concrete-value-of', -> $capture {
+    if nqp::syscall('dispatcher-inline-cache-size') >= $MEGA-TYPE-CALLSITE-SIZE {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 0, $concrete-value-of
+          )
+        );
+    }
+    else {
+        my $type := nqp::captureposarg($capture, 1);
+        nqp::guard('literal', nqp::track('arg', $capture, 1));
+        my @read  := track-concrete-arg($capture);
+        my $value := @read[0];
+        delegate-concrete-arg($capture, @read,
+          !nqp::isnull($value) && nqp::isconcrete($value) && nqp::istype($value, $type));
+    }
+});
+
+#- raku-core-value-of ----------------------------------------------------------
+# Evaluates to the first argument, taken out of a Scalar or a native
+# reference when it is in one, when its type is exactly one of the kinds
+# the second names as bits, 1 Int, 2 Num, 4 Rat and 8 Str, else to null.
+
+# The bit for a value's exact core type, or 0
+my $Rat := nqp::null();
+sub core-kind-of($value) {
+    my $what := nqp::what($value);
+    nqp::eqaddr($what, Int) ?? 1
+      !! nqp::eqaddr($what, Num) ?? 2
+      !! nqp::eqaddr($what, Str) ?? 8
+      !! nqp::eqaddr($what, nqp::ifnull($Rat, ($Rat := nqp::gethllsym('Raku', 'Rat')))) ?? 4
+      !! 0
+}
+
+# Late-bound check for a megamorphic site
+my $core-value-of := -> $value, int $mask {
+    $value := concrete-value($value);
+    !nqp::isnull($value) && nqp::isconcrete($value) && (core-kind-of($value) +& $mask)
+      ?? $value
+      !! nqp::null()
+};
+
+nqp::register('raku-core-value-of', -> $capture {
+    if nqp::syscall('dispatcher-inline-cache-size') >= $MEGA-TYPE-CALLSITE-SIZE {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 0, $core-value-of
+          )
+        );
+    }
+    else {
+        my int $mask := nqp::captureposarg_i($capture, 1);
+        nqp::guard('literal', nqp::track('arg', $capture, 1));
+        my @read  := track-concrete-arg($capture);
+        my $value := @read[0];
+        delegate-concrete-arg($capture, @read,
+          !nqp::isnull($value) && nqp::isconcrete($value)
+            && (core-kind-of($value) +& $mask));
+    }
 });
 
 #- raku-boolify -------------------------------------------------------------
@@ -4491,6 +4704,32 @@ my $coerce-via-container := nqp::getstaticcode(-> $coercion, $value {
     nqp::dispatch('raku-coercion', $coercion, nqp::decont($value))
 });
 
+# Perform the full coercion protocol on every call
+my $coerce-value-checked := nqp::getstaticcode(-> $coercion, $value {
+    nqp::istype($value, nqp::how_nd($coercion).target_type($coercion))
+      ?? $value
+      !! nqp::how_nd($coercion)."!coerce_TargetType"($coercion, $value)
+});
+
+# Whether a type check against this type inspects the value itself rather
+# than just its type, as a subset refinement does. Such a check must be
+# repeated on every call, since dispatch program guards only cover the
+# type and concreteness of the value.
+sub type-check-is-value-dependent($type) {
+    my $HOW := nqp::how_nd($type);
+    while $HOW.archetypes($type).nominalizable {
+        my $subset := $HOW.wrappee-lookup($type, :subset);
+        return 0 if nqp::isnull($subset);
+
+        my $subsetHOW := nqp::how_nd($subset);
+        return 1 if nqp::isconcrete($subsetHOW.refinement($subset));
+
+        $type := $subsetHOW.refinee($subset);
+        $HOW  := nqp::how_nd($type);
+    }
+    0
+}
+
 # Return a list with coercer, method object and nominal target for the
 # given coercion object, value and optional force :with-runtime flag
 sub select-coercer($coercion, $value, :$with-runtime = 0) {
@@ -4506,6 +4745,10 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
     # on NQP/Raku language boundary. Therefore we use a truncated local
     # version of it.
     my sub method-cando($method, *@pos) {
+        # A method that a FALLBACK provides is a plain closure, so like a
+        # method call it takes whatever it is given
+        return nqp::list($method) unless nqp::istype($method, Routine);
+
         my $disp;
         if $method.is_dispatcher {
             $disp := $method;
@@ -4515,6 +4758,16 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
             nqp::bindattr($disp, Routine, '@!dispatchees', nqp::list($method));
         }
         -> *@_ { $disp.find_best_dispatchee( nqp::usecapture(), 1) }(|@pos)
+    }
+
+    # A lookup site that has gone megamorphic skips fallbacks, so ask the
+    # type for one itself when the lookup finds nothing
+    my sub value-method($value, str $name) {
+        my $method := nqp::tryfindmethod($value, $name);
+        my $how    := nqp::how_nd($value);
+        nqp::defined($method) || nqp::not_i(nqp::can($how, 'find_method_fallback'))
+          ?? $method
+          !! $how.find_method_fallback($value, $name)
     }
 
     # Make sure none of the coercion method candidates uses run-time
@@ -4580,7 +4833,7 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
 
     # There is .TargetType method on the value, use it.
     elsif nqp::defined(
-      $method := nqp::tryfindmethod(
+      $method := value-method(
         $value.WHAT,
         nqp::how_nd($nominal_target).name($nominal_target)
       )
@@ -4679,6 +4932,17 @@ nqp::register('raku-coercion', -> $capture {
     my $constraint    := $coercionHOW.constraint_type($coercion);
     my $constraintHOW := $constraint.HOW;
 
+    # Helper sub to delegate to the per-call coercion code
+    my sub value-checked-fallback() {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            nqp::syscall('dispatcher-replace-arg-literal-obj',
+              $capture, 0, $coercion
+            ), 0, $coerce-value-checked
+          )
+        );
+    }
+
     # If despite our efforts the value is still a container then try
     # deconting it first and then re-dispatch.
     if nqp::iscont($value) {
@@ -4691,34 +4955,51 @@ nqp::register('raku-coercion', -> $capture {
         );
     }
 
-    # Just matches, use identity.
+    # Just matches, use identity when the match is decided by the type alone.
     elsif nqp::istype_nd($value, $target_type) {
-        nqp::delegate('boot-value',
-          nqp::syscall('dispatcher-drop-arg', $capture, 0)
-        );
+        if type-check-is-value-dependent($target_type) {
+            value-checked-fallback();
+        }
+        else {
+            nqp::delegate('boot-value',
+              nqp::syscall('dispatcher-drop-arg', $capture, 0)
+            );
+        }
     }
 
     # The value doesn't match constraint type, throw by calling the MOP
-    # error throwing method
+    # error throwing method, unless the mismatch is decided by the value
+    # rather than its type.
     elsif !nqp::eqaddr($constraint, Mu)
       && !nqp::istype_nd($value, $constraint) {
-        nqp::delegate('raku-meth-call',
-          nqp::syscall('dispatcher-insert-arg-literal-obj',
-            nqp::syscall('dispatcher-insert-arg-literal-str',
+        if type-check-is-value-dependent($constraint) {
+            value-checked-fallback();
+        }
+        else {
+            nqp::delegate('raku-meth-call',
               nqp::syscall('dispatcher-insert-arg-literal-obj',
-                nqp::syscall('dispatcher-drop-arg',
-                  $capture, 0
+                nqp::syscall('dispatcher-insert-arg-literal-str',
+                  nqp::syscall('dispatcher-insert-arg-literal-obj',
+                    nqp::syscall('dispatcher-drop-arg',
+                      $capture, 0
+                    ), 0, $coercionHOW
+                  ), 0, '!invalid_type'
                 ), 0, $coercionHOW
-              ), 0, '!invalid_type'
-            ), 0, $coercionHOW
-          )
-        );
+              )
+            );
+        }
     }
 
     # The constraint type is a coercion on its own. This is not a
     # dispatchable case. Fallback to the metamodel method.
     elsif $constraintHOW.archetypes($constraint).coercive {
         runtime-fallback();
+    }
+
+    # A constraint that inspects the value must be rechecked on every
+    # call, which the coercers selected below do not do.
+    elsif type-check-is-value-dependent($constraint) {
+        value-checked-fallback();
     }
 
     # Try finding one of the coercion methods.
@@ -4772,6 +5053,16 @@ nqp::register('raku-coercion', -> $capture {
 # which may be a definiteness or coercion type.
 nqp::register('raku-rv-typecheck-generic', -> $capture {
     nqp::guard('type', nqp::track('arg', $capture, 1));
+
+    # A generic return type that instantiates to a native type checks
+    # against the box type, since the routine body produces boxed values.
+    my $type := nqp::captureposarg($capture, 1);
+    my $box  := nqp::gethllsym('Raku', 'NativeInstantiation').box($type);
+    unless nqp::isnull($box) {
+        $capture := nqp::syscall('dispatcher-insert-arg-literal-obj',
+          nqp::syscall('dispatcher-drop-arg', $capture, 1), 1, $box);
+    }
+
     nqp::delegate('raku-rv-typecheck', $capture);
 });
 
@@ -5014,4 +5305,38 @@ nqp::register('raku-rv-typecheck', -> $capture {
 
     # Do the actual delegation
     nqp::delegate($delegate, $capture);
+});
+
+#- raku-rv-native --------------------------------------------------------------
+# Return value check for a routine with a native return type, given a value
+# that is not a concrete instance of that type's box type.
+
+# Unbox the value, as a Pointer or a class with a box target can be, or
+# error out if it cannot be
+sub native_return_coerce($ret, $type) {
+    my int $prim := nqp::objprimspec($type);
+    my $coerced  := nqp::null;
+    try {
+        $coerced := $prim == 2
+          ?? nqp::box_n(nqp::unbox_n($ret), Num)
+          !! $prim == 3
+            ?? nqp::box_s(nqp::unbox_s($ret), Str)
+            !! $prim == 10
+              ?? nqp::box_i(nqp::unbox_u($ret), Int)
+              !! nqp::box_i(nqp::unbox_i($ret), Int);
+    }
+    nqp::isnull($coerced) ?? return_error($ret, $type) !! $coerced
+}
+
+# The first value is the return value, the second is the native return type.
+# A Nil or a Failure is returned as is.
+nqp::register('raku-rv-native', -> $capture {
+    nqp::guard('type', nqp::track('arg', $capture, 0));
+    nqp::istype(nqp::captureposarg($capture, 0), Nil)
+      ?? nqp::delegate('boot-value', $capture)
+      !! nqp::delegate('boot-code-constant',
+           nqp::syscall('dispatcher-insert-arg-literal-obj',
+             $capture, 0, &native_return_coerce
+           )
+         );
 });

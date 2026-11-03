@@ -84,18 +84,16 @@ BEGIN {
 }
 
 {
-    # XXX TODO: https://github.com/rakudo/rakudo/issues/2433
-    # my $perl := BEGIN Perl.new;
-    Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {
-        PROCESS::<$PERL> := Raku.new;
-    }
-    Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKU', {
-        PROCESS::<$RAKU> := Raku.new;
-    }
-}
 
-# Required for use in the optimizer
-nqp::bindhllsym('Raku', 'Mu:U', Mu:U);
+    # This thread pool scheduler will be the default one.
+#?if !js
+    PROCESS::<$SCHEDULER> = ThreadPoolScheduler.new();
+#?endif
+
+#?if js
+    PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
+#?endif
+}
 
 #?if moar
 # Cannot be added in the Uni class, as we don't have native arrays
@@ -121,51 +119,6 @@ augment class Uni {
 }
 #?endif
 
-# This cannot live in Rakudo::Internals proper because allomorphs are
-# not yet known at that stage
-augment class Rakudo::Internals {
-    my Lock $fetch-lock := Lock.new;
-    method FETCH-USER-GROUP(Str:D $what) {
-        $fetch-lock.protect: {
-            unless PROCESS::{$what}:exists {
-                if self.IS-WIN {
-                    if $what eq '$USER' {
-                        PROCESS::<$USER> := try qx/whoami/.chomp;
-                    }
-                    # $what eq '$GROUP'
-                    elsif (try qx|whoami /groups /FO csv /nh|) -> $groups {
-                        PROCESS::<$GROUP> :=
-                          $groups.split('","',2).head.substr(1);
-                    }
-                    # alas
-                    else {
-                        PROCESS::<$GROUP> := Nil;
-                    }
-                }
-                elsif (try qx/LC_MESSAGES=POSIX id/) -> $id {
-                    if $id ~~ m/^
-                      [ uid "=" $<uid>=(\d+) ]
-                      [ "(" $<user>=(<-[ ) ]>+) ")" ]
-                      \s+
-                      [ gid "=" $<gid>=(\d+) ]
-                      [ "(" $<group>=(<-[ ) ]>+) ")" ]
-                    / {
-                        PROCESS::<$USER>  := IntStr.new(+$<uid>,~$<user>);
-                        PROCESS::<$GROUP> := IntStr.new(+$<gid>,~$<group>);
-                    }
-
-                    # alas, no support yet
-                    else {
-                        PROCESS::<$USER>  := Nil;
-                        PROCESS::<$GROUP> := Nil;
-                    }
-                }
-            }
-            PROCESS::{$what}
-        }
-    }
-}
-
 # Subs that are DEPRECATED are moved here so that the "is DEPRECATED" trait
 # can be applied without bootstrapping issues.
 
@@ -185,11 +138,6 @@ sub from-json($text)
   is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://raku.land/')
 {
     Rakudo::Internals::JSON.from-json($text);
-}
-
-proto sub gethostname(*%) is implementation-detail {*}
-multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
-    $*KERNEL.hostname
 }
 
 augment class Mu {
@@ -813,17 +761,33 @@ augment class Cool {
           self.Str,
           :outer_ctx($eval_ctx),
           :global(GLOBAL),
-          :language_version($compiler.language_version),
+          :language_version(Rakudo::Internals.LANGUAGE-VERSION-OF-CONTEXT($eval_ctx)),
           |(:optimize($_) with $compiler.cli-options<optimize>),
           :target<ast>, :compunit_ok(1), :$grammar, :$actions;
 
-        $expression
-          ?? $ast.statement-list.statements.head.expression
-          !! $compunit
-            ?? $ast
-            !! $ast.statement-list
+        if $expression {
+            $ast.statement-list.statements.head.expression
+        }
+        elsif $compunit {
+            $ast
+        }
+        else {
+            # The statements were already begun as part of $ast; record it
+            # so EVAL can compile the unit that holds their begin-time
+            # scope state instead of wrapping them in a fresh one.
+            my $statement-list := $ast.statement-list;
+            $statement-list.IMPL-SET-ORIGIN-COMP-UNIT($ast);
+            $statement-list
+        }
     }
 }
+
+# Mark internal types as implementation-detail that couldn't be marked
+# at the place they were defined
+BEGIN trait_mod:<is>($_,:implementation-detail) for
+  Rakudo::Internals::IterationSet,
+  ScalarVAR
+;
 
 # Make sure all affected subclasses are aware of additions to their parents
 BEGIN .^compose for

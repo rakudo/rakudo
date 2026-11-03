@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 13;
 
 my $ast;
 my $deparsed;
@@ -102,6 +102,53 @@ subtest 'Value colonpair forms a Pair with the correct value (3)' => {
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
+subtest 'Value colonpair with a parenthesized value' => {
+    # :cheese(42)
+    ast RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, ':cheese(42)', 'deparse';
+    is-deeply $_, Pair.new('cheese', 42), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Value colonpair with a plain quoted string value' => {
+    # :cheese("brie")
+    ast RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new('brie')]
+      )
+    );
+
+    is-deeply $deparsed, ':cheese("brie")', 'deparse';
+    is-deeply $_, Pair.new('cheese', 'brie'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Value colonpair with a quoted string value without brackets' => {
+    # :cheese(qqw/brie gouda/)
+    ast RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new('brie gouda')],
+        processors => ("words",)
+      )
+    );
+
+    is-deeply $deparsed, ':cheese(qqw/brie gouda/)', 'deparse';
+    is-deeply $_, Pair.new('cheese', ('brie', 'gouda')), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
 subtest 'Variable colonpair forms a Pair that looks up the variable' => {
     my $curry = 'red';
 
@@ -113,6 +160,67 @@ subtest 'Variable colonpair forms a Pair that looks up the variable' => {
 
     is-deeply $deparsed, ':$curry', 'deparse';
     is-deeply $_, Pair.new('curry', 'red'), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Variable colonpair with a named capture held as a plain string' => {
+    # "abc" ~~ /a $<foo>=[\w+]/;
+    # :$<foo>
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::StrLiteral.new('abc'),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::QuotedRegex.new(
+            body => RakuAST::Regex::Sequence.new(
+              RakuAST::Regex::WithWhitespace.new(RakuAST::Regex::Literal.new('a')),
+              RakuAST::Regex::NamedCapture.new(
+                name  => 'foo',
+                regex => RakuAST::Regex::Group.new(
+                  RakuAST::Regex::QuantifiedAtom.new(
+                    atom       => RakuAST::Regex::CharClass::Word.new,
+                    quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ColonPair::Variable.new(
+          key   => 'foo',
+          value => RakuAST::Var::NamedCapture.new(
+            RakuAST::QuotedString.new(
+              segments => (RakuAST::StrLiteral.new('foo'),)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+"abc" ~~ /a $<foo>=[\w+]/;
+:$<foo>
+CODE
+
+    is .key ~ .value, 'foobc', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Variable colonpair with a named capture keeps its sigil' => {
+    # "ab" ~~ /$<b>=(b)/;
+    # (:@<b>, :%<b>, :$<b>)
+    ast Q:to/SOURCE/.AST;
+    "ab" ~~ /$<b>=(b)/;
+    (:@<b>, :%<b>, :$<b>)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+"ab" ~~ /$<b>=(b)/;
+(:@<b>, :%<b>, :$<b>)
+CODE
+
+    is-deeply .map(*.value.^name).List, <List Map Match>, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

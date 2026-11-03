@@ -1,0 +1,354 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 19;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+class TestTarget {
+    my $.route = 66;
+    method subtract($x, $y) { $x - $y }
+    submethod subby(--> 42) { }
+}
+
+subtest 'Can make a call on a method without arguments' => {
+    # TestTarget.route
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('route')
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.route', 'deparsed';
+    is-deeply $_, 66, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a call on a submethod without arguments' => {
+    # TestTarget.subby
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('subby')
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.subby', 'deparsed';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a call on a method with positional arguments' => {
+    # TestTarget.subtract(14, 6)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('subtract'),
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(14),
+          RakuAST::IntLiteral.new(6),
+        )
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.subtract(14, 6)', 'deparsed';
+    is-deeply $_, 8, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call WHAT compiles into MOP primitive' => {
+    # 42.WHAT
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('WHAT')
+      )
+    );
+    is-deeply $deparsed, '42.WHAT', 'deparsed';
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call HOW compiles into MOP primitive' => {
+    # 42.HOW
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('HOW')
+      )
+    );
+    is-deeply $deparsed, '42.HOW', 'deparsed';
+    is-deeply $_, Int.HOW, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call WHO compiles into MOP primitive' => {
+    # 42.WHO
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('WHO')
+      )
+    );
+    is-deeply $deparsed, '42.WHO', 'deparsed';
+    isa-ok $_, Stash, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call DEFINITE compiles into MOP primitive' => {
+    # 42.DEFINITE
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('DEFINITE')
+      )
+    );
+    is-deeply $deparsed, '42.DEFINITE', 'deparsed';
+    is-deeply $_, True, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Method call REPR compiles into MOP primitive' => {
+    # 42.REPR
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('REPR')
+      )
+    );
+    is-deeply $deparsed, '42.REPR', 'deparsed';
+    is-deeply $_, 'P6opaque', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a quoted call on a method without arguments' => {
+    # TestTarget."route"()
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
+      postfix => RakuAST::Call::QuotedMethod.new(
+        name => RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('route')]
+        )
+      )
+    );
+    is-deeply $deparsed, 'TestTarget."route"()', 'deparsed';
+    is-deeply $_, 66, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a quoted call on a method with positional arguments' => {
+    # TestTarget."subtract"(14, 6)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
+      postfix => RakuAST::Call::QuotedMethod.new(
+        name => RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('subtract')]
+        ),
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(14),
+          RakuAST::IntLiteral.new(6),
+        )
+      )
+    );
+    is-deeply $deparsed, 'TestTarget."subtract"(14, 6)', 'deparsed';
+    is-deeply $_, 8, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a meta-method call' => {
+    # 42.^name
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::MetaMethod.new(name => 'name')
+    );
+    is-deeply $deparsed, '42.^name', 'deparsed';
+    is-deeply $_, 'Int', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a method call if the method exists' => {
+    # TestTarget.?subtract(50,8)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
+      postfix => RakuAST::Call::Method.new(
+        name     => RakuAST::Name.from-identifier('subtract'),
+        dispatch => '.?',
+        args     => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(50),
+          RakuAST::IntLiteral.new(8),
+        )
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.?subtract(50, 8)', 'deparsed';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a method call if the method does not exist' => {
+    # TestTarget.?dunno
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.from-identifier('TestTarget'),
+      postfix => RakuAST::Call::Method.new(
+        name     => RakuAST::Name.from-identifier('dunno'),
+        dispatch => '.?'
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.?dunno', 'deparsed';
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can make a private method call' => {
+    class A {
+        method !private(--> 42) { }
+
+        # A!private
+        ast RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Type::Simple.from-identifier('A'),
+          postfix => RakuAST::Call::PrivateMethod.new(
+            name => RakuAST::Name.from-identifier('private')
+          )
+        );
+        is-deeply $deparsed, 'A!private', 'deparsed';
+        is-deeply $_, 42, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+subtest 'Can make a method call on a sub' => {
+    # "foo".&uc()
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::StrLiteral.new("foo"),
+      postfix => RakuAST::Call::NameAsMethod.new(
+        name => RakuAST::Name.from-identifier('uc')
+      )
+    );
+    is-deeply $deparsed, '"foo".&uc()', 'deparsed';
+    is-deeply $_, "FOO", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can call a method held in a variable' => {
+    # my $f = method { self + 1 };
+    # 41.$f
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('f'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::Method.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::ApplyInfix.new(
+                      left  => RakuAST::Term::Self.new,
+                      infix => RakuAST::Infix.new('+'),
+                      right => RakuAST::IntLiteral.new(1)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::IntLiteral.new(41),
+          postfix => RakuAST::Call::TermAsMethod.new(
+            callee => RakuAST::Var::Lexical.new('$f')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparsed';
+my $f = method {
+    self + 1
+};
+41.$f
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can call a block as a method' => {
+    # 41.&{ $_ + 1 }
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(41),
+      postfix => RakuAST::Call::TermAsMethod.new(
+        callee => RakuAST::Contextualizer::Item.new(
+          RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyInfix.new(
+                    left  => RakuAST::Var::Lexical.new('$_'),
+                    infix => RakuAST::Infix.new('+'),
+                    right => RakuAST::IntLiteral.new(1)
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, '41.&{ $_ + 1 }', 'deparsed';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply Q{41.&{ .say; $_ + 1 }}.AST.DEPARSE,
+      Q:to/CODE/, 'parsed: a block of two statements keeps its lines';
+41.&{
+    .say;
+    $_ + 1
+}
+CODE
+}
+
+
+subtest 'A callee that is not a term is refused' => {
+    throws-like {
+        RakuAST::Call::TermAsMethod.new(
+          callee => RakuAST::ApplyInfix.new(
+            left  => RakuAST::Var::Lexical.new('$a'),
+            infix => RakuAST::Infix.new('//'),
+            right => RakuAST::Var::Lexical.new('$b')
+          )
+        )
+    }, X::TypeCheck::Binding::Parameter,
+      'an infix expression cannot be written after the dot';
+}
+
+subtest 'Can call parenthesized code as a method' => {
+    # "a".&(*.tc)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::StrLiteral.new('a'),
+      postfix => RakuAST::Call::TermAsMethod.new(
+        callee => RakuAST::Contextualizer::Item.new(
+          RakuAST::StatementSequence.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPostfix.new(
+                operand => RakuAST::Term::Whatever.new,
+                postfix => RakuAST::Call::Method.new(
+                  name => RakuAST::Name.from-identifier('tc')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, '"a".&(*.tc)', 'deparse';
+    is-deeply $_, 'A', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+# vim: expandtab shiftwidth=4

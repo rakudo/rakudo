@@ -1,0 +1,176 @@
+# Thread represents an OS-level thread. While it could be used directly, it
+# is not the preferred way to work in Raku. It's a building block for the
+# interesting things.
+my class Thread {
+    # The VM-level thread handle.
+    has Mu $!vm_thread;
+
+    # Is the thread's lifetime bounded by that of the application, such
+    # that when it exits, so does the thread?
+    has Bool $.app_lifetime;
+
+    # Thread's (user-defined) name.
+    has Str $.name;
+
+#?if !jvm
+    my atomicint $started;
+    my atomicint $aborted;
+    my atomicint $completed;
+    my atomicint $joined;
+    my atomicint $yields;
+    my atomicint $highest_id;
+#?endif
+#?if jvm
+    my int $started;
+    my int $aborted;
+    my int $completed;
+    my int $joined;
+    my int $yields;
+    my int $highest_id;
+#?endif
+
+    submethod BUILD(
+             :&code!,
+      Bool() :$!app_lifetime = False,
+      Str()  :$!name         = "<anon>"
+      --> Nil
+    ) {
+        my constant THREAD-ERROR = 'Could not create a new Thread: ';
+        CATCH {
+            when X::AdHoc {
+                .payload.starts-with(THREAD-ERROR)
+                  ?? X::Exhausted.new(
+                       :what<thread>,
+                       :reason(.payload.substr(THREAD-ERROR.chars))
+                     ).throw
+                  !! .rethrow
+            }
+        }
+
+        # Make sure we have at least called nqp::cpucores once before
+        # we start any thread.  This to avoid issues on MacOS Monterey
+        Kernel.cpu-cores-but-one;
+
+        my $entry := anon sub THREAD-ENTRY() {
+            my $*THREAD = self;
+#?if !jvm
+            nqp::setthreadname(nqp::threadid($!vm_thread) ~ ": " ~ $!name);
+#?endif
+            CONTROL {
+                default {
+#?if !jvm
+                    ++⚛$aborted;
+#?endif
+#?if jvm
+                    ++$aborted;
+#?endif
+                    my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                    nqp::getcomp('Raku').handle-control($vm-ex);
+                }
+            }
+            CATCH {
+                default {
+#?if !jvm
+                    ++⚛$aborted;
+#?endif
+#?if jvm
+                    ++$aborted;
+#?endif
+                    my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                    nqp::getcomp('Raku').handle-exception($vm-ex);
+                }
+            }
+            my $*STACK-ID = Rakudo::Internals.NEXT-ID;
+            code();
+#?if !jvm
+            ++⚛$completed;
+#?endif
+#?if jvm
+            ++$completed;
+#?endif
+        }
+        $!vm_thread := nqp::newthread(nqp::getattr($entry, Code, '$!do'),
+            $!app_lifetime ?? 1 !! 0);
+
+#?if !jvm
+            $highest_id ⚛= nqp::threadid($!vm_thread);
+#?endif
+#?if jvm
+            $highest_id = nqp::threadid($!vm_thread);
+#?endif
+    }
+
+    method start(Thread:U: &code, *%adverbs) {
+        Thread.new(:&code, |%adverbs).run()
+    }
+
+    method run(Thread:D:) {
+#?if !jvm
+        ++⚛$started;
+#?endif
+#?if jvm
+        ++$started;
+#?endif
+        nqp::threadrun($!vm_thread);
+        self
+    }
+
+    method id(Thread:D:) {
+        nqp::p6box_i(nqp::threadid($!vm_thread));
+    }
+
+    method finish(Thread:D:) {
+        nqp::threadjoin($!vm_thread);
+#?if !jvm
+        ++⚛$joined;
+#?endif
+#?if jvm
+        ++$joined;
+#?endif
+        self
+    }
+
+    method join(Thread:D:) {
+        self.finish
+    }
+
+    multi method Numeric(Thread:D:) {
+        self.id
+    }
+
+    multi method Str(Thread:D:) {
+        "Thread<$.id>($.name)"
+    }
+    multi method gist(Thread:D:) {
+        my str $gist = "Thread #$.id";
+        $gist ~= " ($!name)" if $!name ne '<anon>';
+        $!app_lifetime ?? $gist !! "Immortal $gist"
+    }
+
+    method yield(Thread:U: --> Nil) {
+#?if !jvm
+        ++⚛$yields;
+#?endif
+#?if jvm
+        ++$yields;
+#?endif
+        nqp::threadyield();
+    }
+
+    method is-initial-thread(--> Bool) {
+        nqp::hllbool(
+          nqp::iseq_i(
+            nqp::threadid(
+              nqp::if(nqp::isconcrete(self),$!vm_thread,nqp::currentthread)
+            ),
+            nqp::threadid(Rakudo::Internals.INITTHREAD)
+          )
+        )
+    }
+
+    method usage(Thread:U:) is raw {
+        nqp::list_i($started,$aborted,$completed,$joined,$yields,$highest_id)
+    }
+}
+
+# vim: expandtab shiftwidth=4

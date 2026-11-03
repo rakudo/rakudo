@@ -18,6 +18,7 @@ Makefile
 *.bundle
 *~
 .*.swp
+*.bak
 *.patch
 *.pdb
 *.res
@@ -31,7 +32,6 @@ lib/Test.pir
 lib/Pod/To/Text.pir
 lib/lib.pir
 CORE.setting.pbc
-RESTRICTED.setting.pbc
 SAFE.setting.pbc
 perl6.class
 perl6.pbc
@@ -135,3 +135,4 @@ node_modules/*
 rakudo-m-early-build
 rakudo-js-build
 rakudo-j-build
+win-runner.exe-tmpl

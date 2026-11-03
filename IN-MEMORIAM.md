@@ -5,6 +5,24 @@ the development of the Raku Programming Language, but unfortunately have
 departed this existence.  We thank them for their contributions and hope
 to keep their memory alive here, as well as in other places.
 
+David H. Adler (dha)
+--------------------
+David had many hobbies, in which he all excelled (like knowledge about Monty
+Python, Doctor Who, really, really bad movies, to name but a few of them).
+The Perl / Raku community was only one of the communities he was part of.
+
+David was involved in the very early Raku development process. More recently,
+he was involved in documenting various features of the Raku Programming
+Language.  Attending many Perl and related Open Source Conferences, he was
+a familiar sight and a good person to spend time with. He is sorely missed.
+
+See also:
+- [Family memorial](https://www.dignitymemorial.com/obituaries/forest-hills-ny/david-adler-10451028)
+- [FaceBook](https://www.facebook.com/ginarsnape/posts/10227412275758366)
+- [/r/perl](https://www.reddit.com/r/perl/comments/qvxdun/dha_rip/)
+- [blogs.perl.org](http://blogs.perl.org/users/damian_conway/2021/11/vale-david.html)
+- [Rakudo Weekly](https://rakudoweekly.blog/2021/11/23/2021-47-david-h-adler-rip/)
+
 Jonathan Scott Duff (perlpilot)
 -------------------------------
 In the early days of the Rakudo implementation, Jonathan Scott Duff
@@ -41,6 +59,26 @@ Robert Lemmen (ROBERTLE)
 In June 2020, Robert Lemmen passed away after a serious illness.  Among other contributions, he packaged modules for Raku (Perl6 at that time) and helped other contributors to get involved in the Raku Team.  Robert Lemmen further contributed to MoarVM, nqp and the Raku documentation, as well as being the author of several ecosystem modules.
 
 From the obituary at: https://www.debian.org/News/2021/20210812
+
+Ben Davies (Kaiepi / @Mrofnet)
+------------------------------
+On January 14th 2023, Ben Davies passed away suddenly at home in the early hours January 14, 2023 with his father Eric.  Ben has worked on MoarVM, NQP and Rakudo since 2017. As such he worked on configuration issues, provided JIT templates  and added support for asynchronous sockets in MoarVM.  As well as working a lot on support of the JVM backend and optimizing Rakudo performance in general.
+
+From the obituary at: https://www.tributearchive.com/obituaries/27062822/benjamin-nelson-davies
+
+Ben was a talented musician and artist whose passion was for computer programming which he did both as hobby and on occasion for pay and had intended to pursue a degree in. He liked to learn languages and was a brilliant young man who excelled in whatever he set his mind to.
+
+Clifton Bryant Wood (Xliff)
+---------------------------
+Clifton Wood passed away after experiencing a myriad of health issues on July 9. 2025.  Although his contributions to NQP and Rakudo were not numerous, they were vital to fixing a number of deep issues that were hard to trace.
+
+But Clifton was most known for his extensive work (from 2015 onwards) on supporting all sorts of external libraries (GTK comes to mind), resulting in more than 100 repositories.  Clifton was ready to discuss issues and ideas, and was thus very influential in the development of Raku and the Raku ecosystem.
+
+From the obituary at: https://www.legacy.com/legacy/clifton-wood
+
+Cliff was an avid reader and lifelong learner, who honed his passion for computer technology into technical career opportunities with universities, technology companies, and nonprofits as an employee, contractor, and consultant. One of his most rewarding and memorable assignments included working as a computer specialist with Morgan State University's renowned Mitchell School of Engineering.
+
+He gladly shared his computer talent and skills with his neighbors (and family, too) and was always available to troubleshot their computer "crises."
 
 Final words
 -----------

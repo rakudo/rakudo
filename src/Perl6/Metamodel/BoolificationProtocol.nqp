@@ -1,27 +1,28 @@
+#- Metamodel::BoolificationProtocol --------------------------------------------
 role Perl6::Metamodel::BoolificationProtocol {
-    has $!boolification_mode;
+    has int $!boolification_mode;
 
-    method get_boolification_mode($obj) {
+    method get_boolification_mode($XXX?) {
         $!boolification_mode
     }
 
-    method set_boolification_mode($obj, $mode) {
+    method set_boolification_mode($XXX, int $mode) {
         $!boolification_mode := $mode;
     }
 
-    method publish_boolification_spec($obj) {
+    # XXX shouldn't this be part of set_boolification_mode??
+    method publish_boolification_spec($class) {
+
+        # No mode set (yet)
         if $!boolification_mode == 0 {
-            my $meth := self.find_method($obj, 'Bool', :no_fallback(1));
-            if nqp::defined($meth) {
-                nqp::setboolspec($obj, 0, $meth)
-            }
-            else {
-                # Default to "not a type object" if we've no available method.
-                nqp::setboolspec($obj, 5, nqp::null())
-            }
+            my $method := self.find_method($class, 'Bool', :no_fallback);
+            # Default to "not a type object" if we've no available method.
+            nqp::setboolspec($class, $method ?? 0 !! 5, $method)
         }
+
+        # Specific mode set
         else {
-            nqp::setboolspec($obj, $!boolification_mode, nqp::null())
+            nqp::setboolspec($class, $!boolification_mode, nqp::null)
         }
     }
 }

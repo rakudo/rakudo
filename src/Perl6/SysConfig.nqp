@@ -8,6 +8,47 @@ class Perl6::SysConfig is HLL::SysConfig {
         $obj
     }
 
+    # A naive implementation of path normalization.
+    # Resolves '..' and '.' path components. It does not resolve symlinks.
+    # It does not understand UNC paths. It misses loads of cornercases I'm
+    # blissfully unaware of.
+    sub normalize-rakudo-home($path, $sep) {
+        my $all-slash := nqp::join('/', nqp::split('\\', $path));
+
+        my @new-comps;
+        for nqp::split('/', $all-slash) -> $component {
+            if $component eq '.' {
+                next;
+            }
+            elsif $component eq '..' {
+                if nqp::elems(@new-comps) == 1 &&
+                        (@new-comps[0] eq ''                   # path starts with "/.."
+                      || nqp::substr(@new-comps[0], 1) eq ':') # path starts with "C:/.."
+                {
+                    # Updir-ing beyond the root is a noop. Thus we'll just drop it.
+                }
+                else {
+                    # Will die if @new-comps is empty. This would mean the path
+                    # starts with "../". This should not happen as we don't
+                    # expect relative paths here.
+                    @new-comps.pop;
+                }
+            }
+            else {
+                @new-comps.push: $component;
+            }
+        }
+
+        if !nqp::elems(@new-comps)               # path is ""
+        || (@new-comps[0] ne ''                  # path doesn't start with "/"
+        && nqp::substr(@new-comps[0], 1) ne ':') # path doesn't start with "C:/"
+        {
+            die("Invalid relative rakudo-home path found: $path");
+        }
+
+        nqp::join($sep, @new-comps)
+    }
+
     method BUILD(%rakudo-build-config) {
         self.build-hll-sysconfig();
 
@@ -26,6 +67,8 @@ class Perl6::SysConfig is HLL::SysConfig {
         if nqp::substr($!rakudo-home, nqp::chars($!rakudo-home) - 1) eq self.path-sep {
             $!rakudo-home := nqp::substr($!rakudo-home, 0, nqp::chars($!rakudo-home) - 1);
         }
+
+        $!rakudo-home := normalize-rakudo-home($!rakudo-home, self.path-sep);
     }
 
     method rakudo-build-config() { %!rakudo-build-config }

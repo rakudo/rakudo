@@ -1,0 +1,3191 @@
+use v6.e.PREVIEW;
+use Test;
+use nqp;
+
+plan 87;
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+# MUST be the first test to handle EVAL_n counter
+todo("Depends on Raku grammar/actions") unless $rakuast;
+subtest 'Special compiler variable $?FILE' => {
+    my $file := 'EVAL_1';
+    # $?FILE
+    ast RakuAST::Var::Compiler::File.new($file);
+
+    is-deeply $deparsed, '$?FILE', 'deparse';
+    is-deeply $_, $file, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+my class A {
+    subtest 'Special compiler variable $?FILE' => {
+        # ::$?CLASS
+        ast RakuAST::Var::Lexical::Constant.new('::?CLASS');
+
+        is-deeply $deparsed, '::?CLASS', 'deparse';
+        is-deeply $_, A, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+subtest 'Special compiler variable $?LINE' => {
+    # $?LINE
+    # always line 1 inside the EVAL
+    ast RakuAST::Var::Compiler::Line.new(1);
+
+    is-deeply $deparsed, '$?LINE', 'deparse';
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+package Foo {
+    our $foo = 42;
+    subtest 'Special compiler variable $?PACKAGE' => {
+        # $?PACKAGE
+        ast RakuAST::Var::Compiler::Lookup.new('$?PACKAGE');
+
+        is-deeply $deparsed, '$?PACKAGE', 'deparse';
+        is-deeply $_, Foo, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+
+    subtest 'Generic package variable lookup' => {
+        ast RakuAST::Var::Package.new(
+          name  => RakuAST::Name.from-identifier-parts("Foo","foo"),
+          sigil => '$'
+        );
+
+        is-deeply $deparsed, '$Foo::foo', 'deparse';
+        is-deeply $_, 42, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+subtest 'Lexical variable lookup ($ sigil)' => {
+    my $x = 42;
+
+    # $x
+    ast RakuAST::Var::Lexical.new('$x');
+    is-deeply $deparsed, '$x', 'deparse';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Lexical variable lookup (& sigil)' => {
+
+    # &plan
+    ast RakuAST::Var::Lexical.new('&plan');
+    is-deeply $deparsed, '&plan', 'deparse';
+    is-deeply $_, &plan, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A variable in the setting' => {
+    ast RakuAST::Var::Lexical::Setting.new('&val');
+
+    is-deeply $deparsed, 'SETTING::<&val>', 'deparse';
+    is-deeply $_, &val, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Positional capture variable lookup works' => {
+    my $/;
+    "abc" ~~ /(.)(.)/;
+
+    # $0
+    ast RakuAST::Var::PositionalCapture.new(0);
+    is-deeply $deparsed, '$0', 'deparse';
+    is-deeply .Str, "a", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # $1
+    ast RakuAST::Var::PositionalCapture.new(1);
+    is-deeply $deparsed, '$1', 'deparse';
+    is-deeply .Str, "b", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Named capture variable lookup works' => {
+    my $/;
+    "abc" ~~ /$<x>=(.)$<y>=(.)/;
+
+    # $<y>
+    ast RakuAST::Var::NamedCapture.new(
+      RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new('y')],
+        processors => ['words','val']
+      )
+    );
+
+    is-deeply $deparsed, '$<y>', 'deparse';
+    is-deeply .Str, "b", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # $<x>
+    ast RakuAST::Var::NamedCapture.new(
+      RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new('x')],
+        processors => ['words','val']
+      )
+    );
+
+    is-deeply $deparsed, '$<x>', 'deparse';
+    is-deeply .Str, "a", @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'variable declaration takes scope and name' => {
+    for 'my', 'state' -> $scope {
+        # my|state $foo
+        ast RakuAST::VarDeclaration::Simple.new(
+          scope => $scope,
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('foo'),
+        );
+        is-deeply $deparsed, $scope ~ ' $foo', 'deparse';
+
+        is $ast.scope, $scope, "did we get scope: $scope";
+        is $ast.name,  '$foo', 'did we get the right name';
+    }
+}
+
+subtest 'Lexical variable my|state declarations work' => {
+    for 'my', 'state' -> $scope {
+        # my|state $foo = 10; $foo
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('foo'),
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::Var::Lexical.new('$foo'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::IntLiteral.new(10)
+            ),
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$foo')
+          )
+        );
+
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ $foo;
+$foo = 10;
+$foo
+CODE
+        is-deeply $_, 10, "@type[$++]: $scope"
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+subtest 'Defaults of my|state untyped container' => {
+    for 'my', 'state' -> $scope {
+        # my|state $foo; $foo
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('foo'),
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$foo')
+          )
+        );
+
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ $foo;
+$foo
+CODE
+        for
+          'AST', EVAL($ast),
+          'Str', EVAL($deparsed),
+          'Raku', EVAL(EVAL $raku)
+        -> $type, \cont {
+            is-deeply cont, Any, "$type: $scope default value is Any";
+            ok cont.VAR.of =:= Mu, "$type: $scope Default constraint is Mu";
+        }
+    }
+}
+
+subtest 'Typed variable my|state declaration (type matches in assignment)' => {
+    for 'my', 'state' -> $scope {
+        # my|state Int $foo; $foo = 99; $foo
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('foo'),
+              type  => RakuAST::Type::Simple.from-identifier('Int')
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::Var::Lexical.new('$foo'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::IntLiteral.new(99)
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$foo')
+          )
+        );
+
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ Int $foo;
+$foo = 99;
+$foo
+CODE
+        is-deeply $_, 99, "@type[$++]: $scope"
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+subtest 'Typed variable my|state declaration (type mismatch throws)' => {
+    for 'my', 'state' -> $scope {
+        # my|state Int $foo; $foo = 1e5; $foo
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression    => RakuAST::VarDeclaration::Simple.new(
+              scope       => $scope,
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('foo'),
+              type        => RakuAST::Type::Simple.from-identifier('Int')
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::Var::Lexical.new('$foo'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::NumLiteral.new(1e5)
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$foo')
+          )
+        );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ Int $foo;
+$foo = 100000e0;
+$foo
+CODE
+
+        for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+            todo 'string EVAL produces different error'
+              if $type eq 'Str';
+            throws-like { EVAL($it) },
+              X::TypeCheck::Assignment,
+              expected => Int,
+              got      => 1e5
+            ;
+        }
+    }
+}
+
+subtest 'Lexical variable my|state declaration with assignment initializer' => {
+    for 'my', 'state' -> $scope {
+        # my|state $var = 125; $var
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope       => $scope,
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('var'),
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::IntLiteral.new(125)
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$var')
+          )
+        );
+
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ $var = 125;
+$var
+CODE
+        for
+          'AST', EVAL($ast),
+          'Str', EVAL($deparsed),
+          'Raku', EVAL(EVAL $raku)
+        -> $type, \result {
+            is-deeply result, 125,
+              "$type: $scope variable declarations with assignment initializer";
+            ok result.VAR.isa(Scalar),
+              "$type: $scope was an assignment into a Scalar container";
+            nok result.VAR.dynamic,
+              "$type: $scope is not dynamic";
+            lives-ok { result = 42 },
+              "$type: $scope can update the container that was produced";
+        }
+    }
+}
+
+subtest 'Lexical my|state array declaration with assignment initializer' => {
+    for 'my', 'state' -> $scope {
+        # my|state @var = 22, 33; @var
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope       => $scope,
+              sigil       => '@',
+              desigilname => RakuAST::Name.from-identifier('var'),
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::ApplyListInfix.new(
+                  infix => RakuAST::Infix.new(','),
+                  operands => (
+                    RakuAST::IntLiteral.new(22),
+                    RakuAST::IntLiteral.new(33)
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('@var')
+          ),
+        );
+
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ @var = 22, 33;
+@var
+CODE
+        is-deeply $_, [22,33], "@type[$++]: $scope"
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+subtest 'Lexical my|state variable declarations with bind initializer' => {
+    for 'my', 'state' -> $scope {
+        # my|state $var := 225; $var
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope       => $scope,
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('var'),
+              initializer => RakuAST::Initializer::Bind.new(
+                RakuAST::IntLiteral.new(225)
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$var')
+          ),
+        );
+
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ $var := 225;
+$var
+CODE
+        for
+          'AST', EVAL($ast),
+          'Str', EVAL($deparsed),
+          'Raku', EVAL(EVAL $raku)
+        -> $type, \result {
+            # state var limitation: binding (like "state $var := 225") not supported
+            next if $scope eq 'state';
+
+            is-deeply result, 225,
+              "$type: $scope variable declarations with bind initializer";
+            nok result.VAR.isa(Scalar),
+              "$type: $scope really was bound; no Scalar container";
+            dies-ok { result = 42 },
+              "$type: $scope cannot assign as it is not a container";
+        }
+    }
+}
+
+subtest 'Anonymous state variable declaration' => {
+    # -> { ++state $ }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::VarDeclaration::Anonymous.new(:sigil('$'), :scope('state'))
+              ),
+              infix => RakuAST::Infix.new('+'),
+              right => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::VarDeclaration::Anonymous.new(:sigil('$'), :scope('state'))
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    ++$ + ++$
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, &result {
+        is-deeply result() ~ result() ~ result(), '246',
+            "$type: anonymous state variables works are are distinct";
+    }
+}
+
+subtest 'Dynamic variable access' => {
+    sub with-dyn(&test) {
+        my $*dyn = 'in';
+    }
+    my $*dyn = 'out';
+
+    # $*dyn
+    ast RakuAST::Var::Dynamic.new('$*dyn');
+    is-deeply $deparsed, '$*dyn', 'deparse';
+
+    is-deeply $_, 'out', "@type[$++] access outside"
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    is-deeply $_, 'in', "@type[$++] access inside"
+      for with-dyn({ EVAL($ast) }), with-dyn({ EVAL($deparsed) });
+
+    # $*OUT
+    ast RakuAST::Var::Dynamic.new('$*OUT');
+    is-deeply $deparsed, '$*OUT', 'deparse';
+
+    is-deeply $_, $*OUT, "@type[$++] checking \$*OUT"
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Dynamic variable declaration and assignment, dynamic lookup' => {
+    # my $*var = 360;
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          twigil      => '*',
+          desigilname => RakuAST::Name.from-identifier('var'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(360)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Dynamic.new('$*var')
+      ),
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my $*var = 360;
+$*var
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, \result {
+        is-deeply result, 360,
+          "$type: Dynamic variable declaration and assignment, dynamic lookup";
+        ok result.VAR.isa(Scalar),
+          "$type: Dynamic did an assignment into a Scalar container";
+        ok result.VAR.dynamic,
+          "$type: Is a dynamic";
+        lives-ok { result = 99 },
+          "$type: Can update the container that was produced";
+    }
+}
+
+subtest '@ sigil my|state var is initialized to Array' => {
+    for 'my', 'state' -> $scope {
+        # my|state @arr; @arr
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              sigil => '@',
+              desigilname => RakuAST::Name.from-identifier('arr'),
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('@arr')
+          ),
+        );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ @arr;
+@arr
+CODE
+
+        for
+          'AST', EVAL($ast),
+          'Str', EVAL($deparsed),
+          'Raku', EVAL(EVAL $raku)
+        -> $type, \cont {
+            is-deeply cont.WHAT, Array,
+              "$type: $scope @ sigil var is initialized to Array";
+            is-deeply cont.VAR.WHAT, Array,
+              "$type: $scope @ sigil var not wrapped in Scalar";
+            ok cont.defined,
+              "$type: $scope it is a defined Array instance";
+            is cont.elems, 0,
+              "$type: $scope it is empty";
+            is-deeply cont[0].VAR.WHAT, Scalar,
+              "$type: $scope element is a Scalar";
+            is-deeply cont[0], Any,
+              "$type: $scope contains an Any by default";
+            ok cont[0].VAR.of =:= Mu,
+              "$type: $scope constraint is Mu by default";
+        }
+    }
+}
+
+subtest '% sigil my|state var is initialized to Hash' => {
+    for 'my', 'state' -> $scope {
+        # my|state %hash; %hash
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              sigil => '%',
+              desigilname => RakuAST::Name.from-identifier('hash'),
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('%hash')
+          ),
+        );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ %hash;
+%hash
+CODE
+
+        for
+          'AST', EVAL($ast),
+          'Str', EVAL($deparsed),
+          'Raku', EVAL(EVAL $raku)
+        -> $type, \cont {
+            is-deeply cont.WHAT, Hash,
+              "$type: $scope % sigil var is initialized to Hash";
+            is-deeply cont.VAR.WHAT, Hash,
+              "$type: $scope % sigil var not wrapped in Scalar";
+            ok cont.defined,
+              "$type: $scope it is a defined Hash instance";
+            is cont.elems, 0,
+              "$type: $scope it is empty";
+            is-deeply cont<k>.VAR.WHAT, Scalar,
+              "$type: $scope element is a Scalar";
+            is-deeply cont<k>, Any,
+              "$type: $scope contains an Any by default";
+            ok cont<k>.VAR.of =:= Mu,
+              "$type: $scope constraint is Mu by default";
+        }
+    }
+}
+
+subtest '@ sigil my|state var with Int type is an Array' => {
+    for 'my', 'state' -> $scope {
+        # my|state Int @arr; @arr
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              sigil => '@',
+              desigilname => RakuAST::Name.from-identifier('arr'),
+              type  => RakuAST::Type::Simple.from-identifier('Int')
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('@arr')
+          ),
+        );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ Int @arr;
+@arr
+CODE
+
+        for
+          'AST', EVAL($ast),
+          'Str', EVAL($deparsed),
+          'Raku', EVAL(EVAL $raku)
+        -> $type, \cont {
+            ok cont ~~ Array,
+              "$type: $scope @ sigil var with Int type is an Array";
+            ok cont ~~ Positional[Int],
+              "$type: $scope it does Positional[Int]";
+            is-deeply cont.of, Int,
+              "$type: $scope .of gives Int";
+            is cont.elems, 0,
+              "$type: $scope it is empty";
+            is-deeply cont[0].VAR.WHAT, Scalar,
+              "$type: $scope element is a Scalar";
+            is-deeply cont[0], Int,
+              "$type: $scope contains an Int";
+            ok cont[0].VAR.of =:= Int,
+              "$type: $scope constraint is Int";
+        }
+    }
+}
+
+subtest '% sigil my|state var with Int type is a Hash' => {
+    for 'my', 'state' -> $scope {
+        # my|state Int %hash; %hash
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              sigil => '%',
+              desigilname => RakuAST::Name.from-identifier('hash'),
+              type  => RakuAST::Type::Simple.from-identifier('Int')
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('%hash')
+          )
+        );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ Int %hash;
+%hash
+CODE
+
+        for
+          'AST', EVAL($ast),
+          'Str', EVAL($deparsed),
+          'Raku', EVAL(EVAL $raku)
+        -> $type, \cont {
+            ok cont ~~ Hash,
+              "$type: $scope % sigil var with Int type is a Hash";
+            ok cont ~~ Associative[Int],
+              "$type: $scope it does Associative[Int]";
+            is-deeply cont.of, Int,
+              "$type: $scope .of gives Int";
+            is cont.elems, 0,
+              "$type: $scope it is empty";
+            is-deeply cont<k>.VAR.WHAT, Scalar,
+              "$type: $scope element is a Scalar";
+            is-deeply cont<k>, Int,
+              "$type: $scope contains an Int";
+            ok cont<k>.VAR.of =:= Int,
+              "$type: $scope constraint is Int";
+        }
+    }
+}
+
+subtest 'Can access external native int var' => {
+    my int $x = 42;
+
+    # $x
+    ast RakuAST::Var::Lexical.new('$x');
+    is-deeply $deparsed, '$x', 'deparse';
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can access external native num var' => {
+    my num $x = 4e2;
+
+    # $x
+    ast RakuAST::Var::Lexical.new('$x');
+    is-deeply $deparsed, '$x', 'deparse';
+
+    is-deeply $_, 4e2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Can access external native str var' => {
+    my str $x = 'answer';
+
+    # $x
+    ast RakuAST::Var::Lexical.new('$x');
+    is-deeply $deparsed, '$x', 'deparse';
+
+    is-deeply $_, 'answer', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'int declaration creates a native int container' => {
+    # my int $native-int; $native-int
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-int'),
+          type => RakuAST::Type::Simple.from-identifier('int')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$native-int')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my int $native-int;
+$native-int
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, \cont {
+        my $desc = "$type: int declaration creates a native int container";
+        multi check(int $x) { pass $desc }
+        multi check($x) { flunk $desc }
+
+        check(cont);
+        is-deeply cont, 0,
+          "$type: Native int initialized to 0 by default";
+    }
+}
+
+subtest 'num declaration creates a native num container' => {
+    # my num $native-num; $native-num
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-num'),
+          type => RakuAST::Type::Simple.from-identifier('num')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$native-num')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my num $native-num;
+$native-num
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, \cont {
+        my $desc = "$type: num declaration creates a native num container";
+        multi check(num $x) { pass $desc }
+        multi check($x) { flunk $desc }
+
+        check(cont);
+        is-deeply cont, 0e0,
+          "$type: Native num initialized to 0e0 by default";
+    }
+}
+
+subtest 'str declaration creates a native str container' => {
+    # my str $native-str; $native-str
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-str'),
+          type => RakuAST::Type::Simple.from-identifier('str')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$native-str')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my str $native-str;
+$native-str
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, \cont {
+        my $desc = "$type: str declaration creates a native str container";
+        multi check(str $x) { pass $desc }
+        multi check($x) { flunk $desc }
+
+        check(cont);
+        is-deeply cont, '',
+          "$type: Native str initialized to empty string by default";
+    }
+}
+
+subtest 'Native int assign initializer works' => {
+    # my int $native-int = 963; $native-int
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-int'),
+          type => RakuAST::Type::Simple.from-identifier('int'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(963)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$native-int')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my int $native-int = 963;
+$native-int
+CODE
+
+    is-deeply $_, 963, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Native num assign initializer works' => {
+    # my num $native-num = 96e3; $native-num
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-num'),
+          type => RakuAST::Type::Simple.from-identifier('num'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::NumLiteral.new(96e3)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$native-num')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my num $native-num = 96000e0;
+$native-num
+CODE
+
+    is-deeply $_, 96e3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Native str assign initializer works' => {
+    # my str $native-str = 'nine six three'; $native-str
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-str'),
+          type => RakuAST::Type::Simple.from-identifier('str'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('nine six three')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$native-str')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my str $native-str = "nine six three";
+$native-str
+CODE
+
+    is-deeply $_, 'nine six three', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+{
+    my module M {
+        our $var;
+
+        # our $var; $var
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => 'our',
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('var'),
+            ),
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$var')
+          ),
+        );
+        is-deeply $deparsed, q:to/CODE/, 'deparse';
+our $var;
+$var
+CODE
+
+        subtest 'AST: our-scoped variable declaration without initializer takes current value (eval mode)' => {
+            $var = 66;
+            is-deeply EVAL($ast), 66, 'eval AST';
+            is-deeply $var, 66, 'Value intact after eval';
+        }
+
+        subtest 'Str: our-scoped variable declaration without initializer takes current value (eval mode)' => {
+            $var = 99;
+            is-deeply EVAL($ast), 99, 'eval Str';
+            is-deeply $var, 99, 'Value intact after eval';
+        }
+
+        subtest 'Raku: our-scoped variable declaration without initializer takes current value (eval mode)' => {
+            $var = 137;
+            is-deeply EVAL($ast), 137, 'eval Str';
+            is-deeply $var, 137, 'Value intact after eval';
+        }
+
+        # our $x = 42; $x
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => 'our',
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('x'),
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::IntLiteral.new(42)
+              )
+            ),
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$x')
+          ),
+        );
+        is-deeply $deparsed, q:to/CODE/, 'deparse';
+our $x = 42;
+$x
+CODE
+
+        subtest 'our-scoped variable declaration with initializer works (eval mode)' => {
+            is-deeply $_, 42
+              for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+        }
+
+        # our $y = 99; $y
+        ast RakuAST::CompUnit.new(
+          :!eval,
+          :comp-unit-name('TEST_1'),
+          :statement-list(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope => 'our',
+                sigil => '$',
+                desigilname => RakuAST::Name.from-identifier('y'),
+                initializer => RakuAST::Initializer::Assign.new(
+                  RakuAST::IntLiteral.new(99)
+                )
+              ),
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$y')
+            )
+          ))
+        );
+        is-deeply $deparsed, q:to/CODE/, 'deparse';
+our $y = 99;
+$y;
+CODE
+
+        # There is no equivalent string representation of a compilation unit
+        # so we cannot actually test the DEPARSE of the ast, as that would
+        # interfere with other tests.
+        is-deeply EVAL($ast), 99,
+          'our-scoped variable declaration with initializer works (top-level mode)';
+    }
+    is-deeply $M::x, 42, 'our variable set in eval mode is installed into the current package';
+    ok $M::x.VAR ~~ Scalar, 'It is a bound scalar';
+    todo "NYI";
+    nok M.WHO<$y>:exists, 'our-scoped variable declaration in top-level comp unit does not leak out';
+}
+
+subtest 'A pointy block node with a state variable' => {
+    # -> { state $foo = 42; $foo++ }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope       => "state",
+              sigil       => "\$",
+              desigilname => RakuAST::Name.from-identifier("foo"),
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::IntLiteral.new(42)
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new("\$foo"),
+              postfix => RakuAST::Postfix.new(
+                operator => "++"
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    state $foo = 42;
+    $foo++
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
+        is $block(), 42, "$type: state variable initialized";
+        is $block(), 43, "$type: state variable kept value";
+    }
+}
+
+subtest 'Term (sigilless) variable declaration' => {
+    # my \foo = 111; foo
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Term.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('foo'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(111)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('foo'))
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my \foo = 111;
+foo
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, \value {
+        is-deeply value, 111, "$type: sigilless variable initialized with correct value";
+        ok value.VAR =:= value, "$type: no container produced";
+    }
+}
+
+subtest 'Lexical constant' => {
+    # constant foo = "bar"
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::VarDeclaration::Constant.new(
+        name        => "foo",
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::StrLiteral.new("bar")
+        )
+      )
+    );
+    is-deeply $deparsed, 'constant foo = "bar"', 'deparse';
+    my package one {
+        is-deeply EVAL($ast), "bar", "AST: did it produce 'bar'";
+        is-deeply OUR::<foo>, "bar", "AST: was the constant installed";
+    }
+    my package two {
+        is-deeply EVAL($deparsed), "bar", "Str: did it produce 'bar'";
+        is-deeply OUR::<foo>, "bar", "Str: was the constant installed";
+    }
+    my package three {
+        is-deeply EVAL(EVAL $raku), "bar", "Raku: did it produce 'bar'";
+        is-deeply OUR::<foo>, "bar", "Raku: was the constant installed";
+    }
+}
+
+subtest 'Lexical my constant' => {
+    # my constant foo = "bar"
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::VarDeclaration::Constant.new(
+        scope       => "my",
+        name        => "foo",
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::StrLiteral.new("bar")
+        )
+      )
+    );
+    is-deeply $deparsed, 'my constant foo = "bar"', 'deparse';
+    for "AST", $ast, "Str", $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), "bar", "$type: did it produce 'bar'";
+        nok OUR::<foo>:exists, "$type: was the constant *not* installed";
+    }
+}
+
+subtest 'Typed our constant' => {
+    # our Int constant foo = 42
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::VarDeclaration::Constant.new(
+        scope       => "our",
+        type        => RakuAST::Type::Simple.from-identifier("Int"),
+        name        => "foo",
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+    is-deeply $deparsed, 'our Int constant foo = 42', 'deparse';
+    my package one {
+        is-deeply EVAL($ast), 42, "AST: did it produce 42";
+        is-deeply OUR::<foo>, 42, "AST: was the constant installed";
+    }
+    my package two {
+        is-deeply EVAL($deparsed), 42, "Str: did it produce 42";
+        is-deeply OUR::<foo>, 42, "Str: was the constant installed";
+    }
+    my package three {
+        is-deeply EVAL(EVAL $raku), 42, "Raku: did it produce 42";
+        is-deeply OUR::<foo>, 42, "Raku: was the constant installed";
+    }
+}
+
+subtest 'Lexical my constant with expression' => {
+    # my constant foo = now
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::VarDeclaration::Constant.new(
+        scope       => "my",
+        name        => "foo",
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::Term::Named.new("now")
+        )
+      )
+    );
+    is-deeply $deparsed, 'my constant foo = now', 'deparse';
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $it {
+        isa-ok $it, Instant, "$type: did it produce an Instant";
+        nok $it == now, "$type: check that time has passed";
+        nok OUR::<foo>:exists, "$type: was the constant *not* installed";
+    }
+}
+
+subtest 'Special compiler variable $=pod' => {
+    # $=pod
+    ast RakuAST::Var::Doc.new('pod');
+
+    is-deeply $deparsed, '$=pod', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), [], "$type: EVAL";
+    }
+}
+
+subtest 'Special compiler variable $=finish' => {
+    # $=finish
+    ast RakuAST::Var::Doc.new('finish');
+
+    is-deeply $deparsed, '$=finish', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), Mu, "$type: EVAL";
+    }
+}
+
+subtest 'variable with a trait' => {
+    # my $a is default(42)
+    ast RakuAST::VarDeclaration::Simple.new(
+      scope       => "my",
+      sigil       => "\$",
+      desigilname => RakuAST::Name.from-identifier("a"),
+      traits      => (
+        RakuAST::Trait::Is.new(
+          name     => RakuAST::Name.from-identifier("default"),
+          argument => RakuAST::Circumfix::Parentheses.new(
+            RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(42)
+              )
+            )
+          )
+        ),
+      )
+    );
+
+    is-deeply $deparsed, 'my $a is default(42)', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 42, "$type: EVAL";
+    }
+}
+
+subtest 'scalar variable with a where guard (passing initializer)' => {
+    ast RakuAST::VarDeclaration::Simple.new(
+      sigil       => "\$",
+      desigilname => RakuAST::Name.from-identifier("f"),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::IntLiteral.new(5)
+      ),
+      where       => RakuAST::IntLiteral.new(5)
+    );
+
+    is-deeply $deparsed, 'my $f where 5 = 5', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 5, "$type: EVAL";
+    }
+}
+
+subtest 'scalar variable with a where guard (failing initializer)' => {
+    ast RakuAST::VarDeclaration::Simple.new(
+      sigil       => "\$",
+      desigilname => RakuAST::Name.from-identifier("f"),
+      initializer => RakuAST::Initializer::Assign.new(
+       RakuAST::IntLiteral.new(6)
+      ),
+      where       => RakuAST::IntLiteral.new(5)
+    );
+
+    is-deeply $deparsed, 'my $f where 5 = 6', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) }, X::TypeCheck::Assignment, "$type: EVAL";
+    }
+}
+
+subtest 'array variable with a where guard (passing initializer)' => {
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => "\@",
+          desigilname => RakuAST::Name.from-identifier("h"),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(5)
+          ),
+          where       => RakuAST::IntLiteral.new(5)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new("\@h"),
+          postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+            index => RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(0)
+              )
+            )
+          )
+        )
+      )
+    );
+    my $output = Q:to/END/;
+my @h where 5 = 5;
+@h[0]
+END
+    is-deeply $deparsed, $output, 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 5, "$type: EVAL";
+    }
+}
+
+subtest 'array variable with a where guard (failing initializer)' => {
+    ast RakuAST::VarDeclaration::Simple.new(
+      sigil       => "\@",
+      desigilname => RakuAST::Name.from-identifier("h"),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::IntLiteral.new(6)
+      ),
+      where       => RakuAST::IntLiteral.new(5)
+    );
+
+    is-deeply $deparsed, 'my @h where 5 = 6', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) }, X::TypeCheck::Assignment, "$type: EVAL";
+    }
+}
+
+subtest 'hash variable with a where guard (passing initializer)' => {
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => "\%",
+          desigilname => RakuAST::Name.from-identifier("h"),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ColonPair::Number.new(
+              key   => "s",
+              value => RakuAST::IntLiteral.new(5)
+            )
+          ),
+          where       => RakuAST::IntLiteral.new(5)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new("\%h"),
+          postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+            index => RakuAST::QuotedString.new(
+              processors => <words val>,
+              segments   => (
+                RakuAST::StrLiteral.new("s"),
+              )
+            )
+          )
+        )
+      )
+    );
+
+    my $output = Q:to/END/;
+my %h where 5 = :5s;
+%h<s>
+END
+    is-deeply $deparsed, $output, 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 5, "$type: EVAL";
+    }
+}
+
+subtest 'hash variable with a where guard (failing initializer)' => {
+    ast RakuAST::VarDeclaration::Simple.new(
+      sigil       => "\%",
+      desigilname => RakuAST::Name.from-identifier("h"),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::ColonPair::Number.new(
+          key   => "s",
+          value => RakuAST::IntLiteral.new(6)
+        )
+      ),
+      where       => RakuAST::IntLiteral.new(5)
+    );
+
+    is-deeply $deparsed, 'my %h where 5 = :6s', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) }, X::TypeCheck::Assignment, "$type: EVAL";
+    }
+}
+
+subtest 'Typed signature declaration' => {
+    # my Int ($p, $q) = 3, 4; $q
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope => 'my',
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>),
+                :!optional
+              ),
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$q>),
+                :!optional
+              ),
+            ),
+            returns => RakuAST::Type::Simple.from-identifier('Int')
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(3),
+                RakuAST::IntLiteral.new(4)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$q')
+      )
+    );
+    is-deeply $deparsed, "my Int (\$p, \$q) = 3, 4;\n\$q\n", 'deparse';
+    is-deeply $_, 4, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Typed signature declaration with binding' => {
+    # my Int ($p, $q) := 3, 4; $q
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope => 'my',
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>),
+                :!optional
+              ),
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$q>),
+                :!optional
+              ),
+            ),
+            returns => RakuAST::Type::Simple.from-identifier('Int')
+          ),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(3),
+                RakuAST::IntLiteral.new(4)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$q')
+      )
+    );
+    is-deeply $deparsed, "my Int (\$p, \$q) := 3, 4;\n\$q\n", 'deparse';
+    is-deeply $_, 4, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Typed signature declaration keeps its type' => {
+    # my Int ($p, $q); $p = "x"
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope => 'my',
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>),
+                :!optional
+              ),
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$q>),
+                :!optional
+              ),
+            ),
+            returns => RakuAST::Type::Simple.from-identifier('Int')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$p'),
+          infix => RakuAST::Infix.new('='),
+          right => RakuAST::StrLiteral.new('x')
+        )
+      )
+    );
+    is-deeply $deparsed, "my Int (\$p, \$q);\n\$p = \"x\"\n", 'deparse';
+    throws-like { EVAL($deparsed) }, X::TypeCheck::Assignment,
+      'Str: the type is enforced';
+}
+
+subtest 'Untyped signature declaration with a return type' => {
+    # my ($p --> Int) = 3; $p
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope => 'my',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>),
+                :!optional
+              ),
+            ),
+            returns => RakuAST::Type::Simple.from-identifier('Int')
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(3)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$p')
+      )
+    );
+    is-deeply $deparsed, "my (\$p --> Int) = 3;\n\$p\n", 'deparse';
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Lexical variable with a coercion type' => {
+    # my Int() $x = "42"; $x
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          type        => RakuAST::Type::Coercion.new(
+            base-type => RakuAST::Type::Simple.from-identifier('Int')
+          ),
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::StrLiteral.new('42')
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$x')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my Int() $x = "42";
+$x
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The &?BLOCK compile time variable' => {
+    # sub f { &?BLOCK.name }; f()
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name => RakuAST::Name.from-identifier('f'),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPostfix.new(
+                  operand => RakuAST::Var::Compiler::Block.new,
+                  postfix => RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier('name')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('f')
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub f {
+    &?BLOCK.name
+}
+f()
+CODE
+    is-deeply $_, 'f', @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'The $?DISTRIBUTION compile time variable' => {
+    # $?DISTRIBUTION;
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Compiler::Distribution.new
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+$?DISTRIBUTION;
+42
+CODE
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply RakuAST::Var::Compiler::Resources.new.raku,
+      'RakuAST::Var::Compiler::Resources.new',
+      'the .raku of $?RESOURCES takes no arguments';
+}
+
+subtest 'Shaped array declaration' => {
+    # my @a[2; 3];
+    # @a.shape
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '@',
+          desigilname => RakuAST::Name.from-identifier('a'),
+          shape       => RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(2)
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(3)
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('@a'),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('shape')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my @a[2; 3];
+@a.shape
+CODE
+    is-deeply $_, (2, 3), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Shaped hash declaration' => {
+    # my %h{Str};
+    # %h.keyof
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '%',
+          desigilname => RakuAST::Name.from-identifier('h'),
+          shape       => RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Type::Simple.from-identifier('Str')
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('keyof')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my %h{Str};
+%h.keyof
+CODE
+    is-deeply $_, Str, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Signature declaration with a where constraint' => {
+    # my ($a where 1) = 1;
+    # try $a = 2;
+    # $a
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$a>),
+                where  => RakuAST::IntLiteral.new(1)
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(1)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::StatementPrefix::Try.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$a'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::IntLiteral.new(2)
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$a')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my ($a where 1) = 1;
+try $a = 2;
+$a
+CODE
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A slang variable deparses with its twigil' => {
+    # $~MAIN
+    ast RakuAST::Var::Slang.new(name => 'MAIN');
+    is-deeply $deparsed, '$~MAIN', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        isa-ok EVAL($it), Slang, "$type: is a slang";
+    }
+    # the main grammar of the compiler is that of the frontend in use
+    for 'AST', $ast, 'Raku', EVAL($raku) -> $type, $it {
+        ok EVAL($it).grammar.^name ~~ 'Raku::Grammar' | 'Perl6::Grammar',
+          "$type: a slang built without a grammar finds the main grammar";
+    }
+    # a name keeps this compile time EVAL out of the EVAL numbering
+    my $quote := BEGIN EVAL RakuAST::Var::Slang.new(name => 'Quote'),
+      :filename<slang-quote>;
+    ok $quote.grammar.^name.ends-with('QGrammar'),
+      'a slang built while parsing takes its grammar from the parse';
+    throws-like { EVAL RakuAST::Var::Slang.new(name => 'Nope') },
+      Exception, message => /'No grammar is known for slang'/,
+      'a slang nothing knows does not compile';
+
+    my $parsed := Q{$~MAIN}.AST;
+    is-deeply $parsed.DEPARSE.chomp, '$~MAIN', 'parsed: deparses with its name';
+    is EVAL($parsed).grammar.^name, 'Raku::Grammar',
+      'parsed: the slang keeps its grammar';
+}
+
+
+subtest 'A documented list declaration opens on its own line' => {
+    # my Int (
+    #   $a, #= first
+    #   $b #= second
+    # ) = 1, 2;
+    # $a + $b
+    ast Q:to/SOURCE/.AST;
+    my Int ($a, #= first
+      $b #= second
+    ) = 1, 2;
+    $a + $b
+    SOURCE
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, Q:to/CODE/, "$type: deparse";
+my Int (
+  $a, #= first
+  $b #= second
+) = 1, 2;
+$a + $b
+CODE
+    }
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'An anonymous variable declaration ends its statement' => {
+    # my @ = 1, 2;
+    # my % = a => 1;
+    # state $ = 42;
+    # state $;
+    # ++state $ = 3;
+    # state Int $;
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          sigil       => '@',
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (RakuAST::IntLiteral.new(1), RakuAST::IntLiteral.new(2))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          sigil       => '%',
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::FatArrow.new(key => 'a', value => RakuAST::IntLiteral.new(1))
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          scope       => 'state',
+          sigil       => '$',
+          initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(42))
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          scope => 'state',
+          sigil => '$'
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPrefix.new(
+          prefix  => RakuAST::Prefix.new('++'),
+          operand => RakuAST::VarDeclaration::Anonymous.new(
+            scope       => 'state',
+            sigil       => '$',
+            initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(3))
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Anonymous.new(
+          scope => 'state',
+          sigil => '$',
+          type  => RakuAST::Type::Simple.from-identifier('Int')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my @ = 1, 2;
+my % = a => 1;
+state $ = 42;
+state $;
+++state $ = 3;
+state Int $;
+42
+CODE
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'A declaration as the value of another writes no delimiter' => {
+    # my $x = my $y = 1;
+    # my $z := my $w = 2;
+    # $x + $z
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('x'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::VarDeclaration::Simple.new(
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('y'),
+              initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(1))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('z'),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::VarDeclaration::Simple.new(
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('w'),
+              initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(2))
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$x'),
+          infix => RakuAST::Infix.new('+'),
+          right => RakuAST::Var::Lexical.new('$z')
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my $x = my $y = 1;
+my $z := my $w = 2;
+$x + $z
+CODE
+
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'The .raku of a literal in a declaration signature evaluates' => {
+    # my ("foo") = "foo";
+    # 1
+    ast Q:to/SOURCE/.AST;
+    my ("foo") = "foo"; 1
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my ("foo") = "foo";
+1
+CODE
+
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+
+    my $wrong := 'use experimental :rakuast; ' ~ Q{my ("foo") = "bar"}.AST.raku;
+    throws-like { EVAL EVAL $wrong }, X::TypeCheck::Assignment,
+      'Raku: the literal still checks the value';
+}
+
+
+subtest 'A named capture keeps its sigil and its adverbs' => {
+    # "abc" ~~ /a $<foo>=[\w+]/;
+    # ($<foo>:exists, @<foo>.elems, %<foo>.elems)
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::StrLiteral.new('abc'),
+          infix => RakuAST::Infix.new('~~'),
+          right => RakuAST::QuotedRegex.new(
+            body => RakuAST::Regex::Sequence.new(
+              RakuAST::Regex::WithWhitespace.new(RakuAST::Regex::Literal.new('a')),
+              RakuAST::Regex::NamedCapture.new(
+                name  => 'foo',
+                regex => RakuAST::Regex::Group.new(
+                  RakuAST::Regex::QuantifiedAtom.new(
+                    atom       => RakuAST::Regex::CharClass::Word.new,
+                    quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(','),
+                operands => (
+                  RakuAST::Var::NamedCapture.new(
+                    RakuAST::QuotedString.new(
+                      processors => <words val>,
+                      segments   => (RakuAST::StrLiteral.new('foo'),)
+                    ),
+                    sigil      => '$',
+                    colonpairs => (RakuAST::ColonPair::True.new('exists'),)
+                  ),
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('foo'),)
+                      ),
+                      sigil => '@'
+                    ),
+                    postfix => RakuAST::Call::Method.new(
+                      name => RakuAST::Name.from-identifier('elems')
+                    )
+                  ),
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Var::NamedCapture.new(
+                      RakuAST::QuotedString.new(
+                        processors => <words val>,
+                        segments   => (RakuAST::StrLiteral.new('foo'),)
+                      ),
+                      sigil => '%'
+                    ),
+                    postfix => RakuAST::Call::Method.new(
+                      name => RakuAST::Name.from-identifier('elems')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+"abc" ~~ /a $<foo>=[\w+]/;
+($<foo>:exists, @<foo>.elems, %<foo>.elems)
+CODE
+
+    is-deeply $_, (True, 0, 0), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
+}
+
+
+subtest 'The container type and the of type of a declaration survive its compilation' => {
+    # my %h is Map = (a => 1);
+    # my $x of Int = 42;
+    # (%h.^name, %h<a>, $x)
+    ast Q:to/SOURCE/.AST;
+    my %h is Map = (a => 1);
+    my $x of Int = 42;
+    (%h.^name, %h<a>, $x)
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my %h is Map = (a => 1);
+my $x of Int = 42;
+(%h.^name, %h<a>, $x)
+CODE
+    is-deeply $raku.EVAL.DEPARSE, $deparsed, 'Raku: deparse';
+    is-deeply $deparsed.AST.DEPARSE, $deparsed,
+      'the deparse parses back to itself';
+
+    is-deeply $_, ("Map", 1, 42), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my class C {
+    #     has @.a is Array;
+    #     has %.h is Map;
+    #     has $.i of Int
+    # }
+    # my $c = C.new(h => (a => 1), i => 42);
+    # ($c.h.^name, $c.i, try { $c.i = "x"; "no check" })
+    ast Q:to/SOURCE/.AST;
+    my class C {
+        has @.a is Array;
+        has %.h is Map;
+        has $.i of Int
+    }
+    my $c = C.new(h => (a => 1), i => 42);
+    ($c.h.^name, $c.i, try { $c.i = "x"; "no check" })
+    SOURCE
+    is-deeply $deparsed, Q:to/CODE/, 'deparse of attributes';
+my class C {
+    has @.a is Array;
+    has %.h is Map;
+    has $.i of Int
+}
+my $c = C.new(h => (a => 1), i => 42);
+($c.h.^name, $c.i, try {
+    $c.i = "x";
+    "no check"
+})
+CODE
+    is-deeply $raku.EVAL.DEPARSE, $deparsed, 'Raku: deparse of attributes';
+
+    is-deeply $_, ("Map", 42, Nil), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+
+subtest 'Special compiler variable $?LANG' => {
+    # $?LANG.^name
+    ast Q:to/SOURCE/.AST;
+    $?LANG.^name
+    SOURCE
+
+    is-deeply $deparsed, "\$?LANG.^name\n", 'deparse';
+    like $_, /Grammar/, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A standard slang variable finds its grammar outside a parse' => {
+    for Quote => 'Q', Regex => 'Regex'
+      -> (:key($name), :value($prefix)) {
+        # $~Quote, then $~Regex
+        ast RakuAST::Var::Slang.new(:$name);
+        is-deeply $deparsed, "\$~$name", "$name: deparse";
+
+        for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+            my $slang := EVAL($it);
+            isa-ok $slang, Slang, "$type: \$~$name is a slang";
+            ok $slang.grammar.^name.ends-with("::{$prefix}Grammar"),
+              "$type: \$~$name has the $name grammar";
+            ok $slang.actions.^name.ends-with("::{$prefix}Actions"),
+              "$type: \$~$name has the $name actions";
+        }
+    }
+
+    my $rebuilt := EVAL 'use experimental :rakuast; ' ~ Q{$~Regex}.AST.raku;
+    my $slang   := EVAL($rebuilt);
+    ok $slang.grammar.^name.ends-with('::RegexGrammar')
+         && $slang.actions.^name.ends-with('::RegexActions'),
+      'the .raku of a parsed slang variable builds its slang at runtime';
+}
+
+subtest 'Typed signature declaration with a sub-signature' => {
+    # my Int ($p, ($q, $r)) := 1, (2, 3); $r
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope => 'my',
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::Circumfix::Parentheses.new(
+                  RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyListInfix.new(
+                        infix    => RakuAST::Infix.new(','),
+                        operands => (
+                          RakuAST::IntLiteral.new(2),
+                          RakuAST::IntLiteral.new(3)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$r')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my Int ($p, ($q, $r)) := 1, (2, 3);
+$r
+CODE
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my Int ($p, ($q, $r)); $r = "x"
+    # checked on the tree, which both frontends build the same way
+    my $assign := 'my Int ($p, ($q, $r)); $r = "x"'.AST;
+    is-deeply $assign.DEPARSE, q:to/CODE/, 'deparse of a parsed nested declaration';
+my Int ($p, ($q, $r));
+$r = "x"
+CODE
+    for 'AST', $assign, 'Raku', EVAL('use experimental :rakuast; ' ~ $assign.raku) -> $type, $it {
+        throws-like { EVAL $it }, X::TypeCheck::Assignment,
+          "$type: a variable inside a sub-signature is typed";
+    }
+
+    # my ($a, ($b where 1, $c)) := 2, (2, 3); $b
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope     => 'my',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+              ),
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$b>),
+                      where  => RakuAST::IntLiteral.new(1)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$c>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(2),
+                RakuAST::Circumfix::Parentheses.new(
+                  RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyListInfix.new(
+                        infix    => RakuAST::Infix.new(','),
+                        operands => (
+                          RakuAST::IntLiteral.new(2),
+                          RakuAST::IntLiteral.new(3)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$b')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse of a where inside a sub-signature';
+my ($a, ($b where 1, $c)) := 2, (2, 3);
+$b
+CODE
+    throws-like { EVAL $_ }, X::TypeCheck::Binding::Parameter, @type[$++]
+      for $ast, $deparsed, EVAL($raku);
+
+    is-deeply 'my ($p, ($q where 2, $r))'.AST.DEPARSE,
+      "my (\$p, (\$q where 2, \$r))\n",
+      'a parsed where inside a sub-signature is kept';
+
+    # my Int ($p, @q ($r, $s)); $s = "x"
+    my $sigiled := 'my Int ($p, @q ($r, $s)); $s = "x"'.AST;
+    is-deeply $sigiled.DEPARSE, q:to/CODE/, 'deparse of a sub-signature after a sigiled variable';
+my Int ($p, @q ($r, $s));
+$s = "x"
+CODE
+    throws-like { EVAL $sigiled }, X::TypeCheck::Assignment,
+      'a variable inside a sub-signature after a sigiled variable is typed';
+
+    # my ($p, ($q, @a)) := 1, (2, [3]); @a
+    is-deeply EVAL('my ($p, ($q, @a)) := 1, (2, [3]); @a'.AST), [3],
+      'an array inside a sub-signature is declared';
+    # my ($p, ($q, $r)) is default(7); $r
+    is-deeply EVAL('my ($p, ($q, $r)) is default(7); $r'.AST), 7,
+      'a trait on a list declaration reaches a variable inside a sub-signature';
+}
+
+subtest 'A where constraint added to a parameter of a list declaration late' => {
+    # my ($a where 1) = 2; $a
+    my $parameter := RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+    );
+    my $declaration := RakuAST::VarDeclaration::Signature.new(
+      scope       => 'my',
+      signature   => RakuAST::Signature.new(parameters => ($parameter,)),
+      initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(2))
+    );
+    $parameter.set-where(RakuAST::IntLiteral.new(1));
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(expression => $declaration),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$a')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my ($a where 1) = 2;
+$a
+CODE
+    throws-like { EVAL $ast }, Exception,
+      message => /"Cannot constrain variable '\$a'"/,
+      'AST: a constraint added after the declaration was built is reported';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Assignment,
+      'Str: the constraint is enforced';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Assignment,
+      'Raku: the constraint is enforced';
+
+    # my ($a, ($b where 1))
+    my $inner := RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$b>)
+    );
+    my $nested := RakuAST::VarDeclaration::Signature.new(
+      scope     => 'my',
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$a>)
+          ),
+          RakuAST::Parameter.new(
+            sub-signature => RakuAST::Signature.new(parameters => ($inner,))
+          ),
+        )
+      )
+    );
+    $inner.set-where(RakuAST::IntLiteral.new(1));
+    is-deeply $nested.DEPARSE, 'my ($a, ($b where 1))',
+      'deparse of a constraint added late inside a sub-signature';
+    throws-like { EVAL $nested }, Exception,
+      message => /"Cannot constrain variable '\$b'"/,
+      'a constraint added late inside a sub-signature is reported';
+
+    # my ($c where 2)
+    my $replaced := RakuAST::Parameter.new(
+      target => RakuAST::ParameterTarget::Var.new(:name<$c>),
+      where  => RakuAST::IntLiteral.new(1)
+    );
+    my $holder := RakuAST::VarDeclaration::Signature.new(
+      scope     => 'my',
+      signature => RakuAST::Signature.new(parameters => ($replaced,))
+    );
+    $replaced.set-where(RakuAST::IntLiteral.new(2));
+    is-deeply $holder.DEPARSE, 'my ($c where 2)',
+      'deparse of a constraint replaced after the declaration was built';
+    throws-like { EVAL $holder }, Exception,
+      message => /"Cannot constrain variable '\$c'"/,
+      'a constraint replaced after the declaration was built is reported';
+}
+
+subtest 'Signature declaration with a term assigned to' => {
+    # my ($p, \foo) = 1, 2; foo
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope     => 'my',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Term.new(
+                  RakuAST::Name.from-identifier('foo')
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::IntLiteral.new(2)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('foo'))
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my ($p, \foo) = 1, 2;
+foo
+CODE
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Typed signature declaration with a term' => {
+    # my Int ($p, \foo) := 1, 2; foo
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope => 'my',
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Term.new(
+                  RakuAST::Name.from-identifier('foo')
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::IntLiteral.new(2)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('foo'))
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my Int ($p, \foo) := 1, 2;
+foo
+CODE
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my Int ($p, \foo) = 1, "x"
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope => 'my',
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Term.new(
+              RakuAST::Name.from-identifier('foo')
+            )
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::StrLiteral.new('x')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my Int ($p, \foo) = 1, "x"', 'deparse';
+    throws-like { EVAL $ast }, X::TypeCheck::Assignment,
+      'AST: the term takes the declared type';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Assignment,
+      'Str: the term takes the declared type';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Assignment,
+      'Raku: the term takes the declared type';
+
+    # my Int ($p, \foo where * > 1) := 1, 0
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope => 'my',
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Term.new(
+              RakuAST::Name.from-identifier('foo')
+            ),
+            where  => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Term::Whatever.new,
+              infix => RakuAST::Infix.new('>'),
+              right => RakuAST::IntLiteral.new(1)
+            )
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Bind.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::IntLiteral.new(0)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my Int ($p, \foo where * > 1) := 1, 0', 'deparse';
+    throws-like { EVAL $ast }, X::TypeCheck::Binding::Parameter,
+      'AST: the constraint of a term in a typed list declaration is checked';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Binding::Parameter,
+      'Str: the constraint of a term in a typed list declaration is checked';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Binding::Parameter,
+      'Raku: the constraint of a term in a typed list declaration is checked';
+
+    # my Int (Str \foo) := "x"
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope => 'my',
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            type   => RakuAST::Type::Simple.from-identifier('Str'),
+            target => RakuAST::ParameterTarget::Term.new(
+              RakuAST::Name.from-identifier('foo')
+            )
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Bind.new(
+        RakuAST::StrLiteral.new('x')
+      )
+    );
+    is-deeply $deparsed, 'my Int (Str \foo) := "x"', 'deparse';
+    throws-like { EVAL $ast }, X::Syntax::Variable::ConflictingTypes,
+      'AST: a term typed inside a typed list declaration is reported';
+    throws-like { EVAL $deparsed }, X::Syntax::Variable::ConflictingTypes,
+      'Str: a term typed inside a typed list declaration is reported';
+    throws-like { EVAL EVAL $raku }, X::Syntax::Variable::ConflictingTypes,
+      'Raku: a term typed inside a typed list declaration is reported';
+}
+
+subtest 'Signature declaration with a constrained term assigned to' => {
+    # my ($p, \foo where * > 1) = 1, 0
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope     => 'my',
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Term.new(
+              RakuAST::Name.from-identifier('foo')
+            ),
+            where  => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Term::Whatever.new,
+              infix => RakuAST::Infix.new('>'),
+              right => RakuAST::IntLiteral.new(1)
+            )
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::IntLiteral.new(0)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my ($p, \foo where * > 1) = 1, 0', 'deparse';
+    throws-like { EVAL $ast }, X::TypeCheck::Assignment,
+      message => /'expected <anon>'/,
+      'AST: the constraint of a term is an anonymous subset';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Assignment,
+      message => /'expected <anon>'/,
+      'Str: the constraint of a term is an anonymous subset';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Assignment,
+      message => /'expected <anon>'/,
+      'Raku: the constraint of a term is an anonymous subset';
+}
+
+subtest 'Typed signature declaration binding checks the type' => {
+    # my Int ($p, $q) := 1, "x"
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope => 'my',
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Bind.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::StrLiteral.new('x')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my Int ($p, $q) := 1, "x"', 'deparse';
+    throws-like { EVAL $ast }, X::TypeCheck::Binding::Parameter,
+      'AST: the declared type is checked when binding';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Binding::Parameter,
+      'Str: the declared type is checked when binding';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Binding::Parameter,
+      'Raku: the declared type is checked when binding';
+    is-deeply $ast.signature.parameters[1].DEPARSE, '$q',
+      'the parameter deparses without the declared type';
+    unlike $ast.signature.parameters[1].raku, /type/,
+      'the parameter writes no type of its own';
+
+    # my Int ($p, @q) := 1, [1, 2]
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope => 'my',
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<@q>)
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Bind.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::Circumfix::ArrayComposer.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyListInfix.new(
+                    infix    => RakuAST::Infix.new(','),
+                    operands => (
+                      RakuAST::IntLiteral.new(1),
+                      RakuAST::IntLiteral.new(2)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my Int ($p, @q) := 1, [1, 2]', 'deparse';
+    throws-like { EVAL $ast }, X::TypeCheck::Binding::Parameter,
+      message => /'Positional[Int]'/,
+      'AST: an array parameter wants the typed array the variable would';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Binding::Parameter,
+      message => /'Positional[Int]'/,
+      'Str: an array parameter wants the typed array the variable would';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Binding::Parameter,
+      message => /'Positional[Int]'/,
+      'Raku: an array parameter wants the typed array the variable would';
+
+    # my Int:D ($p, $q) := 1, Int
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope => 'my',
+      type  => RakuAST::Type::Definedness.new(
+        base-type => RakuAST::Type::Simple.from-identifier('Int'),
+        definite  => True
+      ),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Bind.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::Type::Simple.from-identifier('Int')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my Int:D ($p, $q) := 1, Int', 'deparse';
+    throws-like { EVAL $ast }, X::Parameter::InvalidConcreteness,
+      'AST: the definedness of the declared type is checked';
+    throws-like { EVAL $deparsed }, X::Parameter::InvalidConcreteness,
+      'Str: the definedness of the declared type is checked';
+    throws-like { EVAL EVAL $raku }, X::Parameter::InvalidConcreteness,
+      'Raku: the definedness of the declared type is checked';
+
+    # my Int ($p, ($q, $r)) := 1, (2, "x")
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope => 'my',
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            sub-signature => RakuAST::Signature.new(
+              parameters => (
+                RakuAST::Parameter.new(
+                  target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+                ),
+                RakuAST::Parameter.new(
+                  target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                ),
+              )
+            )
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Bind.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyListInfix.new(
+                    infix    => RakuAST::Infix.new(','),
+                    operands => (
+                      RakuAST::IntLiteral.new(2),
+                      RakuAST::StrLiteral.new('x')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my Int ($p, ($q, $r)) := 1, (2, "x")', 'deparse';
+    throws-like { EVAL $ast }, X::TypeCheck::Binding::Parameter,
+      'AST: the declared type reaches a sub-signature when binding';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Binding::Parameter,
+      'Str: the declared type reaches a sub-signature when binding';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Binding::Parameter,
+      'Raku: the declared type reaches a sub-signature when binding';
+
+    # my UInt ($p, $q) := 1, -1
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope => 'my',
+      type  => RakuAST::Type::Simple.from-identifier('UInt'),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Bind.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::IntLiteral.new(-1)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my UInt ($p, $q) := 1, -1', 'deparse';
+    throws-like { EVAL $ast }, X::TypeCheck::Binding::Parameter,
+      'AST: a subset declared type is checked when binding';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Binding::Parameter,
+      'Str: a subset declared type is checked when binding';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Binding::Parameter,
+      'Raku: a subset declared type is checked when binding';
+
+    # my Int ($p, $q) := 1, 2; $q
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope => 'my',
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::IntLiteral.new(2)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$q')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my Int ($p, $q) := 1, 2;
+$q
+CODE
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Signature declaration assignment destructures' => {
+    # my ($p, ($q, $r)) = 1, (2, 3); $r
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope     => 'my',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::Circumfix::Parentheses.new(
+                  RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyListInfix.new(
+                        infix    => RakuAST::Infix.new(','),
+                        operands => (
+                          RakuAST::IntLiteral.new(2),
+                          RakuAST::IntLiteral.new(3)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$r')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my ($p, ($q, $r)) = 1, (2, 3);
+$r
+CODE
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my ($p, @q ($r, $s)) = 1, 2, 3; $s
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope     => 'my',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                target        => RakuAST::ParameterTarget::Var.new(:name<@q>),
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$s>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::IntLiteral.new(2),
+                RakuAST::IntLiteral.new(3)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$s')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my ($p, @q ($r, $s)) = 1, 2, 3;
+$s
+CODE
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my ($p, ($q, ($r, \s))) = 1, (2, (3, 4)); s
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope     => 'my',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+                    ),
+                    RakuAST::Parameter.new(
+                      sub-signature => RakuAST::Signature.new(
+                        parameters => (
+                          RakuAST::Parameter.new(
+                            target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                          ),
+                          RakuAST::Parameter.new(
+                            target => RakuAST::ParameterTarget::Term.new(
+                              RakuAST::Name.from-identifier('s')
+                            )
+                          ),
+                        )
+                      )
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::Circumfix::Parentheses.new(
+                  RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyListInfix.new(
+                        infix    => RakuAST::Infix.new(','),
+                        operands => (
+                          RakuAST::IntLiteral.new(2),
+                          RakuAST::Circumfix::Parentheses.new(
+                            RakuAST::SemiList.new(
+                              RakuAST::Statement::Expression.new(
+                                expression => RakuAST::ApplyListInfix.new(
+                                  infix    => RakuAST::Infix.new(','),
+                                  operands => (
+                                    RakuAST::IntLiteral.new(3),
+                                    RakuAST::IntLiteral.new(4)
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('s'))
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my ($p, ($q, ($r, \s))) = 1, (2, (3, 4));
+s
+CODE
+    is-deeply $_, 4, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my Int ($p, ($q, $r)) = 1; $q
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope => 'my',
+          type  => RakuAST::Type::Simple.from-identifier('Int'),
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(1)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$q')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my Int ($p, ($q, $r)) = 1;
+$q
+CODE
+    is-deeply $_, Int, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my $l := my ($p, ($q, $r)); $l[1][0] = 5; $q
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          scope       => 'my',
+          sigil       => '$',
+          desigilname => RakuAST::Name.from-identifier('l'),
+          initializer => RakuAST::Initializer::Bind.new(
+            RakuAST::VarDeclaration::Signature.new(
+              scope     => 'my',
+              signature => RakuAST::Signature.new(
+                parameters => (
+                  RakuAST::Parameter.new(
+                    target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+                  ),
+                  RakuAST::Parameter.new(
+                    sub-signature => RakuAST::Signature.new(
+                      parameters => (
+                        RakuAST::Parameter.new(
+                          target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+                        ),
+                        RakuAST::Parameter.new(
+                          target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                        ),
+                      )
+                    )
+                  ),
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::ApplyPostfix.new(
+            operand => RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('$l'),
+              postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+                index => RakuAST::SemiList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::IntLiteral.new(1)
+                  )
+                )
+              )
+            ),
+            postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+              index => RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::IntLiteral.new(0)
+                )
+              )
+            )
+          ),
+          infix => RakuAST::Infix.new('='),
+          right => RakuAST::IntLiteral.new(5)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$q')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my $l := my ($p, ($q, $r));
+$l[1][0] = 5;
+$q
+CODE
+    is-deeply $_, 5, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # state ($p, ($q, $r)) = 1, (2, 3); $r
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Signature.new(
+          scope     => 'state',
+          signature => RakuAST::Signature.new(
+            parameters => (
+              RakuAST::Parameter.new(
+                target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+              ),
+              RakuAST::Parameter.new(
+                sub-signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+                    ),
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                    ),
+                  )
+                )
+              ),
+            )
+          ),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::Circumfix::Parentheses.new(
+                  RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyListInfix.new(
+                        infix    => RakuAST::Infix.new(','),
+                        operands => (
+                          RakuAST::IntLiteral.new(2),
+                          RakuAST::IntLiteral.new(3)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new('$r')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+state ($p, ($q, $r)) = 1, (2, 3);
+$r
+CODE
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # my Int ($p, ($q, $r)) = 1, (2, "x")
+    ast RakuAST::VarDeclaration::Signature.new(
+      scope => 'my',
+      type  => RakuAST::Type::Simple.from-identifier('Int'),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new(:name<$p>)
+          ),
+          RakuAST::Parameter.new(
+            sub-signature => RakuAST::Signature.new(
+              parameters => (
+                RakuAST::Parameter.new(
+                  target => RakuAST::ParameterTarget::Var.new(:name<$q>)
+                ),
+                RakuAST::Parameter.new(
+                  target => RakuAST::ParameterTarget::Var.new(:name<$r>)
+                ),
+              )
+            )
+          ),
+        )
+      ),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Infix.new(','),
+          operands => (
+            RakuAST::IntLiteral.new(1),
+            RakuAST::Circumfix::Parentheses.new(
+              RakuAST::SemiList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyListInfix.new(
+                    infix    => RakuAST::Infix.new(','),
+                    operands => (
+                      RakuAST::IntLiteral.new(2),
+                      RakuAST::StrLiteral.new('x')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my Int ($p, ($q, $r)) = 1, (2, "x")', 'deparse';
+    throws-like { EVAL $ast }, X::TypeCheck::Assignment,
+      'AST: the declared type reaches a sub-signature when assigning';
+    throws-like { EVAL $deparsed }, X::TypeCheck::Assignment,
+      'Str: the declared type reaches a sub-signature when assigning';
+    throws-like { EVAL EVAL $raku }, X::TypeCheck::Assignment,
+      'Raku: the declared type reaches a sub-signature when assigning';
+}
+
+subtest 'A will trait registers its block as a phaser' => {
+    plan 4;
+    my @seen;
+    lives-ok { 'my $a will check { @seen.push("check") }; @seen.push("run")'.AST.EVAL },
+      'a will check trait compiles';
+    is-deeply @seen, ["check", "run"], 'the will check block ran before the code';
+    lives-ok { 'my $b will end { }'.AST },   'a will end trait compiles';
+    lives-ok { 'my $c will begin { }'.AST }, 'a will begin trait compiles';
+}
+
+# vim: expandtab shiftwidth=4

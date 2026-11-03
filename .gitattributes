@@ -4,3 +4,4 @@
 *.raku      diff=raku
 *.rakumod   diff=raku
 *.rakutest  diff=raku
+*.pod       text encoding=utf-8

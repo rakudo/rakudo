@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-# This script reads the Rakudo/Internals.pm6 file from STDIN, and generates
+# This script reads the Rakudo/Internals.rakumod file from STDIN, and generates
 # the necessary lookup hashes for making magic Str .succ / .pred work, and
 # writes it to STDOUT.
 
@@ -51,7 +51,7 @@ my @ranges =
   0x01BB0 .. 0x01BB9,  # sundanese digits
   0x01C40 .. 0x01C49,  # lepcha digits
   0x01C50 .. 0x01C59,  # ol chiki digits
-  0x02070 .. 0x02079,  # superscripts
+  (my int @ = "⁰¹²³⁴⁵⁶⁷⁸⁹".ords),   # superscripts
   0x02080 .. 0x02089,  # subscripts
   0x02160 .. 0x0216b,  # clock roman uc
   0x02170 .. 0x0217b,  # clock roman lc
@@ -72,6 +72,8 @@ my @ranges =
   0x0FF10 .. 0x0FF19,  # fullwidth digits
   0x1F37A .. 0x1F37B,  # beer mugs
   0x1F42A .. 0x1F42B,  # camels
+  (my int @ = "🕛🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚".ords),  # clock face / hour
+  0x1F5AF .. 0x1F5B1,  # button mouse
 ;
 
 # ranges that start with these, carry (aka "9".succ -> "10" instead of "00")
@@ -117,6 +119,8 @@ my str $carrydigits =
    ~ "\x0FF10"  # fullwidth XXX: should be treated as digit?
    ~ "\x1F37A"  # beer mugs
    ~ "\x1F42A"  # camels
+   ~ "\x1F55B"  # clock face
+   ~ "\x1F5AF"  # button mouse
 ;
 
 # holes in otherwise contiguous ranges
@@ -160,13 +164,13 @@ for $*IN.lines -> $line {
                 $char = nqp::chr($ord);
                 nqp::push_s($nlook,$char)
                   if nqp::iseq_i(nqp::index($holes,$char),-1);
-                $char = nqp::chr($ord + 1);
+                $char = nqp::chr($range[$i + 1]);
                 nqp::push_s($nchrs,$char)
                   if nqp::iseq_i(nqp::index($holes,$char),-1);
             }
             else {
                 nqp::push_s($blook,nqp::chr($ord));
-                nqp::push_s($bchrs,nqp::chr($first+$carry) ~ nqp::chr($first));
+                nqp::push_s($bchrs,nqp::chr($range[$carry]) ~ nqp::chr($first));
             }
         }
     }
@@ -196,7 +200,7 @@ SOURCE
                 $char = nqp::chr($ord);
                 nqp::push_s($nlook,$char)
                   if nqp::iseq_i(nqp::index($holes,$char),-1);
-                $char = nqp::chr($ord - 1);
+                $char = nqp::chr($range[$i - 1]);
                 nqp::push_s($nchrs,$char)
                   if nqp::iseq_i(nqp::index($holes,$char),-1);
             }

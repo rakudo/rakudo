@@ -1,6 +1,7 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
+use nqp;
 
 plan 47;
 
@@ -23,7 +24,7 @@ throws-like {
 }, X::TypeCheck::Binding::Parameter, message => /'type check failed'/;
 
 # https://github.com/Raku/old-issue-tracker/issues/6602
-is-deeply class { has $.bar }.^methods».name.sort, <BUILDALL bar>,
+is-deeply class { has $.bar }.^methods».name.sort, <POPULATE bar>,
     'auto-generated methods present in .^methods';
 
 # https://github.com/Raku/old-issue-tracker/issues/3799
@@ -77,12 +78,14 @@ is-run ｢my %h = <a 1 b 2>; enum Bits (%h)｣, :err{
 
 # https://github.com/Raku/old-issue-tracker/issues/4285
 {
-    is-run ｢=end MEOWS｣, :err{ /«Pod»/ && .contains: '=begin MEOWS' },
-        :exitcode(*),
-        'error with `=end FOO` suggests Pod mistake and offers `=begin FOO`';
+    my $type := Raku.legacy ?? 'Pod' !! 'RakuDoc';
 
-    is-run ｢=for｣, :err(/«Pod»/), :exitcode(*),
-        'error for `=for` suggests it might be a Pod mistake';
+    is-run ｢=end MEOWS｣, :err{ .contains($type) && .contains('=begin MEOWS') },
+        :exitcode(*),
+        'error with `=end MEOWS` suggests mistake and offers `=begin MEOWS`';
+
+    is-run ｢=for｣, :err{ .contains($type) }, :exitcode(*),
+        'error for `=for` suggests it might be a mistake';
 }
 
 # https://github.com/Raku/old-issue-tracker/issues/4392

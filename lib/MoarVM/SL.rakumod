@@ -6,7 +6,7 @@
 # When introspection of the MoarVM::Spesh object is done, the "exit" method
 # should be called on the object to prevent the code of the program actually
 # running twice.
-# 
+#
 # A typical use case would be:
 #
 #  use MoarVM::SL;

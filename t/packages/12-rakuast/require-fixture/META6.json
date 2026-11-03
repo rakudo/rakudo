@@ -1,0 +1,10 @@
+{
+    "name": "Require::Fixture",
+    "ver": "1.5",
+    "auth": "test:fixture",
+    "api": "2",
+    "description": "Fixture distribution for require adverb constraint tests",
+    "provides": {
+        "Require::Fixture": "lib/Require/Fixture.rakumod"
+    }
+}

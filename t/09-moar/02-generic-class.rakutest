@@ -1,0 +1,117 @@
+use v6.e.PREVIEW;
+use Test;
+use nqp;
+
+# This test belongs to the Roast but not before there is common MOP API that allows not to use nqp ops.
+#
+plan 8;
+
+role InsHOW {
+    has $!ins-orig;
+    has $!ins-orig-how;
+    has $!base-type;
+
+    method set-base-type(Mu, Mu \base-type --> Nil) { $!base-type := base-type }
+    method base-type(Mu --> Mu) is raw { $!base-type }
+
+    # nqp::clone() does shallow clone that leaves hash and list attributes content shared between the original HOW
+    # and its copy. This routine takes care of this by cloning all such attributes. Along the lines %!mro gets reset
+    # in order to refresh all MRO-based caches and dispatchers.
+    my sub clone-HOW(Mu \how --> Mu) is raw {
+        my Mu \how-clone := nqp::clone(how);
+        for Metamodel::ClassHOW.^attributes(:local).sort(*.name) -> \attr {
+            my Mu \val = nqp::getattr(how, Metamodel::ClassHOW, attr.name);
+            if nqp::islist(val) || nqp::ishash(val) {
+                if attr.name eq '%!mro' {
+                    # Reset MRO cache because it has to be rebuilt.
+                    nqp::bindattr(how-clone, Metamodel::ClassHOW, attr.name, nqp::hash());
+                }
+                else {
+                    nqp::bindattr(how-clone, Metamodel::ClassHOW, attr.name, nqp::clone(val));
+                }
+            }
+        }
+        how-clone
+    }
+
+    method compose(Mu \obj, | --> Mu) is raw {
+        unless self.is_composed(obj) {
+            $!ins-orig := obj;
+            # Clone early to have a copy of uncomposed HOW.
+            $!ins-orig-how := clone-HOW(obj.HOW);
+        }
+        nextsame;
+    }
+
+    my atomicint $next-id = 0;
+    method ins-new-type(Mu \obj, TypeEnv:D $typeenv --> Mu) is raw {
+        my Mu \new-how = clone-HOW($!ins-orig-how);
+        my Mu \new-type = Metamodel::Primitives.create_type(new-how);
+        new-type.^set_name(obj.^name ~ "_" ~ ++⚛$next-id); # Not necessary, but will help in identifying instantiation
+        new-type.^publish_method_cache; # This will prevent re-use of methods coming from the original class
+        # Concretizations cache has to be wiped out to avoid them be re-used from the original type.
+        new-type.HOW.wipe_conc_cache;
+        # This is a trick that makes the instantiated class match to the original
+        new-type.^add_parent($!ins-orig);
+        new-how.compose(new-type);
+        new-type
+    }
+}
+
+multi sub trait_mod:<is>(Mu \type, Mu :$ins!) {
+    type.HOW does InsHOW;
+    type.^set-base-type($ins.WHAT);
+}
+
+my \r = role R[::BASE] {
+    # A compound name makes things even harder for the resolver. So, let's be tough!
+    my class S::G is ins(BASE) {
+        method is-generic is raw {
+            self.^base-type.^archetypes.generic
+        }
+
+        multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D $typeenv) is raw {
+            my \ins = self.^ins-new-type($typeenv);
+            # Use of .cache prevents re-instantiation of a type within same type environment; e.g. within same role
+            # concretization.
+            my \old-base = ins.^base-type;
+            ins.^set-base-type($typeenv.cache(ins.^base-type));
+            ins
+        }
+    }
+
+    has S::G $.attr;
+
+    method gimme-the-G { S::G }
+}
+
+sub check-role(Str:D $msg) is test-assertion {
+    subtest $msg => {
+        my $role-attr := r.^get_attribute_for_usage('$!attr');
+        my $archetypes := $role-attr.type.^archetypes;
+
+        is $role-attr.type.^name, "R::S::G", "role attribute type name before instantiations";
+        ok $archetypes.generic && $archetypes.nominal && $archetypes.augmentable,
+           "role attribute type archetypes are that of a generic class";
+        ok $role-attr.type.is-generic, "role attribute type is-generic method";
+        ok $role-attr.type.new.^archetypes.generic, "role attribute type instance archetypes is generic";
+    }
+}
+
+check-role "Before Instantiations";
+
+class CS does R[Str:D] { }
+class CI does R[Int:D] { }
+
+my $cs = CS.new;
+
+is $cs.attr.^name,        'R::S::G_1', 'attribute type is the first instantiation';
+is $cs.gimme-the-G.^name, 'R::S::G_1', 'method body resolves generic class into the first instatiation';
+cmp-ok $cs.gimme-the-G.^base-type, &[=:=], Str:D, "class instantiated over role's Str:D argument";
+
+my $ci = CI.new;
+is $ci.attr.^name,        'R::S::G_2', 'attribute type is the second instantiation';
+is $ci.gimme-the-G.^name, 'R::S::G_2', 'method body resolves generic class into the second instatiation';
+cmp-ok $ci.gimme-the-G.^base-type, &[=:=], Int:D, "class instantiated over role's Int:D arguments";
+
+check-role "After Instantiations";

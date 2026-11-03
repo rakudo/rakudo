@@ -1,5 +1,3 @@
-use v6;
-
 use lib <lib t/04-nativecall>;
 use CompileTestLib;
 use NativeCall;
@@ -48,6 +46,10 @@ class Derived1 is repr<CPPStruct> {
 sub SizeofDerived1() returns int32 is mangled is native("./11-cpp") { * }
 
 is nativesizeof(Derived1), SizeofDerived1(), 'sizeof(Derived1)';
+if $*VM.name eq 'jvm' {
+    skip-rest 'RuntimeException: No such attribute $!call for this object';
+    exit;
+}
 ok my $d1 = Derived1.new, 'can instantiate C++ class';
 ok my Derived1 $d1b .= new, 'can instantiate the same C++ class again using « .= »';
 is $d1.foo,   11,   'can read attribute foo';

@@ -1,4 +1,4 @@
-use lib <t/packages>;
+use lib <t/packages/Test-Helpers>;
 use Test::Helpers::QAST;
 use Test;
 use nqp;

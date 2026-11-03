@@ -116,8 +116,10 @@ class Telemetry::Instrument::Usage does Telemetry::Instrument {
     method default-columns() { < wallclock util% max-rss > }
 
     method preamble($first, $last, $total, @snaps --> Str:D) {
+        my sub _($value) { $value.polymod(1000 xx *).reverse.join("_") || 0 }
+
         qq:to/HEADER/.chomp;
-Initial/Final Size: { $first<max-rss> } / { $last<max-rss> } Kbytes
+Initial/Final Size: &_($first<max-rss>) / &_($last<max-rss>) Kbytes
 Total Time:      { ($total<wallclock> / 1000000).fmt('%9.2f') } seconds
 Total CPU Usage: { ($total<cpu> / 1000000).fmt('%9.2f') } seconds
 HEADER
@@ -131,7 +133,6 @@ HEADER
           nqp::fromnum_I(Rakudo::Internals.INITTIME * 1000000,Int);
         my int $cores = Kernel.cpu-cores;
         my $utilize   = 100 / $cores;
-        my int $b2kb = VM.osname eq 'darwin' ?? 10 !! 0;
 
         # Constants indexing into the data array
         my constant UTIME_SEC  =  0;
@@ -161,15 +162,7 @@ HEADER
           max-rss ix-rss id-rss is-rss minf   majf   nswp inb
           outb    msnd   mrcv   nsig   volcsw invcsw wallclock
         >>.kv.map: -> int $index, $name {
-            if $name {
-                $name => $name.ends-with('rss') && $b2kb
-                  ?? -> Mu \data {
-                           nqp::bitshiftr_i(nqp::atpos_i(data,$index),$b2kb)
-                        }
-                  !! -> Mu \data {
-                           nqp::atpos_i(data,$index)
-                        }
-            }
+            $name => -> Mu \data { nqp::atpos_i(data,$index) } if $name;
         }
 
         # Allow for low-level dispatch hash access for speed
@@ -711,7 +704,7 @@ multi sub snap(Str:D $message --> Nil) {
     $snaps.push(T);
 }
 my $snapshot-idx = 1;
-multi sub snap(Str $message = "taking heap snapshot...", :$heap! --> Nil) {
+multi sub snap(Str $message = "taking heap snapshot...", :$heap!) {
     my $filename =
         $heap eqv True
             ?? "heapsnapshot-$($*PID)-$($snapshot-idx++).mvmheap"
@@ -735,6 +728,8 @@ multi sub snap(Str $message = "taking heap snapshot...", :$heap! --> Nil) {
     my \T2 := Telemetry.new;
     T2.message = $filename;
     $snaps.push(T2);
+
+    $filename
 }
 multi sub snap(@s --> Nil) {
     @s.push(Telemetry.new);

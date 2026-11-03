@@ -1,7 +1,7 @@
 Rakudo
 ======
 
-This is a pre-built package of Rakudo, a Raku compiler.
+Rakudo is a compiler and runtime for the Raku programming language.
 
 This package includes the Rakudo compiler and the module installer Zef.
 
@@ -9,12 +9,22 @@ This package includes the Rakudo compiler and the module installer Zef.
 Running Raku
 ============
 
+THERE IS MORE THAN ONE FOLDER YOU NEED TO ADD TO YOUR PATH!
+
+`raku` and it's associated programs are located in the `bin/` subfolder.
+Installed Raku scripts, including `zef`, are located in the
+`share/perl6/site/bin/` subfolder. So both need to be in your PATH.
+
 To run a Raku program, open a command prompt and type
 
-    /path/to/this/folder/bin/raku my_script.raku
+    raku my_script.raku
+
+To start an interactive Raku environment call `raku` without an argument
+
+    raku
 
 To add the relevant paths to your environment so you don't have to type the
-full path run the following script (don't forget the 'eval "$()"'):
+full path, run the following script (don't forget the 'eval "$()"'):
 
     eval "$(/path/to/this/folder/scripts/set-env.sh)"
 
@@ -22,26 +32,27 @@ Users of the Fish shell users type:
 
     eval (/path/to/this/folder/scripts/set-env.sh --fish)
 
-To start an interactive Raku environment call `raku` without an argument
+To automatically add the relevant paths to your shell on startup, add the
+following to `~/.bash_profile` or your equivalent:
 
-    raku
+    eval "$(/path/to/this/folder/scripts/set-env.sh --quiet)"
 
 
-Installing modules
+Installing Modules
 ==================
 
 To install Raku modules you can use the Zef module installer.
 
-    raku /path/to/this/folder/share/perl6/site/bin/zef install JSON::Fast
+    zef install JSON::Fast
 
 Modules will be installed into this Raku package and will thus be available
 even when moving this package.
 
 
-Native code modules
+Native Code Modules
 -------------------
 
-To install modules that require a compiler toolchain, you have to have a
+To install modules that require a C compiler toolchain, you have to have a C
 compiler installed.
 
 - On Debian/Ubuntu based systems do `sudo apt-get install gcc make`
@@ -55,7 +66,7 @@ Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
 
 
-Where to get help or answers to questions
+Where to Get Help or Answers to Questions
 =========================================
 
 There are several mailing lists, IRC channels, and wikis available with help
@@ -70,7 +81,7 @@ a problem using Raku, you probably want the “perl6-users@perl.org”
 mailing list or the [irc.libera.chat/#raku IRC
 channel](https://web.libera.chat/#raku). The perl6-users
 list is primarily for the people who want to use Raku to write
-programs, so newbie questions are welcomed there.  Newbie questions
+programs, so newbie questions are welcomed there. Newbie questions
 are also welcome on the #raku channel; the Rakudo and Raku
 development teams tend to hang out there and are generally glad
 to help. There's a Raku news aggregator at [Planet Raku](https://planet.raku.org/).
@@ -79,13 +90,13 @@ Questions about NQP can also be posted to the #raku IRC channel.
 For questions about MoarVM, you can join #moarvm on Libera.
 
 
-Reporting bugs
+Reporting Bugs
 ==============
 
 See https://rakudo.org/issue-trackers
 
 
-Submitting patches
+Submitting Patches
 ==================
 
 If you have a patch that fixes a bug or adds a new feature, please create a
@@ -98,7 +109,7 @@ for more information.
 License
 =======
 
-Rakudo is Copyright © 2008-2021, The Perl Foundation. Rakudo is distributed
+Rakudo is Copyright © 2008-2026, The Raku Foundation. Rakudo is distributed
 under the terms of the Artistic License 2.0. For more details, see the full
 text of the license in the file LICENSE.
 

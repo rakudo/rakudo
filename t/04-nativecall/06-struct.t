@@ -1,11 +1,9 @@
-use v6;
-
 use lib <lib t/04-nativecall>;
 use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 34;
+plan 35;
 
 compile_test_lib('06-struct');
 
@@ -122,7 +120,7 @@ sub ReturnAStructIntStruct() returns StructIntStruct is native('./06-struct') { 
 sub TakeAInlinedArrayInStruct(InlinedArrayInStruct $s) returns int32 is native('./06-struct') { * };
 sub ReturnAInlinedArrayInStruct() returns InlinedArrayInStruct is native('./06-struct') { * };
 
-# Perl-side tests:
+# Raku-side tests:
 my MyStruct $obj .= new;
 
 is $obj.long,   42,     'getting long';
@@ -150,7 +148,12 @@ is-approx $ss.b.first,  3.7e0, 'field 1 from struct 2 in struct';
 is-approx $ss.b.second, 0.1e0, 'field 2 from struct 2 in struct';
 
 my PointerStruct $x = ReturnAPointerStruct();
-is $x.p.deref, 19, 'CPointer object in struct';
+if $*VM.name eq 'jvm' {
+    skip 'NullPointerException in sub _deref';
+}
+else {
+    is $x.p.deref, 19, 'CPointer object in struct';
+}
 
 my StringStruct $strstr = ReturnAStringStruct();
 is $strstr.first,  'OMG!',     'first string in struct';
@@ -190,6 +193,11 @@ is $sis.a.second, 77, 'nested second is 77';
     throws-like 'class EmptyCStructTest is repr<CStruct> { };', Exception, message => { m/'no attributes'/ };
 }
 
+if $*VM.name eq 'jvm' {
+    skip-rest 'One of the next texts crashes the JVM';
+    exit;
+}
+
 my $iais = InlinedArrayInStruct.new();
 $iais.a    = 1;
 $iais.b[0] = 2;
@@ -204,5 +212,11 @@ is $iais2.b[0], 222, 'Can inline fixed sizes array (3)';
 is $iais2.b[1], 333, 'Can inline fixed sizes array (4)';
 is $iais2.b[2], 444, 'Can inline fixed sizes array (5)';
 is $iais2.c,    555, 'Can inline fixed sizes array (6)';
+
+# https://github.com/rakudo/rakudo/issues/3851
+{
+    my class simple is repr('CStruct') { has uint16 $.value }
+    is simple.new(:value(0xffff)).value, 65535, 'did we get unsigned value';
+}
 
 # vim: expandtab shiftwidth=4

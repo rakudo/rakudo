@@ -9,6 +9,7 @@
 #  include <sys/stat.h>
 #  include <process.h>
 #  include <shlwapi.h>
+#  include <fileapi.h>
 #  include <io.h>
 #  if defined(_MSC_VER)
 #    define strtoll _strtoi64
@@ -35,7 +36,10 @@ enum {
 
     OPT_DEBUGPORT,
 
-    OPT_RAKUDO_HOME
+    OPT_RAKUDO_HOME,
+#ifdef MVM_DO_PTY_OURSELF
+    OPT_PTY_SPAWN_HELPER,
+#endif
 };
 
 static const char *const FLAGS[] = {
@@ -71,20 +75,30 @@ static int parse_flag(const char *arg)
         return OPT_DEBUGPORT;
     else if (starts_with(arg, "--rakudo-home="))
         return OPT_RAKUDO_HOME;
+#ifdef MVM_DO_PTY_OURSELF
+    else if (starts_with(arg, "--pty-spawn-helper="))
+        return OPT_PTY_SPAWN_HELPER;
+#endif
     else
         return UNKNOWN_FLAG;
 }
 
 int file_exists(const char *path) {
 #ifdef _WIN32
-    int             res;
-    struct _stat    sb;
-    const int       len   = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
-    wchar_t * const wpath = (wchar_t *)malloc(len * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, (LPWSTR)wpath, len);
-    res = _wstat(wpath, &sb);
-    MVM_free(wpath);
-    return res == 0;
+    const int       wpath_len = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
+    wchar_t * const wpath     = (wchar_t *)calloc(wpath_len, sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, (LPWSTR)wpath, wpath_len);
+
+    int dos_path_size = wpath_len + 4;
+    wchar_t *dos_path = (wchar_t*)calloc(dos_path_size, sizeof(wchar_t));
+    wcscpy_s(dos_path, dos_path_size, L"\\\\?\\");
+    wcscat_s(dos_path, dos_path_size, wpath);
+    free(wpath);
+
+    unsigned long attr = GetFileAttributesW(dos_path);
+
+    return (attr != INVALID_FILE_ATTRIBUTES &&
+          !(attr & FILE_ATTRIBUTE_DIRECTORY));
 #else
     struct stat *sb = malloc(sizeof(struct stat));
     int res         = stat(path, sb) == 0;
@@ -93,14 +107,23 @@ int file_exists(const char *path) {
 #endif
 }
 
-void platformify_path(char *path) {
+void platformify_path(char **path) {
 #ifdef _WIN32
-    int i;
-    for (i = 0; path[i]; i++) {
-        if (path[i] == '/') {
-            path[i] = '\\';
-        }
+    int buf_size = GetFullPathNameA(*path, 0, NULL, NULL);
+    if (buf_size == 0) {
+        fprintf(stderr, "ERROR: Could not normalize home dir.\n");
+        exit(EXIT_FAILURE);
     }
+
+    char *norm_path = (char*)malloc(buf_size);
+    buf_size = GetFullPathNameA(*path, buf_size, norm_path, NULL);
+
+    if (buf_size == 0) {
+        fprintf(stderr, "ERROR: Could not normalize home dir.\n");
+        exit(EXIT_FAILURE);
+    }
+    free(*path);
+    *path = norm_path;
 #endif
 }
 
@@ -130,7 +153,7 @@ int retrieve_home(
         *out_home = (char*)malloc(home_size + 1);
         strcpy(*out_home, env_home);
 #ifdef _WIN32
-        if (*(*out_home + home_size - 1) == '\\') {
+        if (*(*out_home + home_size - 1) == '/' || *(*out_home + home_size - 1) == '\\') {
 #else
         if (*(*out_home + home_size - 1) == '/') {
 #endif
@@ -147,12 +170,13 @@ int retrieve_home(
         *out_home = (char*)malloc(home_size + 1);
         strncpy(*out_home, exec_dir_path, home_size);
         strncat(*out_home, rel_home, rel_home_size);
-        platformify_path(*out_home + exec_dir_path_size);
+        platformify_path(out_home);
     }
 
     check_file_path = (char*)malloc(home_size + check_file_size + 1);
     strncpy(check_file_path, *out_home, home_size + check_file_size);
     strncat(check_file_path, check_file, check_file_size);
+    platformify_path(&check_file_path);
 
     ret = file_exists(check_file_path);
     free(check_file_path);
@@ -162,7 +186,7 @@ int retrieve_home(
 #if defined(_WIN32) && defined(SUBSYSTEM_WINDOWS)
 int set_std_handle_to_nul(FILE *file, int fd, BOOL read, int std_handle_type) {
     /* Found on https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/get-osfhandle?view=vs-2019:
-       
+
        "When stdin, stdout, and stderr aren't associated with a stream (for example, in a Windows
        application without a console window), the file descriptor values for these streams are
        returned from _fileno as the special value -2. Similarly, if you use a 0, 1, or 2 as the
@@ -170,7 +194,7 @@ int set_std_handle_to_nul(FILE *file, int fd, BOOL read, int std_handle_type) {
        returns the special value -2 when the file descriptor is not associated with a stream, and
        does not set errno. However, this is not a valid file handle value, and subsequent calls
        that attempt to use it are likely to fail."
-       
+
        See https://jdebp.eu/FGA/redirecting-standard-io.html
            https://stackoverflow.com/a/50358201 (Especially the comments of Eryk Sun)
     */
@@ -180,23 +204,23 @@ int set_std_handle_to_nul(FILE *file, int fd, BOOL read, int std_handle_type) {
     if (_fileno(file) != -2 || _get_osfhandle(fd) != -2)
         // The handles are initialized. Don't touch!
         return 1;
-    
+
     /* FD 1 is in an error state (_get_osfhandle(1) == -2). Close it. The FD number is up for grabs
        after this call. */
     if (_close(fd) != 0)
         return 0;
-    
+
     /* FILE *stdout is in an error state (_fileno(stdout) == -2). Reopen it to a "NUL:" file. This
        will take the next free FD number. So it's important to call this sequentially for FD 0, 1
        and 2. */
     if (freopen_s(&stream, "NUL:", read ? "r" : "w", file) != 0)
         return 0;
-    
+
     /* Set the underlying Windows handle as the STD handler. */
     new_handle = (HANDLE)_get_osfhandle(fd);
     if (!SetStdHandle(std_handle_type, new_handle))
         return 0;
-    
+
     return 1;
 }
 #endif
@@ -249,18 +273,24 @@ int main(int argc, char *argv[]) {
 
     MVMuint32 debugserverport = 0;
     int start_suspended = 0;
-    
+
+#if defined(__APPLE__) || defined(__Darwin__)
+    if (getenv("RAKUDO_DYLD_LIBRARY_PATH")) {
+        setenv("DYLD_LIBRARY_PATH", getenv("RAKUDO_DYLD_LIBRARY_PATH"), 0);
+    }
+#endif
+
 #if defined(_WIN32) && defined(SUBSYSTEM_WINDOWS)
     /* When using the 'windows' subsystem the standard IO handles are not
        connected. This causes a program abort when accessing the handles. To
        prevent these aborts, we redirect the handles to NUL in this case.
     */
-    
+
     /* Set our own handles. */
     if (!set_std_handle_to_nul(stdin,  0, 1, STD_INPUT_HANDLE))  return EXIT_FAILURE;
     if (!set_std_handle_to_nul(stdout, 1, 0, STD_OUTPUT_HANDLE)) return EXIT_FAILURE;
     if (!set_std_handle_to_nul(stderr, 2, 0, STD_ERROR_HANDLE))  return EXIT_FAILURE;
-    
+
     /* MoarVM - as a DLL, and the way it's compiled (/MT) has it's own CRT and thus it's own CRT STD handles.
        So MoarVM also needs to fix up its CRT STD handles.
        See: https://docs.microsoft.com/de-de/cpp/c-runtime-library/potential-errors-passing-crt-objects-across-dll-boundaries
@@ -329,6 +359,19 @@ int main(int argc, char *argv[]) {
                 option_rakudo_home = argv[argi] + strlen("--rakudo-home=");
                 break;
 
+#ifdef MVM_DO_PTY_OURSELF
+            case OPT_PTY_SPAWN_HELPER: {
+                char *prog = argv[argi] + strlen("--pty-spawn-helper=");
+                char **args = calloc(argc - argi + 1, sizeof(char *));
+                args[0] = prog;
+                args[argc - argi] = 0;
+                for (int argj = 1; argi + argj < argc; argj++)
+                    args[argj] = argv[argi + argj];
+                // Will not return if all goes well.
+                MVM_proc_pty_spawn(prog, args);
+                return EXIT_FAILURE;
+            }
+#endif
             default:
             argv[new_argc++] = argv[argi];
         }

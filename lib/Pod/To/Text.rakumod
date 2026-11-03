@@ -19,8 +19,8 @@ sub pod2text($pod) is export {
         when Pod::Block::Table      { table2text($pod)               }
         when Pod::Block::Declarator { declarator2text($pod)          }
         when Pod::Item              { item2text($pod)                }
-        when Pod::Defn              { pod2text($pod.contents[0]) ~ "\n"
-                                      ~ pod2text($pod.contents[1..*-1]) }
+        when Pod::Defn              { pod2text($pod.term) ~ "\n"
+                                      ~ pod2text($pod.contents) }
 
         when Pod::FormattingCode    { formatting2text($pod)          }
         when Positional             { .flat».&pod2text.grep(?*).join: "\n\n" }
@@ -84,11 +84,14 @@ sub table2text($pod) {
 
 sub declarator2text($pod) {
     next unless $pod.WHEREFORE.WHY;
+    # A parameter's declarator doc is already shown inline in its routine's
+    # signature, so don't emit it again as a standalone block.
+    next if $pod.WHEREFORE ~~ Parameter;
     my $what = do given $pod.WHEREFORE {
         when Method {
-            my @params=$_.signature.params[1..*];
-              @params.pop if @params.tail.name eq '%_';
-              'method ' ~ $_.name ~ signature2text(@params, $_.returns)
+            my @params = $_.signature.params.skip;
+            @params.pop if @params.tail.name eq '%_';
+            'method ' ~ $_.name ~ signature2text(@params, $_.returns)
         }
         when Sub {
             'sub ' ~ $_.name ~ signature2text($_.signature.params, $_.returns)
@@ -97,7 +100,9 @@ sub declarator2text($pod) {
             'attribute ' ~ $_.gist
         }
         when .HOW ~~ Metamodel::EnumHOW {
-            "enum $_.raku() { signature2text $_.enums.pairs } \n"
+            "enum $_.raku() " ~
+                signature2text($_.enums.pairs.sort: { .value }) ~
+                " \n"
         }
         when .HOW ~~ Metamodel::ClassHOW {
             'class ' ~ $_.raku
@@ -146,6 +151,8 @@ my %formats =
 ;
 
 sub formatting2text($pod) {
+    return '' if $pod.type eq 'Z'; # Do not output a comment
+
     my $text = $pod.contents>>.&pod2text.join;
     $pod.type ~~ %formats
       ?? colored($text, %formats{$pod.type})

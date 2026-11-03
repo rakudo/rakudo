@@ -1,0 +1,241 @@
+my role Setty does QuantHash {
+    has Rakudo::Internals::IterationSet $!elems; # key.WHICH => key
+
+    method of() { Bool }
+
+    # private method to create Set from iterator, check for laziness
+    method !create-from-iterator(\iterator --> Setty:D) {
+        iterator.is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('coerce')
+          !! self.WHAT.SETUP(
+               Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 self.OBJECTIFIER
+               )
+             )
+    }
+
+    multi method new(Setty: \value --> Setty:D) {
+        self!create-from-iterator(
+          nqp::istype(value,Iterable) && nqp::not_i(nqp::iscont(value))
+            ?? value.iterator
+            !! Rakudo::Iterator.OneValue(value)
+        )
+    }
+    multi method new(Setty: **@args --> Setty:D) {
+        self!create-from-iterator(@args.iterator)
+    }
+
+    method new-from-pairs(*@pairs --> Setty:D) {
+        (my \iterator := @pairs.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('coerce')
+          !! self.WHAT.SETUP(
+               Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 self.OBJECTIFIER
+               )
+             )
+    }
+
+    method default(--> False) { }
+
+    multi method keys(Setty:D:) {
+        Seq.new(Rakudo::Iterator.Mappy-values($!elems))
+    }
+
+    multi method elems(Setty:D:) { nqp::elems($!elems) }
+    method total(Setty:D:)       { nqp::elems($!elems) }
+
+    my class AntiPairs does Rakudo::Iterator::Mappy {
+        method pull-one() {
+            $!iter
+              ?? Pair.new(True,nqp::iterval(nqp::shift($!iter)))
+              !! IterationEnd
+        }
+    }
+    multi method antipairs(Setty:D:) { Seq.new(AntiPairs.new($!elems)) }
+    multi method minpairs(Setty:D:) { self.pairs }
+    multi method maxpairs(Setty:D:) { self.pairs }
+    multi method Bool(Setty:D: --> Bool:D) {
+        nqp::hllbool(nqp::elems($!elems))
+    }
+
+    method !HASHIFY(\type) {
+        my \hash := Hash.^parameterize(type,Mu,Any).new;
+        my \descriptor := nqp::getattr(hash,Hash,'$!descriptor');
+
+        nqp::if(
+          nqp::elems($!elems),
+          nqp::stmts(
+            (my \storage := nqp::clone($!elems)),
+            (my \iter := nqp::iterator(storage)),
+            nqp::while(
+              iter,
+              nqp::bindkey(
+                storage,
+                nqp::iterkey_s(nqp::shift(iter)),
+                Pair.new(
+                  nqp::iterval(iter),
+                  (nqp::p6scalarfromdesc(descriptor) = True)
+                )
+              )
+            ),
+            nqp::bindattr(hash,Map,'$!storage',storage)
+          )
+        );
+        hash
+    }
+    multi method hash(Setty:D: --> Hash:D) { self!HASHIFY(Bool) }
+    multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }
+
+    method Map {
+        nqp::if(
+          nqp::elems($!elems),
+          nqp::stmts(
+            (my \storage := nqp::hash),
+            (my \iter := nqp::iterator($!elems)),
+            nqp::while(
+              iter,
+              nqp::bindkey(
+                storage,
+                nqp::iterval(nqp::shift(iter)).Str,
+                True
+              )
+            ),
+            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',storage)
+          ),
+          nqp::create(Map)
+        )
+    }
+
+    multi method ACCEPTS(Setty:U: \other --> Bool:D) {
+        other.^does(self)
+    }
+    multi method ACCEPTS(Setty:D: Setty:D \other --> Bool:D) {
+        self (==) other
+    }
+    multi method ACCEPTS(Setty:D: \other --> Bool:D) {
+        self (==) other.Set
+    }
+
+    multi method Str(Setty:D $ : --> Str:D) {
+        self.gistseen: self.^name, {
+            nqp::join(" ",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.Str))
+        }
+    }
+
+    proto method grab(|) {*}
+    proto method grabpairs(|) {*}
+
+    multi method pick(Setty:D:) { self.roll }
+    multi method pick(Setty:D: Callable:D $calculate) {
+        self.pick( $calculate(self.elems) )
+    }
+    multi method pick(Setty:D: Whatever $) {
+        self.pick(Inf)
+    }
+
+    my class PickN does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::elems($!picked)
+              ?? nqp::atkey($!elems,nqp::pop_s($!picked))
+              !! IterationEnd
+        }
+    }
+    multi method pick(Setty:D: $count) { Seq.new(PickN.new($!elems,$count)) }
+
+    proto method pickpairs(|) {*}
+    multi method pickpairs(Setty:D:) { Pair.new(self.roll,True) }
+    multi method pickpairs(Setty:D: Callable:D $calculate) {
+        self.pickpairs( $calculate(self.elems) )
+    }
+    multi method pickpairs(Setty:D: Whatever $) {
+        self.pickpairs(Inf)
+    }
+
+    my class PickPairsN does Rakudo::QuantHash::Pairs {
+        method pull-one() is raw {
+            nqp::elems($!picked)
+              ?? Pair.new(nqp::atkey($!elems,nqp::pop_s($!picked)),True)
+              !! IterationEnd
+        }
+    }
+    multi method pickpairs(Setty:D: \count) {
+        Seq.new(PickPairsN.new($!elems,count))
+    }
+
+    proto method roll(|) {*}
+    multi method roll(Setty:D:) {
+        nqp::elems($!elems)
+          ?? nqp::iterval(Rakudo::QuantHash.ROLL($!elems))
+          !! Nil
+    }
+    multi method roll(Setty:D: Callable:D $calculate) {
+        self.roll($calculate(self.elems))
+    }
+    multi method roll(Setty:D: Whatever) {
+        self.roll(Inf)
+    }
+    multi method roll(Setty:D: $count) {
+        Seq.new(nqp::if(
+          (my $todo = Rakudo::QuantHash.TODO($count))
+            && (my int $elems = nqp::elems($!elems)),
+          nqp::stmts(
+            (my $keys := Rakudo::QuantHash.RAW-KEYS(self)),
+            nqp::if(
+              $todo == Inf,
+              Rakudo::Iterator.Callable(
+                { nqp::atkey($!elems,nqp::atpos_s($keys,nqp::rand_n($elems))) },
+                True
+              ),
+              Rakudo::Iterator.Callable( {
+                  nqp::if(
+                    $todo,
+                    nqp::stmts(
+                      --$todo,
+                      nqp::atkey(
+                        $!elems,
+                        nqp::atpos_s($keys,nqp::rand_n($elems))
+                      )
+                    ),
+                    IterationEnd
+                  )
+              } )
+            )
+          ),
+          Rakudo::Iterator.Empty
+        ))
+    }
+
+    multi method Bag(Setty:D:) {
+        nqp::elems($!elems)
+          ?? Bag.SETUP(Rakudo::QuantHash.SET-BAGGIFY($!elems))
+          !! bag()
+    }
+    multi method BagHash(Setty:D:) {
+        BagHash.SETUP(Rakudo::QuantHash.SET-BAGGIFY($!elems))
+    }
+    multi method Mix(Setty:D:) {
+        nqp::elems($!elems)
+          ?? Mix.SETUP(Rakudo::QuantHash.SET-BAGGIFY($!elems))
+          !! mix()
+    }
+    multi method MixHash(Setty:D:) {
+        MixHash.SETUP(Rakudo::QuantHash.SET-BAGGIFY($!elems))
+    }
+
+    method RAW-HASH() is implementation-detail { $!elems }
+
+    # TODO: WHICH will require the capability for >1 pointer in ObjAt
+}
+
+multi sub infix:<eqv>(Setty:D $a, Setty:D $b --> Bool:D) {
+    nqp::hllbool(
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT) && $a.ACCEPTS($b))
+    )
+}
+
+# vim: expandtab shiftwidth=4

@@ -35,3 +35,9 @@ might make sense including failing tests too if they're properly fudged. See
 Helps in managing fudging directives in the roast test files. More details can
 be found in the script file itself or with `perldoc tools/autounfudge.pl`.
 
+## Notes
+
+As of early 2023, any updates to the supported Unicode version in the test suite
+replace the older versions; so older compilers supporting
+older versions of Unicode will fail many tests. This will eventually be future-
+proofed, but will not be done retroactively.

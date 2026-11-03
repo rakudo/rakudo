@@ -15,6 +15,16 @@ sub compile_test_lib($name) is export {
 
         $c_line = "$cfg<cc> -c $cfg<ccshared> $cfg<ccout>$name$o $cfg<cflags> t/04-nativecall/$name.c";
         $l_line = "$cfg<ld> $ldshared $cfg<ldflags> $cfg<ldlibs> $cfg<ldout>$libname $name$o";
+
+        # Microsoft cl can't be run reliably in parallel when debugging is on.
+        # cl tries to write to a shared pdb file vc140.pdb.
+        # The linker options contain "/pdb:$@.pdb" which still contains a makefile placeholder. Here it's taken
+        # literally and also causes conflicts. So we filter the debugging flags out.
+        if $cfg<cc> eq "cl" {
+            $c_line = $c_line.split(" ").grep(none /^ "/Z"/).join(" ");
+            $l_line = $l_line.split(" ").grep(none /^ "/" [debug|pdb]/).join(" ");
+        }
+
         @cleanup = << "$libname" "$name$o" >>;
     }
     elsif $VM.name eq 'jvm' || $VM.name eq 'js' {
@@ -46,14 +56,14 @@ sub compile_cpp_test_lib($name) is export {
 
     my (@fails, $succeeded);
     for @cmds -> $cmd {
-        my $handle = shell("$cmd 2>&1", :out);
-        my $output = $handle.out.slurp-rest;
-        if $handle.out.close.status {
-            @fails.push: "Running '$cmd':\n$output"
-        }
-        else {
+        my $proc = shell("$cmd 2>&1", :out);
+        my $output = $proc.out.slurp(:close);
+        if so $proc {
             $succeeded = 1;
             last
+        }
+        else {
+            @fails.push: "Running '$cmd':\n$output"
         }
     }
     fail @fails.join('=' x 80 ~ "\n") unless $succeeded;

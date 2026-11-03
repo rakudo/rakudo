@@ -11,7 +11,7 @@
 
 use MoarVM::SIL;
 
-if SIL() -> $SIL {
+if SIL(:skip-core) -> $SIL {
     say "\n$SIL.report()";
     $SIL.exit;
 }

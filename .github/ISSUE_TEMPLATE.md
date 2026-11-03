@@ -18,4 +18,4 @@
 
 ## Environment
 * Operating system:
-* Compiler version (`perl6 -v` or `raku -v`):
+* Compiler version (`rakudo -v` or `raku -v`):

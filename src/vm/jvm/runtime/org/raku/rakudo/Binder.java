@@ -2,6 +2,8 @@ package org.raku.rakudo;
 
 import java.util.*;
 
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+
 import org.raku.nqp.runtime.*;
 import org.raku.nqp.sixmodel.*;
 import org.raku.nqp.sixmodel.reprs.ContextRefInstance;
@@ -46,9 +48,10 @@ public final class Binder {
     private static final int SIG_ELEM_TYPE_GENERIC        = 524288;
     private static final int SIG_ELEM_DEFAULT_IS_LITERAL  = 1048576;
     private static final int SIG_ELEM_NATIVE_INT_VALUE    = 2097152;
+    private static final int SIG_ELEM_NATIVE_UINT_VALUE   = 134217728;
     private static final int SIG_ELEM_NATIVE_NUM_VALUE    = 4194304;
     private static final int SIG_ELEM_NATIVE_STR_VALUE    = 8388608;
-    private static final int SIG_ELEM_NATIVE_VALUE        = (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE);
+    private static final int SIG_ELEM_NATIVE_VALUE        = (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_UINT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE);
     private static final int SIG_ELEM_SLURPY_ONEARG       = 16777216;
     private static final int SIG_ELEM_SLURPY              = (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED | SIG_ELEM_SLURPY_LOL | SIG_ELEM_SLURPY_ONEARG);
     private static final int SIG_ELEM_CODE_SIGIL          = 33554432;
@@ -77,6 +80,8 @@ public final class Binder {
         switch (flag) {
             case CallSiteDescriptor.ARG_INT:
                 return Ops.box_i((long)arg, gcx.Int, tc);
+            case CallSiteDescriptor.ARG_UINT:
+                return Ops.box_u((long)arg, gcx.Int, tc);
             case CallSiteDescriptor.ARG_NUM:
                 return Ops.box_n((double)arg, gcx.Num, tc);
             case CallSiteDescriptor.ARG_STR:
@@ -86,8 +91,8 @@ public final class Binder {
         }
     }
 
-    private static String arityFail(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject params,
-            int numParams, int numPosArgs, boolean tooMany) {
+    private static String arityFail(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf,
+            SixModelObject params, int numParams, int numPosArgs, boolean tooMany) {
         int arity = 0;
         int count = 0;
         String fail = tooMany ? "Too many" : "Too few";
@@ -116,19 +121,23 @@ public final class Binder {
             }
         }
 
+        String routineName = cf.codeRef.name;
+        if (routineName == null || routineName.isEmpty())
+            routineName = "<anon>";
+
         /* Now generate decent error. */
         if (arity == count)
             return String.format(
-                "%s positionals passed; expected %d arguments but got %d",
-                fail, arity, numPosArgs);
+                "%s positionals passed to '%s'; expected %d arguments but got %d",
+                fail, routineName, arity, numPosArgs);
         else if (count <= -1)
             return String.format(
-                "%s positionals passed; expected at least %d arguments but got only %d",
-                fail, arity, numPosArgs);
+                "%s positionals passed to '%s'; expected at least %d arguments but got only %d",
+                fail, routineName, arity, numPosArgs);
         else
             return String.format(
-                "%s positionals passed; expected %d %s %d arguments but got %d",
-                fail, arity, arity + 1 == count ? "or" : "to" , count, numPosArgs);
+                "%s positionals passed to '%s'; expected %d %s %d arguments but got %d",
+                fail, routineName, arity, arity + 1 == count ? "or" : "to" , count, numPosArgs);
     }
 
     /* Binds any type captures. */
@@ -147,9 +156,9 @@ public final class Binder {
             int paramFlags, SixModelObject attrPackage, SixModelObject value, Object[] error) {
         /* Find self. */
         StaticCodeInfo sci = cf.codeRef.staticInfo;
-        Integer selfIdx = sci.oTryGetLexicalIdx("self");
+        int selfIdx = sci.oTryGetLexicalIdx("self");
         SixModelObject self = null;
-        if (selfIdx == null) {
+        if (selfIdx == -1) {
             self = Ops.getlexouter("self", tc);
             if (self == null) {
                 if (error != null)
@@ -170,13 +179,8 @@ public final class Binder {
                since *trying* to get a container would throw already, we first check
                if the target Attribute is native. */
             int hint = -1;
-            for (HashMap<String, Integer> map : ((P6OpaqueREPRData) (attrPackage.st.REPRData)).nameToHintMap) {
-                try {
-                    hint = map.get(varName);
-                }
-                catch (Exception e) {
-                    continue;
-                }
+            for (Object2IntOpenHashMap<String> map : ((P6OpaqueREPRData) (attrPackage.st.REPRData)).nameToHintMap) {
+                hint = map.getOrDefault(varName, -1);
             }
             REPR attrREPR = null;
             if (((P6OpaqueREPRData) (attrPackage.st.REPRData)).flattenedSTables[hint] != null) {
@@ -224,6 +228,8 @@ public final class Binder {
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor ACCEPTS_i = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_INT }, null);
+    private static final CallSiteDescriptor ACCEPTS_u = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_UINT }, null);
     private static final CallSiteDescriptor ACCEPTS_n = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_NUM }, null);
     private static final CallSiteDescriptor ACCEPTS_s = new CallSiteDescriptor(
@@ -266,7 +272,7 @@ public final class Binder {
         /* Check if boxed/unboxed expectations are met. */
         int desiredNative = paramFlags & SIG_ELEM_NATIVE_VALUE;
         boolean is_rw = (paramFlags & SIG_ELEM_IS_RW) != 0;
-        int gotNative = origFlag & (CallSiteDescriptor.ARG_INT | CallSiteDescriptor.ARG_NUM | CallSiteDescriptor.ARG_STR);
+        int gotNative = origFlag & (CallSiteDescriptor.ARG_INT | CallSiteDescriptor.ARG_UINT | CallSiteDescriptor.ARG_NUM | CallSiteDescriptor.ARG_STR);
         if (is_rw && desiredNative != 0) {
             switch (desiredNative) {
             case SIG_ELEM_NATIVE_INT_VALUE:
@@ -274,6 +280,15 @@ public final class Binder {
                     if (error != null)
                         error[0] = String.format(
                             "Expected a modifiable native int argument for '%s'",
+                            varName);
+                    return BIND_RESULT_FAIL;
+                }
+                break;
+            case SIG_ELEM_NATIVE_UINT_VALUE:
+                if (gotNative != 0 || Ops.iscont_u((SixModelObject)origArg) == 0) {
+                    if (error != null)
+                        error[0] = String.format(
+                            "Expected a modifiable native unsigned int argument for '%s'",
                             varName);
                     return BIND_RESULT_FAIL;
                 }
@@ -308,6 +323,10 @@ public final class Binder {
             flag = gotNative;
             arg_i = (long)origArg;
         }
+        else if (desiredNative == SIG_ELEM_NATIVE_UINT_VALUE && gotNative == CallSiteDescriptor.ARG_UINT) {
+            flag = gotNative;
+            arg_i = (long)origArg;
+        }
         else if (desiredNative == SIG_ELEM_NATIVE_NUM_VALUE && gotNative == CallSiteDescriptor.ARG_NUM) {
             flag = gotNative;
             arg_n = (double)origArg;
@@ -329,6 +348,19 @@ public final class Binder {
                 case SIG_ELEM_NATIVE_INT_VALUE:
                     if ((spec.can_box & StorageSpec.CAN_BOX_INT) != 0) {
                         flag = CallSiteDescriptor.ARG_INT;
+                        arg_i = decontValue.get_int(tc);
+                    }
+                    else {
+                        if (error != null)
+                            error[0] = String.format(
+                                "Cannot unbox argument to '%s' as a native int",
+                                varName);
+                        return BIND_RESULT_FAIL;
+                    }
+                    break;
+                case SIG_ELEM_NATIVE_UINT_VALUE:
+                    if ((spec.can_box & StorageSpec.CAN_BOX_INT) != 0) {
+                        flag = CallSiteDescriptor.ARG_UINT;
                         arg_i = decontValue.get_int(tc);
                     }
                     else {
@@ -435,7 +467,7 @@ public final class Binder {
                     /* Try to figure out the most helpful name for the expected. */
                     SixModelObject expectedType = null;
                     SixModelObject postConstraints = param.get_attribute_boxed(tc, gcx.Parameter,
-                            "$!post_contraints", HINT_post_constraints);
+                            "$!post_constraints", HINT_post_constraints);
                     if (postConstraints != null) {
                         SixModelObject consType = postConstraints.at_pos_boxed(tc, 0);
                         expectedType = (Ops.istype(consType, gcx.Code, tc) != 0)
@@ -553,6 +585,9 @@ public final class Binder {
                         case CallSiteDescriptor.ARG_INT:
                             cf.iLex[sci.iTryGetLexicalIdx(varName)] = arg_i;
                             break;
+                        case CallSiteDescriptor.ARG_UINT:
+                            cf.iLex[sci.uTryGetLexicalIdx(varName)] = arg_i;
+                            break;
                         case CallSiteDescriptor.ARG_NUM:
                             cf.nLex[sci.nTryGetLexicalIdx(varName)] = arg_n;
                             break;
@@ -650,7 +685,7 @@ public final class Binder {
         /* Handle any constraint types (note that they may refer to the parameter by
          * name, so we need to have bound it already). */
         SixModelObject postConstraints = param.get_attribute_boxed(tc, gcx.Parameter,
-            "$!post_contraints", HINT_post_constraints);
+            "$!post_constraints", HINT_post_constraints);
         if (postConstraints != null) {
             long numConstraints = postConstraints.elems(tc);
             for (long i = 0; i < numConstraints; i++) {
@@ -663,6 +698,10 @@ public final class Binder {
                     case CallSiteDescriptor.ARG_INT:
                         Ops.invokeDirect(tc, acceptsMeth,
                             ACCEPTS_i, new Object[] { consType, arg_i });
+                        break;
+                    case CallSiteDescriptor.ARG_UINT:
+                        Ops.invokeDirect(tc, acceptsMeth,
+                            ACCEPTS_u, new Object[] { consType, arg_i });
                         break;
                     case CallSiteDescriptor.ARG_NUM:
                         Ops.invokeDirect(tc, acceptsMeth,
@@ -777,6 +816,12 @@ public final class Binder {
         return exploder.explodeFlattening(tc.curFrame, new Object[] { list, hash });
     }
 
+    private static final CallSiteDescriptor parameterizeArray = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    private static final CallSiteDescriptor parameterizeHash = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ,
+            CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ
+        }, null);
     /* This takes a signature element and either runs the closure to get a default
      * value if there is one, or creates an appropriate undefined-ish thingy. */
     private static SixModelObject handleOptional(ThreadContext tc, RakOps.GlobalExt gcx, int flags, SixModelObject param, CallFrame cf) {
@@ -786,8 +831,8 @@ public final class Binder {
             String varName = tc.native_s;
             CallFrame curOuter = cf.outer;
             while (curOuter != null) {
-                Integer idx = curOuter.codeRef.staticInfo.oTryGetLexicalIdx(varName);
-                if (idx != null)
+                int idx = curOuter.codeRef.staticInfo.oTryGetLexicalIdx(varName);
+                if (idx != -1)
                     return curOuter.oLex[idx];
                 curOuter = curOuter.outer;
             }
@@ -811,11 +856,61 @@ public final class Binder {
         /* Otherwise, go by sigil to pick the correct default type of value. */
         else {
             if ((flags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                SixModelObject res = gcx.Array.st.REPR.allocate(tc, gcx.Array.st);
+                SixModelObject paramType = param.get_attribute_boxed(tc, gcx.Parameter, "$!type", HINT_type);
+                SixModelObject defaultType = null;
+
+                if (paramType == gcx.Positional) {
+                    defaultType = gcx.Array;
+                }
+                else {
+                    /* TODO: Find clean solution for handling @deprecation
+                     * during compiliation of setting. */
+                    param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
+                    String varName = tc.native_s;
+                    if (varName.equals("@deprecation")) {
+                        SixModelObject compilingCoreSetting = Ops.getlexdyn("$*COMPILING_CORE_SETTING", tc);
+                        if (Ops.isnull(compilingCoreSetting) == 0)
+                            defaultType = gcx.Array;
+                    }
+
+                    if (defaultType == null) {
+                        SixModelObject ofMeth = Ops.findmethod(paramType, "of", tc);
+                        Ops.invokeDirect(tc, ofMeth, Ops.invocantCallSite, new Object[] { paramType });
+                        SixModelObject ofType = Ops.result_o(tc.curFrame);
+
+                        SixModelObject arrayHOW = gcx.Array.st.HOW;
+                        SixModelObject parameterizeMeth = Ops.findmethod(arrayHOW, "parameterize", tc);
+                        Ops.invokeDirect(tc, parameterizeMeth, parameterizeArray, new Object[] { arrayHOW, gcx.Array, ofType });
+                        defaultType = Ops.result_o(tc.curFrame);
+                    }
+                }
+
+                SixModelObject res = Ops.create(defaultType, tc);
                 return res;
             }
             else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
-                SixModelObject res = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
+                SixModelObject paramType = param.get_attribute_boxed(tc, gcx.Parameter, "$!type", HINT_type);
+                SixModelObject defaultType;
+
+                if (paramType == gcx.Associative) {
+                    defaultType = gcx.Hash;
+                }
+                else {
+                    SixModelObject ofMeth = Ops.findmethod(paramType, "of", tc);
+                    Ops.invokeDirect(tc, ofMeth, Ops.invocantCallSite, new Object[] { paramType });
+                    SixModelObject ofType = Ops.result_o(tc.curFrame);
+
+                    SixModelObject keyofMeth = Ops.findmethod(paramType, "keyof", tc);
+                    Ops.invokeDirect(tc, keyofMeth, Ops.invocantCallSite, new Object[] { paramType });
+                    SixModelObject keyofType = Ops.result_o(tc.curFrame);
+
+                    SixModelObject hashHOW = gcx.Hash.st.HOW;
+                    SixModelObject parameterizeMeth = Ops.findmethod(hashHOW, "parameterize", tc);
+                    Ops.invokeDirect(tc, parameterizeMeth, parameterizeHash, new Object[] { hashHOW, gcx.Hash, ofType, keyofType });
+                    defaultType = Ops.result_o(tc.curFrame);
+                }
+
+                SixModelObject res = Ops.create(defaultType, tc);
                 return res;
             }
             else {
@@ -824,6 +919,8 @@ public final class Binder {
                 switch (paramFlags & SIG_ELEM_NATIVE_VALUE) {
                     case SIG_ELEM_NATIVE_INT_VALUE:
                         return createBox(tc, gcx, (long)0, CallSiteDescriptor.ARG_INT);
+                    case SIG_ELEM_NATIVE_UINT_VALUE:
+                        return createBox(tc, gcx, (long)0, CallSiteDescriptor.ARG_UINT);
                     case SIG_ELEM_NATIVE_NUM_VALUE:
                         return createBox(tc, gcx, (double)0.0, CallSiteDescriptor.ARG_NUM);
                     case SIG_ELEM_NATIVE_STR_VALUE:
@@ -870,9 +967,9 @@ public final class Binder {
          * to work on. We'll delete stuff from it as we bind, and what we have
          * left over can become the slurpy hash or - if we aren't meant to be
          * taking one - tell us we have a problem. */
-        HashMap<String, Integer> namedArgsCopy = csd.nameMap == null
+        Object2IntOpenHashMap<String> namedArgsCopy = csd.nameMap == null
             ? null
-            : new HashMap<String, Integer>(csd.nameMap);
+            : new Object2IntOpenHashMap<String>(csd.nameMap);
 
         /* Now we'll walk through the signature and go about binding things. */
         int numPosArgs = csd.numPositionals;
@@ -903,6 +1000,9 @@ public final class Binder {
                             break;
                         case CallSiteDescriptor.ARG_INT:
                             posArgs.push_boxed(tc, RakOps.p6box_i((long)args[k], tc));
+                            break;
+                        case CallSiteDescriptor.ARG_UINT:
+                            posArgs.push_boxed(tc, RakOps.p6box_u((long)args[k], tc));
                             break;
                         case CallSiteDescriptor.ARG_NUM:
                             posArgs.push_boxed(tc, RakOps.p6box_n((double)args[k], tc));
@@ -970,6 +1070,9 @@ public final class Binder {
                         case CallSiteDescriptor.ARG_INT:
                             slurpy.push_boxed(tc, RakOps.p6box_i((long)args[curPosArg], tc));
                             break;
+                        case CallSiteDescriptor.ARG_UINT:
+                            slurpy.push_boxed(tc, RakOps.p6box_u((long)args[curPosArg], tc));
+                            break;
                         case CallSiteDescriptor.ARG_NUM:
                             slurpy.push_boxed(tc, RakOps.p6box_n((double)args[curPosArg], tc));
                             break;
@@ -1018,7 +1121,7 @@ public final class Binder {
                         }
                         else {
                             if (error != null)
-                                error[0] = arityFail(tc, gcx, params, (int)numParams, numPosArgs, false);
+                                error[0] = arityFail(tc, gcx, cf, params, (int)numParams, numPosArgs, false);
                             return BIND_RESULT_FAIL;
                         }
                     }
@@ -1028,20 +1131,21 @@ public final class Binder {
             /* Else, it's a non-slurpy named. */
             else {
                 /* Try and get hold of value. */
-                Integer lookup = null;
+                int lookup = -1;
                 if (namedArgsCopy != null) {
                     long numNames = namedNames.elems(tc);
                     for (long j = 0; j < numNames; j++) {
                         namedNames.at_pos_native(tc, j);
                         String name = tc.native_s;
-                        lookup = namedArgsCopy.remove(name);
-                        if (lookup != null)
+                        if (namedArgsCopy.containsKey(name)) {
+                            lookup = namedArgsCopy.remove(name);
                             break;
+                        }
                     }
                 }
 
                 /* Did we get one? */
-                if (lookup == null) {
+                if (lookup == -1) {
                     /* Nope. We'd better hope this param was optional... */
                     if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
                         bindFail = bindOneParam(tc, gcx, cf, param,
@@ -1059,7 +1163,7 @@ public final class Binder {
                     }
                 }
                 else {
-                    bindFail = bindOneParam(tc, gcx, cf, param, args[lookup >> 3],
+                    bindFail = bindOneParam(tc, gcx, cf, param, args[lookup >> 6],
                         (byte)(lookup & 7), noNomTypeCheck, false, error);
                 }
 
@@ -1073,7 +1177,7 @@ public final class Binder {
         if (curPosArg < numPosArgs && !suppressArityFail) {
             /* Oh noes, too many positionals passed. */
             if (error != null)
-                error[0] = arityFail(tc, gcx, params, (int)numParams, numPosArgs, true);
+                error[0] = arityFail(tc, gcx, cf, params, (int)numParams, numPosArgs, true);
             return BIND_RESULT_FAIL;
         }
         if (namedArgsCopy != null && namedArgsCopy.size() > 0) {
@@ -1081,8 +1185,9 @@ public final class Binder {
             if (error != null) {
                 int numExtra = namedArgsCopy.size();
                 if (numExtra == 1) {
-                    for (String name : namedArgsCopy.keySet())
+                    for (String name : namedArgsCopy.keySet()) {
                         error[0] = "Unexpected named argument '" + name + "' passed";
+                    }
                 }
                 else {
                     boolean first = true;
@@ -1105,25 +1210,28 @@ public final class Binder {
     }
 
     /* Takes any nameds we didn't capture yet and makes a VM Hash of them. */
-    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, RakOps.GlobalExt gcx, HashMap<String, Integer> namedArgsCopy, Object[] args) {
+    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, RakOps.GlobalExt gcx, Object2IntOpenHashMap<String> namedArgsCopy, Object[] args) {
         SixModelObject slurpy = gcx.Mu;
         if (namedArgsCopy != null) {
             SixModelObject BOOTHash = tc.gc.BOOTHash;
             slurpy = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);
             for (String name : namedArgsCopy.keySet()) {
-                int lookup = namedArgsCopy.get(name);
+                int lookup = namedArgsCopy.getInt(name);
                 switch (lookup & 7) {
                 case CallSiteDescriptor.ARG_OBJ:
-                    slurpy.bind_key_boxed(tc, name, (SixModelObject)args[lookup >> 3]);
+                    slurpy.bind_key_boxed(tc, name, (SixModelObject)args[lookup >> 6]);
                     break;
                 case CallSiteDescriptor.ARG_INT:
-                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_i((long)args[lookup >> 3], tc));
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_i((long)args[lookup >> 6], tc));
+                    break;
+                case CallSiteDescriptor.ARG_UINT:
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_u((long)args[lookup >> 6], tc));
                     break;
                 case CallSiteDescriptor.ARG_NUM:
-                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_n((double)args[lookup >> 3], tc));
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_n((double)args[lookup >> 6], tc));
                     break;
                 case CallSiteDescriptor.ARG_STR:
-                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_s((String)args[lookup >> 3], tc));
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_s((String)args[lookup >> 6], tc));
                     break;
                 }
             }

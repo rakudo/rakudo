@@ -1,0 +1,186 @@
+my class Set does Setty {
+    has ValueObjAt $!WHICH;
+
+    # Make sure to return sentinel on empty Sets
+    multi method SETUP(Set:U: \elems) {
+        nqp::not_i(nqp::elems(nqp::decont(elems))) && nqp::eqaddr(self,Set)
+          ?? set()
+          !! nqp::p6bindattrinvres(
+               nqp::create(self),Set,'$!elems',nqp::decont(elems)
+             )
+    }
+
+    # Special version of .new that does *not* return the empty set.
+    # This is needed because "has %.a is Set" will either potentially
+    # override the empty set, *or* it will create a bare "Set" object
+    # that doesn't have the $!elems attribute properly initialized.
+    method ATTRIBUTE-new() is implementation-detail {
+        nqp::p6bindattrinvres(
+          nqp::create(Set),Set,'$!elems',
+          nqp::create(Rakudo::Internals::IterationSet)
+        )
+    }
+
+    method ^parameterize(Mu \base, Mu \type) {
+        my \what := base.^mixin(QuantHash::KeyOf[type]);
+        what.^set_name(
+          nqp::concat(base.^name,'[') ~ nqp::concat(type.^name,']')
+        );
+        what
+    }
+
+    multi method WHICH (Set:D: --> ValueObjAt:D) {
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
+    }
+
+    method !WHICH() {
+        $!WHICH := nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Set),
+              'Set|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
+            ),
+            nqp::sha1(
+              nqp::join("\0",Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.RAW-KEYS(self)
+              ))
+            )
+          ),
+          ValueObjAt
+        )
+    }
+
+    my class Iterate does Rakudo::Iterator::Mappy {
+        method pull-one() {
+          $!iter
+            ?? Pair.new(nqp::iterval(nqp::shift($!iter)),True)
+            !! IterationEnd
+        }
+    }
+    method iterator(Set:D:) { Iterate.new($!elems) }
+
+    my class KV does Rakudo::QuantHash::Quanty-kv {
+        method pull-one() is raw {
+            nqp::if(
+              $!on,
+              nqp::stmts(
+                ($!on = 0),
+                True,
+              ),
+              nqp::if(
+                $!iter,
+                nqp::stmts(
+                  ($!on = 1),
+                  nqp::iterval(nqp::shift($!iter))
+                ),
+                IterationEnd
+              )
+            )
+        }
+        method push-all(\target --> IterationEnd) {
+            nqp::while(
+              $!iter,
+              nqp::stmts(  # doesn't sink
+                target.push(nqp::iterval(nqp::shift($!iter))),
+                target.push(True)
+              )
+            )
+        }
+    }
+    multi method kv(Set:D:) { Seq.new(KV.new(self)) }
+    multi method values(Set:D:) { True xx self.total }
+
+    multi method grab(Set:D: $count?) {
+        X::Immutable.new( method => 'grab', typename => self.^name ).throw;
+    }
+    multi method grabpairs(Set:D: $count?) {
+        X::Immutable.new( method => 'grabpairs', typename => self.^name ).throw;
+    }
+
+#--- stringification methods
+
+    multi method gist(Set:D: --> Str:D) {
+        nqp::concat(
+          nqp::concat(
+            nqp::concat(self.^name,'('),
+            nqp::join(" ",
+              Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.RAW-VALUES-MAP(self, *.gist)
+              )
+            )
+          ),
+          ')'
+        )
+    }
+
+    multi method raku(Set:D: --> Str:D) {
+        nqp::if(
+          nqp::eqaddr(self,set()),
+          'set()',
+          nqp::concat(
+            nqp::concat(
+              nqp::concat(self.^name,'.new('),
+              nqp::join(",",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.raku))
+            ),
+            ')'
+          )
+        )
+    }
+
+#--- coercion methods
+    multi method Set(Set:D:) { self }
+    multi method SetHash(Set:D:) {
+        SetHash.SETUP(nqp::clone($!elems))
+    }
+
+    multi method Setty(Set:U:) { Set      }
+    multi method Setty(Set:D:) { self     }
+    multi method Baggy(Set:U:) { Bag      }
+    multi method Baggy(Set:D:) { self.Bag }
+    multi method Mixy (Set:U:) { Mix      }
+    multi method Mixy (Set:D:) { self.Mix }
+
+#--- interface methods
+    multi method STORE(Set:D: Any:D \keys, :INITIALIZE($)! --> Set:D) {
+        (my \iterator := keys.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('initialize')
+          !! self.SETUP(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+               nqp::create(Rakudo::Internals::IterationSet),
+               iterator,
+               self.OBJECTIFIER
+             ))
+    }
+
+    # This version of STORE typically gets called from HYPER, where
+    # it will just create a bare instance of the Set class
+    multi method STORE(Set:D: \objects, \bools, :INITIALIZE($)! --> Set:D) {
+        self.SETUP(
+          Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-SET(
+            nqp::create(Rakudo::Internals::IterationSet),
+            objects.iterator,
+            bools.iterator,
+            self.OBJECTIFIER
+          )
+        )
+    }
+
+    multi method AT-KEY(Set:D: Mu \k) {
+        nqp::hllbool(nqp::existskey($!elems,self.WHICHIFY(k)))
+    }
+
+    # https://github.com/rakudo/rakudo/issues/5057
+    multi method deepmap(Set:D: &mapper) {
+        my $new  := nqp::clone($!elems);
+        my $iter := nqp::iterator($!elems);
+
+        while $iter {
+            nqp::shift($iter);
+            nqp::deletekey($new, nqp::iterkey_s($iter)) unless mapper(1);
+        }
+
+        self.WHAT.SETUP($new)
+    }
+}
+
+# vim: expandtab shiftwidth=4

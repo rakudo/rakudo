@@ -42,7 +42,7 @@ my %backend_bin = (
 GetOptions( \%options, 'help!', 'backend=s@', );
 
 $options{backend} = [
-    map { die "Unknwon backend '$_'" unless exists $backend_bin{$_}; $_ }
+    map { die "Unknown backend '$_'" unless exists $backend_bin{$_}; $_ }
       split( /,/, join( ",", @{ $options{backend} // [qw<moar>] } ) )
 ];
 

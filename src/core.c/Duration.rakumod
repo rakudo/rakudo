@@ -1,0 +1,78 @@
+my class Duration is Cool does Real {
+    # A linear count of nano-seconds
+    has Int $.tai is default(0);
+
+    # Make sure the Duration interface works on Inf/NaN
+    my role add-tai { method tai() { self } }
+
+    multi method new(Duration: Rat:D \tai --> Duration:D) {
+        nqp::p6bindattrinvres(
+          nqp::create(Duration),
+          Duration,
+          '$!tai',
+          (nqp::decont(tai) * 1000000000).Int
+        )
+    }
+    multi method new(Duration: Num:D \value) {
+        nqp::isnanorinf(nqp::decont(value))
+          ?? nqp::decont(value.Rat) but add-tai
+          !! nqp::istype((my \tai := (value * 1000000000).Int),Failure)
+            ?? tai.throw
+            !! nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
+    }
+    multi method new(Duration: \value --> Duration:D) {
+        nqp::istype((my \tai := (value * 1000000000).Int),Failure)
+          ?? tai.throw
+          !! nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
+    }
+
+    method tai(Duration:D: --> Rat:D) {
+        $!tai / 1000000000
+    }
+
+    method from-posix-nanos(Duration:U: Int:D $nanos --> Duration:D) {
+        nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',$nanos)
+    }
+
+    method to-nanos(--> Int:D) { $!tai }
+
+    method Bridge(Duration:   --> Num:D) {
+        self.defined ?? self.tai.Num !! self.Real::Bridge
+    }
+    method Num   (Duration:D: --> Num:D) { self.tai.Num    }
+    method Rat   (Duration:D: --> Rat:D) { self.tai.Rat    }
+    method narrow(Duration:D:          ) { self.tai.narrow }
+
+    multi method Str(Duration:D: --> Str:D) { self.tai.Str }
+
+    multi method raku(Duration:D: --> Str:D) {
+        "Duration.new($.tai.raku())"
+    }
+}
+
+multi sub prefix:<->(Duration:D $a --> Duration:D) {
+    Duration.from-posix-nanos: -$a.to-nanos;
+}
+
+multi sub infix:<+>(Duration:D $a, Real $b --> Duration:D) {
+    Duration.from-posix-nanos: $a.to-nanos + ($b * 1000000000).Int;
+}
+multi sub infix:<+>(Real $a, Duration:D $b --> Duration:D) {
+    Duration.from-posix-nanos: ($a * 1000000000).Int + $b.to-nanos;
+}
+multi sub infix:<+>(Duration:D $a, Duration:D $b --> Duration:D) {
+    Duration.from-posix-nanos: $a.to-nanos + $b.to-nanos
+}
+
+multi sub infix:<->(Duration:D $a, Real $b --> Duration:D) {
+    Duration.from-posix-nanos: $a.to-nanos - ($b * 1000000000).Int
+}
+multi sub infix:<->(Duration:D $a, Duration:D $b --> Duration:D) {
+    Duration.from-posix-nanos: $a.to-nanos - $b.to-nanos
+}
+
+multi sub infix:<%>(Duration:D $a, Real $b --> Duration:D) {
+    Duration.new: $a.tai % $b
+}
+
+# vim: expandtab shiftwidth=4

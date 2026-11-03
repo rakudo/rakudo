@@ -1,14 +1,14 @@
-use v6.c;
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2021 The Perl Foundation.
+# Copyright (C) 2007 - 2026 Yet Another Society
 
 # settable from outside
+my %ENV := %*ENV;
 my int $raku_test_times =
-  ?(%*ENV<RAKU_TEST_TIMES> // %*ENV<PERL6_TEST_TIMES>);
+  ?(%ENV<RAKU_TEST_TIMES> // %ENV<PERL6_TEST_TIMES>);
 my int $die_on_fail =
-  ?(%*ENV<RAKU_TEST_DIE_ON_FAIL> // %*ENV<PERL6_TEST_DIE_ON_FAIL>);
+  ?(%ENV<RAKU_TEST_DIE_ON_FAIL> // %ENV<PERL6_TEST_DIE_ON_FAIL>);
 
 # global state
 my @vars;
@@ -66,7 +66,7 @@ our sub todo_output is rw {
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$test-assertion!) is export {
-    $r.^mixin( role is-test-assertion {
+    $r.^mixin( my role is-test-assertion {
         method is-test-assertion(--> True) { }
     }) if $test-assertion;
 }
@@ -262,9 +262,9 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     #  #3 handles all the rest by escaping '<' and '>' with backslashes.
     #     Note: #3 doesn't eliminate #1, as #3 fails with '<' operator
     my $matcher = nqp::istype($op, Callable) ?? $op
-        !! &CALLERS::("infix:<$op>") #1
-            // &CALLERS::("infix:«$op»") #2
-            // &CALLERS::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
+        !! &CALLER::LEXICAL::("infix:<$op>") #1
+            // &CALLER::LEXICAL::("infix:«$op»") #2
+            // &CALLER::LEXICAL::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
 
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);
@@ -293,21 +293,6 @@ sub bail-out ($desc?) is export {
     $output.put: join ' ', 'Bail out!', ($desc if $desc);
     $done_testing_has_been_run = 1;
     exit 255;
-}
-
-multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    Rakudo::Deprecations.DEPRECATED('is-approx'); # Remove for 6.d release
-
-    $time_after = nqp::time;
-    my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
-    my $test = ($got - $expected).abs <= $tol;
-    my $ok = proclaim($test, $desc);
-    unless $test {
-        _diag "expected: $expected\n"
-            ~ "got:      $got";
-    }
-    $time_before = nqp::time;
-    $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
 # We're picking and choosing which tolerance to use here, to make it easier
@@ -401,12 +386,13 @@ multi sub todo($reason, $count = 1) is export {
     $time_before = nqp::time;
 }
 
+proto  sub skip(|) is export {*}
 multi sub skip() {
     $time_after = nqp::time;
     proclaim(1, '', "# SKIP");
     $time_before = nqp::time;
 }
-multi sub skip($reason, $count = 1) is export {
+multi sub skip($reason, $count = 1) {
     $time_after = nqp::time;
     die "skip() was passed a non-integer number of tests.  Did you get the arguments backwards or use a non-integer number?" if $count !~~ Int;
     my $i = 1;
@@ -422,9 +408,17 @@ sub skip-rest($reason = '<unknown>') is export {
     $time_before = nqp::time;
 }
 
-multi sub subtest(Pair $what)            is export { subtest($what.value,$what.key) }
-multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)       }
-multi sub subtest(&subtests, $desc = '') is export {
+proto sub subtest(|) is export {*}
+multi sub subtest(*%_ where *.elems == 1) {
+    subtest(.value, .key) with %_.pairs.head
+}
+multi sub subtest(Pair $what) {
+    subtest($what.value,$what.key)
+}
+multi sub subtest($desc, &subtests) {
+    subtest(&subtests,$desc)
+}
+multi sub subtest(&subtests, $desc = '') {
     _diag "Subtest" ~ ($desc ?? ": " ~ $desc !! ''), :force-informative;
     my $parent_todo = $todo_reason || $subtest_todo_reason;
     _push_vars();
@@ -559,6 +553,24 @@ multi sub dies-ok(Callable $code, $reason = '') is export {
     $ok or ($die_on_fail and die-on-fail) or $ok;
 }
 
+multi sub exit-ok(|c) is export is DEPRECATED("exits-ok") {
+    exits-ok(|c)
+}
+multi sub exits-ok(
+        &code,
+  Int:D $exit = 0,
+  Str:D $desc = "Checking for exit($exit)"
+) is export {
+    my $got;
+    my $seen = False;
+    my &*EXIT = { $seen = True; $got = $_ }
+    $time_after = nqp::time;
+    code();
+    my $ok = proclaim($seen && $got == $exit, $desc);
+    $time_before = nqp::time;
+    $ok or ($die_on_fail and die-on-fail) or $ok;
+}
+
 multi sub lives-ok(Callable $code, $reason = '') is export {
     $time_after = nqp::time;
     try {
@@ -593,7 +605,7 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
 # tests as well. So... for the foreseeable future we decided to leave it
 # as is. If a user really wants to ensure Seq comparison, there's always
 # `cmp-ok` with `eqv` op.
-# https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-04#l100
+# https://irclogs.raku.org/perl6-dev/2017-05-04.html#15:38-0001
 ######################################################################
 multi sub is-deeply(Seq:D $got, Seq:D $expected, $reason = '') is export {
     is-deeply $got.cache, $expected.cache, $reason;
@@ -642,12 +654,21 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
         CATCH {
             default {
                 pass $msg;
-                my $type_ok = $_ ~~ $ex_type;
+                my $ex := $_;
+                my $type_ok = $ex ~~ $ex_type;
+                if !$type_ok && $ex_type ~~ X::Comp && $ex ~~ X::Comp::Group {
+                    # Compile time exceptions may be found in a group if the compiler reports
+                    # more than one problem.
+                    with ($_.panic, |$_.sorrows).first($ex_type) -> $nested-ex {
+                        $ex := $nested-ex;
+                        $type_ok = True;
+                    }
+                }
                 ok $type_ok , "right exception type ($ex_type.^name())";
                 if $type_ok {
                     for %matcher.kv -> $k, $v {
-                        my $got is default(Nil) = $_."$k"();
-                        my $ok = $got ~~ $v,;
+                        my $got is default(Nil) = $ex."$k"();
+                        my $ok = $got ~~ $v;
                         ok $ok, ".$k matches $v.gist()";
                         unless $ok {
                             _diag "Expected: " ~ ($v ~~ Str ?? $v !! $v.raku)
@@ -656,8 +677,8 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
                     }
                 } else {
                     _diag "Expected: $ex_type.^name()\n"
-                        ~ "Got:      $_.^name()\n"
-                        ~ "Exception message: $_.message()";
+                        ~ "Got:      $ex.^name()\n"
+                        ~ "Exception message: $ex.message()";
                     skip 'wrong exception type', %matcher.elems;
                 }
             }
@@ -700,7 +721,7 @@ sub _is_deeply(Mu $got, Mu $expected) {
 sub die-on-fail {
     if !$todo_reason && !$subtest_level && nqp::iseq_i($die_on_fail,1) {
         _diag 'Test failed. Stopping test suite, because the '
-          ~ (%*ENV<RAKU_TEST_DIE_ON_FAIL> ?? 'RAKU' !! 'PERL6')
+          ~ (%ENV<RAKU_TEST_DIE_ON_FAIL> ?? 'RAKU' !! 'PERL6')
           ~ "_TEST_DIE_ON_FAIL\n"
           ~ 'environmental variable is set to a true value.';
         exit 255;
@@ -771,9 +792,28 @@ sub proclaim(
         # sub proclaim is not called directly, so 2 is minimum level
         my int $level = 1;
 
+        # Walk past frames inside this file. Compare in both directions
+        # because `$?FILE` and `$caller.file` end up in opposite
+        # absolute/relative shapes depending on which frontend built
+        # rakudo and which Repository loaded Test.rakumod:
+        #   RakuAST-built:           $?FILE relative (cwd-stripped, see
+        #                            relative-source-filename in
+        #                            src/Raku/ast/compunit.rakumod);
+        #                            $caller.file absolute.
+        #   legacy-built / install:  $?FILE absolute; $caller.file is
+        #                            the Installation-repo form
+        #                            `core#sources/<sha1> (Test)`,
+        #                            i.e. shorter than $?FILE.
+        # In both cases one string is a suffix of the other, so a
+        # bidirectional ends-with is what we want. The original
+        # `$?FILE.ends-with($caller.file)` alone was right for the
+        # legacy/install path but bailed at the first Test.rakumod
+        # frame under RakuAST, attributing every failure to
+        # Test.rakumod itself.
         repeat {
             $caller = callframe(++$level);
-        } while $?FILE.ends-with($caller.file);
+        } while $?FILE.ends-with($caller.file)
+             || $caller.file.ends-with($?FILE);
 
         # initial level for reporting
         my $tester = $caller;
@@ -881,7 +921,9 @@ END {
       if nqp::iseq_i($done_testing_has_been_run,0)
       && nqp::iseq_i($no_plan,0);
 
-    .?close unless $_ === $*OUT || $_ === $*ERR
+    my $OUT := $*OUT;
+    my $ERR := $*ERR;
+    .?close unless $_ === $OUT || $_ === $ERR
       for $output, $failure_output, $todo_output;
 
     exit($num_of_tests_failed min 254) if $num_of_tests_failed > 0;

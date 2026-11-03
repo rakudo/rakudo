@@ -1,0 +1,2 @@
+class StealWho::Leaf {
+}

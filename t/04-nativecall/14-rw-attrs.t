@@ -1,5 +1,3 @@
-use v6;
-
 use lib <lib t/04-nativecall>;
 use CompileTestLib;
 use NativeCall;
@@ -41,10 +39,10 @@ $s.double = 43.3e0;
 $s.char   = 44;
 $s.float  = 45.5e0;
 
-is        $s.long,   42,   'set in Perl (long)';
-is-approx $s.double, 43.3, 'set in Perl (double)';
-is        $s.char,   44,   'set in Perl (char)';
-is-approx $s.float,  45.5, 'set in Perl (float)';
+is        $s.long,   42,   'set in Raku (long)';
+is-approx $s.double, 43.3, 'set in Raku (double)';
+is        $s.char,   44,   'set in Raku (char)';
+is-approx $s.float,  45.5, 'set in Raku (float)';
 
 is        GetLongOfStruct($s),   42,   'C confirms (long)';
 is-approx GetDoubleOfStruct($s), 43.3, 'C confirms (double)';

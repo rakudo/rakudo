@@ -1,126 +1,167 @@
-my class MixinCacheHOW {
-    method new_type($class_type) {
-        my $mo := self.new();
-        my $type := nqp::newtype($mo, 'Uninstantiable');
-        nqp::setparameterizer($type, sub ($type, @roles) {
-            $class_type.HOW.generate_mixin($class_type, @roles);
-        });
-        nqp::setdebugtypename($type, $class_type.HOW.name($class_type) ~ ' mixin cache');
-        $type
-    }
-}
-
+#- Metamodel::Mixins -----------------------------------------------------------
 role Perl6::Metamodel::Mixins {
-    has $!mixin_cache;
-    has $!is_mixin;
-    has $!mixin_attribute;
+    has     $!mixin_cache;
+    has int $!is_mixin;
+    has     $!mixin_attribute;
 
-    method set_is_mixin($obj) { $!is_mixin := 1 }
-    method is_mixin($obj) { $!is_mixin }
-    method set_mixin_attribute($obj, $attr) { $!mixin_attribute := $attr }
-    method mixin_attribute($obj) { $!mixin_attribute }
-    method flush_cache($obj) { }
+    method set_is_mixin()                  { $!is_mixin := 1                 }
+    method set_mixin_attribute($attribute) { $!mixin_attribute := $attribute }
 
-    method setup_mixin_cache($obj) {
-        $!mixin_cache := MixinCacheHOW.new_type($obj.WHAT);
-    }
+    method is_mixin($XXX?)        { $!is_mixin        }
+    method mixin_attribute($XXX?) { $!mixin_attribute }
+    method flush_cache($XXX?)     {                   }
 
-    method mixin($obj, *@roles, :$need-mixin-attribute) {
-        # Lookup mixin, generating it if needed.
-        my int $n := nqp::elems(@roles);
-        my int $i := -1;
-        while ++$i < $n {
-            @roles[$i] := nqp::decont(@roles[$i]);
-        }
-        my $mixin_type := nqp::parameterizetype($!mixin_cache, @roles);
-        nqp::setdebugtypename($mixin_type, $mixin_type.HOW.name($mixin_type) ~ ' mixin');
+    method setup_mixin_cache($target) {
 
-        # Ensure there's a mixin attribute, if we need it.
-        if $need-mixin-attribute {
-            my $found := $mixin_type.HOW.mixin_attribute($mixin_type);
-            unless $found {
-                my $name := @roles[0].HOW.name(@roles[0]);
-                Perl6::Metamodel::Configuration.throw_or_die(
-                    'X::Role::Initialization',
-                    "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '$name'",
-                    :role(@roles[0])
+        my class MixinCacheHOW {
+            method new_type($class) {
+                my $type := nqp::newtype(nqp::create(self), 'Uninstantiable');
+
+                nqp::setparameterizer($type, sub ($type, @roles) {
+                    $class.HOW.generate_mixin($class, @roles);
+                });
+
+                nqp::setdebugtypename(
+                  $type, $class.HOW.name($class) ~ ' mixin cache'
                 );
+
+                $type
             }
         }
+
+        $!mixin_cache := MixinCacheHOW.new_type($target.WHAT);
+    }
+
+    method mixin($target, *@roles, :$need-mixin-attribute) {
+
+        # Lookup mixin, generating it if needed.
+        my int $m := nqp::elems(@roles);
+        my int $i;
+        # Get rid of containers on roles
+        while $i < $m {
+            nqp::bindpos(@roles, $i, nqp::decont(nqp::atpos(@roles, $i)));
+            ++$i;
+        }
+
+        my $mixin_type := nqp::parameterizetype($!mixin_cache, @roles);
+        nqp::setdebugtypename(
+          $mixin_type, $mixin_type.HOW.name($mixin_type) ~ ' mixin'
+        );
+
+        # Ensure there's a mixin attribute, if we need it.
+        self.no_single_attribute(nqp::atpos(@roles, 0))
+          if $need-mixin-attribute
+          && !$mixin_type.HOW.mixin_attribute($mixin_type);
 
         # If the original object was concrete, change its type by calling a
         # low level op. Otherwise, we just return the new type object
-        nqp::isconcrete($obj) ?? nqp::rebless($obj, $mixin_type) !! $mixin_type
+        nqp::isconcrete($target)
+          ?? nqp::rebless($target, $mixin_type)
+          !! $mixin_type
     }
 
     # Generates a new mixin. Not intended for direct use; use mixin, to hit
-    # the mixin cache.
-    method generate_mixin($obj, @roles) {
-        # Flush its cache as promised, otherwise outdated NFAs will stick around.
-        self.flush_cache($obj) if !nqp::isnull($obj) || self.is_mixin($obj);
+    # the mixin cache.  Assumes it is being run in a threadsafe manner.
+    method generate_mixin($target, @roles) {
+        # Flush its cache as promised, otherwise outdated NFAs will stick
+        # around.
+        self.flush_cache($target)
+          if nqp::not_i(nqp::isnull($target)) || self.is_mixin($target);
 
         # Work out a type name for the post-mixed-in role.
-        my @role_names;
-        for @roles { @role_names.push(~$_.HOW.name($_)) }
-        my $new_name := self.name($obj) ~ '+{' ~
-            nqp::join(',', @role_names) ~ '}';
+        my $names      := nqp::list_s;
+        my $shortnames := nqp::list_s;
+        my $lang_rev   := nqp::getcomp('Raku').language_revision;
 
-        my @role_shortnames;
-        my $lang_rev := nqp::getcomp('Raku').language_revision;
-        for @roles {
-            my $cur := $_;
-            @role_shortnames.push(~$_.HOW.shortname($_));
-            my $role_lrev := $_.HOW.language-revision($_)
-                if nqp::can($_.HOW, 'language-revision');
-            $lang_rev := $role_lrev if $role_lrev && nqp::islt_s($lang_rev, $role_lrev);
+        my int $m := nqp::elems(@roles);
+        my int $i;
+        while $i < $m {
+            my $role := nqp::atpos(@roles, $i);
+            nqp::push_s($names,      ~$role.HOW.name($role));
+            nqp::push_s($shortnames, ~$role.HOW.shortname($role));
+            if nqp::can($role.HOW, 'language_revision') {
+                my $role_lang_rev := $role.HOW.language_revision;
+                $lang_rev := $role_lang_rev if $lang_rev < $role_lang_rev;
+            }
+
+            ++$i;
         }
-        my $new_shortname := $obj.HOW.shortname($obj) ~ '+{' ~
-            nqp::join(',', @role_shortnames) ~ '}';
+
+        # Helper sub to create a name for given role names
+        my sub namify(@parts) { '+{' ~ nqp::join(',', @parts) ~ '}' }
+
+        my $name      := self.name($target)      ~ namify($names);
+        my $shortname := self.shortname($target) ~ namify($shortnames);
 
         # Create new type, derive it from ourself and then add
         # all the roles we're mixing it.
-        my $new_type := self.new_type(:name($new_name), :repr($obj.REPR), :is_mixin);
-        $new_type.HOW.set_is_mixin($new_type);
-        $new_type.HOW.set_language_revision($new_type, $lang_rev);
-        $new_type.HOW.add_parent($new_type, $obj.WHAT);
-        for @roles {
-            $new_type.HOW.add_role($new_type, $_);
+        my $type := self.new_type(:$name, :repr($target.REPR), :is_mixin);
+        my $HOW  := $type.HOW;
+
+        $HOW.set_is_mixin;
+        $HOW.set_language_revision($type, $lang_rev);
+        $HOW.add_parent($type, $target.WHAT);
+
+        $i := 0;
+        while $i < $m {
+            $HOW.add_role($type, nqp::atpos(@roles, $i));
+            ++$i;
         }
-        $new_type.HOW.compose($new_type);
-        $new_type.HOW.set_shortname($new_type, $new_shortname);
-        $new_type.HOW.set_boolification_mode($new_type,
-            nqp::existskey(nqp::hllize($new_type.HOW.method_table($new_type)), 'Bool')
-            || nqp::can($new_type.HOW, 'submethod_table')
-                && nqp::existskey(nqp::hllize($new_type.HOW.submethod_table($new_type)), 'Bool')
-                ?? 0
-                !! self.get_boolification_mode($obj));
-        $new_type.HOW.publish_boolification_spec($new_type);
+
+        $HOW.compose($type);
+        $HOW.set_shortname($type, $shortname);
+        $HOW.set_boolification_mode(
+          $type,
+          $HOW.declares_method($type, 'Bool')
+            ?? 0
+            !! self.get_boolification_mode($target)
+        );
+        $HOW.publish_boolification_spec($type);
 
         # Locate an attribute that can serve as the initialization attribute,
-        # if there is one.
-        my $found;
-        for $new_type.HOW.attributes($new_type, :local) {
-            if $_.is_built {
-                if $found {
-                    $found := NQPMu;
-                    last;
-                }
-                $found := $_;
+        # if there is only one.
+        my $is_built;
+        my $attributes := $HOW.attributes($type, :local);
+
+        $m := nqp::elems($attributes);
+        $i := 0;
+        while $i < $m {
+            my $attribute := nqp::atpos($attributes, $i);
+            if $attribute.is_built {
+                $is_built                       # not first attribute built?
+                  ?? (return $type)             # done, return here and now
+                  !! ($is_built := $attribute)  # first attribute seen
             }
-        }
-        if $found {
-            $new_type.HOW.set_mixin_attribute($new_type, $found);
+            ++$i;
         }
 
-        $new_type
+        # If we got here, there's only one attribute to be built
+        $type.HOW.set_mixin_attribute($is_built);
+
+        $type
     }
 
-    method mixin_base($obj) {
-        for self.mro($obj) {
-            unless $_.HOW.is_mixin($_) {
-                return $_;
-            }
+    method mixin_base($target) {
+        my $mro := self.mro($target);
+
+        my int $m := nqp::elems($mro);
+        my int $i;
+        while $i < $m {
+            my $class := nqp::atpos($mro, $i);
+            $class.HOW.is_mixin
+              ?? ++$i
+              !! (return $class);
         }
+    }
+
+    method no_single_attribute($role) {
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::Initialization',
+          "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '"
+            ~ $role.HOW.name($role)
+            ~ "'",
+          :$role
+        );
     }
 }
 

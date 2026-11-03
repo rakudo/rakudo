@@ -1,0 +1,84 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 4;
+
+my $ast;
+my $deparsed;
+my $raku;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'simple bold markup' => {
+    # B<this is bold>
+    ast RakuAST::Doc::Markup.new(
+      letter => 'B',
+      atoms  => ("this is bold",)
+    );
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, 'B<this is bold>', "$type: deparse";
+    }
+}
+
+subtest 'simple bold with italics markup' => {
+    # B<this I<is> bold>
+    ast RakuAST::Doc::Markup.new(
+      letter => 'B',
+      atoms  => (
+        "this ",
+        RakuAST::Doc::Markup.new(
+          letter => "I",
+          atoms  => ("is",)
+        ),
+        " bold",
+      )
+    );
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, 'B<this I<is> bold>', "$type: deparse";
+    }
+}
+
+subtest 'link with code markup' => {
+    # L<The C<Raku> Programming Language|https://raku.org>
+    ast RakuAST::Doc::Markup.new(
+      letter => 'L',
+      atoms  => (
+        "The ",
+        RakuAST::Doc::Markup.new(
+          letter => "C",
+          atoms  => ("Raku",)
+        ),
+        " Programming Language",
+      ),
+      meta  => ("https://raku.org",)
+    );
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it,
+          'L<The C<Raku> Programming Language|https://raku.org>',
+          "$type: deparse";
+    }
+}
+
+subtest 'index entry with multiple lemmas' => {
+    for <D M X> -> $letter {
+        # $letter<hash|hashes, definition of;associative arrays>
+        ast RakuAST::Doc::Markup.new(
+          letter => $letter,
+          atoms  => ("hash",),
+          meta  => (
+            "hashes, definition of; associative arrays",
+          ),
+        );
+        for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+            is-deeply $it,
+              $letter ~ '<hash|hashes, definition of; associative arrays>',
+              "$type: deparse";
+        }
+    }
+}
+
+# vim: expandtab shiftwidth=4

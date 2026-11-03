@@ -1,46 +1,77 @@
+#- Metamodel::MROBasedTypeChecking ---------------------------------------------
 role Perl6::Metamodel::MROBasedTypeChecking {
-    method isa($obj, $type) {
-        my $decont := nqp::decont($type);
-        for self.mro($obj) {
-            if nqp::decont($_) =:= $decont { return 1 }
+    method isa($target, $type) {
+        $type   := nqp::decont($type);
+        my $mro := self.mro($target);
+
+        my int $m := nqp::elems($mro);
+        my int $i;
+        while $i < $m {
+            nqp::eqaddr(nqp::decont(nqp::atpos($mro, $i)), $type)
+              ?? (return 1)
+              !! ++$i;
         }
+
         0
     }
 
-    method does($obj, $type) {
-        nqp::hllboolfor(nqp::istype($obj, $type), "Raku")
+    method does($target, $type) {
+        # XXX why does this need to be HLLized here??
+        nqp::hllboolfor(nqp::istype($target, $type), "Raku")
     }
 
-    method type_check($obj, $checkee) {
+    method type_check($target, $checkee) {
+        $checkee := nqp::decont($checkee);
+
         # The only time we end up in here is if the type check cache was
         # not yet published, which means the class isn't yet fully composed.
         # Just hunt through MRO.
-        for self.mro($obj) {
-            if $_ =:= $checkee {
-                return 1;
-            }
-            if nqp::can($_.HOW, 'role_typecheck_list') {
-                for $_.HOW.role_typecheck_list($_) {
-                    if $_ =:= $checkee {
-                        return 1;
-                    }
+        my $mro  := self.mro($target);
+
+        my int $m := nqp::elems($mro);
+        my int $i;
+        while $i < $m {
+            my $type := nqp::atpos($mro, $i);
+            return 1 if nqp::eqaddr($type, $checkee);
+
+            if nqp::can($type.HOW, 'role_typecheck_list') {
+                my $types := $type.HOW.role_typecheck_list($type);
+
+                my int $n := nqp::elems($types);
+                my int $j;
+                while $j < $n {
+                    nqp::eqaddr(nqp::atpos($types, $j), $checkee)
+                      ?? (return 1)
+                      !! ++$j;
                 }
             }
+
+            ++$i;
         }
+
         0
     }
 
-    method publish_type_cache($obj) {
+    method publish_type_cache($target) {
         my @tc;
-        for self.mro($obj) {
-            @tc.push($_);
-            if nqp::can($_.HOW, 'role_typecheck_list') {
-                for $_.HOW.role_typecheck_list($_) {
-                    @tc.push($_);
-                }
-            }
+        my $mro := self.mro($target);
+
+        my int $m := nqp::elems($mro);
+        my int $i;
+        while $i < $m {
+            my $type := nqp::atpos($mro, $i);
+            nqp::push(@tc, $type);
+
+            nqp::splice(
+              @tc,
+              $type.HOW.role_typecheck_list($type),
+              nqp::elems(@tc),
+              0
+            ) if nqp::can($type.HOW, 'role_typecheck_list');
+
+            ++$i;
         }
-        nqp::settypecache($obj, @tc)
+        nqp::settypecache($target, @tc)
     }
 }
 

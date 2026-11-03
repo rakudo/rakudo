@@ -1,9 +1,8 @@
-use v6.c;
 use Test;
 
 use Pod::To::Text;
 
-plan 18;
+plan 20;
 
 my $r;
 my $rp;
@@ -141,6 +140,20 @@ is $rp,
 q:to/END/;
     say 1;
     say 2;
+END
+}
+
+{
+# definitions
+=defn A term
+Its definition.
+
+$r = $=pod[++$p];
+isa-ok $r, Pod::Defn;
+$rp = Pod::To::Text.render($r),
+is $rp, chomp q:to/END/;
+A term
+Its definition.
 END
 }
 

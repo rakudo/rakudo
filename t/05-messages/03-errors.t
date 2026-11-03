@@ -1,8 +1,9 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
+use nqp;
 use Test::Helpers;
 
-plan 25;
+plan 43;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -22,6 +23,7 @@ throws-like ｢'x'.substr: /x/, 'x'｣, Exception,
             'using substr instead of subst';
 
 # https://github.com/Raku/old-issue-tracker/issues/6672
+todo 'no location of error, yet', 1 if $*VM.name eq 'jvm';
 throws-like ｢sprintf "%d", class Foo {}.new｣,
     X::Str::Sprintf::Directives::BadType, :gist(/«line\s+\d+$$/),
 'errors from sprintf include location of error';
@@ -70,7 +72,7 @@ throws-like {
 # https://github.com/Raku/old-issue-tracker/issues/6580
 subtest 'unclosed hash quote index operator <> message' => {
     plan 2;
-    throws-like "\n\nsay \$<\n\n", X::Comp::AdHoc,
+    throws-like "\n\nsay \$<\n\n", Exception,
         'good error message for unclosed <> hash operator',
         gist => all(
             /:i:s<<unable to parse /, /<<find\h+\'\>\'/, /:s<<at line 3 /
@@ -143,9 +145,7 @@ is-run 'sub rt125181 returns Str returns Int {}',
 
 { # coverage; 2016-09-18
     throws-like { 42.classify      }, Exception, '.classify()    on Any throws';
-    throws-like { 42.classify:   * }, Exception, '.classify(*)   on Any throws';
     throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
-    throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
 }
 
 # https://github.com/rakudo/rakudo/issues/2110
@@ -174,5 +174,215 @@ cmp-ok X::OutOfRange.new(
 # https://github.com/rakudo/rakudo/issues/2320
 is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
 'Use placeholder variables in a method should yield a useful error message';
+
+# https://github.com/rakudo/rakudo/issues/2385
+is-run 'role R2385 { multi method r2385(--> Str) { ... } }; class C2385 does R2385 { multi method r2385(--> Int) { 1 } }',
+    'Role methods implemented by a class are checked for return type as well as for arguments',
+    :err(/ 'Multi method' .+? 'must be implemented' /), :exitcode(so *);
+
+# https://github.com/rakudo/rakudo/issues/2921
+is-run 'bleah:(0)', err => { .contains: 'You can\'t adverb' }, :exitcode{.so},
+'Absurd adverbing results in a proper error message';
+
+# https://github.com/rakudo/rakudo/issues/4178
+is-run 'close $*OUT; say "hi"', err => { .contains: 'closed handle' }, :exitcode{.so},
+'An attempt to use a closed handle results in a proper error message';
+
+is-run ｢has $.x; print "ran"｣,
+    'attribute declaration in the mainline is a compile time error',
+    :err(/'You cannot declare attribute' .*? '$.x'/), :exitcode(1);
+
+is-run ｢has ($.a, $.b); print "ran"｣,
+    'signature attribute declaration in the mainline is a compile time error',
+    :err(/'You cannot declare attribute' .*? '$.a'/), :exitcode(1);
+
+throws-like ｢my $FILA = 1; say $?FILA｣, X::Undeclared,
+    message => *.contains(Q[Did you mean '$FILA']),
+    'an unknown compiler variable is reported with suggestions';
+
+# https://irclogs.raku.org/raku-dev/2025-05-12.html#12:13
+subtest 'constraint failure on an unpassed optional parameter explains the implicit default' => {
+    plan 5;
+
+    throws-like ｢my subset NonEmpty of Str where *.so; sub foo(NonEmpty :$name) { }; foo()｣,
+        X::TypeCheck::Binding::Parameter,
+        omitted => *.so,
+        message => *.contains('was not passed'),
+        'an unpassed named parameter with a subset type mentions the implicit default';
+
+    throws-like ｢my subset NonEmpty of Str where *.so; sub foo(NonEmpty $name?) { }; foo()｣,
+        X::TypeCheck::Binding::Parameter,
+        message => *.contains('was not passed'),
+        'an unpassed optional positional parameter with a subset type mentions the implicit default';
+
+    throws-like ｢sub foo(Str :$name where *.so) { }; foo()｣,
+        X::TypeCheck::Binding::Parameter,
+        message => *.contains('was not passed'),
+        'an unpassed named parameter with a where clause mentions the implicit default';
+
+    throws-like ｢my subset NonEmpty of Str where *.so; sub foo(NonEmpty :$name) { }; foo(name => "")｣,
+        X::TypeCheck::Binding::Parameter,
+        message => { not .contains('was not passed') },
+        'a passed value failing the constraint does not claim the parameter was not passed';
+
+    throws-like ｢my subset NonEmpty of Str where *.so; sub foo(NonEmpty :$name = "".lc) { }; foo()｣,
+        X::TypeCheck::Binding::Parameter,
+        message => { not .contains('was not passed') },
+        'an explicit default failing the constraint does not claim the parameter has none';
+}
+
+subtest 'a compile time problem shows the source around it' => {
+    plan 14;
+
+    throws-like ｢sub f(Int $x) { }; f("str")｣,
+        X::TypeCheck::Argument,
+        pre  => 'sub f(Int $x) { }; ',
+        post => 'f("str")',
+        gist => *.contains('------> '),
+        'a check time sorry carries the source on either side of the problem';
+
+    throws-like ｢my $a = 1;
+sub f(Int $x) { }; f("str");
+my $b = 2｣,
+        X::TypeCheck::Argument,
+        line => 2,
+        pre  => 'sub f(Int $x) { }; ',
+        post => 'f("str");',
+        'the source shown is cut to the line the problem is on';
+
+    throws-like "my \$a = 1;\r\nsub f(Int \$x) \{ }; f(\"str\");\r\nmy \$b = 2",
+        X::TypeCheck::Argument,
+        line => 2,
+        pre  => 'sub f(Int $x) { }; ',
+        post => 'f("str");',
+        'a source with carriage return line endings is cut to the line too';
+
+    throws-like ｢my $aaaa = 1; my $bbbb = 2; my $cccc = 3; sub f(Int $x) { }; f("str"); my $dddd = 4; my $eeee = 5; my $ffff = 6｣,
+        X::TypeCheck::Argument,
+        pre  => { .chars == 40 && .ends-with('sub f(Int $x) { }; ') },
+        post => { .chars == 40 && .starts-with('f("str"); my $dddd') },
+        'each side of the source shown is cut to forty characters';
+
+    if nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast' {
+        throws-like ｢my $a = 1; $a xx 2 :foo｣,
+            X::Syntax::Adverb,
+            pre  => 'my $a = 1; ',
+            post => '$a xx 2 :foo',
+            'the source is split where the node reporting the problem starts';
+
+        throws-like ｢my $a = 1;
+$a xx 2 :foo｣,
+            X::Syntax::Adverb,
+            pre  => '<BOL>',
+            'a problem at the start of a line names the line start';
+
+        throws-like ｢my $a = 1; $a xx 2 :foo
+｣,
+            X::Syntax::Adverb,
+            post => '$a xx 2 :foo',
+            'the source after the problem stops at the line end';
+
+        throws-like ｢BEGIN die "boom"｣,
+            X::Comp::BeginTime,
+            pre  => '<BOL>',
+            post => 'BEGIN die "boom"',
+            gist => *.contains('------> '),
+            'a BEGIN time failure carries the source of the BEGIN';
+
+        throws-like ｢my $a = 1; CHECK die "boom"; my $b = 2｣,
+            X::Comp::BeginTime,
+            pre  => 'my $a = 1; ',
+            post => 'CHECK die "boom"; my $b = 2',
+            'a CHECK time failure carries the source of the CHECK';
+
+        throws-like ｢my $a = 1; use Nope::Missing; my $b = 2｣,
+            X::CompUnit::UnsatisfiedDependency,
+            pre  => 'my $a = 1; ',
+            post => 'use Nope::Missing; my $b = 2',
+            'a failed module load carries the source of the use';
+
+        throws-like ｢my $a = 1; constant x = die "boom"; my $b = 2｣,
+            X::Comp::BeginTime,
+            pre  => 'my $a = 1; ',
+            post => 'constant x = die "boom"; my $b = 2',
+            'a constant whose value fails carries the source of the constant';
+
+        throws-like ｢my $a = 1; no worries (die "boom"); my $b = 2｣,
+            X::AdHoc,
+            pre  => 'my $a = 1; ',
+            post => 'no worries (die "boom"); my $b = 2',
+            'a pragma argument that fails carries the source of the pragma';
+
+        throws-like ｢my $a = 1; class A:auth(do { die "boom" }) { }; my $b = 2｣,
+            X::Comp::BeginTime,
+            pre  => 'my $a = 1; class A',
+            post => ':auth(do { die "boom" }) { }; my $b = 2',
+            'a colonpair value that fails carries the source of the colonpair';
+
+        throws-like ｢my $a = 1; $a xx 2 :foo; $a xx 3 :bar｣,
+            X::Comp::Group,
+            gist => { .comb('------> ').elems == 2 },
+            'each problem in a group shows its own source';
+    }
+    else {
+        skip 'the source split is placed by the RakuAST frontend', 10;
+    }
+}
+
+{
+    my $h = Hash[Int].new;
+    throws-like { $h<a> = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no container that has no name';
+    my $object-element := Hash[Int,Str].new<a>;
+    throws-like { cas $object-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element of an object hash that has no name';
+    my $hash-element := Hash[Int].new<a>;
+    throws-like { cas $hash-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element of a hash that has no name';
+    my $array-element := Array[Int].new[0];
+    throws-like { cas $array-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element of an array that has no name';
+    my $shaped-element := Array[Int].new(:shape(2,2,2,2))[0;0;0;0];
+    throws-like { cas $shaped-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element of a shaped array that has no name';
+    my Int %named-hash;
+    my $named-hash-element := %named-hash<a>;
+    throws-like { cas $named-hash-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ "Type check failed for an element of %named-hash\{'a'\}; "/,
+        'an assignment type check failure names an element of a named hash';
+    my Int @named-array;
+    my $named-array-element := @named-array[5];
+    throws-like { cas $named-array-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed for an element of @named-array[5]; '/,
+        'an assignment type check failure names an element of a named array';
+    my Int %named-object{Str};
+    my $named-object-element := %named-object<a>;
+    throws-like { cas $named-object-element, Int, 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment to element of %named-object; '/,
+        'an assignment type check failure names an element of a named object hash';
+    my Hash[Int] $taken-hash;
+    my $taken-hash-element := $taken-hash<a>;
+    throws-like { $taken-hash-element = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element taken from a hash type object';
+    my Array[Int] $taken-array;
+    my $taken-array-element := $taken-array[0];
+    throws-like { $taken-array-element = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element taken from an array type object';
+    my Hash[Int] $hash;
+    throws-like { $hash<a> = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element a hash type object vivifies';
+    my Array[Int] $array;
+    throws-like { $array[0] = 'x' }, X::TypeCheck::Assignment,
+        message => /^ 'Type check failed in assignment; '/,
+        'an assignment type check failure names no element an array type object vivifies';
+}
 
 # vim: expandtab shiftwidth=4

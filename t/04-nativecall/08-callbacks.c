@@ -55,3 +55,8 @@ DLLEXPORT int CheckReturnsStruct(Struct *(*cb)()) {
     if(strcmp(s->str, "Tweedledum, tweedledee")) return 2;
     return 8;
 }
+
+static int pass = 0;
+DLLEXPORT int CheckChangingCallback(int (*cb)()) {
+    return cb() - pass++;
+}

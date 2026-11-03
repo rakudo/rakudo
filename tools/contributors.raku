@@ -3,21 +3,23 @@ use v6;
 
 my %*SUB-MAIN-OPTS = :named-anywhere;
 # repeat named args in MAIN multies for nice USAGE messsages
-constant   RAK_REPO = '.';
-constant   DOC_REPO = '../doc';
-constant   NQP_REPO = 'nqp';
-constant  MOAR_REPO = 'nqp/MoarVM';
-constant ROAST_REPO = 't/spec';
+constant   RAK_REPO     = '.';
+constant   DOC_REPO     = '../doc';
+constant   DOCSITE_REPO = '../doc-website';
+constant   NQP_REPO     = 'nqp';
+constant  MOAR_REPO     = 'nqp/MoarVM';
+constant ROAST_REPO     = 't/spec';
 
 subset PathToRepo of Str where .so;
 
 #|(past releases)
 multi MAIN('for', 'release', $release,
-    PathToRepo :$rakudo = RAK_REPO,
-    PathToRepo :$doc    = DOC_REPO,
-    PathToRepo :$nqp    = NQP_REPO,
-    PathToRepo :$moar   = MOAR_REPO,
-    PathToRepo :$roast  = ROAST_REPO,
+    PathToRepo :$rakudo      = RAK_REPO,
+    PathToRepo :$doc         = DOC_REPO,
+    PathToRepo :$doc-website = DOCSITE_REPO,
+    PathToRepo :$nqp         = NQP_REPO,
+    PathToRepo :$moar        = MOAR_REPO,
+    PathToRepo :$roast       = ROAST_REPO,
     Bool       :$debug,
 ) {
     # fetch all available tags, creating a list of hashes, each of which got
@@ -42,21 +44,22 @@ multi MAIN('for', 'release', $release,
     # the tag that's previous to it, temporally, giving us the space of one rls
     say join ', ', committers :since(%prev-rel{$release}<date>),
         :until(@releases.first(*.<tag> eq $release)<date>),
-        :$rakudo, :$doc, :$nqp, :$moar, :$roast, :$debug,
+        :$rakudo, :$doc, :$doc-website, :$nqp, :$moar, :$roast, :$debug,
 }
 
 #|(current release)
 multi MAIN ($last_release? is copy,
-    PathToRepo :$rakudo = RAK_REPO,
-    PathToRepo :$doc    = DOC_REPO,
-    PathToRepo :$nqp    = NQP_REPO,
-    PathToRepo :$moar   = MOAR_REPO,
-    PathToRepo :$roast  = ROAST_REPO,
+    PathToRepo :$rakudo      = RAK_REPO,
+    PathToRepo :$doc         = DOC_REPO,
+    PathToRepo :$doc-website = DOCSITE_REPO,
+    PathToRepo :$nqp         = NQP_REPO,
+    PathToRepo :$moar        = MOAR_REPO,
+    PathToRepo :$roast       = ROAST_REPO,
     Bool       :$debug,
 ) {
     $last_release //= get-last-release-date-for $rakudo;
     say join ', ', committers since => $last_release,
-        :$rakudo, :$doc, :$nqp, :$moar, :$roast
+        :$rakudo, :$doc, :$doc-website, :$nqp, :$moar, :$roast
 }
 
 sub parse-date ($date) {
@@ -84,11 +87,12 @@ sub parse-date ($date) {
 sub committers (
     :$since!,
     :$until,
-    :$rakudo = RAK_REPO,
-    :$doc    = DOC_REPO,
-    :$nqp    = NQP_REPO,
-    :$moar   = MOAR_REPO,
-    :$roast  = ROAST_REPO,
+    :$rakudo      = RAK_REPO,
+    :$doc         = DOC_REPO,
+    :$doc-website = DOCSITE_REPO,
+    :$nqp         = NQP_REPO,
+    :$moar        = MOAR_REPO,
+    :$roast       = ROAST_REPO,
     :$debug,
 ) {
     # Check all the places with repos that may be applicable.  Get all of the
@@ -98,7 +102,7 @@ sub committers (
     # authors and put them in a Bag.  Sort the bag by frequency, highest first.
     # Then take the keys (aka the authors), and join them in a list.
 
-    my @repos = $rakudo, $doc, $nqp, $moar, $roast;
+    my @repos = $rakudo, $doc, $doc-website, $nqp, $moar, $roast;
     note qq:to/END/;
         ###############################################################
         Extracting contributor information from these {+@repos} locations.

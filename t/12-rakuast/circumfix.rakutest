@@ -1,0 +1,226 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 11;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $ast.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Parenthesized expressions compile correctly' => {
+    # 2 * (3 + 4)
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(2),
+      infix => RakuAST::Infix.new('*'),
+      right => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::IntLiteral.new(3),
+              infix => RakuAST::Infix.new('+'),
+              right => RakuAST::IntLiteral.new(4)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, '2 * (3 + 4)', 'deparsed';
+    is-deeply $_, 14, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Multi-statement semilist compiles into a List' => {
+    # (3, 4)
+    ast RakuAST::Circumfix::Parentheses.new(
+      RakuAST::SemiList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => (
+              RakuAST::IntLiteral.new(3),
+              RakuAST::IntLiteral.new(4)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, '(3, 4)', 'deparsed';
+    is-deeply $_, (3,4), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Array composer produces an array' => {
+    # [9, 10, 11]
+    ast RakuAST::Circumfix::ArrayComposer.new(
+      RakuAST::SemiList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => (
+              RakuAST::IntLiteral.new(9),
+              RakuAST::IntLiteral.new(10),
+              RakuAST::IntLiteral.new(11)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, '[9, 10, 11]', 'deparsed';
+    is-deeply $_, [9,10,11], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Array composer works correctly with a single argument' => {
+    # [5 .. 9]
+    ast RakuAST::Circumfix::ArrayComposer.new(
+      RakuAST::SemiList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyInfix.new(
+            left => RakuAST::IntLiteral.new(5),
+            infix => RakuAST::Infix.new('..'),
+            right => RakuAST::IntLiteral.new(9)
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, '[5 .. 9]', 'deparsed';
+    is-deeply $_, [5,6,7,8,9], @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Empty hash composer works correctly' => {
+    # {}
+    ast RakuAST::Circumfix::HashComposer.new;
+
+    is-deeply $deparsed, '{}', 'deparsed';
+    is-deeply $_, hash(), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Hash composer with fatarrow works correctly' => {
+    # {a => 42}
+    ast RakuAST::Circumfix::HashComposer.new(
+      RakuAST::FatArrow.new(
+        key => 'a',
+        value => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, '{a => 42}', 'deparsed';
+    is-deeply $_, {:42a}, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Hash composer with list of fat arrows works correctly' => {
+    # {x => 11, y => 22}
+    ast RakuAST::Circumfix::HashComposer.new(
+      RakuAST::ApplyListInfix.new(
+        infix => RakuAST::Infix.new(','),
+        operands => [
+          RakuAST::FatArrow.new(
+            key => 'x', 
+            value => RakuAST::IntLiteral.new(11)
+          ),
+          RakuAST::FatArrow.new(
+            key => 'y',
+            value => RakuAST::IntLiteral.new(22)
+          )
+        ]
+      )
+    );
+    is-deeply $deparsed, '{x => 11, y => 22}', 'deparsed';
+    is-deeply $_, {:11x, :22y}, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Parenthesized single statement keeps its modifier' => {
+    # (42 if 1)
+    ast RakuAST::Circumfix::Parentheses.new(
+      RakuAST::SemiList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(42),
+          condition-modifier => RakuAST::StatementModifier::If.new(
+            RakuAST::IntLiteral.new(1)
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, '(42 if 1)', 'deparse';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Parenthesized for statement' => {
+    # (for 1 .. 2 { $_ }).elems
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::For.new(
+            source => RakuAST::ApplyInfix.new(
+              left  => RakuAST::IntLiteral.new(1),
+              infix => RakuAST::Infix.new('..'),
+              right => RakuAST::IntLiteral.new(2)
+            ),
+            body => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Var::Lexical.new('$_')
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      postfix => RakuAST::Call::Method.new(
+        name => RakuAST::Name.from-identifier('elems')
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparsed';
+(for 1 .. 2 {
+    $_
+}).elems
+CODE
+    is-deeply $_, 2, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Parsed braces are a hash composer or a block' => {
+    # {}
+    ast '{}'.AST.statements[0].expression;
+    isa-ok $ast, RakuAST::Circumfix::HashComposer, 'empty braces';
+    is-deeply $deparsed, '{}', 'deparsed';
+    is-deeply $_, hash(), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # {a => 42}
+    ast '{a => 42}'.AST.statements[0].expression;
+    isa-ok $ast, RakuAST::Circumfix::HashComposer, 'a fatarrow';
+    is-deeply $deparsed, '{a => 42}', 'deparsed';
+    is-deeply $_, {:42a}, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    # {$_ => 42}
+    ast '{$_ => 42}'.AST.statements[0].expression;
+    isa-ok $ast, RakuAST::Block, 'a fatarrow on the topic';
+}
+
+subtest 'An object hash composer parses with a Bool flag' => {
+    plan 3;
+    ok q[:{ }].AST.statements[0].expression.object-hash === True,
+      'an empty object hash reads back as True';
+    ok q[:{ a => 1 }].AST.statements[0].expression.object-hash === True,
+      'an object hash with a pair reads back as True';
+    ok q[{ a => 1 }].AST.statements[0].expression.object-hash === False,
+      'a plain hash composer reads back as False';
+}
+
+# vim: expandtab shiftwidth=4

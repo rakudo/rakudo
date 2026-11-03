@@ -1,0 +1,290 @@
+# Marker for all kinds of circumfix.
+class RakuAST::Circumfix
+  is RakuAST::Term { }
+
+# Grouping parentheses circumfix.
+class RakuAST::Circumfix::Parentheses
+  is RakuAST::Circumfix
+{
+    has RakuAST::SemiList $.semilist;
+
+    method new(RakuAST::SemiList $semilist) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Circumfix::Parentheses, '$!semilist', $semilist);
+        $obj
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Avoid worries about sink context since parentheses may just be used
+        # for syntactic grouping. Unless it's an empty list, then there's no one
+        # else to blame.
+        self.add-sunk-worry($resolver, self.origin ?? self.origin.Str !! self.DEPARSE)
+            if self.sunk && $!semilist.is-empty;
+    }
+
+    method IMPL-SINGULAR-PRIMED-EXPRESSION() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::istype($expression, RakuAST::WhateverApplicable)
+            && $expression.IMPL-PRIMED
+                ?? $expression
+                !! Nil
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        # QAST::Stmts node needed to e.g. break up operator chaining
+        QAST::Stmts.new($!semilist.IMPL-TO-QAST($context))
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!semilist);
+    }
+
+    # The expressions of the statements when each is an expression statement
+    # without a modifier, or null.
+    method IMPL-PLAIN-EXPRESSIONS() {
+        return nqp::null() unless nqp::istype($!semilist, RakuAST::SemiList);
+        my @expressions;
+        for self.IMPL-UNWRAP-LIST($!semilist.statements) {
+            return nqp::null()
+              unless nqp::istype($_, RakuAST::Statement::Expression)
+              && !nqp::isconcrete($_.condition-modifier)
+              && !nqp::isconcrete($_.loop-modifier);
+            nqp::push(@expressions, $_.expression);
+        }
+        @expressions
+    }
+
+    method IMPL-IS-CONSTANT() {
+        my $expressions := self.IMPL-PLAIN-EXPRESSIONS;
+        return False if nqp::isnull($expressions);
+        for $expressions {
+            return False unless $_.IMPL-IS-CONSTANT;
+        }
+        True
+    }
+
+    method has-compile-time-value() {
+        $!semilist.has-compile-time-value;
+    }
+
+    method maybe-compile-time-value() {
+        $!semilist.maybe-compile-time-value;
+    }
+
+    # Grouping parentheses around a single modifier-free expression forward
+    # its type, so an enclosing operator sees a parenthesized native result
+    # as native. A loop modifier yields a List and a condition modifier can
+    # yield Empty, so a modified statement forwards nothing. Some constructs
+    # build parentheses around a bare expression rather than a semilist, so
+    # the payload shape is checked rather than assumed.
+    method return-type() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::isconcrete($expression) ?? $expression.return-type !! Mu
+    }
+
+    method IMPL-STATIC-ARG-TYPE() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::isconcrete($expression) ?? $expression.IMPL-STATIC-ARG-TYPE !! Mu
+    }
+
+    method IMPL-STATIC-ARG-IS-VALUE() {
+        my $expression := self.IMPL-FORWARDED-EXPRESSION;
+        nqp::isconcrete($expression) ?? $expression.IMPL-STATIC-ARG-IS-VALUE !! True
+    }
+
+    method IMPL-FORWARDED-EXPRESSION() {
+        if nqp::istype($!semilist, RakuAST::SemiList)
+          && $!semilist.IMPL-IS-SINGLE-EXPRESSION {
+            my $statement := self.IMPL-UNWRAP-LIST($!semilist.statements)[0];
+            nqp::isconcrete($statement.condition-modifier)
+              || nqp::isconcrete($statement.loop-modifier)
+                ?? Nil
+                !! $statement.expression
+        }
+        else {
+            Nil
+        }
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        $!semilist.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        $!semilist.IMPL-INTERPRET($ctx)
+    }
+}
+
+class RakuAST::Exception::TooComplex {
+    has Str $.name;
+    method new() {
+        nqp::create(self)
+    }
+    method set-name($name) {
+        nqp::bindattr(self, RakuAST::Exception::TooComplex, '$!name', $name);
+    }
+    # The text shown when nothing converts this into a typed error.
+    method message() {
+        "Colon pair value '" ~ ($!name // '') ~ "' too complex to use in name"
+    }
+    method throw() {
+        my $ex := nqp::newexception();
+        nqp::setpayload($ex, self);
+        nqp::setmessage($ex, self.message);
+        nqp::throw($ex);
+    }
+}
+
+# Array composer circumfix.
+class RakuAST::Circumfix::ArrayComposer
+  is RakuAST::Circumfix
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
+  does RakuAST::ColonPairish
+{
+    has RakuAST::SemiList $.semilist;
+
+    method new(RakuAST::SemiList $semilist) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Circumfix::ArrayComposer, '$!semilist', $semilist);
+        $obj
+    }
+
+    method canonicalize() {
+        my @statements := self.semilist.code-statements;
+        if nqp::elems(@statements) == 1 && @statements[0].expression.IMPL-CAN-INTERPRET {
+            self.IMPL-QUOTE-VALUE(@statements[0].expression.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new))
+        }
+        else {
+            my @parts;
+            for @statements {
+                nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_))
+                    unless nqp::istype($_, RakuAST::Statement::Expression);
+                RakuAST::Exception::TooComplex.new.throw unless nqp::can($_.expression, 'literal-value');
+                my $value := $_.expression.literal-value;
+                RakuAST::Exception::TooComplex.new.throw unless nqp::isconcrete($value);
+                nqp::push(@parts, "'" ~ $value ~ "'");
+            }
+            @parts ?? '[' ~ nqp::join('; ', @parts) ~ ']' !! '<>'
+        }
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $resolved := $resolver.resolve-lexical('&circumfix:<[ ]>');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    # Second chance to resolve operators in the setting
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-lexical('&circumfix:<[ ]>');
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        True
+    }
+
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $name := self.resolution.lexical-name;
+        QAST::Op.new(
+            :op(self.IMPL-CALL-OP), :$name,
+            $!semilist.IMPL-TO-QAST($context)
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!semilist);
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        my @statements := self.semilist.code-statements;
+        nqp::elems(@statements) == 1 && @statements[0].IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @statements := self.semilist.code-statements;
+        my $result := @statements[0].IMPL-INTERPRET($ctx);
+        Array.new($result)
+    }
+}
+
+# Hash composer circumfix. In Raku syntax, blocks and hash composers are
+# distinguished based upon a number of criteria, applied after parsing the
+# thing as a block. At the AST level there are two distinct node types:
+# this, and Block (for the case it's a block). The Block node has a method
+# on it for performing this disambiguation.
+class RakuAST::Circumfix::HashComposer
+  is RakuAST::Circumfix
+  does RakuAST::Lookup
+  does RakuAST::ParseTime
+{
+    has RakuAST::Expression $.expression;
+    has Bool $.object-hash;
+
+    method new(RakuAST::Expression $expression?, Bool :$object-hash) {
+        my $obj := nqp::create(self);
+        $obj.set-expression($expression);
+        nqp::bindattr($obj, RakuAST::Circumfix::HashComposer, '$!object-hash', $object-hash // False);
+        $obj
+    }
+
+    method set-expression(RakuAST::Expression $expression) {
+        nqp::bindattr(self, RakuAST::Circumfix::HashComposer, '$!expression',
+            $expression // RakuAST::Expression);
+        Nil
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $resolved := $!object-hash
+                             ?? $resolver.resolve-lexical('&circumfix:<:{ }>')
+                             !! $resolver.resolve-lexical('&circumfix:<{ }>');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    # Second chance to resolve operators in the setting
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-lexical($!object-hash ?? '&circumfix:<:{ }>' !! '&circumfix:<{ }>');
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        True
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $name := self.resolution.lexical-name;
+        my $expression := $!expression;
+
+        my $op := QAST::Op.new(:op(self.IMPL-CALL-OP), :$name);
+        if $expression {
+            $op.push($expression.IMPL-TO-QAST($context))
+        }
+        $op
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        self.is-resolved
+          && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+          && (!$!expression || $!expression.IMPL-CAN-INTERPRET)
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my $composer := self.resolution.compile-time-value;
+        $!expression
+          ?? $composer($!expression.IMPL-INTERPRET($ctx))
+          !! $composer()
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!expression) if $!expression;
+    }
+}

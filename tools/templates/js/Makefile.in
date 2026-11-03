@@ -1,5 +1,6 @@
 
 @bpv(NQP)@ = @js_nqp@
+@bpv(NQP_BIN)@ = @js_nqp@
 @bpv(NQP_RUNTIME)@ = @nfp(@nqp::libdir@/nqp-js-on-js/node_modules/nqp-runtime)@
 @bpv(PERL6_RUNTIME)@ = @perl6_runtime@
 @bpv(NQP_FLAGS)@ = --nqp-runtime @bpm(RUNTIME)@ --perl6-runtime @perl6_runtime@ --libpath "@bpm(BLIB)@|||@nqp::libdir@@nfp(/nqp-js-on-js/)@" --source-map --substagestats --stagestats
@@ -14,6 +15,7 @@
 	@nfp(@bpm(BLIB)@/*.js.map)@ \
 	@bpm(BLIB_RAKUDO)@/load-compiler.js \
 	@bpm(BLIB_RAKUDO)@/*.js.map \
+	@bpm(BLIB_RAKUDO_R)@/*.js.map \
 	@bpm(BLIB_RAKUDO)@/BOOTSTRAP/*.js.map
 
 # Have this target before including Makefile-backend-common to prevent the
@@ -51,8 +53,6 @@
 @backend_prefix@-lint:
 	@echo(+++ Linting @uc(@backend@)@ runtime)@
 	$(NOECHO)gjslint --strict --max_line_length=200 --nojsdoc @nfp(src/vm/js/perl6-runtime/*.js)@
-
-#js-testable: js-all spectest_checkout spectest_update
 
 @backend_prefix@-spectest5: @backend_prefix@-testable
 	$(PERL5) t/harness5 --fudge --js --keep-exit-code --tests-from-file=@nfp(t/spectest.js.data)@

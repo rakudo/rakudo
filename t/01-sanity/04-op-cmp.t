@@ -1,5 +1,3 @@
-use v6;
-
 # check compare ops
 say '1..24';
 

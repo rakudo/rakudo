@@ -1,9 +1,88 @@
-use lib <t/packages/  t/04-nativecall  lib>;
+use lib <lib t/packages/Test-Helpers t/04-nativecall>;
 use NativeCall;
 use Test;
 use Test::Helpers;
 use CompileTestLib;
 compile_test_lib '00-misc';
+
+
+# All possible identifiers and their namespaces
+my constant AllExports = Q:to/EXPORTS/.chomp;
+ALL
+  &cglobal
+  &check_routine_sanity
+  &explicitly-manage
+  &guess_library_name
+  &nativecast
+  &nativesizeof
+  &postcircumfix:<[ ]>
+  &refresh
+  &trait_mod:<is>
+  CArray
+  OpaquePointer
+  Pointer
+  bool
+  long
+  longlong
+  size_t
+  ssize_t
+  ulong
+  ulonglong
+  void
+DEFAULT
+  &cglobal
+  &explicitly-manage
+  &nativecast
+  &nativesizeof
+  &postcircumfix:<[ ]>
+  &refresh
+  &trait_mod:<is>
+  CArray
+  OpaquePointer
+  Pointer
+  bool
+  long
+  longlong
+  size_t
+  ssize_t
+  ulong
+  ulonglong
+  void
+TEST
+  &check_routine_sanity
+  &guess_library_name
+traits
+  &trait_mod:<is>
+types
+  &postcircumfix:<[ ]>
+  CArray
+  OpaquePointer
+  Pointer
+  bool
+  long
+  longlong
+  size_t
+  ssize_t
+  ulong
+  ulonglong
+  void
+utils
+  &explicitly-manage
+  &refresh
+EXPORTS
+
+my str @parts;
+for NativeCall::EXPORT::.keys.sort {
+    @parts.push($_);
+    @parts.push("  $_") for NativeCall::EXPORT::{$_}.WHO.keys.sort
+}
+is @parts.join("\n"), AllExports, "are all identifiers reachable?";
+
+if $*VM.name eq 'jvm' {
+    plan 1;
+    skip-rest 'NullPointerException in sub NCstrlen';
+    exit;
+}
 
 { # https://github.com/rakudo/rakudo/issues/3235
     role Foo {

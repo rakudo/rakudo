@@ -1,9 +1,8 @@
-=encoding UTF-8
+=encoding utf8
 
 =head1 release_guide.pod - guide to Rakudo releases
 
-Rakudo’s development release cycle is the third Saturday of
-each month.
+Rakudo’s development release cycle is monthly.
 
 Each development release is given a sequential number and a name based
 on the release year and month.  Older releases had code names based on
@@ -18,22 +17,25 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2021-11-19   Rakudo #152 (Be the next release manager!)
+  2026-10-24   Rakudo #196 (Coke)
 
-(More planned dates can be generated with F<tools/release-dates.p6>).
+(More planned dates can be generated with F<tools/release-dates.raku>).
+
+=head2 Prerequisites (for release managers)
+
+Currently the release is only runnable on a linux box. (Most steps
+B<do> work on OS X except notably creating the C<.tar.gz> release files)
+
+C<Ake> uses C<gpg2> to sign releases (available in the C<gnugpg2> system package).
 
 =head2 Steps to create a release (for release managers)
-
-B<⚠ Please try to rely on automation instead of doing the release
-manually.> This document describes steps that should be performed
-by tools, and in a way serves as a documentation for them.
 
 Currently there are two tools:
 
 =over
 
 =item *
-L<Release Sakefile|https://github.com/rakudo/rakudo/blob/master/tools/releasable/Sakefile>
+L<Release Akefile|https://github.com/rakudo/rakudo/blob/main/tools/releasable/Akefile>
 which is meant to be used together with
 L<Releasable|https://github.com/Raku/whateverable/wiki/Releasable> bot
 
@@ -49,17 +51,59 @@ Some things are hard to automate, and you have to understand what is
 
 =item 1.
 
-A few days before the Rakudo release, it’s a good idea to...
+Once a week or on-demand run the L<Blin tool|https://github.com/Raku/Blin> to
+check regressions in the ecosystem modules.
+
+First, bump MoarVM and NQP if necessary. To do so you can either use
+a very helpful L<Z script|https://github.com/Raku/z> or obtain
+actual values using C<git describe> in appropriate repo and edit the MOAR_REVISION
+and NQP_REVISION files.
+
+Given you have a Blin image built and ready, run it to get results.
+Don't forget to remove previous results with
+
+    sudo rm -rf /var/tmp/Blin-volume/
+
+On a machine with 12-16 cores Ryzen CPU and SSD it usually
+takes about 2 hours to test the ecosystem.
+Note you need at least 32 GB of RAM for this.
+
+When the results are here, a file C<failures.md> is generated in
+the C</var/tmp/Blin-volume/output/> directory. Carefully read what
+modules are there and manually check them for false positives.
+
+Possible false positives are:
+
+* Modules related to async sometimes have flapping tests
+* The C<November> module
+
+If the module installs fine on the latest Rakudo built from HEAD
+and failed on Blin it is likely not necessary to report it,
+when in doubt ask. If the module has weird failure mode (MoarVM oops, a segfault etc)
+then it's a good idea to report it anyway, if it fails more times than installs
+it's a good idea to report it too.
+
+Modify the C<failures.md> report to remove false positives and
+post it as a new Rakudo blocker ticket.
+
+Generally, any kind of breakage in modules is unwanted, but there are
+exceptions. Submit Pull Requests to anything that is affected and file
+rakudo tickets for all unwanted changes in Rakudo behavior.
 
 =over 4
+
+=item 2.
+
+A few days before the Rakudo release, it’s a good idea to...
 
 =item *
 
 Remind people of the upcoming release, invite people to update the
-L<ChangeLog|https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft>,
-etc. Note that the ChangeLog is kept on the wiki so that people can
-easily do minor corrections, but for the release it has to be moved
-into C<docs/ChangeLog>.
+L<ChangeLog|https://github.com/rakudo/rakudo/wiki/ChangeLog-Draft> or
+do it yourself, etc. Note that the upcoming ChangeLog addition is kept on the
+wiki so that people can easily do minor corrections, but for the release it
+has to be added to the top of C<docs/ChangeLog>. Do not include the "IGNORE"
+section from the wiki. These are used later in the commit message.
 
 =item *
 
@@ -79,26 +123,15 @@ the release announcement).
 
 =item *
 
-B<Bump often>, especially the day before the release. Otherwise issues
-with MoarVM/NQP might go unnoticed for too long.
+Review the 6.c, 6.d errata branches of Raku/roast - you do not
+want to find out about failures on the day of the release, in
+case they are indicators of an actual issue, and not just that
+the test file needs to be updated.
 
 =item *
 
-Create a draft release announcement in docs/announce/YYYY.MM.md in
-markdown format.  You can often use the previous release’s file as a
-starting point, updating the release number, version information, name,
-etc. as appropriate.
-
-  git add docs/announce/YYYY.MM.md
-  git commit docs
-
-There is a helper script C<tools/create-release-announcement.raku> that
-will create a basic release announcement for you based on the state
-of the repository and the current date.  Feel free to use it to
-save yourself some time, but please look over its output if you decide
-to use it:
-
-    ./raku tools/create-release-announcement.raku > docs/announce/YYYY.MM.md
+B<Bump often>, especially the day before the release. Otherwise issues
+with MoarVM/NQP might go unnoticed for too long.
 
 =item *
 
@@ -107,18 +140,6 @@ double-check that the copyright date in the README file includes
 the current year.  (It’s not necessary to update copyright dates
 in other files, unless you know that a given file has been modified
 in a year not reflected by the file’s copyright notice.)
-
-=item *
-
-To spot more regressions, it’s a good idea to test the ecosystem and see
-if there are any modules that were working correctly (e.g. passing their
-tests) on the previous release but no longer work on HEAD. One of the
-tools to do that is
-L<Blin|https://github.com/Raku/Blin>.
-
-Generally, any kind of breakage in modules is unwanted, but there are
-exceptions. Submit Pull Requests to anything that is affected and file
-rakudo tickets for all unwanted changes in Rakudo behavior.
 
 =item *
 
@@ -134,238 +155,267 @@ cherry-picked important fixes).
 
 =back
 
-=item 2.
-
-Update Rakudo’s leap-second tables:
-
-  perl tools/update-tai-utc.pl
-
-If a new leap second has been announced, F<src/core.c/Rakudo/Internals.pm6>
-will be modified, so commit the new version. B<Note:> be sure to double
-check the modifications are correct before committing.
-
-  git commit src
-
-But probably there won’t be any new leap seconds, in which case the file
-will be unchanged.
-
-B<Note>: this program requires the perl modules L<Time::y2038>,
-L<LWP::Simple> and L<File::Slurp> to be installed.
-
 =item 3.
 
-As the actual release date nears, review the git log history
-to see if any additional items need to be added to the ChangeLog.
-This can be conveniently done with
+As the actual release date nears, use the C<releasable6>
+IRC bot to prepare a ChangeLog. The bot resides in
+the C<#raku-dev> channel, call it as C<releasable6, status>
+to obtain a report with commits you need to log.
+Do not commit directly to Rakudo, but instead modify the wiki
+page with a draft.
 
-  git log --since=yyyy-mm-dd --reverse # find commits
-  # update ChangeLog
-  git commit docs/ChangeLog # commit changes
+Ensure you have a proper list of "ignored" commits, such as
+merge commits, tiny ones, reverts etc.
+Later you will list them in a specific format in the commit
+message for the release bot to understand that some commits
+were not logged and there is no need to notify about them.
+
+As for the format, refer to previous release commits to
+get an inspiration of how it is done.
 
 =item 4.
 
-When it’s time to cut the release, finalize the new release
-announcement in docs/announce/YYYY.MM.md .  (If one hasn’t already
-been created, see step 1 above.) Highlight areas in which the
-new release is significant.
+=item *
 
-Include a list of contributors since the last release in the announcement.
-You can get an automatically generated list by running
+When it’s time to cut the release, checkout a new release branch,
+named, for example: "release-2025.01".
 
-  ./raku tools/contributors.raku
-
-To obtain all contributors, ensure you have all supporting repositories
-checked out, before running (this can be achieved by building rakudo
-and running a spectest). Please check the result manually for duplicates
-and other errors. Note that you may not be able to run your system raku
-in a local checkout, you may have to wait until you build in this
-directory and use C<./raku>.
-
-  git add docs/announce/YYYY.MM.md
-  git commit docs
-
-=item 5.
+=item *
 
 Update the release dates and names at the bottom of this file
 (F<docs/release_guide.pod>).  Also improve these instructions if
 you find any steps that are missing.
 
-  git commit docs/release_guide.pod
+=item *
+
+Call the contributors script to ensure all contributors are mentioned:
+
+    raku tools/contributors.raku
+
+Ensure you have all supporting repositories checked out, before running (this
+can be achieved by building rakudo and running a spectest as well as having
+the doc and doc-website repos nextdoor).  The script will say if a repo is
+missing.  Please check the result manually for duplicates and other errors.
+
+=item *
+
+Create a draft release announcement in docs/announce/YYYY.MM.md in
+markdown format.
+
+There is a helper script C<tools/create-release-announcement.raku> that
+will create a basic release announcement for you based on the state
+of the repository and the current date.  Feel free to use it to
+save yourself some time, but please look over its output if you decide
+to use it:
+
+    raku tools/create-release-announcement.raku > docs/announce/YYYY.MM.md
+    git add docs
+
+Ensure dates of current and next releases are correct.  Note that there seems to
+be a bug where the next release date in the generated announce is wrong but the
+release # is correct.  Remember to add the ChangeLog material from the wiki.
+The helper script is supposed to do that using docs/ChangeLog but there's a bug
+where it sucks in the entire Changelog if this release's entries are there.
+That's why the changes to the Changelog are in the next step - this way the
+script will not read in any of ChangeLog.
+
+Note: When copying the changelog into the announcement - remove the commit ids.
+These don't belong in the release info. Feel free to re-word and combine entries
+in the changelog, especially in the copy in the release announcement - they don't
+have to match line for line.
+
+=item *
+
+Add the ChangeLog material from the wiki to the top of C<docs/ChangeLog>.
+
+=item *
+
+Create the release commit (remember to look at previous for the special format,
+e.g. https://github.com/rakudo/rakudo/commit/8545a055) and push the release branch up.
+This has to be done before the ake commands run as they update the remote.
+Be sure to include the deliberately ignored commits here for the C<releasable> bot.
+
+=item 5.
+
+Ensure that a monthly MoarVM release has been completed.
+It is usually done by the Rakudo release manager, so good luck.
+Make sure that MoarVM builds on Windows and CI for MoarVM
+is green. It is also a good idea to look for JVM issues at this point.
 
 =item 6.
 
-Ensure that a monthly MoarVM release has been completed. Those
-releases are typically handled by a separate team. Since you are going
-to perform smoke testing of the ecosystem, it is likely that MoarVM
-release team will wait for your confirmation before cutting a
-release. Make sure that MoarVM builds on Windows (see AppVeyor
-status). It is also a good idea to look for JVM issues at this point.
+Ensure you have a working Raku with C<Ake> module installed, go to
+the directory to do a release. All the steps are setup as individual
+C<ake> steps.
+
+    cd rakudo/tools/releasable
+
+While there is a single task in the script doing all the release process,
+it is generally a much better practice to run it step by step.
+
+=item *
+
+Prepare environment variables for the invocation, for example:
+
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main
+
+This means that:
+
+- Run up to 24 test jobs in parallel but setting it to however many "procs" you
+  have seems to work fine.
+
+- Version of the release made will be set to be 2021.10
+
+- Version of the MoarVM used will be set to be 2021.10
+
+- Other than C<6.c> and C<6.d> errata roast branches it will be tested
+  against master branch of roast
+
+- Branch to get Rakudo from is, e.g.: C<release-2021.10>
+
+- NQP branch is set to C<main>
+
+Be very careful and ensure all variables are spelled properly as it
+affects what branches will be used to push commits to
 
 =item 7.
 
-Create an NQP release with the same C<YYYY.MM> version number
-as Rakudo. Follow NQP’s
-L<docs/release_guide.pod|https://github.com/Raku/nqp/blob/master/docs/release_guide.pod>
-file to do that.
+Execute Akefile stages one by one, with appropriate env variable values:
+
+=item *
+
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake clean
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake human-1
+
+This will clone all appropriate repos, bump and tag for the NQP release.
+
+=item *
+
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake nqp
+
+This will create an NQP release.
+
+=item *
+
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake human-2
+
+This will sign NQP and do bumps for Rakudo release.
+
+=item *
+
+Next step is related to Rakudo, which has more complicated process than NQP,
+so it recommended to run stages separately:
+
+  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-build
+  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-test
+  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-inline-perl5
+  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-stress
+
+Next step is testing on errata branches. Tests here can fail in case
+when Rakudo behavior was changed and it affected roast, so the developer
+updated roast master branch, but the errata branch still checks for old
+behavior.
+
+  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-stress-errata-6c
+
+  TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-stress-errata-6d
+
+If the tests are failing, note which ones do, and investigate if there
+were changes to the files recently. If yes, you have to cherry-pick or
+port the changes to the errata branch so that in the end tests pass on
+errata branches.
+
+=item *
+
+Once this is done, create the artifact...
+
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-archive
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-extract
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-build
+
+... And test it afterwards. You can manually verify the build worked and shows the correct version with:
+
+    ./temp/rakudo-test/rakudo-$VERSION/install/bin/raku --version
+
+Now you can test the built version. Note that this deletes the directory, so after this step you will be
+unable to rerun the previous command.
+
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake rakudo-post-test
+
+=item *
+
+If everything looks correct, tag and sign the release:
+
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake human-3
+
+=item *
+
+Next, push the commits to NQP and Rakudo:
+
+    TEST_JOBS=24 VERSION=2021.10 VERSION_MOAR=2021.10 BRANCH_ROAST=master BRANCH_RAKUDO=release-2021.10 BRANCH_NQP=main ake human-upload
+
+This step also tries to upload tarballs, but this fails. You can run this step manually:
+
+    scp -P 222 nqp/nqp-2021.10.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/nqp/
+    scp -P 222 rakudo/rakudo-2021.10.tar.gz*  rakudo.org@trinity.raku.org:/var/www/htdocs/rakudo.org/binaries/rakudo/
+
+Uploading requires ssh access to a file server.  If you require access, open an issue on the
+L<infra repository|https://github.com/raku/infra>.
+
+=item *
+
+Create PR and merge on remote (github) because ake puts commits there (that
+wouldn't be in your local). When merging, do NOT squash the commit.
+
+=item *
+
+Use the C<./github-release> script to create both NQP and Rakudo Github releases.
+Refer to MoarVM release guide for the details about artifacts attachment. Assuming
+you have an appropriate github token in the given file, you can update the sample
+release # here and run:
+
+    ./github-release --asset=rakudo/rakudo-2021.10.tar.gz --asset=rakudo/rakudo-2021.10.tar.gz.asc --repo=rakudo/rakudo --tag=2021.10 --token=$(cat ~/.ghtoken-raku-release) --announcement=rakudo/docs/announce/2025.10.md
+    ./github-release --asset=nqp/nqp-2021.10.tar.gz --asset=nqp/nqp-2021.10.tar.gz.asc --repo=raku/nqp --tag=2021.10 --token=$(cat ~/.ghtoken-raku-release)
 
 =item 8.
 
-Go back to the Rakudo repository, and update the NQP dependency:
+Build binary packages by following the steps in C<docs/release_guide_binary.md>.
 
-  echo YYYY.MM > tools/build/NQP_REVISION
-  git commit -m '[release] bump NQP revision' tools/build/NQP_REVISION
+NOTE:  I, jdv, have never done this step.  Instead, I just tell patrickb and
+El_Che on IRC that the source release is done and they build various downstream
+release artifacts.
 
 =item 9.
 
-Enter the new version into the F<VERSION> file, and commit the changes:
-
-  echo YYYY.MM > VERSION
-  git commit -m '[release] bump VERSION' VERSION
+Notify the docs team (#raku-doc on IRC) that they can now create their documentation
+checklist for the release. (Eventually we want the documentation changes to go live
+with the release, not be started immediately after.)
 
 =item 10.
 
-Make sure any locally modified files have been pushed back to github.
-
-  git status
-  git push
-
-=item 11.
-
-Make sure everything compiles and runs from a known clean state:
-
-  make realclean
-  perl Configure.pl --gen-moar --backends=ALL
-  make
-  make install
-  make test
-
-=item 12.
-
-Install Inline::Perl5 so stresstest can use it.
-
-  git clone https://github.com/ugexe/zef
-  export PATH=`pwd`/install/bin:$PATH
-  cd zef; raku -Ilib bin/zef install .
-  cd ..
-  export PATH=`pwd`/install/share/perl6/site/bin:$PATH
-  zef install Inline::Perl5
-
-=item 13.
-
-Now run the stresstests for stable and lastest specs. The following commands
-assume you already have a roast checkout in C<t/spec>. If not, run
-C<make spectest> (you can abort it  after the repository is retrieved).
-
-  (cd t/spec && git checkout master)     # test latest language spec
-  make stresstest
-  (cd t/spec && git checkout 6.c-errata) # test stable language spec (6.c)
-  make stresstest
-  (cd t/spec && git checkout 6.d-errata) # test stable language spec (6.d)
-  make stresstest
-
-There are many tests to run for the stresstest target.  If
-you have a machine with multiple CPU cores, you may want to
-execute that last as
-
-  TEST_JOBS=4 make stresstest
-
-where 4 is the number of CPU cores.  This should make the
-total time to execute all of the tests dramatically less.
-
-Note that any failures against the stable language spec B<must> be
-fixed before a release can be made. Also, you will see warnings about
-missing test files; this is because we only have one list of files,
-and new tests may have been added after the last version of the spec
-was frozen.
-
-Continue adjusting things until make stresstest passes as expected.
-Often this means fixing a bug, fudging a test, or (temporarily?)
-commenting out a test file in C<t/spectest.data>.  Use your best
-judgment or ask others if uncertain what to do here.
-
-=item 14.
-
-B<Caution>: this step removes any untracked files in F<t/spec>.
-So please make a backup if you have any important data in there.
-
-Create a tarball by entering C<make release VERSION=YYYY.MM>,
-where YYYY.MM is the month for which the release is being made.
-This will create a tarball file named C<rakudo-YYYY.MM.tar.gz>.
-
-Because we tested the stable language spec last, above, those
-are the tests that will end up in the release tarball.
-
-=item 15.
-
-Unpack the tar file into another area, and test that it
-builds and runs properly using the same process in steps 11-13.
-For step 13, just run "make stresstest"; you're only testing
-the official spec tests here, and cannot switch between branches.
-If there are any problems, fix them and go back to step 11.
-
-=item 16.
-
-Tag the release by its release month ("YYYY.MM") and its code name.
-
-  git tag -u <email> -s -a -m "tag release #nnn" YYYY.MM    # e.g., 2013.08
-  git push --tags
-
-The C<-s> tells git to sign the release with your PGP/GPG key, so it will
-likely ask you for the passphrase of your secret key.
-
-If you have no PGP key, you might need to
-L<create one first|https://fedoraproject.org/wiki/Creating_GPG_Keys>. Should
-that prove impossible, you can omit the C<-s> from the command line.
-
-Be sure to upload your public key to your GitHub account, so that GitHub
-displays the I<Verified> button next to the tag. You can do that by running
-C<< gpg --armor --export <email> >> and adding the output as the
-I<New GPG Key> at the bottom of the
-L<< settings -> keys page|https://github.com/settings/keys >>
-
-=item 17.
-
-Sign the tarball with your PGP key:
-
-    gpg -b --armor rakudo-YYYY.MM.tar.gz
-
-=item 18.
-
-Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
-
-  scp rakudo-YYYY.MM.tar.gz rakudo-YYYY.MM.tar.gz.asc \
-       rakudo@rakudo.org:public_html/downloads/rakudo/
-
-
-If you do not have permissions for that, ask one of (jnthn,
-masak, tadzik, moritz, [Coke], lizmat, timotimo,
- AlexDaniel) on #raku or #raku-dev to do it for you.
-
-=item 19.
-
-Build binary packages by following the steps in C<docs/release_guide_binary.md>.
-
-=item 20.
-
 Don’t send out any announcements until the files are actually available
-per step 14 above.
+per step 8 above.
 
 Copy the release announcement file to the C<rakudo.org> repository into
 C<post/announce-rakudo-release-20XX.XX.md>.
 Change the heading to look as follows:
 
-  %% title: Announce: Rakudo compiler, Release #147 (2021.06)
-  %% date: 2020-06-19
+    %% title: Announce: Rakudo compiler, Release #151 (2021.10)
+    %% date: 2020-06-19
 
 Commit and push the change to GitHub.
 
-=item 21.
+Run this to get rakudo.org to pickup the changes:
+
+    ssh -p 222 rakudo.org@trinity.raku.org 'cd ~/rakudo.org  && git pull && doas /usr/sbin/rcctl restart rakudo'
+
+=item 11.
 
 Update the Wikipedia entry at L<http://en.wikipedia.org/wiki/Rakudo>.
 
-=item 22.
+=item 12.
 
-You’re done!  Celebrate with the appropriate amount of fun.
+You’re done! Celebrate with the appropriate amount of fun.
 
 =back
 
@@ -534,10 +584,57 @@ Previous releases were bundled as part of monthly Parrot releases.
   2021-08-21   Rakudo #149 "2021.08"           (Altai-man + Releasable)
   2021-09-18   Rakudo #150 "2021.09"           (Altai-man + Releasable)
   2021-10-23   Rakudo #151 "2021.10"           (Altai-man + Releasable)
+  2021-12-23   Rakudo #152 "2021.12"           (jdv + Releasable)
+  2022-02-11   Rakudo #153 "2022.02"           (jdv + Releasable)
+  2022-03-20   Rakudo #154 "2022.03"           (jdv + Releasable)
+  2022-04-24   Rakudo #155 "2022.04"           (jdv + Releasable)
+  2022-06-05   Rakudo #156 "2022.06"           (jdv + Releasable)
+  2022-07-31   Rakudo #157 "2022.07"           (jdv + Releasable)
+  2022-12-04   Rakudo #158 "2022.12"           (jdv + Releasable)
+  2023-02-22   Rakudo #159 "2023.02"           (jdv)
+  2023-04-21   Rakudo #160 "2023.04"           (jdv + Releasable)
+  2023-05-31   Rakudo #161 "2023.05"           (jdv)
+  2023-06-26   Rakudo #162 "2023.06"           (jdv)
+  2023-08-21   Rakudo #163 "2023.08"           (jdv)
+  2023-09-21   Rakudo #164 "2023.09"           (jdv)
+  2023-10-19   Rakudo #165 "2023.10"           (jdv)
+  2023-11-21   Rakudo #166 "2023.11"           (jdv)
+  2023-12-21   Rakudo #167 "2023.12"           (jdv)
+  2024-01-26   Rakudo #168 "2024.01"           (jdv)
+  2024-02-29   Rakudo #169 "2024.02"           (jdv)
+  2024-03-28   Rakudo #170 "2024.03"           (jdv)
+  2024-04-25   Rakudo #171 "2024.04"           (jdv)
+  2024-05-30   Rakudo #172 "2024.05"           (jdv)
+  2024-06-27   Rakudo #173 "2024.06"           (jdv)
+  2024-07-25   Rakudo #174 "2024.07"           (jdv)
+  2024-08-29   Rakudo #175 "2024.08"           (jdv)
+  2024-09-26   Rakudo #176 "2024.09"           (jdv)
+  2024-10-24   Rakudo #177 "2024.10"           (jdv)
+  2024-12-14   Rakudo #178 "2024.12"           (jdv)
+  2025-01-25   Rakudo #179 "2025.01"           (Coke)
+  2025-02-22   Rakudo #180 "2025.02"           (jdv)
+  2025-03-23   Rakudo #181 "2025.03"           (Coke)
+  2025-04-19   Rakudo #182 "2025.04"           (Coke)
+  2025-05-17   Rakudo #183 "2025.05"           (jdv)
+  2025-06-27   Rakudo #184 "2025.06"           (jdv)
+  2025-06-30   2025.06.1                       (jdv)
+  2025-08-28   Rakudo #185 "2025.08"           (jdv)
+  2025-10-18   Rakudo #186 "2025.10"           (Coke)
+  2025-11-15   Rakudo #187 "2025.11"           (Coke)
+  2025-12-20   Rakudo #188 "2025.12"           (Coke)
+  2026-01-24   Rakudo #189 "2026.01"           (jdv)
+  2026-02-28   Rakudo #190 "2026.02"           (jdv)
+  2026-03-28   Rakudo #191 "2026.03"           (Coke)
+  2026-04-25   Rakudo #192 "2026.04"           (Coke)
+  2026-05-23   Rakudo #193 "2026.05"           (Coke)
+  2026-06-27   Rakudo #194 "2026.06"           (Coke)
+  2026-07-24   Rakudo #195 "2026.07"           (Coke)
+  2026-08-21   Rakudo #196 "2026.08"           (Coke)
+  2026-09-27   Rakudo #197 "2026.09"           (Coke)
 
 =head1 COPYRIGHT
 
-Copyright © 2009-2021, The Perl Foundation.
+Copyright © 2009-2026, The Raku Foundation.
 
 =cut
 

@@ -1,0 +1,6275 @@
+use NQPP6QRegex;
+
+#-------------------------------------------------------------------------------
+# The classes of the AST nodes come from the Raku setting bootstrap, so
+# we need to load them from there.  We also need the OperatorProperties
+# class, so fetch that as well.
+my $RakuAST-WHO;         # RakuAST.WHO
+my $OperatorProperties;  # OperatorProperties class
+
+# Logic for setting up RakuAST-WHO and OperatorProperties
+sub setup-RakuAST-WHO() {
+    unless nqp::isconcrete($RakuAST-WHO) {
+        my $loader := nqp::gethllsym('Raku','ModuleLoader');
+        my $unit   := $loader.load_module('Perl6::BOOTSTRAP::v6c',{},GLOBALish);
+        my $export := $unit<EXPORT>.WHO<DEFAULT>.WHO;
+        $RakuAST-WHO := nqp::existskey($export,'RakuAST')
+          ?? nqp::atkey($export,'RakuAST').WHO
+          !! nqp::die('Cannot find RakuAST nodes');
+        $OperatorProperties := nqp::atkey($export,'OperatorProperties');
+        # A bare True or False in the actions is looked up in GLOBAL when
+        # it runs, so bind the Raku ones there.
+        GLOBALish.WHO<True>  := nqp::atkey($export,'True');
+        GLOBALish.WHO<False> := nqp::atkey($export,'False');
+    }
+}
+
+# Provide easy lookup of RakuAST:: classes at runtime of the
+# actions.  These classes can **NOT** be referenced directly
+# as they may not yet be known when the grammar / actions
+# run.  Note that direct specification of RakuAST classes
+# *will* compile, but may cause compile time issues of Raku
+# code, typically resulting in error messages stating a method
+# having been called on VMNull.
+my %type-cache;
+sub Nodify(str $class) {
+    nqp::ifnull(
+      nqp::atkey(%type-cache,$class),
+      nodify-lookup($class)
+    )
+}
+
+sub nodify-lookup(str $class) {
+    my @todo := nqp::split("::",$class);
+    my int $idx;
+    my int $todo-elems := nqp::elems(@todo);
+    my $res := nqp::atkey($RakuAST-WHO,nqp::atpos(@todo, $idx++));
+    while $idx < $todo-elems && !nqp::isnull($res) {
+        $res := nqp::atkey($res.WHO,nqp::atpos(@todo, $idx++));
+    }
+    nqp::bindkey(
+      %type-cache,
+      $class,
+      nqp::ifnull(
+        $res,
+        nqp::die('No such node RakuAST::' ~ nqp::join('::',@todo))
+      )
+    )
+}
+
+# Used by '-p' to print $_ on each iteration
+sub print-topic() {
+    Nodify('Statement::Expression').new(expression =>
+      Nodify('Call::Name').new(
+        name => Nodify('Name').from-identifier('say'),
+        args => Nodify('ArgList').new(Nodify('Var::Lexical').new('$_'))
+      )
+    )
+}
+
+# Provide the functionality of '-n' and '-p'. Returns a 2-element list of the
+# wrapping statement list and the per-line loop body block; the caller hoists
+# the body's declarations after begin time (see hoist-loop-body-declarations).
+sub wrap-in-for-loop($ast) {
+    my $body := Nodify('PointyBlock').new(
+      signature => Nodify('Signature').new(
+        parameters => [Nodify('Parameter').new(
+          target => Nodify('ParameterTarget::Var').new(name => '$_'),
+          traits => [Nodify('Trait::Is').new(
+            name => Nodify('Name').from-identifier('copy')
+          )]
+        )]
+      ),
+      body => Nodify('Blockoid').new($ast)
+    );
+    my $statement-list := Nodify('StatementList').new(
+      Nodify('Statement::For').new(
+        source => Nodify('Call::Name').new(
+          name => Nodify('Name').from-identifier('lines')
+        ),
+        body   => $body
+      )
+    );
+    nqp::list($statement-list, $body)
+}
+
+# Move the loop phasers the program's statements attached to the compilation
+# unit onto the per-line loop body, where they fire as loop phasers of the
+# -n/-p wrapper loop. The statements attached them before the wrapping, when
+# the compilation unit was the enclosing attach target. Block phasers such
+# as ENTER and LEAVE stay on the mainline.
+sub move-loop-phasers-to-body($compunit, $body) {
+    for ['FIRST', 'NEXT', 'LAST'] -> $type {
+        for $compunit.IMPL-TAKE-PHASERS($type) {
+            $body.add-phaser($type, $_);
+        }
+    }
+}
+
+# Move the CATCH/CONTROL handlers onto the per-line loop body the same way,
+# so a handled exception ends only that line's iteration and the loop
+# continues with the next line, along with the succeed handler the
+# program's when/default statements required, so a matched when ends only
+# that line's iteration. Their succeed scope moves too, keeping sink
+# decisions on the scope that takes the payload.
+sub move-handlers-to-body($compunit, $body) {
+    return 0 unless $compunit.IMPL-MOVE-HANDLERS-TO($body);
+    my $When    := Nodify('Statement::When');
+    my $Default := Nodify('Statement::Default');
+    $body.visit-dfs: -> $node {
+        if nqp::istype($node, $When)
+          && nqp::eqaddr(nqp::getattr($node, $When, '$!succeed-scope'), $compunit) {
+            nqp::bindattr($node, $When, '$!succeed-scope', $body);
+        }
+        elsif nqp::istype($node, $Default)
+          && nqp::eqaddr(nqp::getattr($node, $Default, '$!succeed-scope'), $compunit) {
+            nqp::bindattr($node, $Default, '$!succeed-scope', $body);
+        }
+        1
+    }
+}
+
+# Move the -n/-p program's lexical declarations from the per-line loop body
+# into the compunit mainline, so they persist across iterations and are
+# visible to BEGIN/END and friends, matching the legacy frontend. The loop
+# topic $_ and the body's implicit declarations (e.g. the FIRST-phaser flag,
+# added later at begin time) stay in the loop body. Done before begin time and
+# without forcing the body's declaration cache, so the implicit declarations
+# are not disturbed.
+sub hoist-loop-body-declarations($body, $compunit) {
+    for $body.IMPL-HOISTABLE-DECLARATIONS -> $decl {
+        $decl.set-hoisted-to($compunit);
+        $compunit.add-generated-lexical-declaration($decl)
+          if $decl.is-simple-lexical-declaration;
+        # A state initializer's guard goes along with its variable.
+        if nqp::istype($decl, Nodify('ImplicitDeclarations'))
+          && !nqp::istype($decl, Nodify('LexicalScope')) {
+            for $decl.IMPL-UNWRAP-LIST($decl.get-implicit-declarations) {
+                $compunit.add-generated-lexical-declaration($_)
+                  if $_.is-simple-lexical-declaration;
+            }
+        }
+    }
+}
+
+sub monkey-see-no-eval($/) {
+    my $msne := $*LANG.pragma('MONKEY-SEE-NO-EVAL');
+    nqp::defined($msne)
+        ?? $msne   # prevails if defined, can be either 1 or 0
+        !! $*COMPILING_CORE_SETTING
+            || try {
+                $*R.resolve-name-constant(
+                    Nodify('Name').from-identifier('&MONKEY-SEE-NO-EVAL'), :sigil('&')
+                ).compile-time-value()();
+            };
+}
+
+sub p6ize_recursive($x) {
+    if nqp::islist($x) {
+        my @copy := [];
+        for $x {
+            nqp::push(@copy, p6ize_recursive($_));
+        }
+        nqp::hllizefor(@copy, 'Raku')
+    }
+    elsif nqp::ishash($x) {
+        my %copy := nqp::hash();
+        for $x {
+            %copy{$_.key} := p6ize_recursive($_.value);
+        }
+        nqp::hllizefor(%copy, 'Raku').item
+    }
+    else {
+        nqp::hllizefor($x, 'Raku')
+    }
+}
+
+#-------------------------------------------------------------------------------
+# Role for all Action classes associated with Raku grammar slangs
+
+role Raku::CommonActions {
+    # Some AST nodes need symbol resolution or attachment of position
+    # information as we go. This factors out that process and attaches
+    # the AST to the match object.
+    method attach($/, $node, :$as-key-origin) {
+        my $cu := $*CU; # Might be too early to even have a CompUnit
+        self.SET-NODE-ORIGIN($/, $node, :$as-key-origin);
+        $node.to-begin-time($*R, $cu ?? $cu.context !! Nodify('IMPL::QASTContext'));
+        make $node;
+    }
+
+    method SET-NODE-ORIGIN($/, $node, :$as-key-origin) {
+        # A non-concrete node means an action failed to construct its AST
+        # node; report that right away instead of letting it surface as a
+        # confusing failure later in the pipeline.
+        unless nqp::isconcrete($node) {
+            nqp::die('Unexpected undefined ' ~ $node.HOW.name($node)
+              ~ ' node at position ' ~ $/.from ~ ' near "'
+              ~ nqp::escape(nqp::substr($/.orig, $/.from, 30)) ~ '"');
+        }
+        if nqp::istype($node, Nodify('Node')) {
+            unless nqp::isconcrete($node.origin) {
+                my int $from := $/.from;
+                my int $to   := $/.to;
+                if $to > $from && self.TRIMS-ORIGINS {
+                    my str $orig := $/.target;
+                    # Leave out the whitespace parsed last when it ends the match,
+                    # as it may hold comments, doc blocks and heredoc bodies.
+                    my $match  := nqp::decont($/);
+                    my $shared := nqp::istype($match, NQPMatch)
+                      ?? nqp::getattr($match, NQPMatch, '$!shared')
+                      !! nqp::null;
+                    my $ws := nqp::isconcrete($shared)
+                      ?? nqp::atkey(nqp::getattr($shared, nqp::what($shared), '%!marks'), 'ws')
+                      !! nqp::null;
+                    $to := $ws.from
+                      if nqp::isconcrete($ws) && $ws.pos == $to
+                      && $ws.from >= $from && $ws.from < $to;
+                    $to := $to - 1
+                      while $to > $from && nqp::iscclass(
+                        nqp::const::CCLASS_WHITESPACE, $orig, $to - 1);
+                    $from := nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE, $orig, $from, $to - $from);
+                }
+                $node.set-origin(
+                    Nodify('Origin').new(:$from, :$to, :source($*ORIGIN-SOURCE)));
+            }
+            if $as-key-origin {
+                my $nestings := @*ORIGIN-NESTINGS;
+                unless nqp::istype($node, Nodify('CompUnit')) {
+                    @*PARENT-NESTINGS.push($node)
+                }
+                $node.origin.set-nestings($nestings);
+            }
+        }
+    }
+
+    # Gives a node made without source text of its own, like the argument
+    # list of an infix application, the span of its children.
+    method SET-ORIGIN-OVER-CHILDREN($node) {
+        $node.visit-children(-> $child {
+            my $origin := $child.origin;
+            self.WIDEN-NODE-ORIGIN($node, $origin.from, $origin.to)
+              if nqp::isconcrete($origin);
+        }) unless nqp::isconcrete($node.origin);
+    }
+
+    # Gives a node without an origin the span of a match, returning the node.
+    method SET-ORIGIN-OF($/, $node) {
+        self.SET-NODE-ORIGIN($/, $node);
+        $node
+    }
+
+    # Whether an origin taken from a match leaves out whitespace at its edges.
+    method TRIMS-ORIGINS() { 0 }
+
+    # Widens a node's origin to cover the given range. The origin object
+    # is kept, so key origin nestings survive.
+    method WIDEN-NODE-ORIGIN($node, int $from, int $to) {
+        my $origin := $node.origin;
+        if nqp::isconcrete($origin) && $origin.from == $origin.to {
+            # an empty span only marks where the node sits
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $from);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $to);
+        }
+        elsif nqp::isconcrete($origin) {
+            if $from < $origin.from {
+                $origin.set-locus($origin.locus);
+                nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $from);
+            }
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $to)
+              if $to > $origin.to;
+        }
+        else {
+            $node.set-origin(
+                Nodify('Origin').new(:$from, :$to, :source($*ORIGIN-SOURCE)));
+        }
+    }
+
+    # A list spans from its first element to its last element or terminator.
+    # An empty list sits before the whitespace in front of it.
+    method SET-LIST-ORIGIN($/, $node) {
+        self.SET-NODE-ORIGIN($/, $node);
+        my $origin := $node.origin;
+        my int $first := -1;
+        my int $last  := -1;
+        my int $children;
+        $node.visit-children(-> $child {
+            ++$children;
+            my $child-origin := $child.origin;
+            if nqp::isconcrete($child-origin)
+              && $child-origin.from >= $/.from && $child-origin.to <= $/.to {
+                $first := $child-origin.from
+                  if $first < 0 || $child-origin.from < $first;
+                $last := $child-origin.to if $child-origin.to > $last;
+            }
+        });
+        if $first >= 0 {
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $first);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $last)
+              if $last > $origin.to;
+        }
+        elsif !$children {
+            my str $orig := $/.target;
+            my int $pos  := $/.from;
+            $pos := $pos - 1
+              while $pos > 0
+                && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $orig, $pos - 1);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $pos);
+            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $pos);
+        }
+    }
+
+    method key-origin($/) {
+        self.SET-NODE-ORIGIN($/, $/.ast, :as-key-origin);
+    }
+
+    method quibble($/) {
+        self.QUOTED($/, $<nibble>.ast // Nodify('StrLiteral').new(''));
+    }
+
+    # A quoted string's origin covers its delimiters and adverbs. The body
+    # of a quoted regex does not, as the quoted regex holds those.
+    method QUOTED($/, $ast) {
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to)
+          if nqp::istype($ast, Nodify('QuotedString'));
+        self.attach: $/, $ast;
+    }
+
+    # Grammars also need to be able to lookup RakuAST nodes.  Historically
+    # this was done with the "r" method.  Since it is apparently impossible
+    # to reliably export Nodify, this interface is kept alive.
+    method r(str $class) { Nodify($class) }
+
+    # A statement parsed outside of any statement list, as in the argument
+    # of a statement prefix or a regex :my declaration, is a dead end for
+    # doc blocks it claimed, since it is never added to a statement list.
+    # Hand them back for the enclosing statement to claim into its own
+    # statement list.
+    method reclaim-doc-blocks($ast) {
+        if nqp::istype($ast, Nodify('Statement')) {
+            my $blocks := $ast.take-doc-blocks;
+            if nqp::islist($blocks) {
+                for $blocks {
+                    $*DOC-BLOCKS-COLLECTED.push(
+                      nqp::list($*STATEMENT-ID - 1, $_, -1)
+                    );
+                }
+            }
+        }
+    }
+}
+
+#-------------------------------------------------------------------------------
+# The actions associated with the base Raku grammar
+
+class Raku::Actions is HLL::Actions does Raku::CommonActions {
+    method TRIMS-ORIGINS() { 1 }
+    method  OperatorProperties() { $OperatorProperties }
+
+#-------------------------------------------------------------------------------
+# Compilation unit, language version and other entry point bits
+
+    # Thread-safely produce a unique serialization context ID
+    my $count := -1;
+    my $lock  := NQPLock.new;
+    sub next-id() { $lock.protect({ ++$count }) }
+
+    # Given a package, returns a low-level hash for its stash
+    sub stash-hash($package) {
+        my $hash := $package.WHO;
+        nqp::ishash($hash)
+          ?? $hash
+          !! $hash.FLATTENABLE_HASH
+    }
+
+    # Set $*PACKAGE at compunit scope and sync the cursor's braid so the
+    # check_PACKAGE_oopsies sanity check used at every slang switch (LANG)
+    # doesn't fire spuriously while parsing file-scope code outside any
+    # package-def. Mirrors the legacy frontend's compunit-time package
+    # initialization (src/Perl6/World.nqp's comp_unit_stage1 sets
+    # $*PACKAGE := $*GLOBALish then calls $/.set_package($package)).
+    method set-compunit-package($/) {
+        my $package := nqp::getlexdyn('$?PACKAGE');
+        # In EVAL mode we expect $?PACKAGE to be inherited from the outer
+        # dyn-context. For a fresh compile there is no outer $?PACKAGE,
+        # so fall back to the compunit's generated GLOBAL.
+        if nqp::isnull($package) && !$*CU.is-eval {
+            $package := $*CU.generated-global;
+        }
+        unless nqp::isnull($package) {
+            $*PACKAGE := $package;
+            $/.set_package($package);
+        }
+    }
+
+    # Perform all actions that are needed before any actual parsing can
+    # be done by a grammar.
+    method comp-unit-prologue($/) {
+
+        # Be ready to do Nodify lookups
+        setup-RakuAST-WHO();
+
+        # Be ready to report locations in the source.
+        $*ORIGIN-SOURCE := Nodify('Origin::Source').new(:orig($/.target()));
+
+        # Set up the base resolver
+        my %OPTIONS       := %*OPTIONS;
+        my $context       := %OPTIONS<outer_ctx>;
+        my $resolver-type := Nodify('Resolver::Compile');
+
+        # Start from the revision the compile options select
+        nqp::getcomp('Raku').reset_language_version();
+
+        my $setting-name := %OPTIONS<setting>;
+        if nqp::eqat($setting-name, 'NULL.', 0) {
+            my $comp := nqp::getcomp('Raku');
+            my $default_revision := $comp.language_revision;
+            my $setting_revision := $comp.lvs.internal-from-p6: nqp::substr($setting-name, 5, 1);
+            $*COMPILING_CORE_SETTING := $setting_revision;
+            # Compile core with default language version unless the core revision is higher. I.e. when 6.d is the
+            # default only core.e will be compiled with 6.e compiler.
+            nqp::getcomp('Raku').set_language_revision(
+                $setting_revision > $default_revision
+                    ?? $setting_revision
+                    !! $default_revision );
+        }
+
+        $*LANGUAGE-REVISION := nqp::getcomp('Raku').language_revision;
+
+        my $RESOLVER := $*R := nqp::isconcrete($context)
+          ?? $resolver-type.from-context(
+               :$context, :global(%OPTIONS<global>), :resolver($*OUTER-RESOLVER)
+             )
+          !! $resolver-type.from-setting(
+               :setting-name(%OPTIONS<setting> // 'CORE.d')
+             );
+        my $package := nqp::getlexdyn('$?PACKAGE');
+        if nqp::istype($package.HOW, Perl6::Metamodel::Stashing) && $package.HOW.name($package) ne 'GLOBAL' {
+            $RESOLVER.push-attach-target(
+                Nodify('Declaration::External::Package').new(
+                    lexical-name => '$?PACKAGE',
+                    compile-time-value => $package,
+                )
+            );
+        }
+
+        # Set up the literals builder, so we can produce and intern literal
+        # values.
+        $*LITERALS := Nodify('LiteralBuilder').new(:resolver($RESOLVER));
+
+        # Make debugging a *lot* easier
+        &*DD := $RESOLVER.setting-constant('&dd');
+    }
+
+    # Perform all actions related to "use vxxx" and loading appropriate
+    # (default) settings and configuring the compilation unit and resolver
+    method lang-setup($/) {
+        # Look up these dynamic vars only once
+        my $HLL-COMPILER := $*HLL-COMPILER;
+        my %OPTIONS      := %*OPTIONS;
+        my $LANG         := $*LANG;
+        my $RESOLVER     := $*R;
+
+        # Some shortcuts;
+        my $language-revision := $HLL-COMPILER.language_revision;
+        my $is-EVAL           := nqp::isconcrete(%OPTIONS<outer_ctx>);
+        my $setting-name      := %OPTIONS<setting>;
+
+        if $is-EVAL {
+            $RESOLVER := $RESOLVER.clone;
+            $*R := $RESOLVER;
+            $RESOLVER.IMPL-WALK-PAST-BEGIN-TIME
+              if nqp::isconcrete($*OUTER-CU);
+        }
+
+        # Helper sub to configure the resolver with selected language revision
+        my sub resolver-from-revision() {
+            $setting-name := 'CORE.' ~ $HLL-COMPILER.lvs.p6rev($language-revision);
+            $RESOLVER.set-setting(:$setting-name);
+        }
+
+        # Not EVALling and explicit setting requested
+        if $setting-name && !$is-EVAL {
+            # A NULL.x setting name means a CORE setting itself is being
+            # compiled. NULL.d and later build on the previous CORE
+            # revision, while NULL.c has no setting below it.
+            if nqp::eqat($setting-name, 'NULL.', 0) {
+                if $setting-name ne 'NULL.c' {
+                    my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+                    $*R.set-setting(:setting-name($loader.previous_setting_name($setting-name)));
+                }
+                else {
+                }
+            }
+
+            # Setting name is explicitly set. Use it to determine the
+            # default language revision.
+            else {
+                $RESOLVER.set-setting(:setting-name($setting-name));
+                $language-revision :=
+                  nqp::unbox_i($RESOLVER.setting-constant('CORE-SETTING-REV'));
+                $HLL-COMPILER.set_language_revision($language-revision);
+            }
+        }
+
+        # Seen a -use vxxx- statement
+        my $version := $<version>
+          ?? ~$<version>
+          !! $is-EVAL
+            ?? ""
+            !! nqp::getenvhash()<RAKU_LANGUAGE_VERSION> || "";
+        if $version {
+            my $major := nqp::radix(10, nqp::substr($version,1), 0, 0)[0];
+            unless $major == 6 {
+                $/.typed-panic: 'X::Language::Unsupported', :$version;
+            }
+            my @vparts         := $HLL-COMPILER.lvs.from-public-repr($version);
+            my %lang-revisions := $HLL-COMPILER.language_revisions;
+            my @final-version;
+            my $modifier-deprecated;
+
+            # Globbed version needs a bit of research needs to be done first.
+            if nqp::index($version,'*') >= 0 || nqp::index($version,'+') >= 0 {
+                my $Version := $RESOLVER.setting-constant('Version');
+                my $ver-requested := $Version.new(
+                  $HLL-COMPILER.lvs.from-public-repr($version, :as-str)
+                );
+                my @can-versions := $HLL-COMPILER.can_language_versions;
+                my $can-version;
+                my $i := nqp::elems(@can-versions);
+
+                # Iterate over the version candidates from higher to lower
+                # ones, skip these that don't match the requested version
+                # glob, and these without a modifier but one is required.
+                # Like 6.e would be a valid version in the future, but for
+                # now it has to be 6.e.PREVIEW.
+                while --$i >= 0 {
+                    $can-version := $Version.new(@can-versions[$i]);
+                    next unless $ver-requested.ACCEPTS($can-version);
+
+                    # If version candidate
+                    my $can-parts := $can-version.parts;
+                    my $can-revision := nqp::unbox_i($can-parts.head);
+                    last
+                      unless $can-parts.elems == 1
+                          && nqp::existskey(%lang-revisions{$can-revision},'require');
+                }
+
+                if $i < 0 {
+                    $/.typed-panic: 'X::Language::Unsupported', :$version;
+                }
+
+                # Are there any easier way to unbox boxable types?
+                my $Int := $RESOLVER.setting-constant('Int');
+                my $Str := $RESOLVER.setting-constant('Str');
+                my @can-parts := nqp::getattr($can-version, $Version, '$!parts');
+                for @can-parts -> $part {
+                    @final-version.push: nqp::isint($part) || nqp::isstr($part)
+                      ?? $part
+                      !! nqp::istype($part, $Int)
+                        ?? nqp::unbox_i($part)
+                        !! nqp::istype($part, $Str)
+                          ?? nqp::unbox_s($part)
+                          !! nqp::die(
+                               "Don't know how to handle version part of '"
+                                 ~ $part.HOW.name($part)
+                                 ~ "' type"
+                             );
+                }
+            }
+
+            # A non-globbed version can be used as-is, make sure it is valid
+            else {
+                my $revision := @vparts[0];
+                # Consider version to have a language modifier if the last
+                # part of is a string of non-zero length.
+                my $modifier := @vparts > 1
+                  && nqp::objprimspec(@vparts[-1]) == nqp::const::BIND_VAL_STR
+                  ?? @vparts[-1]
+                  !! nqp::null();
+
+                # Do we know this language version?
+                unless nqp::existskey(%lang-revisions, $revision)
+                  && (!$modifier || nqp::existskey(%lang-revisions{$revision}<mods>, $modifier))
+                {
+                    $/.typed-panic: 'X::Language::Unsupported', :$version;
+                }
+
+                my %config := %lang-revisions{$revision};
+                # If version is known, is it used with a required modifier?
+                if nqp::existskey(%config,'require')
+                  && (!$modifier || %config<require> ne $modifier) {
+                    $/.typed-panic: 'X::Language::ModRequired',
+                      :$version, :modifier(%config<require>);
+                }
+
+                # We can't issue a worry immediately because the current
+                # resolver is temporary, so just set a flag
+                if $modifier && %config<mods>{$modifier}<deprecate> {
+                    $modifier-deprecated := $modifier;
+                }
+
+                @final-version := @vparts;
+            }
+
+            # In an EVAL we're not allowed to upgrade from e.g. 6.d to 6.e,
+            # at least for now: maybe later we can allow this for all language
+            # levels that are supported by the runtime
+            if $is-EVAL && nqp::atpos(@final-version,0) > $language-revision {
+                nqp::die("Cannot up language revision $language-revision to "
+                  ~ nqp::atpos(@final-version,0)
+                  ~ " in an EVAL"
+                );
+            }
+
+            $HLL-COMPILER.set_language_version(@final-version);
+            $language-revision := @final-version[0];
+            $HLL-COMPILER.set_language_revision: $language-revision;
+            resolver-from-revision() unless $is-EVAL;
+
+            # Now the resolver is final, express our modifier concern!
+            if $modifier-deprecated {
+                # At this point our compiler version is final.
+                $/.worry:
+                  "$modifier-deprecated modifier is deprecated for Raku v"
+                    ~ $HLL-COMPILER.language_version;
+            }
+        }
+
+        # No version seen and not in an EVAL
+        elsif !$is-EVAL && !$*COMPILING_CORE_SETTING {
+            resolver-from-revision();
+        }
+
+        $*LANGUAGE-REVISION := $language-revision;
+
+        # Locate an EXPORTHOW and set those mappings on our current language.
+        # A subset or an enum looks them up in the resolver.
+        my $EXPORTHOW := $RESOLVER.resolve-lexical-constant('EXPORTHOW');
+        if $EXPORTHOW {
+            for stash-hash($EXPORTHOW.compile-time-value) {
+                $LANG.set_how($_.key, $_.value);
+                $RESOLVER.declare-exporthow($_.key, nqp::decont($_.value), :unit);
+            }
+        }
+
+        # An EVAL exports into the EXPORT package of the code it is compiled
+        # in, when there is one. A string turned into an AST may be EVALed
+        # somewhere else, so it starts a package of its own.
+        my $package-how  := $LANG.how('package');
+        my $to-ast       := nqp::lc(nqp::atkey(%OPTIONS, 'target')) eq 'ast';
+        my $outer-export := $is-EVAL && !$to-ast
+          ?? $RESOLVER.resolve-lexical-in-outer('EXPORT')
+          !! Nil;
+        my $export-package;
+        if nqp::isconcrete($outer-export)
+          && !nqp::isnull($outer-export.maybe-compile-time-value) {
+            $export-package := $outer-export.maybe-compile-time-value;
+        }
+        else {
+            $export-package := $package-how.new_type(name => 'EXPORT');
+            $export-package.HOW.compose($export-package);
+        }
+        $RESOLVER.set-export-package($export-package);
+        $*EXPORT := $export-package;
+
+        # Create a compilation unit.
+        my $comp-unit-name := nqp::sha1($*ORIGIN-SOURCE.original-file ~ $/.target);
+
+        # Initialize source and checksum for the compunit
+        my $source   := $*OMIT-SOURCE ?? Nil !! $/.orig;
+        my $checksum := nqp::sha1($/.orig);
+
+        # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
+        if $is-EVAL {
+            $*CU := Nodify('CompUnit').new(
+              :comp-unit-name($comp-unit-name ~ next-id),  # uniqify
+              :$setting-name,
+              :$source,
+              :$checksum,
+              :eval,
+              :outer-cu($*OUTER-CU),
+              :$language-revision,
+              :setting($*R.setting),
+              :resolver($RESOLVER),
+            );
+        }
+
+        # Top-level compilation.
+        else {
+            $*CU := Nodify('CompUnit').new(
+              :$comp-unit-name,
+              :$setting-name,
+              :$source,
+              :$checksum,
+              :setting($*R.setting),
+              :global-package-how($package-how),
+              :precompilation-mode(?%OPTIONS<precomp>),
+              :$export-package,
+              :$language-revision,
+              :resolver($RESOLVER),
+            );
+
+            # Create a GLOBAL using the correct package meta-object.
+            my $global := $*CU.generated-global;
+            $RESOLVER.set-global($global);
+            nqp::bindhllsym('Raku','GLOBAL',$global);
+        }
+
+        $*LITERALS.set-resolver($RESOLVER);
+
+        # The statement takes its place in the statement list once that
+        # has been parsed, see comp-unit.
+        if $<version> {
+            my $statement := Nodify('Statement::LanguageVersion').new(
+              $<version>.ast.value
+            );
+            $statement.set-origin(Nodify('Origin').new(
+              :from($<use>.from), :to($<version>.to), :source($*ORIGIN-SOURCE)));
+            $statement.to-begin-time($*R, $*CU.context);
+            make $statement;
+        }
+    }
+
+    method comp-unit($/) {
+        # Do dynamic lookups once
+        my $COMPUNIT := $*CU;
+        my %OPTIONS  := %*OPTIONS;
+        my $RESOLVER := $*R;
+
+        # Do any requested wrapping (-n or -p)
+        my $statement-list := $<statementlist>.ast;
+
+        # Doc blocks no statement claimed reach the compilation unit here.
+        # A stale statement mark must never drop a block, so add whatever
+        # is still pending to the outermost statement list.
+        for $*DOC-BLOCKS-COLLECTED {
+            $statement-list.add-doc-block(nqp::atpos($_, 1));
+        }
+        $*DOC-BLOCKS-COLLECTED := [];
+
+        # A language version statement goes before the first statement
+        # written after it, so a doc block written before it stays in
+        # front.
+        if $<lang-setup>.ast -> $version {
+            my int $from := $version.origin.from;
+            my int $i;
+            for $statement-list.IMPL-UNWRAP-LIST($statement-list.statements) {
+                my $origin := $_.origin;
+                last unless nqp::isconcrete($origin) && $origin.from < $from;
+                ++$i;
+            }
+            $statement-list.insert-statement($i, $version);
+        }
+        # The statement list covers the doc blocks and version added to it
+        $statement-list.visit-children(-> $child {
+            my $origin := $child.origin;
+            self.WIDEN-NODE-ORIGIN($statement-list, $origin.from, $origin.to)
+              if nqp::isconcrete($origin);
+        });
+        if (my $add-print-topic := nqp::existskey(%OPTIONS,'p')) || nqp::existskey(%OPTIONS,'n') {
+            $statement-list.add-statement(print-topic()) if $add-print-topic;
+            my @wrapped := wrap-in-for-loop($statement-list);
+            $statement-list := @wrapped[0];
+            hoist-loop-body-declarations(@wrapped[1], $COMPUNIT);
+            move-loop-phasers-to-body($COMPUNIT, @wrapped[1]);
+            move-handlers-to-body($COMPUNIT, @wrapped[1]);
+            # Give the wrapper nodes a chance to do BEGIN time effects
+            $statement-list.IMPL-BEGIN($RESOLVER, $COMPUNIT.context);
+        }
+        $RESOLVER.enter-scope($COMPUNIT);
+
+        # a trailing doc no declarand claimed by the end of the unit is
+        # reported inside the unit scope, where its pragmas apply
+        for $*DECLARAND-WORRIES {
+            $_.value.typed-worry:
+              'X::Syntax::Doc::Declarator::MissingDeclarand';
+        }
+
+        # Put the body in place.
+        $COMPUNIT.replace-statement-list($statement-list);
+
+        $COMPUNIT.to-begin-time($RESOLVER, $COMPUNIT.context);
+
+        # Sort out sinking; the compilation unit is sunk as a whole if we are
+        # not in a REPL or EVAL context.
+        $COMPUNIT.mark-sunk() unless nqp::existskey(%OPTIONS,'outer_ctx');
+        $COMPUNIT.calculate-sink();
+
+        # if --(raku)doc specified, add INIT phaser that handles that
+        if nqp::existskey(%OPTIONS,'doc') {
+            $COMPUNIT.add-INIT-phaser-for-doc-handling(
+              'Pod', %OPTIONS<doc> || 'Text'
+            ).IMPL-BEGIN($RESOLVER, $*CU.context);
+        }
+        elsif nqp::existskey(%OPTIONS,'rakudoc') {
+            $COMPUNIT.add-INIT-phaser-for-doc-handling(
+              'RakuDoc', %OPTIONS<rakudoc> || 'RakuDoc'
+            ).IMPL-BEGIN($RESOLVER, $*CU.context);
+        }
+
+        self.attach: $/, $COMPUNIT, :as-key-origin;
+        # The statement list holds the doc blocks after its last statement
+        my $statements-origin := $<statementlist>.ast.origin;
+        self.WIDEN-NODE-ORIGIN($COMPUNIT, $statements-origin.from, $statements-origin.to)
+          if nqp::isconcrete($statements-origin);
+
+        # Have check time.
+        $COMPUNIT.check($RESOLVER);
+        self.report-problems();
+
+        $RESOLVER.leave-scope();
+    }
+
+    method report-problems() {
+        my $exception := $*R.produce-compilation-exception;
+        if nqp::isconcrete($exception) {
+            if $*R.has-compilation-errors {
+                # Really has errors, so report them.
+                $exception.throw;
+            }
+            else {
+                # Only potential difficulties, just print them. The gist of
+                # the group is setting code, which cannot run yet while the
+                # setting itself compiles, so fall back to a plain rendering.
+                my $text;
+                my $failure;
+                try {
+                    $text := $exception.gist;
+                    CATCH { $failure := $_ }
+                }
+                stderr().print(nqp::defined($text)
+                    ?? $text
+                    !! self.render-worries(nqp::isconcrete($failure)
+                        ?? self.exception-reason($failure)
+                        !! 'the gist returned no text'));
+            }
+        }
+    }
+
+    method render-worries($reason) {
+        my @lines := ['Potential difficulties:'];
+        for Nodify('Node').IMPL-UNWRAP-LIST($*R.all-worries) -> $worry {
+            my $text;
+            my $error;
+            try {
+                my $message := $worry.message;
+                $text := ~$message if nqp::defined($message);
+                if nqp::defined($text) && nqp::can($worry, 'line') && nqp::can($worry, 'filename') {
+                    my $line-number := $worry.line;
+                    $text := $text ~ ' at ' ~ $worry.filename ~ ':' ~ $line-number
+                        if nqp::defined($line-number);
+                }
+                CATCH { $error := $_ }
+            }
+            my $line := nqp::defined($text)
+                ?? $text
+                !! $worry.HOW.name($worry) ~ ', message unavailable: '
+                     ~ (nqp::isconcrete($error)
+                         ?? self.exception-reason($error)
+                         !! 'the message was empty');
+            nqp::push(@lines, '    ' ~ $line);
+        }
+        nqp::push(@lines, 'The full rendering of these failed: ' ~ $reason);
+        nqp::join("\n", @lines) ~ "\n"
+    }
+
+    # A Raku exception carries its message on the payload, not on the VM
+    # exception.
+    method exception-reason($exception) {
+        return 'no exception' unless nqp::isconcrete($exception);
+        my str $message := nqp::getmessage($exception);
+        return $message unless nqp::isnull_s($message) || nqp::chars($message) == 0;
+        my $payload := nqp::getpayload($exception);
+        my $reason;
+        my $inner;
+        try {
+            my $text := $payload.message;
+            $reason := ~$text if nqp::defined($text);
+            CATCH { $inner := $_ }
+        }
+        nqp::defined($reason)
+            ?? $reason
+            !! $payload.HOW.name($payload) ~ ' thrown, its message unavailable'
+                ~ (nqp::isconcrete($inner) ?? ': ' ~ self.exception-reason($inner) !! '')
+    }
+
+    # Throws the errors found so far, with any worries inside the group.
+    # Worries alone do not throw and are printed at the end of the unit.
+    method throw-errors() {
+        $*R.produce-compilation-exception.throw if $*R.has-compilation-errors;
+    }
+
+    # Action method to load any modules specified with -M
+    method load-M-modules($/) {
+        my $M := %*OPTIONS<M>;
+        return Nil unless nqp::defined($M); # nothing to do here
+
+        my $ast := Nodify('StatementList').new;
+        for nqp::islist($M) ?? $M !! [$M] -> $spec {
+            $ast.add-statement: self.parse-M-module($/, $spec);
+        }
+        self.attach: $/, $ast;
+    }
+
+    # Parse a -M argument as the use statement it stands for.  The cursor
+    # shares the braid of the compilation unit, so pragmas and the
+    # declarators and operators a module exports reach the code being
+    # compiled.  The newline makes the use rule settle any heredoc the
+    # argument starts before the program is parsed.  Diagnostics name
+    # -M as their source.
+    method parse-M-module($/, str $spec) {
+        my str $source := 'use ' ~ $spec ~ "\n";
+        my $cursor := $/.'!cursor_init'($source, :p(0));
+        $cursor.set_braid_from($/);
+
+        my %COMPILING := %*COMPILING;
+        my $match;
+        {
+            my $?FILES := '-M';
+            my %*COMPILING := nqp::clone(%COMPILING);
+            %*COMPILING<%?OPTIONS> := nqp::clone(%COMPILING<%?OPTIONS>);
+            %*COMPILING<%?OPTIONS><source-name> := '-M';
+            my $*ORIGIN-SOURCE := Nodify('Origin::Source').new(
+              :orig($cursor.target)
+            );
+            my $*LASTQUOTE := [0,0];
+            my $*LANG := $/;
+            $match := $cursor.'statement-control:sym<use>'().MATCH;
+            unless $match.pos == nqp::chars($source) {
+                $cursor.'!cursor_pos'($match.pos) if $match.pos >= 0;
+                $cursor.malformed('-M argument');
+            }
+        }
+        $match.ast
+    }
+
+    # Only needed for compiling CORE.setting
+    method load-bootstrap($/) {
+        unless $*R.setting {
+            my $name := "Perl6::BOOTSTRAP::v6c";
+            my $module := nqp::gethllsym('Raku', 'ModuleLoader').load_module($name, {},
+                $*R.get-global);
+            my $EXPORT := $module<EXPORT>.WHO;
+            Nodify('Statement::Import').IMPL-IMPORT-ONE($*R, $EXPORT<DEFAULT>.WHO);
+            my $LANG := $*LANG;
+            for $module<EXPORTHOW>.WHO {
+                my str $key := $_.key;
+                $LANG.set_how($key, nqp::decont($_.value));
+            }
+        }
+    }
+
+#-------------------------------------------------------------------------------
+# Statement level handling
+
+    # Helper method to collect statements and potentially and declarator
+    # docs for an actual StatementList, StatementSequence or SemiList.
+    method collect-statements($/, $typename) {
+        my $statements := Nodify($typename).new;
+        for $<statement> {
+            my $ast := $_.ast;
+            # A statement control that only sets a trait on its target, or
+            # an inert DOC use, attaches an empty statement.  A written `;`
+            # has no text, so the text tells them apart.  The doc blocks
+            # such a statement owns are kept.
+            if nqp::istype($ast, Nodify('Statement::Empty'))
+              && nqp::chars($_.Str)
+              && !nqp::elems($ast.IMPL-UNWRAP-LIST($ast.labels)) {
+                my $blocks := $ast.take-doc-blocks;
+                if $blocks {
+                    for $blocks {
+                        $statements.add-doc-block($_);
+                    }
+                }
+                next;
+            }
+            $ast.add-to-statements($statements);
+        }
+        self.SET-LIST-ORIGIN($/, $statements);
+        self.attach: $/, $statements;
+        $statements
+    }
+
+    # Action methods for the various collectors of statements
+    method statementlist($/) {
+        my $statements := self.collect-statements($/, 'StatementList');
+
+        # Add any uncollected doc blocks that were parsed inside this
+        # statement list.  This can happen if no statement follows them,
+        # e.g. in a rakudoc only file or with trailing doc blocks.  Blocks
+        # parsed before an enclosing statement started stay collected for
+        # that statement to claim.  A statement list parsed inside a doc
+        # block configuration is discarded, so it must not take anything.
+        unless $*PARSING-DOC-BLOCK {
+            my @keep;
+            for $*DOC-BLOCKS-COLLECTED {
+                nqp::atpos($_, 0) >= $*STATEMENT-LIST-MARK
+                  ?? $statements.add-doc-block(nqp::atpos($_, 1))
+                  !! nqp::push(@keep, $_);
+            }
+            $*DOC-BLOCKS-COLLECTED := @keep;
+        }
+        self.SET-LIST-ORIGIN($/, $statements);
+    }
+    method semilist($/) { self.collect-statements($/, 'SemiList')          }
+    method sequence($/) { self.collect-statements($/, 'StatementSequence') }
+
+    # Nothing reads a finished statement's captures. Its consumers take the
+    # node, the position or the source text, so the match tree below it
+    # can go. The empty containers are shared because nothing writes to a
+    # statement's captures after its action.
+    my @EMPTY-LIST := nqp::list;
+    my %EMPTY-HASH := nqp::hash;
+    sub drop-captures($/) {
+        nqp::bindattr($/, NQPCapture, '@!list', @EMPTY-LIST);
+        nqp::bindattr($/, NQPCapture, '%!hash', %EMPTY-HASH);
+    }
+
+    # Action method for handling an actual statement
+    method statement($/) {
+
+        # Setting label on already created statement
+        if $<label> {
+            my $ast := $<statement>.ast;
+
+            # A for loop with a statement prefix such as `hyper` parses as
+            # an expression statement wrapping the for loop; the label
+            # belongs on the loop so that loop controls can target it.
+            my $target := $ast;
+            if nqp::istype($ast, Nodify('Statement::Expression'))
+                && nqp::istype($ast.expression, Nodify('Statement::For')) {
+                $target := $ast.expression;
+            }
+            $target.add-label($<label>.ast);
+            self.WIDEN-ORIGINS-TO($ast, $<label>.ast);
+            make $ast;
+            drop-captures($/) if $*DROP-STATEMENT-CAPTURES;
+            return;       # nothing left to do here
+        }
+
+        # Statement ID must be captured before creation of statement object
+        my $statement-id := $*STATEMENT-ID;
+        my $statement;
+
+        # Handle expression with optional condition/loop modifiers
+        if $<EXPR> {
+            my $ast := $<EXPR>.ast;
+            my $context := $*CU ?? $*CU.context !! Nodify('IMPL::QASTContext'); # Might be too early to even have a CU
+            if nqp::istype($ast, Nodify('ColonPairs')) {
+                $ast := Nodify('ApplyListInfix').new:
+                  :infix(Nodify('Infix').new(',').to-begin-time($*R, $context)),
+                  :operands($ast.colonpairs);
+            }
+            $statement := Nodify('Statement::Expression').new(:expression($ast.to-begin-time($*R, $context)));
+            $statement.replace-condition-modifier($<statement-mod-cond>.ast)
+              if $<statement-mod-cond>;
+            $statement.replace-loop-modifier($<statement-mod-loop>.ast)
+              if $<statement-mod-loop>;
+        }
+
+        # Handle statement control (if / for / given / when / etc.)
+        elsif $<statement-control> {
+            $statement := $<statement-control>.ast;
+        }
+
+        # Handle an empty statement
+        else {
+            $statement := Nodify('Statement::Empty').new;
+        }
+
+        # Final statement tweaks
+        $statement.set-trace(True) if $/.pragma('trace');
+        $statement.set-statement-id($statement-id);
+        $statement.attach-doc-blocks unless $*PARSING-DOC-BLOCK;
+
+        self.attach: $/, $statement;
+        if $<EXPR> && nqp::isconcrete(my $origin := $<EXPR>.ast.origin) {
+            self.WIDEN-NODE-ORIGIN($statement, $origin.from, $origin.to);
+        }
+        drop-captures($/) if $*DROP-STATEMENT-CAPTURES;
+    }
+
+    # Action method for handling labels attached to a statement
+    method label($/) {
+        my $name := ~$<identifier>;
+        my $decl := Nodify('Label').new($name);
+        $*R.declare-lexical($decl)
+          ?? $/.typed-panic('X::Redeclaration', :symbol($name))
+          !! self.attach: $/, $decl;
+    }
+
+    # Helper method for attaching (pointy) blocks
+    method attach-block($/) {
+        my $block := $*BLOCK;
+        $block.replace-body($<blockoid>.ast);
+        if $*IN-LOOP {
+            $block.set-is-loop-body;
+        }
+        self.attach: $/, $block;
+    }
+
+    # Action methods for handling (pointy) blocks
+    method pointy-block($/) {
+        $*BLOCK.set-may-have-signature(True);
+        self.attach-block($/)
+    }
+    method block($/) {
+        self.attach-block($/)
+    }
+
+    # Action method for handling the inside of (pointy) blocks
+    method blockoid($/) {
+        if $<statementlist> {
+            self.attach: $/,
+              Nodify('Blockoid').new($<statementlist>.ast),
+              :as-key-origin;
+        }
+        else {
+            if $*HAS_YOU_ARE_HERE {
+                $/.panic('{YOU_ARE_HERE} may only appear once in a setting');
+            }
+            $*HAS_YOU_ARE_HERE := 1;
+            make Nodify('Blockoid').new(
+              Nodify('StatementList').new(
+                Nodify('Statement::Expression').new(:expression($<you_are_here>.ast))
+              )
+            );
+        }
+    }
+
+    # Action method for handling "unit" scoped packages
+    method unit-block($/) {
+        my $block := $*BLOCK;
+        # Wrap the statements into a (non-existing) blockoid
+        my $statements := $<statementlist>.ast;
+        my $blockoid   := Nodify('Blockoid').new($statements);
+        $block.replace-body($blockoid);
+        # Doc blocks after the last statement are in the statement list
+        my $origin := $statements.origin;
+        self.WIDEN-NODE-ORIGIN($blockoid, $origin.from, $origin.to);
+        self.WIDEN-NODE-ORIGIN($block, $origin.from, $origin.to);
+        self.attach: $/, $block;
+    }
+
+    # Action method handling {*}
+    method onlystar($/) {
+        self.attach: $/, Nodify('OnlyStar').new;
+    }
+
+    # Helper method to connect any leading declarator doc that was
+    # collected already to the given declarand, after any doc it has. A doc
+    # after the expression a declaration ends with is left for the next one.
+    method set-declarand($/, $it, :$expression) {
+
+        # Ignoring this one
+        if $*IGNORE-NEXT-DECLARAND {
+            $*IGNORE-NEXT-DECLARAND := 0;
+        }
+
+        # Should handle
+        else {
+            my $from    := $/.from;
+            my $worries := $*DECLARAND-WORRIES;
+            for $worries {
+                if $_.key < $from {
+                    $_.value.typed-worry:
+                      'X::Syntax::Doc::Declarator::MissingDeclarand';
+                    nqp::deletekey($worries, $_.key);
+                }
+            }
+
+            $*DECLARAND          := $it;
+            $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
+            self.adopt-declarand-docs($/, $it);
+
+            if @*LEADING-DOC -> @leading {
+                my $origin := nqp::isconcrete($expression)
+                  ?? $expression.origin
+                  !! Mu;
+                my int $end := nqp::isconcrete($origin) ?? $origin.to !! -1;
+                my @after;
+                for @leading {
+                    if $end < 0 || $_.from < $end {
+                        $it.add-leading(~$_);
+                        self.WIDEN-DOC-ORIGIN($it.WHY, $_);
+                    }
+                    else {
+                        nqp::push(@after, $_);
+                    }
+                }
+                @*LEADING-DOC := @after;
+            }
+            $*IGNORE-NEXT-DECLARAND := nqp::istype($it,Nodify('Package'));
+        }
+        $it
+    }
+
+    # A trailing doc in the whitespace after the last token of a
+    # declaration is consumed before the action that makes it the
+    # declarand runs, so it is queued; this gives such docs to the new
+    # declarand and leaves any queued earlier in its text, after a token
+    # of something inside it, for the report.
+    method adopt-declarand-docs($/, $it) {
+        my int $from  := $/.from;
+        my int $to    := $/.to;
+        my $worries   := $*DECLARAND-WORRIES;
+        my @inside;
+        for $worries {
+            nqp::push(@inside, $_.value)
+              if $_.key >= $from && $_.key < $to;
+        }
+        return Nil unless @inside;
+
+        my int $n := nqp::elems(@inside);
+        my int $j := 1;
+        while $j < $n {
+            my $doc   := @inside[$j];
+            my int $k := $j;
+            while $k > 0 && @inside[$k - 1].from > $doc.from {
+                @inside[$k] := @inside[$k - 1];
+                --$k;
+            }
+            @inside[$k] := $doc;
+            ++$j;
+        }
+
+        my $orig      := $/.orig;
+        my int $first := $n;
+        my int $next  := $to;
+        my int $i     := $n;
+        while $i-- {
+            my $doc := @inside[$i];
+            # a bracketed doc ends before its closer
+            my int $end := $doc.to;
+            ++$end unless nqp::iscclass(
+              nqp::const::CCLASS_WHITESPACE, $orig, $doc.from - 1
+            );
+            last unless self.only-comments(nqp::substr($orig, $end, $next - $end));
+            $first := $i;
+            $next  := $doc.from;
+        }
+        while $first < $n {
+            my $doc := @inside[$first++];
+            $it.add-trailing(~$doc);
+            self.WIDEN-DOC-ORIGIN($it.WHY, $doc);
+            ++$*FROM-SEEN{$doc.from};
+            nqp::deletekey($worries, $doc.from);
+            $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($doc.from);
+        }
+    }
+
+    # Whether text holds nothing but whitespace and comments, which is
+    # what can sit between a declaration's last token and its docs.
+    method only-comments(str $text) {
+        my int $n := nqp::chars($text);
+        my int $i := 0;
+        while $i < $n {
+            $i := nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE, $text, $i, $n - $i
+            );
+            if $i < $n {
+                return 0 unless nqp::eqat($text, '#', $i);
+                my int $eol := nqp::index($text, "\n", $i);
+                $i := $eol < 0 ?? $n !! $eol;
+            }
+        }
+        1
+    }
+
+    # A subset or an enum is made after the expression it holds, so it
+    # claims the leading doc collected before it and before the expression,
+    # or a block or other declarand in the expression would take the doc.
+    method claim-leading-doc($/) {
+        if @*LEADING-DOC -> @leading {
+            my $WHY := $*CLAIMED-DOC;
+            $WHY := $*CLAIMED-DOC := Nodify('Doc::Declarator').new
+              unless nqp::isconcrete($WHY);
+            for @leading {
+                $WHY.add-leading(~$_);
+                self.WIDEN-DOC-ORIGIN($WHY, $_);
+            }
+            @*LEADING-DOC := [];
+        }
+    }
+
+    # Makes a subset or an enum the declarand once the expression it holds
+    # is parsed, with the doc it claimed. The expression ends it, so a
+    # trailing doc is accepted on the line where the expression ends.
+    method set-claimed-declarand($/, $it, $expression) {
+        $it.set-WHY($*CLAIMED-DOC) if nqp::isconcrete($*CLAIMED-DOC);
+        my $origin := nqp::isconcrete($expression) ?? $expression.origin !! Mu;
+        if nqp::isconcrete($origin) {
+            my int $end := $origin.to;
+            self.take-back-doc($/, $it, $expression, $end);
+            self.set-declarand($/, $it, :$expression);
+            my int $line := +$*ORIGIN-SOURCE.original-line($end - 1);
+            $*LAST-TRAILING-LINE := $line if $line > $*LAST-TRAILING-LINE;
+        }
+        else {
+            self.set-declarand($/, $it);
+        }
+    }
+
+    # A subset takes the doc of a block that is its where clause. A declarand
+    # in the expression of a subset or an enum that takes a trailing doc
+    # after the expression gives it back, as the doc is meant for them.
+    method take-back-doc($/, $it, $expression, int $end) {
+        my $from := $expression;
+        unless nqp::istype($from, Nodify('Block')) {
+            $from := $*DECLARAND;
+            return Nil
+              unless nqp::istype($from, Nodify('Doc::DeclaratorTarget'));
+            my $origin := $from.origin;
+            return Nil
+              unless nqp::isconcrete($origin) && $origin.from >= $/.from;
+            my $WHY := $from.WHY;
+            return Nil
+              unless $WHY && nqp::isconcrete($WHY.origin)
+              && $WHY.origin.from >= $end;
+        }
+        my $WHY := $from.WHY;
+        return Nil unless $WHY;
+
+        $from.cut-WHY;
+        if $it.WHY -> $into {
+            $into.add-leading($_)  for $WHY.IMPL-UNWRAP-LIST($WHY.leading);
+            $into.add-trailing($_) for $WHY.IMPL-UNWRAP-LIST($WHY.trailing);
+            my $span := $WHY.origin;
+            self.WIDEN-NODE-ORIGIN($into, $span.from, $span.to)
+              if nqp::isconcrete($span);
+        }
+        else {
+            $it.set-WHY($WHY);
+        }
+    }
+
+    method you_are_here($/) {
+        self.attach: $/, Nodify('CtxSave').new;
+    }
+
+    # Action method when entering a scope (package, sub, phaser etc.)
+    # Assume the $*BLOCK dynamic var is appropriately localized as it
+    # will set that with the RakuAST:: object of the block.
+    method enter-block-scope($/) {
+        my $block;
+        # The body of a package is entered ahead of its traits, so its block
+        # enters it again.
+        if nqp::isconcrete($*PACKAGE-BODY) {
+            $*R.re-enter-scope($*PACKAGE-BODY);
+            $block := $*PACKAGE-BODY.scope;
+        }
+        else {
+            my $signature := $*PARAMETERIZATION;
+            $block := $*MULTINESS
+              ?? Nodify($*SCOPE-KIND).new(:$signature, :multiness($*MULTINESS))
+              !! Nodify($*SCOPE-KIND).new(:$signature);
+            $*R.enter-scope($block);
+        }
+        $*BLOCK := $block;
+
+        self.set-declarand($/, $block)
+          if nqp::istype($block,Nodify('Doc::DeclaratorTarget'));
+    }
+
+    # The body of a package holds what the traits of the package declare, as
+    # the frame of a routine holds what its traits declare, so it is entered
+    # ahead of them.
+    method enter-package-body($/) {
+        my $block := Nodify($*SCOPE-KIND).new(:signature($*PARAMETERIZATION));
+        $block.IMPL-SET-HEADER($*PACKAGE);
+        $*R.enter-scope($block);
+        $*BLOCK := $block;
+
+        # The parameters of a role are names of its body too, so a trait of the
+        # role sees them and declaring one again is a redeclaration.
+        if nqp::isconcrete($*PARAMETERIZATION) {
+            my @parameters;
+            $*PARAMETERIZATION.IMPL-COLLECT-PARAMETERS(@parameters);
+            for @parameters -> $parameter {
+                for $parameter.IMPL-UNWRAP-LIST($parameter.type-captures) {
+                    $*R.declare-lexical($_);
+                }
+                my $target := $parameter.target;
+                $*R.declare-lexical($target)
+                  if nqp::isconcrete($target) && nqp::can($target, 'lexical-name')
+                  && (!nqp::can($target, 'can-be-resolved') || $target.can-be-resolved);
+            }
+        }
+
+        # The declarations the traits generate start at this count.
+        $*PACKAGE-HEADER-GENERATED :=
+          nqp::elems($block.IMPL-UNWRAP-LIST($block.generated-lexical-declarations));
+    }
+
+    method leave-package-header($/) {
+        my $block := $*R.current-scope;
+        $*PACKAGE-HEADER-GENERATED-END :=
+          nqp::elems($block.IMPL-UNWRAP-LIST($block.generated-lexical-declarations));
+    }
+
+    # A doc after the opening brace of a routine or pointy block belongs
+    # to it, not to the last parameter of its signature. A role body is a
+    # routine whose parameters are the role's, so it keeps the doc there.
+    method enter-block-body($/) {
+        my $block := $*BLOCK;
+        if nqp::istype($*DECLARAND, Nodify('Parameter'))
+          && (nqp::istype($block, Nodify('PointyBlock'))
+               || nqp::istype($block, Nodify('Routine'))
+                    && !nqp::istype($block, Nodify('RoleBody'))) {
+            $*DECLARAND          := $block;
+            $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
+        }
+    }
+
+    # The declaration whose body closes takes a trailing doc on the
+    # closing line, whatever the body declared: the package when the body
+    # is the package's, otherwise the routine or block that owns it. This
+    # runs right after the closing brace, before the end of statement
+    # lookahead and the whitespace that consume such a doc.
+    method leave-block-body($/) {
+        my $block   := $*BLOCK;
+        my $package := $*PACKAGE;
+        my $owner   := nqp::isconcrete($package)
+          && nqp::eqaddr($*R.outer-scope, $package)
+          ?? $package
+          !! $block;
+        if nqp::istype($owner, Nodify('Doc::DeclaratorTarget')) {
+            $*DECLARAND          := $owner;
+            $*LAST-TRAILING-LINE :=
+              +$*ORIGIN-SOURCE.original-line($/.from - 1);
+        }
+    }
+
+    # Action method when leaving a scope.
+    method leave-block-scope($/) {
+        $*R.leave-scope();
+    }
+
+#-------------------------------------------------------------------------------
+# Statement control
+
+    # Helper method for control statements taking a block without any
+    # intervening expression
+    method takes-none($/, $name) {
+        self.attach: $/, Nodify('Statement::' ~ $name).new(body => $<block>.ast);
+    }
+
+    # Helper method for control statements taking a source and a pointy
+    # block
+    method takes-source($/, $name) {
+        self.attach: $/, Nodify('Statement::' ~ $name).new(
+          source => $<EXPR>.ast, body => $<pointy-block>.ast
+        );
+    }
+
+    # Helper method for conditional statements taking a condition and
+    # a pointy block
+    method takes-cond($/, $name) {
+        self.attach: $/, Nodify('Statement::' ~ $name).new(
+          condition => $<EXPR>.ast, body => $<pointy-block>.ast
+        );
+    }
+
+    # Helper method for looping statements taking a condition and
+    # a pointy block
+    method takes-loop($/, $name) {
+        self.attach: $/, Nodify('Statement::Loop::' ~ $name).new(
+          condition => $<EXPR>.ast, body => $<pointy-block>.ast
+        );
+    }
+
+    # Handling of simple control statements that take a block
+    method statement-control:sym<default>($/) { self.takes-none($/,'Default') }
+    method statement-control:sym<CATCH>($/)   { self.takes-none($/,'Catch')   }
+    method statement-control:sym<CONTROL>($/) { self.takes-none($/,'Control') }
+
+    # Handling of simple control statements that take a pointy block
+    method statement-control:sym<for>($/)   { self.takes-source($/,'For')   }
+    method statement-control:sym<given>($/) { self.takes-source($/,'Given') }
+    method statement-control:sym<unless>($/)  { self.takes-cond($/,'Unless')  }
+    method statement-control:sym<when>($/)    { self.takes-cond($/,'When')    }
+    method statement-control:sym<without>($/) { self.takes-cond($/,'Without') }
+
+    # Handling of all forms of loops
+    method statement-control:sym<repeat>($/) {
+        self.takes-loop($/, $*WHILE ?? 'RepeatWhile' !! 'RepeatUntil')
+    }
+    method statement-control:sym<while>($/) {
+        self.takes-loop($/, $*WHILE ?? 'While' !! 'Until')
+    }
+
+    # Handling of whenever
+    method statement-control:sym<whenever>($/) {
+        self.attach: $/,
+          Nodify('Statement::Whenever').new:
+            trigger => $<EXPR>.ast, body => $<pointy-block>.ast;
+    }
+
+    # The traits go on an also statement, which applies them to the
+    # package or routine it is in at BEGIN time
+    method statement-control:sym<also>($/) {
+        my $also := Nodify('Statement::Also').new;
+        for $<trait> {
+            $also.add-trait($_.ast);
+        }
+        self.attach: $/, $also;
+    }
+
+    method statement-control:sym<trusts>($/) {
+        self.attach: $/, Nodify('Statement::Trusts').new(type => $<typename>.ast);
+    }
+
+    # Basic if / with handling with all of the elsifs / orelses
+    method statement-control:sym<if>($/) {
+
+        # collect the if and all of the elsifs / orwiths
+        my @elsifs;
+        my int $index;
+        for @*IF-PARTS {
+            @elsifs.push:
+              Nodify('Statement::' ~ $_).new:
+                condition => $<EXPR>[$index].ast,
+                then      => $<pointy-block>[$index].ast;
+            ++$index;
+        }
+
+        # the first is the main part, add others if appropriate
+        my $ast := @elsifs.shift;
+        $ast.set-elsifs(@elsifs)   if @elsifs;
+        $ast.set-else($<else>.ast) if $<else>;
+        self.attach: $/, $ast;
+    }
+
+    # Basic loop handling
+    method statement-control:sym<loop>($/) {
+        my %parts;
+        %parts<setup>     := $<e1>.ast if $<e1>;
+        %parts<condition> := $<e2>.ast if $<e2>;
+        %parts<increment> := $<e3>.ast if $<e3>;
+        %parts<body>      := $<block>.ast;
+        self.attach: $/, Nodify('Statement::Loop').new(|%parts);
+    }
+
+#-------------------------------------------------------------------------------
+# Pragma and module loading related statements
+
+    # "no foo" can only mean a pragma at the moment
+    method statement-control:sym<no>($/) {
+        my str $name := $/.pragma2str(~$<module-name>);
+        my $Pragma   := Nodify('Pragma');
+        if $Pragma.IS-PRAGMA($name) {
+            my $argument := $<arglist><EXPR>
+              ?? $<arglist><EXPR>.ast
+              !! Nodify('Expression');
+
+            my $ast := $Pragma.new(:$name, :$argument, :off);
+            self.attach: $/, $ast;
+        }
+        else {
+            my $args := $<arglist><EXPR>.ast;
+            $args.IMPL-CHECK($*R, $*CU.context);
+            self.report-problems();
+            nqp::die("Don't know how to 'no " ~ $name ~ "'")
+        }
+    }
+
+    method statement-control:sym<use>($/) {
+        # A DOC-prefixed use is inert unless compiling documentation.
+        if nqp::chars(~$<doc>) && !%*COMPILING<%?OPTIONS><doc> {
+            self.attach: $/, Nodify('Statement::Empty').new;
+            return;
+        }
+
+        my str $name := $/.pragma2str(~$<module-name>);
+        my $Pragma   := Nodify('Pragma');
+        my $argument := $<arglist><EXPR>
+          ?? $<arglist><EXPR>.ast
+          !! Nodify('Expression');
+        my $ast;
+
+        if $Pragma.IS-PRAGMA($name) {
+            $ast := $Pragma.new(:$name, :$argument);
+            self.SET-NODE-ORIGIN($/, $ast);
+            $ast.ensure-begin-performed($*R, $*CU.context);
+        }
+
+        # proper module loading
+        else {
+            my $LANG := $*LANG;
+            $ast := Nodify('Statement::Use').new(
+              :module-name($<module-name>.ast), :$argument
+            );
+            self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
+            $ast.ensure-begin-performed($*R, $*CU.context);
+
+            my sub set-how($declarator, $meta, $type) {
+                $LANG.set_how($declarator, $meta);
+                $LANG.set_how("U:$declarator", nqp::hash($type, $meta));
+            }
+
+            for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
+                $/.add-categorical(
+                  $_.category, $_.opname, $_.canname, $_.subname, $_.declarand, :current-scope);
+            }
+            for $ast.superseded-declarators {
+                my $declarator := $_.key;
+                $/.typed-panic('X::EXPORTHOW::NothingToSupersede',
+                  :$declarator
+                ) unless $/.know_how($declarator);
+
+                $/.typed-panic('X::EXPORTHOW::Conflict',
+                  :$declarator, :directive<SUPERSEDE>
+                ) if $/.know_how("U:$declarator");
+
+                set-how($declarator, $_.value, 'SUPERSEDE');
+            }
+            for $ast.added-declarators {
+                my str $declarator := $_.key;
+                $/.typed-panic('X::EXPORTHOW::Conflict',
+                  :$declarator, :directive<DECLARE>
+                ) if $/.know_how($declarator);
+
+                set-how($declarator, nqp::decont($_.value), 'DECLARE');
+                self.add_package_declarator($/, $declarator);
+            }
+            for $ast.unchecked-declarators {
+                my str $declarator := $_.key;
+
+                set-how($declarator, nqp::decont($_.value), 'DECLARE');
+                self.add_package_declarator($/, $declarator);
+            }
+        }
+
+        self.attach: $/, $ast;
+    }
+
+    method add_package_declarator($/, str $pdecl) {
+        my $cursor := $/;
+
+        # Compute name of grammar/action entry.
+        my $canname := 'package-declarator:sym<' ~ $pdecl ~ '>';
+
+        # Add to grammar if needed.
+        unless nqp::can($cursor, $canname) {
+            my role PackageDeclarator[$meth_name, $declarator] {
+                token ::($meth_name) {
+                    $<sym>=[$declarator] <.kok> <package-def($declarator)>
+                    <.set_braid_from(self)>
+                }
+            }
+            $cursor.HOW.mixin($cursor, PackageDeclarator.HOW.curry(PackageDeclarator, $canname, $pdecl));
+
+            # This also becomes the current MAIN. Also place it in %?LANG.
+            %*LANG<MAIN> := $cursor.WHAT;
+        }
+
+        my $actions := $cursor.actions;
+        # Add action method if needed.
+        unless nqp::can($actions, $canname) {
+            my role PackageDeclaratorAction[$meth] {
+                method ::($meth)($/) {
+                    self.attach: $/, $<package-def>.ast;
+                }
+            };
+            $actions := $actions.HOW.mixin($actions,
+                PackageDeclaratorAction.HOW.curry(PackageDeclaratorAction, $canname));
+            %*LANG<MAIN-actions> := $actions;
+        }
+        $cursor.define_slang("MAIN", $cursor.WHAT, $actions);
+        $cursor.set_actions($actions);
+
+        my $scalar := p6ize_recursive(%*LANG);
+        my $descriptor_type := $*R.type-from-setting('ContainerDescriptor');
+        my $descriptor := $descriptor_type.new( :dynamic(1), :name("LANG") );
+        nqp::bindattr($scalar, $*R.type-from-setting('Scalar'), '$!descriptor', $descriptor);
+        $*R.current-scope.merge-generated-lexical-declaration(
+          :resolver($*R),
+          :force,
+          Nodify('VarDeclaration::Implicit::Constant').new(
+            :name('%?LANG'), :value($scalar)
+          )
+        );
+
+        $*LANG := $cursor;
+    }
+
+    method statement-control:sym<need>($/) {
+        my @module-names;
+        for $<module-name> {
+            @module-names.push: $_.ast;
+        }
+
+        my $ast := Nodify('Statement::Need').new(:@module-names);
+
+        self.attach: $/, $ast;
+    }
+
+    method statement-control:sym<import>($/) {
+        my $argument := $<arglist><EXPR>
+          ?? $<arglist><EXPR>.ast
+          !! Nodify('Expression');
+
+        my $ast := Nodify('Statement::Import').new(
+          :module-name($<module-name>.ast), :$argument
+        );
+        self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
+        $ast.to-begin-time($*R, $*CU.context);
+        for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
+            $/.add-categorical(
+              $_.category, $_.opname, $_.canname, $_.subname, $_.declarand, :current-scope);
+        }
+
+        self.attach: $/, $ast;
+    }
+
+    method statement-control:sym<require>($/) {
+        my $ast := Nodify('Statement::Require').new(
+            module-name => $<module-name> ?? $<module-name>.ast !! Nodify('Name'),
+            file => $<file> ?? $<file>.ast !! Nodify('Expression'),
+            argument => $<EXPR> ?? $<EXPR>.ast !! Nodify('Expression'),
+        );
+        self.attach: $/, $ast;
+    }
+
+#-------------------------------------------------------------------------------
+# Statement modifiers
+
+    # Helper method to attach an expression
+    method modifier-expr($/) {
+        self.attach: $/, $<EXPR>.ast;
+    }
+
+    # Helper method for setting up statement modifiers
+    method SM-cond($/, $name) {
+        self.attach: $/,
+          Nodify('StatementModifier::' ~ $name).new($<modifier-expr>.ast)
+    }
+
+    # Simple statement modifiers
+    method statement-mod-cond:sym<if>($/)      { self.SM-cond($/, 'If')      }
+    method statement-mod-cond:sym<unless>($/)  { self.SM-cond($/, 'Unless')  }
+    method statement-mod-cond:sym<when>($/)    { self.SM-cond($/, 'When')    }
+    method statement-mod-cond:sym<with>($/)    { self.SM-cond($/, 'With')    }
+    method statement-mod-cond:sym<without>($/) { self.SM-cond($/, 'Without') }
+
+    # Statement modifiers that set $_
+    method statement-mod-loop:sym<for>($/)     { self.SM-cond($/, 'For')     }
+    method statement-mod-loop:sym<given>($/)   { self.SM-cond($/, 'Given')   }
+    method statement-mod-loop:sym<until>($/)   { self.SM-cond($/, 'Until')   }
+    method statement-mod-loop:sym<while>($/)   { self.SM-cond($/, 'While')   }
+
+#-------------------------------------------------------------------------------
+# Phasers
+
+    # Helper method for setting up simple phasers that just take a blorst
+    method SP-phaser($/, $name) {
+        self.attach: $/,
+          Nodify('StatementPrefix::Phaser::' ~ $name).new($<blorst>.ast)
+    }
+
+    # Simple phasers that just take a blorst
+    method statement-prefix:sym<CHECK>($/) { self.SP-phaser($/, 'Check') }
+    method statement-prefix:sym<CLOSE>($/) { self.SP-phaser($/, 'Close') }
+    method statement-prefix:sym<END>($/)   { self.SP-phaser($/, 'End')   }
+    method statement-prefix:sym<ENTER>($/) { self.SP-phaser($/, 'Enter') }
+    method statement-prefix:sym<FIRST>($/) { self.SP-phaser($/, 'First') }
+    method statement-prefix:sym<INIT>($/)  { self.SP-phaser($/, 'Init')  }
+    method statement-prefix:sym<KEEP>($/)  { self.SP-phaser($/, 'Keep')  }
+    method statement-prefix:sym<LAST>($/)  { self.SP-phaser($/, 'Last')  }
+    method statement-prefix:sym<LEAVE>($/) { self.SP-phaser($/, 'Leave') }
+    method statement-prefix:sym<NEXT>($/)  { self.SP-phaser($/, 'Next')  }
+    method statement-prefix:sym<QUIT>($/)  { self.SP-phaser($/, 'Quit')  }
+    method statement-prefix:sym<UNDO>($/)  { self.SP-phaser($/, 'Undo')  }
+
+    # BEGIN phaser needs to be executed *now* and produce a value
+    method statement-prefix:sym<BEGIN>($/) {
+        my $ast := Nodify('StatementPrefix::Phaser::Begin').new($<blorst>.ast);
+        self.SET-NODE-ORIGIN($/, $ast); # Ensure we have line numbers for errors
+        $ast.ensure-begin-performed($*R, $*CU.context);
+        self.attach: $/, $ast;
+    }
+
+    # PRE/POST phasers need a stringification of the blorst as well
+    method statement-prefix:sym<PRE>($/) {
+        my $blorst := $<blorst>;
+        self.attach: $/, Nodify(
+          'StatementPrefix::Phaser::Pre'
+        ).new($blorst.ast, ~$blorst);
+    }
+    method statement-prefix:sym<POST>($/) {
+        my $blorst := $<blorst>;
+        self.attach: $/, Nodify(
+          'StatementPrefix::Phaser::Post'
+        ).new($blorst.ast, ~$blorst);
+    }
+
+    method statement-prefix:sym<TEMP>($/) {
+        self.SP-phaser($/, 'Temp');
+        $/.worry("The TEMP phaser will never be implemented.\nPlease remove to prevent breakage in future language versions.");
+    }
+
+    # DOC phaser only works if so activated on command line
+    method statement-prefix:sym<DOC>($/) {
+        if %*OPTIONS<doc> || %*OPTIONS<rakudoc> {
+            my $phase := $*DOC-PHASER;
+            $phase eq 'Begin'
+              ?? self.statement-prefix:sym<BEGIN>($/)
+              !! self.SP-phaser($/, $phase);
+        }
+
+        # not activated
+        else {
+            self.attach: $/, self.Nil
+        }
+    }
+
+#-------------------------------------------------------------------------------
+# Statement prefixes
+
+    # Helper method to normalize a blorst
+    method blorst($/) {
+        my $ast := $<block>.ast;
+        self.reclaim-doc-blocks($ast);
+        self.attach: $/, $ast
+    }
+
+    # Helper method for setting up simple prefix that just take a blorst
+    method SP-prefix($/, $name) {
+        self.attach: $/,
+          Nodify('StatementPrefix::' ~ $name).new($<blorst>.ast)
+    }
+
+    # Simple prefixes that just take a blorst
+    method statement-prefix:sym<do>($/)      { self.SP-prefix($/, 'Do')      }
+    method statement-prefix:sym<eager>($/)   { self.SP-prefix($/, 'Eager')   }
+    method statement-prefix:sym<sink>($/)    { self.SP-prefix($/, 'Sink')   }
+    method statement-prefix:sym<gather>($/)  { self.SP-prefix($/, 'Gather')  }
+    method statement-prefix:sym<once>($/)    { self.SP-prefix($/, 'Once')    }
+    method statement-prefix:sym<quietly>($/) { self.SP-prefix($/, 'Quietly') }
+    method statement-prefix:sym<react>($/)   {
+        my $sp := $*WHENEVERABLE;
+        $sp.replace-blorst($<blorst>.ast);
+        $*R.pop-attach-target($sp);
+        self.attach: $/, $sp;
+    }
+    method statement-prefix:sym<start>($/)   { self.SP-prefix($/, 'Start')   }
+    method stub-wheneverable($/) {
+        my $wheneverable := Nodify('StatementPrefix::' ~ $*WHENEVERABLE-TYPE).new;
+        $*R.push-attach-target($wheneverable);
+        $*WHENEVERABLE := $wheneverable;
+    }
+    method statement-prefix:sym<supply>($/)   {
+        my $sp := $*WHENEVERABLE;
+        $sp.replace-blorst($<blorst>.ast);
+        $*R.pop-attach-target($sp);
+        self.attach: $/, $sp;
+    }
+    method statement-prefix:sym<try>($/)     { self.SP-prefix($/, 'Try')     }
+
+    # Helper method for statement prefixes that modify for loops
+    method SP-looper($/, $mode) {
+        my $ast := $<blorst>.ast;
+        if nqp::istype($ast, Nodify('Statement::For')) {
+            $ast.replace-mode(nqp::lc($mode));
+            self.attach: $/, $ast;
+        }
+        else {
+            self.SP-prefix($/, $mode);
+        }
+    }
+
+    # Prefixes that work differently on for loops
+    method statement-prefix:sym<hyper>($/) { self.SP-looper($/, 'Hyper') }
+    method statement-prefix:sym<lazy>($/)  { self.SP-looper($/, 'Lazy')  }
+    method statement-prefix:sym<race>($/)  { self.SP-looper($/, 'Race')  }
+
+#-------------------------------------------------------------------------------
+# Expression generation
+
+    # Just a term
+    method EXPR($/) {
+        self.attach: $/, $/.ast // $<OPER>.ast;
+        $/  # simplies end of EXPR "token"
+    }
+
+    # Widens an operator application's origin over its operator and operands.
+    # A reduced operand's match starts at its operator, so prefer node origins.
+    method SET-EXPR-ORIGIN($/, $node, :$at-operator) {
+        my $operator := $/.ast;
+        $operator := nqp::istype($operator, Nodify('Node'))
+          && nqp::isconcrete($operator.origin)
+            ?? $operator.origin
+            !! $/;
+        my int $from := $operator.from;
+        my int $to   := $operator.to;
+        for $/.list -> $operand {
+            my $ast := $operand.ast;
+            if nqp::isconcrete($ast) {
+                my $origin := nqp::istype($ast, Nodify('Node'))
+                  ?? $ast.origin
+                  !! $operand;
+                $origin := $operand unless nqp::isconcrete($origin);
+                $from := $origin.from if $origin.from < $from;
+                $to   := $origin.to   if $origin.to   > $to;
+            }
+        }
+        self.WIDEN-NODE-ORIGIN($node, $from, $to);
+        $node.origin.set-locus($/.from) if $at-operator && $node.origin.locus < $/.from;
+    }
+
+    # Widens the origins of a node and of the nodes down to one of its
+    # descendants to cover that descendant. Returns whether it was found.
+    method WIDEN-ORIGINS-TO($node, $descendant) {
+        return 1 if $node =:= $descendant;
+        my int $found;
+        $node.visit-children(-> $child {
+            $found := 1
+              if !$found && self.WIDEN-ORIGINS-TO($child, $descendant);
+        });
+        if $found {
+            my $origin := $descendant.origin;
+            self.WIDEN-NODE-ORIGIN($node, $origin.from, $origin.to)
+              if nqp::isconcrete($origin);
+        }
+        $found
+    }
+
+    # A ternary expression
+    method TERNARY-EXPR($/) {
+        my $ternary := Nodify('Ternary').new:
+          condition => $/[0].ast,
+          then      => $<infix><EXPR>.ast,  # the way the grammar parses
+          else      => $/[1].ast;
+        self.SET-EXPR-ORIGIN($/, $ternary, :at-operator);
+        self.attach: $/, $ternary;
+    }
+
+    # An assignment, or infix expression
+    method INFIX-EXPR($/) {
+        if $<infix><sym> eq '=' {
+            my $lhs := $/[0].ast;
+            if nqp::istype($lhs,Nodify('ApplyPostfix')) {
+                my $postfix := $lhs.postfix;
+                if (nqp::istype(        # [foo]
+                    $postfix,
+                    Nodify('Postcircumfix::ArrayIndex')
+                  ) && nqp::elems($postfix.IMPL-UNWRAP-LIST($postfix.index.statements)) == 1
+                ) || nqp::istype(       # <bar>
+                       $postfix,
+                       Nodify('Postcircumfix::LiteralHashIndex')
+                     ) {
+                    $postfix.set-assignee($/[1].ast);
+                    self.SET-EXPR-ORIGIN($/, $lhs);
+                    self.WIDEN-ORIGINS-TO($lhs, $/[1].ast);
+                    self.attach: $/, $lhs;
+                    return;
+                }
+            }
+        }
+
+        my $infix := $/.ast;
+        my $node;
+        if nqp::istype($infix, Nodify('DottyInfixish')) {
+            $node := Nodify('ApplyDottyInfix').new:
+              infix => $infix, left => $/[0].ast, right => $/[1].ast;
+        }
+        else {
+            $node := Nodify('ApplyInfix').new:
+              infix => $infix, left => $/[0].ast, right => $/[1].ast;
+        }
+        if $<infix><colonpair> {
+            $node.add-colonpair($<infix><colonpair>.ast);
+        }
+        my $cu := $*CU; # Might be too early to even have a CompUnit
+        self.SET-EXPR-ORIGIN($/, $node);
+        self.SET-ORIGIN-OVER-CHILDREN($node.args)
+          if nqp::istype($node, Nodify('ApplyInfix'));
+        $node.to-begin-time($*R, $cu ?? $cu.context !! Nodify('IMPL::QASTContext'));
+        make $node;
+    }
+
+    # A listy expression
+    method LIST-EXPR($/) {
+        my @operands;
+        for $/.list {
+            my $ast := $_.ast;
+            @operands.push($ast) if nqp::isconcrete($ast);
+        }
+        my $node := Nodify('ApplyListInfix').new:
+          infix => $/.ast, operands => @operands;
+        self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+        self.attach: $/, $node;
+    }
+
+    # A prefix expression
+    method PREFIX-EXPR($/) {
+        my $ast := Nodify('ApplyPrefix').new:
+            prefix  => $/.ast // Nodify('Prefix').new(~$<prefix><sym>),
+            operand => $/[0].ast;
+        self.SET-EXPR-ORIGIN($/, $ast);
+        self.attach: $/, $ast;
+    }
+
+    # A postfix expression
+    method POSTFIX-EXPR($/) {
+        my $ast     := $/.ast;
+        my $operand := $/[0].ast;
+        my $cp      := $<colonpair>;
+
+        if $cp {
+            if $*ADVERB-AS-INFIX
+              && (nqp::istype($operand, Nodify('ColonPair'))
+                    || nqp::istype($operand, Nodify('ColonPairs'))
+                 ) {
+                my $node := Nodify('ColonPairs').new($operand,$cp.ast);
+                self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+                self.attach: $/, $node;
+            }
+            else {
+                if nqp::can($operand, 'add-colonpair') {
+                    CATCH {
+                        $/.typed-sorry('X::Syntax::Adverb', what => ~$/[0]);
+                    }
+                    # The grammar has already refused an adverb that is not
+                    # a colonpair.
+                    if nqp::istype($cp.ast, Nodify('ColonPair')) {
+                        $operand.add-colonpair($cp.ast);
+                        self.SET-EXPR-ORIGIN($/, $operand);
+                        self.WIDEN-ORIGINS-TO($operand, $cp.ast);
+                    }
+                }
+                else {
+                    $/.typed-sorry('X::Syntax::Adverb', what => ~$/[0]);
+                }
+                make $operand;
+            }
+        }
+
+        elsif nqp::istype($ast, Nodify('Call::Name')) {
+            # A custom postcircumfix's subscript args are already in place, so
+            # the operand must go first to become the sub's invocant argument.
+            $ast.args.unshift: $operand;
+            self.SET-EXPR-ORIGIN($/, $ast);
+            self.attach: $/, $ast;
+        }
+
+        elsif $ast {
+            if nqp::istype($ast, Nodify('Postfixish')) {
+                if $<dotty> && $<dotty><sym> eq '.=' {
+                    my $infix := Nodify('DottyInfix::CallAssign').new;
+                    self.SET-NODE-ORIGIN($<dotty><sym>, $infix);
+                    $ast.set-dispatcher('') if nqp::istype($ast, Nodify('Call::Methodish')); # Already handled by DottyInfix::CallAssign
+                    my $node := Nodify('ApplyDottyInfix').new:
+                        :$infix,
+                        :left($operand),
+                        :right($ast);
+                    my $cu := $*CU; # Might be too early to even have a CompUnit
+                    self.SET-EXPR-ORIGIN($/, $node);
+                    $node.to-begin-time($*R, $cu ?? $cu.context !! Nodify('IMPL::QASTContext'));
+                    make $node;
+                }
+                elsif nqp::istype($operand, Nodify('VarDeclaration::Anonymous')) && nqp::istype($ast, Nodify('Call::MetaMethod'))
+                {
+                    # A call like $.^foo. Parses completely differently from $.foo
+                    my $node := Nodify('ApplyPostfix').new(
+                        operand => Nodify('ApplyPostfix').new(
+                            operand => Nodify('Term::Self').new.to-begin-time($*R, $*CU.context),
+                            postfix => $ast
+                        ).to-begin-time($*R, $*CU.context),
+                        postfix => Nodify('Call::Method').new(
+                            name => Nodify('Name').from-identifier(
+                                $operand.sigil eq '@' ?? 'list' !! $operand.sigil eq '%' ?? 'hash' !! 'item'
+                            ).to-begin-time($*R, $*CU.context)
+                        ).to-begin-time($*R, $*CU.context)
+                    );
+                    self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+                    self.attach: $/, $node;
+                }
+                else {
+                    my $node := Nodify('ApplyPostfix').new:
+                        postfix => $ast, operand => $operand;
+                    self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+                    self.attach: $/, $node;
+                }
+            }
+            # Report the sorry if there is no more specific sorry already
+            elsif !$*R.has-sorries {
+                $/.typed-sorry: 'X::Syntax::Confused';
+            }
+        }
+        else {
+            my $node := Nodify('ApplyPostfix').new:
+              postfix => Nodify('Postfix').new(:operator(~$<postfix><sym>)),
+              operand => $operand;
+            self.SET-EXPR-ORIGIN($/, $node, :at-operator);
+            self.attach: $/, $node;
+        }
+    }
+
+#-------------------------------------------------------------------------------
+# Prefix operators
+
+    # Alpha prefix actions are statically coupled to their appropriate
+    # prefix object to allow a slang to change the wording of these prefix
+    # operators *without* needing to supply additional actions mapping
+    # them to the correct english prefix name.
+    method prefix:sym<let>($/) {
+        self.attach: $/, Nodify('Prefix').new('let')
+    }
+    method prefix:sym<not>($/) {
+        self.attach: $/, Nodify('Prefix').new('not')
+    }
+    method prefix:sym<so>($/) {
+        self.attach: $/, Nodify('Prefix').new('so')
+    }
+    method prefix:sym<temp>($/) {
+        self.attach: $/, Nodify('Prefix').new('temp')
+    }
+
+    # prefix:<||> generates a prefix:<|> call but is treated differently by a surrounding
+    # postcircumfix:<[ ]> which itself turns into postcircumfix:<[; ]>
+    method prefix:sym<||>($/) {
+        self.attach: $/, Nodify('Prefix::Multislice').new
+    }
+
+    method prefixish($/) {
+        my $ast := $<OPER>.ast
+          // self.SET-ORIGIN-OF($<OPER>, Nodify('Prefix').new(~$<prefix><sym>));
+        $ast := $<prefix-postfix-meta-operator>.ast.new($ast.to-begin-time($*R, $*CU.context))
+          if $<prefix-postfix-meta-operator>;
+        self.attach: $/, $ast;
+    }
+
+    method prefix-postfix-meta-operator:sym<«>($/) {
+        make Nodify('MetaPrefix::Hyper');
+    }
+
+#-------------------------------------------------------------------------------
+# Postfix operators
+
+    method postfixish($/) {
+        my $ast := $<OPER>.ast
+          // self.SET-ORIGIN-OF($<OPER>, Nodify('Postfix').new(:operator(~$<postfix><sym>)));
+
+        self.attach: $/, $<postfix-prefix-meta-operator>
+          ?? Nodify('MetaPostfix::Hyper').new($ast.to-begin-time($*R, $*CU.context))
+          !! $ast
+    }
+
+    method postfix-prefix-meta-operator:sym<»>($/) {
+        # Check if we are inside «...» quoters and complain if the hyper creates
+        # ambiguity with the quoters, since user may not wanted to have a hyper
+        my str $sym := ~$<sym>;
+        $/.worry("Ambiguous use of $sym; use "
+          ~ ($sym eq '>>' ?? '»' !! '>>')
+          ~ " instead to mean hyper, or insert whitespace before"
+          ~ " $sym to mean a quote terminator (or use different delimiters?)"
+        ) if ($/.pragma("STOPPER") // '') eq $sym;
+    }
+
+    method postfix:sym<i>($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('i'));
+    }
+
+    method postfix:sym<++>($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('++'));
+    }
+
+    method postfix:sym<-->($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('--'));
+    }
+
+    method postfix:sym<⚛++>($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('⚛++'));
+    }
+
+    method postfix:sym<⚛-->($/) {
+        self.attach: $/, Nodify('Postfix').new(:operator('⚛--'));
+    }
+
+    method postop($/) {
+        self.attach: $/, $<postfix> ?? $<postfix>.ast !! $<postcircumfix>.ast;
+    }
+
+    method postcircumfix:sym<[ ]>($/) {
+        self.attach: $/, Nodify('Postcircumfix::ArrayIndex').new(:index($<semilist>.ast));
+    }
+
+    method postcircumfix:sym<{ }>($/) {
+        self.attach: $/, Nodify('Postcircumfix::HashIndex').new(:index($<semilist>.ast));
+    }
+
+    method postcircumfix:sym<ang>($/) {
+        self.attach: $/, Nodify('Postcircumfix::LiteralHashIndex').new(:index($<nibble>.ast));
+    }
+
+    method postcircumfix:sym«<< >>»($/) {
+        self.attach: $/, Nodify('Postcircumfix::LiteralHashIndex').new(:index($<nibble>.ast));
+    }
+
+    method postcircumfix:sym<« »>($/) {
+        self.attach: $/, Nodify('Postcircumfix::LiteralHashIndex').new(:index($<nibble>.ast));
+    }
+
+    method postcircumfix:sym<( )>($/) {
+        self.attach: $/, Nodify('Call::Term').new(args => $<arglist>.ast);
+    }
+
+    method dotty:sym<.>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.^>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.?>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.&>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.+>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.*>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dotty:sym<.=>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
+    method dottyop($/) {
+        my $ast;
+
+        if $<methodop> {
+            $ast := $<methodop>.ast;
+        }
+        elsif $<postop> {
+            $ast := $<postop>.ast;
+        }
+        elsif $<colonpair> {
+            my $cp := $<colonpair>;
+            if $cp<identifier> eq "" && $cp<coloncircumfix> -> $cf {
+                if $cf<circumfix> -> $op {
+                    $ast := Nodify('Call::Name').new(
+                      name => Nodify('Name').from-identifier(
+                        'prefix:' ~ Nodify('ColonPair').IMPL-QUOTE-VALUE(
+                          Nodify('Node').IMPL-BEGIN-TIME-EVALUATE(
+                            (
+                              $op<nibble> // $op<semilist> // $op<pointy-block>
+                            ).ast, $*R, $*CU.context
+                          )
+                        )
+                      )
+                    );
+                }
+                else {
+                    nqp::die('NYI kind of dottyop with coloncircumfix');
+                }
+            }
+            else {
+                $ast := $cp.ast;
+            }
+        }
+        else {
+            nqp::die('NYI kind of dottyop');
+        }
+
+        self.attach: $/, $ast;
+    }
+
+    method privop($/) {
+        self.attach: $/, $<methodop>.ast;
+    }
+
+    method methodop($/) {
+        my $args := $<args> ?? $<args>.ast !! Nodify('ArgList').new();
+        my $ast;
+        my $DOTTY := $*DOTTY;
+        my $dispatch := $DOTTY eq '.?' || $DOTTY eq '.+' || $DOTTY eq '.*' || $DOTTY eq '.='
+          ?? $DOTTY
+          !! "";
+
+        if $<longname> -> $longname {
+            $ast     := $longname.ast.without-colonpairs;
+            self.SET-NODE-ORIGIN($longname<name>, $ast);
+            my $name := $ast.canonicalize;
+
+            if $DOTTY && !$dispatch {
+                $ast := $DOTTY eq '!'
+                  ?? Nodify('Call::PrivateMethod').new(:name($ast), :$args)
+                  !! $DOTTY eq '.^'
+                    ?? Nodify('Call::MetaMethod').new(:$name, :$args)
+                    !! $DOTTY eq '.&'
+                      ?? Nodify('Call::NameAsMethod').new(:name($ast), :$args)
+                      !! nqp::die("Missing compilation of $DOTTY");
+            }
+            else {
+                my $method-name := $longname.core2ast.without-colonpairs;
+                self.SET-NODE-ORIGIN($longname<name>, $method-name);
+                $ast := Nodify('Call::Method').new(
+                  :name($method-name), :$args, :$dispatch
+                );
+            }
+        }
+        elsif $<quote> -> $quote {
+            $dispatch := '!' if $DOTTY eq '!';
+            $ast := Nodify('Call::QuotedMethod').new(
+              :name($quote.ast), :$args, :$dispatch
+            );
+        }
+        elsif $<variable> -> $variable {
+            $ast := Nodify('Call::TermAsMethod').new(
+              :callee($variable.ast), :$args, :$dispatch
+            );
+        }
+        else {
+            nqp::die('NYI kind of methodop');
+        }
+
+        self.attach: $/, $ast;
+        # A method call without arguments has an empty list after its name
+        unless $<args> {
+            my int $end := $ast.origin.to;
+            $args.set-origin(Nodify('Origin').new(:from($end), :to($end)));
+        }
+    }
+
+    sub super-int-to-Int($digits, $sign = "") {
+        intify($sign, $digits, "⁰¹²³⁴⁵⁶⁷⁸⁹")
+    }
+    sub sub-int-to-Int($digits, $sign = "") {
+        intify($sign, $digits, "₀₁₂₃₄₅₆₇₈₉")
+    }
+
+    sub intify($sign, $digits, $from) {
+        my $Int       := $*LITERALS.int-type;
+        my $value     := nqp::box_i(0, $Int);
+        my int $chars := nqp::chars($digits);
+        my int $i;
+
+        while $i < $chars {
+            $value := nqp::add_I(
+              nqp::mul_I($value, nqp::box_i(10, $Int), $Int),
+              nqp::box_i(nqp::index($from, nqp::substr($digits,$i,1)), $Int),
+              $Int
+            );
+            ++$i;
+        }
+        $sign eq '⁻' || $sign eq '¯' ?? nqp::neg_I($value,$Int) !! $value
+    }
+
+    method postfix:sym<ⁿ>($/) {
+        self.attach: $/, Nodify('Postfix::Power').from-superscripts($<power>)
+    }
+
+    method postfix:sym<+>($/) {
+        my $v := $<vulgar>;
+        my int $nu;
+        my int $de;
+
+        # 4²/₃₃
+        if $v<super-integer> -> $super {
+            $nu := super-int-to-Int(~$super);
+            $de := sub-int-to-Int(~$v<sub-integer>);
+            if $nu >= $de {
+                $/.panic("Numerator must be less than denominator: $nu >= $de")
+            }
+        }
+
+        # 22⅔
+        else {
+            my $ord := nqp::ord(~$v);
+            $nu := ord-to-numerator($ord);
+            $de := ord-to-denominator($ord);
+        }
+
+        self.attach: $/, Nodify('Postfix::Vulgar').new(
+          $*LITERALS.intern-rat($nu, $de)
+        );
+    }
+
+#-------------------------------------------------------------------------------
+# Infix operators
+
+    # Assignment in Raku can take two forms: item and list assignment:
+    # my @b = my $a = 1,2,3;  # $a = 1, @b = 1,2,3 .  In the item
+    # assignment case, the '=' gets a higher precedence than the ','.
+    # In the list assignment case, a lowed precedence.  So the expression
+    # is really: my @b = (my $a = 1),2,3 .  The grammar is supposed to
+    # set the $*ITEM dynamic variable to a truthy value if item assignment
+    # is to be assumed.
+    method infix:sym<=>($/) {
+        self.attach: $/, Nodify('Assignment').new(:item(?$*ITEM));
+    }
+
+    # These infix operators are purely a grammar construct at the moment
+    method infix:sym«==>»($/)   { self.attach: $/, Nodify('Feed').new(~$<sym>) }
+    method infix:sym«<==»($/)   { self.attach: $/, Nodify('Feed').new(~$<sym>) }
+    method infix:sym«==>>»($/)  { self.attach: $/, Nodify('Feed').new(~$<sym>) }
+    method infix:sym«<<==»($/)  { self.attach: $/, Nodify('Feed').new(~$<sym>) }
+
+    method infix:sym<ff>($/) {
+        self.attach: $/, Nodify('FlipFlop').new('ff')
+    }
+    method infix:sym<^ff>($/) {
+        self.attach: $/, Nodify('FlipFlop').new('^ff')
+    }
+    method infix:sym<ff^>($/) {
+        self.attach: $/, Nodify('FlipFlop').new('ff^')
+    }
+    method infix:sym<^ff^>($/) {
+        self.attach: $/, Nodify('FlipFlop').new('^ff^')
+    }
+    method infix:sym<fff>($/) {
+        self.attach: $/, Nodify('FlipFlop').new('fff')
+    }
+    method infix:sym<^fff>($/) {
+        self.attach: $/, Nodify('FlipFlop').new('^fff')
+    }
+    method infix:sym<fff^>($/) {
+        self.attach: $/, Nodify('FlipFlop').new('fff^')
+    }
+    method infix:sym<^fff^>($/) {
+        self.attach: $/, Nodify('FlipFlop').new('^fff^')
+    }
+
+    method infix:sym<.>($/) {
+        self.attach: $/, Nodify('DottyInfix::Call').new;
+    }
+    method infix:sym<.=>($/) {
+        self.attach: $/, Nodify('DottyInfix::CallAssign').new;
+    }
+    # A ternary op arrives here as '?? expression !!', so check for that and
+    # create a dummy infix AST for further parsing / EXPR handling if so
+    method infix:sym<?? !!>($/) {
+        self.attach: $/, Nodify('Infix').new('?? !!')
+    }
+
+    # Alpha infix actions are statically coupled to their appropriate
+    # infix object to allow a slang to change the wording of these infix
+    # operators *without* needing to supply additional actions mapping
+    # them to the correct english infix name.
+    method infix:sym<but>($/) {
+        self.attach: $/, Nodify('Mixin').new('but')
+    }
+    method infix:sym<does>($/) {
+        self.attach: $/, Nodify('Mixin').new('does')
+    }
+
+    method infix:sym<after>($/) {
+        self.attach: $/, Nodify('Infix').new('after')
+    }
+    method infix:sym<and>($/) {
+        self.attach: $/, Nodify('Infix').new('and')
+    }
+    method infix:sym<andthen>($/) {
+        self.attach: $/, Nodify('Infix').new('andthen')
+    }
+    method infix:sym<before>($/) {
+        self.attach: $/, Nodify('Infix').new('before')
+    }
+    method infix:sym<cmp>($/) {
+        self.attach: $/, Nodify('Infix').new('cmp')
+    }
+    method infix:sym<(cont)>($/) {
+        self.attach: $/, Nodify('Infix').new('(cont)')
+    }
+    method infix:sym<coll>($/) {
+        self.attach: $/, Nodify('Infix').new('coll')
+    }
+    method infix:sym<div>($/) {
+        self.attach: $/, Nodify('Infix').new('div')
+    }
+    method infix:sym<(elem)>($/) {
+        self.attach: $/, Nodify('Infix').new('(elem)')
+    }
+    method infix:sym<eq>($/) {
+        self.attach: $/, Nodify('Infix').new('eq')
+    }
+    method infix:sym<eqv>($/) {
+        self.attach: $/, Nodify('Infix').new('eqv')
+    }
+    method infix:sym<gcd>($/) {
+        self.attach: $/, Nodify('Infix').new('gcd')
+    }
+    method infix:sym<ge>($/) {
+        self.attach: $/, Nodify('Infix').new('ge')
+    }
+    method infix:sym<gt>($/) {
+        self.attach: $/, Nodify('Infix').new('gt')
+    }
+    method infix:sym<lcm>($/) {
+        self.attach: $/, Nodify('Infix').new('lcm')
+    }
+    method infix:sym<le>($/) {
+        self.attach: $/, Nodify('Infix').new('le')
+    }
+    method infix:sym<leg>($/) {
+        self.attach: $/, Nodify('Infix').new('leg')
+    }
+    method infix:sym<lt>($/) {
+        self.attach: $/, Nodify('Infix').new('lt')
+    }
+    method infix:sym<max>($/) {
+        self.attach: $/, Nodify('Infix').new('max')
+    }
+    method infix:sym<min>($/) {
+        self.attach: $/, Nodify('Infix').new('min')
+    }
+    method infix:sym<minmax>($/) {
+        self.attach: $/, Nodify('Infix').new('minmax')
+    }
+    method infix:sym<mod>($/) {
+        self.attach: $/, Nodify('Infix').new('mod')
+    }
+    method infix:sym<ne>($/) {
+        self.attach: $/, Nodify('Infix').new('ne')
+    }
+    method infix:sym<notandthen>($/) {
+        self.attach: $/, Nodify('Infix').new('notandthen')
+    }
+    method infix:sym<or>($/) {
+        self.attach: $/, Nodify('Infix').new('or')
+    }
+    method infix:sym<orelse>($/) {
+        self.attach: $/, Nodify('Infix').new('orelse')
+    }
+    method infix:sym<unicmp>($/) {
+        self.attach: $/, Nodify('Infix').new('unicmp')
+    }
+    method infix:sym<x>($/) {
+        self.attach: $/, Nodify('Infix').new('x')
+    }
+    method infix:sym<xor>($/) {
+        self.attach: $/, Nodify('Infix').new('xor')
+    }
+    method infix:sym<xx>($/) {
+        self.attach: $/, Nodify('Infix').new('xx')
+    }
+
+    # Handle all of the infix:<sym> that don't have their own action method
+    method infixish($/) {
+        return 0 if $<adverb-as-infix>;
+
+        my $ast := $<infix>
+          ?? ($<infix>.ast || self.SET-ORIGIN-OF($<infix>, Nodify('Infix').new(~$<infix>)))
+          !! $<infix-prefix-meta-operator>
+            ?? $<infix-prefix-meta-operator>.ast
+            !! $<infix-circumfix-meta-operator>
+              ?? $<infix-circumfix-meta-operator>.ast
+              !! $<infixish>
+                ?? Nodify('BracketedInfix').new($<infixish>.ast)
+                !! $<variable>
+                  ?? Nodify('FunctionInfix').new($<variable>.ast)
+                  !! nqp::die('Unknown kind of infix: ' ~ $/);
+
+        if $<infix-postfix-meta-operator> -> $meta {
+            # the operator an assignment meta operator wraps ends before the =
+            $ast.set-origin(Nodify('Origin').new(
+              :from($/.from), :to($meta.from), :source($*ORIGIN-SOURCE)
+            )) unless nqp::isconcrete($ast.origin);
+            self.meta-infix-base($/, $ast, 'assign', 'too fiddly or diffy');
+            $ast := $meta.ast.new($ast.to-begin-time($*R, $*CU.context));
+        }
+        self.attach: $/, $ast;
+    }
+
+    # A dotty infix cannot be the base of a meta operator, and the node
+    # would refuse it as an infix, so report it the way the meta operator
+    # nodes report a fiddly base.
+    method meta-infix-base($/, $infix, str $meta, str $reason = 'too fiddly') {
+        if nqp::istype($infix, Nodify('DottyInfixish')) {
+            $/.typed-panic('X::Syntax::CannotMeta', :$meta,
+              :operator($infix.operator), :dba($infix.properties.dba),
+              :$reason);
+        }
+        $infix
+    }
+
+    method infix-prefix-meta-operator:sym<!>($/) {
+        my $infix := self.meta-infix-base($/, $<infixish>.ast, 'negate');
+        if nqp::istype($infix, Nodify('Infix')) && $infix.operator eq '=' {
+            $infix := Nodify('Infix').new('==').to-begin-time($*R, $*CU.context);
+        }
+        self.attach: $/, Nodify('MetaInfix::Negate').new($infix);
+    }
+
+    method infix-prefix-meta-operator:sym<R>($/) {
+        self.attach: $/, Nodify('MetaInfix::Reverse').new(
+          self.meta-infix-base($/, $<infixish>.ast, 'reverse the args of'));
+    }
+
+    method infix-prefix-meta-operator:sym<S>($/) {
+        self.attach: $/, Nodify('MetaInfix::Sequence').new(
+          self.meta-infix-base($/, $<infixish>.ast, 'sequence the args of'));
+    }
+
+    method infix-prefix-meta-operator:sym<X>($/) {
+        self.attach: $/, self.wrap-meta-assign:
+          self.meta-infix-base($/, $<infixish>.ast, 'cross with'),
+          -> $base { Nodify('MetaInfix::Cross').new($base) };
+    }
+
+    method infix-prefix-meta-operator:sym<Z>($/) {
+        self.attach: $/, self.wrap-meta-assign:
+          self.meta-infix-base($/, $<infixish>.ast, 'zip with'),
+          -> $base { Nodify('MetaInfix::Zip').new($base) };
+    }
+
+    method infix-postfix-meta-operator:sym<=>($/) {
+        make Nodify('MetaInfix::Assign');
+    }
+
+    method infix-circumfix-meta-operator:sym<« »>($/) {
+        self.attach: $/, self.wrap-meta-assign:
+          $<infixish>.ast, -> $base {
+              Nodify('MetaInfix::Hyper').new:
+                infix      => $base,
+                dwim-left  => $<opening> eq '«',
+                dwim-right => $<closing> eq '»'
+          };
+    }
+    method infix-circumfix-meta-operator:sym«<< >>»($/) {
+        self.attach: $/, self.wrap-meta-assign:
+          $<infixish>.ast, -> $base {
+              Nodify('MetaInfix::Hyper').new:
+                infix      => $base,
+                dwim-left  => $<opening> eq '<<',
+                dwim-right => $<closing> eq '>>'
+          };
+    }
+
+    # Lift the Assign outside any Z/X/Hyper wrap so codegen sees compound
+    # assignment at the outermost position.  R/S keep the inner shape:
+    # reversed operand order makes the RHS the target, not the LHS.
+    method wrap-meta-assign($inner, $wrap) {
+        if nqp::istype($inner, Nodify('MetaInfix::Assign')) {
+            Nodify('MetaInfix::Assign').new($wrap($inner.infix))
+        }
+        else {
+            $wrap($inner)
+        }
+    }
+
+#-------------------------------------------------------------------------------
+# Circumfix operators
+
+    method circumfix:sym<( )>($/) {
+        self.attach: $/,
+          Nodify('Circumfix::Parentheses').new($<semilist>.ast)
+    }
+
+    method circumfix:sym<[ ]>($/) {
+        self.attach: $/,
+          Nodify('Circumfix::ArrayComposer').new($<semilist>.ast)
+    }
+
+    # Applies the block or hash disambiguation algorithm, to determine
+    # whether a circumfix:<{ }> should compile as a block or a hash.
+    # Takes the AST and return that if it should compile as a block
+    # (because that is already assumed to be compiled as a block).
+    # Otherwise, returns an instance of RakuAST::Circumfix::HashComposer.
+    # Also takes an int flag indicating whether an object hash should
+    # be created if it should be a hash.  If that flag is set and it
+    # looks like a block, a false value will be returnd, allowing the
+    # caller to issue a panic.
+    sub block-or-hash($ast, int $object-hash) {
+        my @statements := $ast.body.statement-list.code-statements;
+        my int $num-statements := nqp::elems(@statements);
+
+        # Empty block is always an empty hash composer
+        if $num-statements == 0 {
+            return Nodify('Circumfix::HashComposer').new(:$object-hash)
+        }
+
+        # Multiple statements is always a block
+        elsif $num-statements > 1 {
+            return $object-hash ?? Nil !! $ast
+        }
+
+        # Not a statement always means block
+        my $statement := @statements[0];
+        unless nqp::istype($statement, Nodify('Statement::Expression')) {
+            return $object-hash ?? Nil !! $ast
+        }
+
+        # If it's a comma list, then obtain the first element. Otherwise,
+        # we have the thing to test already.
+        my $expression := $statement.expression;
+        my int $is-comma := nqp::istype($expression, Nodify('ApplyListInfix'))
+          && nqp::istype($expression.infix, Nodify('Infix'))
+          && $expression.infix.operator eq ',';
+        my $test := $is-comma
+            ?? $ast.IMPL-UNWRAP-LIST($expression.operands)[0]
+            !! $expression;
+
+        # A fatarrow is ok
+        if nqp::istype($test, Nodify('FatArrow')) {
+        }
+        # A colonpair is ok
+        elsif nqp::istype($test, Nodify('ColonPair')) {
+        }
+        # A hash sigil'd variable is ok
+        elsif nqp::istype($test, Nodify('Var')) && $test.sigil eq '%' {
+        }
+        # Some kind of infix may be ok
+        elsif nqp::istype($test, Nodify('ApplyInfix')) {
+
+            # Get the proper infix to check
+            my $infix := $test.infix;
+            if nqp::istype($infix, Nodify('Infix')) {
+            }
+            elsif nqp::istype($infix, Nodify('MetaInfix::Reverse')) {
+                $infix := $infix.infix;
+            }
+
+            # It's a block as no valid infix found
+            else {
+                return $object-hash ?? Nil !! $ast
+            }
+
+            # It's a block if not a fat arrow
+            unless $infix.operator eq '=>' {
+                return $object-hash ?? Nil !! $ast
+            }
+        }
+
+        # It's a block as nothing recognizable
+        else {
+            return $object-hash ?? Nil !! $ast
+        }
+
+        # Looks like a hash, but check for declarations or $_ usage.
+        my int $seen-decl-or-topic;
+        $expression.visit: -> $node {
+            # Don't walk into other scopes
+            if nqp::istype($node, Nodify('LexicalScope')) {
+                0
+            }
+            # A declaration that installs an enclosing symbol blocks; an `anon`
+            # one that installs none (e.g. an anon subset) is just a value.
+            elsif nqp::istype($node, Nodify('Declaration')) {
+                if $node.IMPL-INSTALLS-ENCLOSING-SYMBOL {
+                    $seen-decl-or-topic := 1;
+                }
+                0
+            }
+            # If it's a usage of the topic, it also blocks; walk no further
+            elsif nqp::istype($node, Nodify('Var::Lexical'))
+              && $node.name eq '$_'
+              || nqp::istype($node, Nodify('Term::TopicCall')) {
+                $seen-decl-or-topic := 1;
+                0
+            }
+            # Otherwise, keep looking
+            else {
+                1
+            }
+        }
+        if $seen-decl-or-topic {
+            return $object-hash ?? Nil !! $ast;
+        }
+        # A role in the braces declares its lexical fixup in their scope, which
+        # a hash does not have.
+        $ast.IMPL-HAND-OVER-FIXUPS($*R.current-scope);
+        Nodify('Circumfix::HashComposer').new($expression, :$object-hash)
+    }
+
+    method circumfix:sym<{ }>($/) {
+        if $<pointy-block><blockoid><you_are_here> -> $here {
+            make $here.ast;
+        }
+        elsif block-or-hash($<pointy-block>.ast, $*OBJECT-HASH || 0) -> $it {
+            self.attach($/, $it)
+        }
+        else {
+            $/.panic("Not allowed to create a block with a colon prefix");
+        }
+    }
+
+    method circumfix:sym<ang>($/) { self.QUOTED($/, $<nibble>.ast) }
+
+    method circumfix:sym«<< >>»($/) { self.QUOTED($/, $<nibble>.ast) }
+    method circumfix:sym<« »>($/)   { self.QUOTED($/, $<nibble>.ast) }
+
+#-------------------------------------------------------------------------------
+# Stubs
+
+    method term:sym<...>($/) {
+        self.attach: $/, Nodify('Stub::Fail').new(
+          args => $<args>.ast
+        );
+    }
+
+    method term:sym<???>($/) {
+        self.attach: $/, Nodify('Stub::Warn').new(
+          args => $<args>.ast
+        );
+    }
+
+    method term:sym<!!!>($/) {
+        self.attach: $/, Nodify('Stub::Die').new(
+          args => $<args>.ast
+        );
+    }
+
+#-------------------------------------------------------------------------------
+# Terms
+
+    method term:sym<::?IDENT>($/) {
+        self.attach: $/, Nodify('Var::Lexical::Constant').new(~$/)
+    }
+
+    method term:sym<self>($/) {
+        self.attach: $/, Nodify('Term::Self').new
+    }
+
+    method term:sym<nano>($/) {
+        self.attach: $/, Nodify('Term::Named').new('nano')
+    }
+
+    method term:sym<now>($/) {
+        self.attach: $/, Nodify('Term::Named').new('now')
+    }
+
+    method term:sym<time>($/) {
+        self.attach: $/, Nodify('Term::Named').new('time')
+    }
+
+    method term:sym<empty_set>($/) {
+        self.attach: $/, Nodify('Term::EmptySet').new
+    }
+
+    method term:sym<rand>($/) {
+        self.attach: $/, Nodify('Term::Rand').new
+    }
+
+    method term:sym<fatarrow>($/) {
+        self.attach: $/, Nodify('FatArrow').new:
+          key   => $*LITERALS.intern-Str(~$<key>),
+          value => $<val>.ast
+    }
+
+    method term:sym<colonpair>($/) {
+        self.attach: $/, $<colonpair>.ast
+    }
+
+    method term:sym<variable>($/) {
+        self.attach: $/, $<variable>.ast
+    }
+
+    # Resolve the current source file as an interned string for `$?FILE`.
+    # Mirrors the legacy frontend's current_file in src/Perl6/World.nqp:
+    # prepend the cwd unless the name is already an absolute path or one
+    # of the non-path names a compilation can have ('-e', '<unknown file>').
+    # An EVAL's pseudo-file like 'EVAL_0' names no on-disk source, so it
+    # is also passed through as-is.
+    method IMPL-SOURCE-FILE($origin-source) {
+        my str $file := $origin-source.original-file;
+        $*LITERALS.intern-Str(
+          nqp::eqat($file,'/',0)      # absolute path
+            || nqp::eqat($file,'-',0) # '-e', '-'
+            || nqp::eqat($file,':',1) # Windows drive letter
+            || nqp::eqat($file,'<',0) # '<unknown file>'
+            || $file ~~ /^ 'EVAL_' \d+ $/ # an EVAL's pseudo-file
+            ?? $file
+            !! nqp::cwd() ~ '/' ~ $file
+        )
+    }
+
+    method term:sym<package-declarator>($/) {
+        self.attach: $/, $<package-declarator>.ast
+    }
+
+    method term:sym<scope-declarator>($/) {
+        self.attach: $/, $<scope-declarator>.ast
+    }
+
+    method term:sym<routine-declarator>($/) {
+        self.attach: $/, $<routine-declarator>.ast
+    }
+
+    method term:sym<multi-declarator>($/) {
+        self.attach: $/, $<multi-declarator>.ast
+    }
+
+    method term:sym<regex-declarator>($/) {
+        self.attach: $/, $<regex-declarator>.ast
+    }
+
+    method term:sym<type-declarator>($/) {
+        self.attach: $/, $<type-declarator>.ast
+    }
+
+    method term:sym<statement-prefix>($/) {
+        self.attach: $/, $<statement-prefix>.ast
+    }
+
+    method term:sym<sigterm>($/) {
+        self.attach: $/, $<sigterm>.ast;
+    }
+
+    method term:sym<*>($/) {
+        self.attach: $/, Nodify('Term::Whatever').new
+    }
+
+    method term:sym<**>($/) {
+        self.attach: $/, Nodify('Term::HyperWhatever').new
+    }
+
+    method term:sym<lambda>($/) {
+        self.attach: $/, $<pointy-block>.ast
+    }
+
+    method term:sym<value>($/) {
+        self.attach: $/, $<value>.ast
+    }
+
+    method term:sym<identifier>($/) {
+        my $args := $<args>.ast;
+        my $name := $<identifier>.core2ast;
+        self.SET-NODE-ORIGIN($<identifier>, $name);
+        if (my $invocant := $args.invocant) {
+            # Indirect method call syntax, e.g. key($pair:)
+            self.attach: $/, Nodify('ApplyPostfix').new(
+                operand => $invocant,
+                postfix => Nodify('Call::Method').new(:$name, :$args)
+            )
+        }
+        else {
+            self.attach: $/, Nodify('Call::Name').new(
+                name => $name,
+                args => $args
+            )
+        }
+    }
+
+    method term:sym<nqp::op>($/) {
+        my $op := ~$<op>;
+        $*LANG.pragma('MONKEY-GUTS') || $*COMPILING_CORE_SETTING
+          ?? self.attach: $/, Nodify('Nqp').new: $op, $<args>.ast
+          !! $/.typed-panic('X::NQP::NotFound', :$op);
+    }
+
+    method term:sym<nqp::const>($/) {
+        self.attach: $/, Nodify('Nqp::Const').new(~$<const>);
+    }
+
+    method term:sym<enum>($/) {
+        # The only key in the hash of the match object contains the
+        # core's enum name, prefixed by "enum-"
+        my $enum := Nodify('Term::Enum').from-identifier(
+          nqp::substr(nqp::iterkey_s(nqp::shift(nqp::iterator($/.hash))),5)
+        );
+        self.SET-NODE-ORIGIN($/, $enum.name);
+        self.attach($/, $enum);
+    }
+
+    method term:sym<name>($/) {
+        my $name := $<longname>.core2ast;
+        self.SET-NODE-ORIGIN($<longname>, $name);
+        if $*META-OP {
+            my $META := $*META-OP.ast;
+            $META.to-begin-time($*R, $*CU.context);
+
+            my $meta-op := $META.IMPL-HOP-INFIX;
+            my $op := Nodify('Constant').new($meta-op);
+            self.attach: $/, Nodify('ApplyPostfix').new(
+                operand => $op,
+                postfix => Nodify('Call::Term').new(args => $<args>.ast),
+            )
+        }
+        else {
+            if $<args> -> $args {
+                $args := $args.ast;
+                if $args.invocant -> $invocant {
+                    # Indirect method call syntax, e.g. new Int: 1
+                    self.attach: $/, Nodify('ApplyPostfix').new(
+                        operand => $invocant,
+                        postfix => Nodify('Call::Method').new(:$name, :$args)
+                    )
+                }
+                else {
+                    # Normal named call
+                    self.attach: $/, $name.is-identifier && !$name.has-colonpairs
+                        ?? Nodify('Call::Name::WithoutParentheses').new(:$name, :$args)
+                        !! Nodify('Call::Name').new(:$name, :$args)
+                }
+            }
+            else {
+                # A bare name of a lexical from the outer context of an EVAL
+                # or REPL line is looked up at run time like any lexical. Type
+                # syntax needs the type object it holds while compiling.
+                my $type-syntax := $<arglist> || $<accept> || $<accept_any>
+                  || $name.has-colonpairs;
+                self.attach: $/, $*IS-TYPE
+                  && ($type-syntax || !$*R.is-name-outer-lexical($name))
+                  ?? self.type-for-name($/, $name)
+                  !! Nodify('Term::Name').new($name)
+            }
+        }
+    }
+
+    method term:sym<dotty>($/) {
+        self.attach: $/, Nodify('Term::TopicCall').new($<dotty>.ast)
+    }
+
+    method term:sym<capture>($/) {
+        self.attach: $/, Nodify('Term::Capture').new($<args>.ast)
+    }
+
+    method term:sym<onlystar>($/) {
+        self.attach: $/, Nodify('OnlyStar').new
+    }
+
+    method colonpair($/) {
+        my $key-str := ~$*KEY;
+        if $key-str {
+            my $literals := $*LITERALS;
+            my $key := $literals.intern-Str($key-str);
+            self.attach: $/, $<num>
+              ?? Nodify('ColonPair::Number').new(
+                   key   => $key,
+                   value => self.SET-ORIGIN-OF($<num>, Nodify('IntLiteral').new(
+                     $literals.intern-Int(~$<num>)
+                   ))
+                 )
+              !! $<coloncircumfix>
+                ?? Nodify('ColonPair::Value').new(
+                     key => $key, value => $<coloncircumfix>.ast
+                   )
+                !! $<var>
+                  ?? (($*IN-DECL eq 'use' || $*IN-DECL eq 'import' || $*IN-DECL eq 'no')
+                       # In a `use`/`import`/`no` argument list `:$foo` selects
+                       # an import by name rather than reading a lexical `$foo`,
+                       # so build the tag and not a variable lookup that would
+                       # demand `$foo` be declared.
+                       ?? Nodify('ColonPair::True').new($key)
+                       !! Nodify('ColonPair::Variable').new(
+                            key => $key, value => $<var>.ast
+                          ))
+                  !! Nodify(
+                       $<neg> ?? 'ColonPair::False' !! 'ColonPair::True'
+                     ).new($key);
+        }
+        elsif $<fakesignature> -> $signature {
+            self.signature-literal($/, $signature);
+        }
+        else {
+            make $<coloncircumfix>.ast;
+        }
+    }
+
+    method Nil() {
+        Nodify('Term::Name').new(Nodify('Name').from-identifier('Nil'))
+    }
+
+    # A signature literal and the block of its parameters cover its
+    # delimiters, as the signature is parsed inside them
+    method signature-literal($/, $fakesignature) {
+        my $ast := $fakesignature.ast;
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to);
+        self.WIDEN-NODE-ORIGIN($ast.block, $/.from, $/.to);
+        make $ast;
+    }
+
+    method sigterm($/) {
+        self.signature-literal($/, $<fakesignature>);
+    }
+
+    method coloncircumfix($/) {
+        self.attach: $/, $<circumfix> ?? $<circumfix>.ast !! self.Nil
+    }
+
+    method colonpair-variable($/) {
+        $<capvar>
+          ?? self.attach($/, Nodify('Var::NamedCapture').new(
+               Nodify('QuotedString').new(
+                 :segments([Nodify('StrLiteral').new(~$<desigilname>)])
+               ),
+               :sigil(~$<sigil>)
+             ))
+          !! self.simple-variable($/);
+    }
+
+    method variable($/) {
+        if $<index> -> $index {
+            self.attach: $/,
+              Nodify('Var::PositionalCapture').new(
+                $*LITERALS.intern-Int(~$index), :sigil(~$<sigil>)
+              );
+        }
+        elsif $<postcircumfix> -> $postcircumfix {
+            self.attach: $/,
+              Nodify('Var::NamedCapture').new($postcircumfix.ast.index, :sigil(~$<sigil>));
+        }
+        elsif $<contextualizer> -> $contextualizer {
+            self.attach: $/, $contextualizer.ast;
+        }
+        elsif $<infixish> -> $infixish {
+            my $name := Nodify('Name').from-identifier('infix');
+            $name.add-colonpair(
+                Nodify('QuotedString').new(
+                    :segments([Nodify('StrLiteral').new(~$infixish)])
+                )
+            );
+            self.compile-variable-access($/, '&', '', $name);
+        }
+        elsif $<desigilname><variable> -> $variable {
+            self.contextualizer-for-sigil($/, ~$<sigil>, $variable.ast);
+        }
+        else {
+            self.simple-variable($/);
+        }
+    }
+
+    # Compile variable access for a simple variable
+    method simple-variable($/) {
+        my str $twigil  := $<twigil> ?? ~$<twigil> !! '';
+        my $desigilname := $<desigilname>;
+        my $name := $desigilname<longname>
+          ?? $desigilname<longname>.ast
+          !! Nodify('Name').from-identifier(~$desigilname);
+        self.compile-variable-access($/, ~$<sigil>, $twigil, $name);
+    }
+
+    # Declare @_ / %_
+    sub slurpy-placeholder($class) {
+        my $decl := Nodify('VarDeclaration::Placeholder::' ~ $class).new;
+        $*R.declare-lexical($decl);
+        $decl
+    }
+
+    sub sigil-to-context(str $sigil) {
+        $sigil eq '@' ?? 'List' !! $sigil eq '%' ?? 'Hash' !! 'Item'
+    }
+
+    method compile-variable-access($/, $sigil, $twigil, $desigilname) {
+        $desigilname.to-begin-time($*R, $*CU.context);
+        my str $name := $sigil ~ $twigil ~ $desigilname.canonicalize;
+        my $ast;
+
+        if $twigil eq '' {
+            if $name eq '@_' || $name eq '%_' {
+                # @_/%_ are magical auto-declaring slurpies. Two semantics:
+                #
+                # Pre-6.e (the de-facto behavior since 2010): a reference
+                # to @_/%_ inside a nested block resolves to an enclosing
+                # routine's @_/%_ via lexical lookup, rather than
+                # auto-declaring a fresh placeholder on the inner block.
+                # Lots of existing code is written against this.
+                #
+                # 6.e+: each block is a real block with its own signature,
+                # so @_/%_ inside e.g. an if-body auto-declares on that
+                # block, shadowing the outer one. See:
+                #   https://github.com/Raku/roast/commit/0b8c717e6
+                #   https://github.com/Raku/old-issue-tracker/issues/1488
+                #
+                # Before 6.e only an enclosing routine of the code being
+                # compiled counts, not one in the context an EVAL is
+                # compiled in.
+                my $routine-slurpy := $*R.resolve-lexical($name);
+                if $*LANGUAGE-REVISION < 3 && $routine-slurpy
+                  && !nqp::istype($routine-slurpy, Nodify('Declaration::External')) {
+                    $ast := Nodify('Var::Lexical').new(:$sigil, :$desigilname);
+                }
+                else {
+                    $ast := slurpy-placeholder(
+                      $name eq '@_' ?? 'SlurpyArray' !! 'SlurpyHash'
+                    );
+                }
+            }
+
+            # an anonymous state variable.
+            elsif $desigilname.is-empty {
+                $ast := Nodify('VarDeclaration::Anonymous').new(
+                  :$sigil, :scope<state>
+                );
+                $*R.declare-lexical($ast);
+            }
+
+            # indirect name like &::("foo"): looked up at run time
+            elsif $desigilname.is-indirect-lookup {
+                $ast := Nodify('Var::Package').new(
+                  :$sigil, :name($desigilname)
+                );
+            }
+
+            # simple variable
+            elsif $desigilname.is-identifier {
+
+                # strict is active or identifier already known
+                if $*LANG.pragma("strict") || $*R.resolve-lexical($name) {
+                    $ast := Nodify('Var::Lexical').new(
+                      :$sigil, :$desigilname
+                    );
+                }
+
+                # strict is *NOT* active and identifier not known
+                else {
+                    $ast := Nodify('VarDeclaration::Auto').new:
+                      :scope<our>, :$desigilname, :$sigil, :$twigil;
+                    $*R.declare-lexical($ast);
+                }
+            }
+
+            # package variable
+            else {
+                $ast := Nodify('Var::Package').new(
+                  :$sigil, :name($desigilname)
+                );
+            }
+        }
+        elsif $twigil eq '*' {
+            $ast := Nodify('Var::Dynamic').new($name);
+        }
+        elsif $twigil eq '!' {
+            $ast := Nodify('Var::Attribute').new($name);
+        }
+        elsif $twigil eq '.' {
+            my $args := $<arglist> ?? $<arglist>.ast !! Nodify('ArgList');
+            $ast := Nodify('Var::Attribute::Public').new(:$name, :$args);
+        }
+        elsif $twigil eq '?' {
+            my $origin-source := $*ORIGIN-SOURCE;
+            if !$desigilname.is-identifier {
+                # A package-qualified $? variable like $?CALLER::PACKAGE looks
+                # up $?<name> through the package.
+                $ast := Nodify('Var::Package').new(
+                  :$sigil, :$twigil, :name($desigilname)
+                );
+            }
+            elsif $name eq '$?FILE' {
+                $ast := Nodify('Var::Compiler::File').new(
+                   self.IMPL-SOURCE-FILE($origin-source)
+                )
+            }
+            elsif $name eq '$?LINE' {
+                $ast := Nodify('Var::Compiler::Line').new(
+                   $*LITERALS.intern-Int(~$origin-source.original-line($/.from))
+                )
+            }
+            elsif $name eq '$?LANG' {
+                $ast := Nodify('Var::Compiler::Lang').new($/);
+            }
+            else {
+                my constant VARS := nqp::hash(
+                  '&?BLOCK',        'Var::Compiler::Block',
+                  '&?ROUTINE',      'Var::Compiler::Routine',
+                  '%?RESOURCES',    'Var::Compiler::Resources',
+                  '$?DISTRIBUTION', 'Var::Compiler::Distribution'
+                );
+                $ast := (my $NodeName := nqp::atkey(VARS,$name))
+                  ?? Nodify($NodeName).new
+                  !! Nodify('Var::Compiler::Lookup').new($name);
+            }
+        }
+        elsif $twigil eq '^' {
+            $ast := Nodify('VarDeclaration::Placeholder::Positional').new(
+              $sigil ~ $desigilname.canonicalize
+            );
+            $*R.declare-lexical($ast);
+        }
+        elsif $twigil eq ':' {
+            $ast := Nodify('VarDeclaration::Placeholder::Named').new(
+              $sigil ~ $desigilname.canonicalize
+            );
+            $*R.declare-lexical($ast);
+        }
+        elsif $twigil eq '=' {
+            my constant PODNAMES := nqp::hash(
+              '$=pod',     1,
+              '$=data',    1,
+              '$=finish',  1,
+              '$=rakudoc', 1
+            );
+            $ast := nqp::existskey(PODNAMES,$name)
+              ?? Nodify('Var::Doc').new(nqp::substr($name,2))
+              !! nqp::die("RakuDoc variable $name NYI");
+        }
+        elsif $twigil eq '~' {
+            my $name := $desigilname.canonicalize;
+            $ast := Nodify('Var::Slang').new(
+              name    => $name,
+              grammar => $/.slang_grammar($name),
+              actions => $/.slang_actions($name)
+            );
+        }
+        else {
+            nqp::die("Lookup with twigil '$twigil' NYI");
+        }
+
+        self.attach: $/, $ast;
+    }
+
+    method contextualizer($/) {
+        my $sigil := ~$<sigil>;
+        # In 6.c an empty contextualizer operates on $/. `$()` yields the
+        # smartmatch result of $/ (its made AST if any, else its matched
+        # string), while `@()` and `%()` coerce $/ itself.
+        if $*LANGUAGE-REVISION < 2 && $<coercee> eq '' {
+            if $sigil eq '$' {
+                self.attach: $/, Nodify('Ternary').new(
+                    condition => self.IMPL-MATCH-VAR-METHOD-CALL('ast'),
+                    then      => self.IMPL-MATCH-VAR-METHOD-CALL('ast'),
+                    else      => self.IMPL-MATCH-VAR-METHOD-CALL('Str'),
+                );
+            }
+            else {
+                self.contextualizer-for-sigil($/, $sigil, Nodify('Var::Lexical').new('$/'));
+            }
+        }
+        else {
+            self.contextualizer-for-sigil($/, $sigil, $<coercee>.ast);
+        }
+    }
+
+    # A method call on the match variable $/, e.g. `$/.ast`.
+    method IMPL-MATCH-VAR-METHOD-CALL($name) {
+        Nodify('ApplyPostfix').new(
+            operand => Nodify('Var::Lexical').new('$/'),
+            postfix => Nodify('Call::Method').new(
+                name => Nodify('Name').from-identifier($name)
+            )
+        )
+    }
+
+    method contextualizer-for-sigil($/, $sigil, $target) {
+        self.attach: $/,
+          Nodify('Contextualizer::' ~ sigil-to-context($sigil)).new($target);
+    }
+
+    method term:sym<reduce>($/) {
+        my $infix := $<op>.ast // Nodify('Infix').new(~$<op><OPER><sym>).to-begin-time($*R, $*CU.context);
+        self.attach: $/, Nodify('Term::Reduce').new(:$infix, :args($<args>.ast),
+            :triangle(?$<triangle>));
+    }
+
+#-------------------------------------------------------------------------------
+# Declarations
+
+    # A declaration's origin starts at its declarator keyword.
+    method DECLARATOR($/, $ast) {
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $ast.origin.to)
+          if nqp::isconcrete($ast.origin);
+        self.attach: $/, $ast;
+    }
+
+    method package-declarator:sym<package>($/) { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<module>($/)  { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<class>($/)   { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<grammar>($/) { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<role>($/)    { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<knowhow>($/) { self.DECLARATOR($/, $<package-def>.ast); }
+    method package-declarator:sym<native>($/)  { self.DECLARATOR($/, $<package-def>.ast); }
+
+    sub is-yada($/) {
+        if $<blockoid><statementlist> -> $statementlist {
+            my $statement := $statementlist<statement>;
+            if nqp::elems($statement) == 1 {
+
+                # trim the body
+                my str $body := ~$statement[0];
+                my int $pos  := nqp::chars($body);
+                my int $left := nqp::findnotcclass(
+                  nqp::const::CCLASS_WHITESPACE,$body,0,$pos
+                );
+                nqp::while(
+                  nqp::isgt_i(--$pos,$left)
+                    && nqp::iscclass(nqp::const::CCLASS_WHITESPACE,$body,$pos),
+                  nqp::null
+                );
+                my str $stub := nqp::substr($body,$left,$pos + 1 - $left);
+                my constant STUBS := nqp::hash(
+                  '...', 1,
+                  '???', 1,
+                  '!!!', 1,
+                  '…',   1
+                );
+
+                # a stub if lookup of what's left succeeded
+                return nqp::existskey(
+                  STUBS,
+                  nqp::substr($body,$left,$pos + 1 - $left)
+                );
+            }
+        }
+
+        # not a stub
+        0
+    }
+
+    method package-def($/) {
+        my $ast  := $*PACKAGE;
+        my $body := $<block> || $<unit-block>;
+
+        if is-yada($body) {
+            $ast.set-is-stub(True);
+            # The body a stub keeps declares what its header generated, such as
+            # the lexical fixup of a role declared there.
+            my @generated := $body.ast.IMPL-UNWRAP-LIST($body.ast.generated-lexical-declarations);
+            my int $i := $*PACKAGE-HEADER-GENERATED - 1;
+            $ast.body.add-generated-lexical-declaration(@generated[$i])
+              while ++$i < $*PACKAGE-HEADER-GENERATED-END;
+        }
+        else {
+            $ast.replace-body(
+              $body.ast,
+              $<signature> ?? $<signature>.ast !! Nodify('Signature')
+            );
+
+            # Have body Sub declare its implicits before we cache them
+            my $R       := $*R;
+            my $context := $*CU.context;
+            $ast.body.IMPL-BEGIN($R, $context);
+            $ast.to-begin-time($R, $context);
+            # A begin-time error while declaring a body member (a trait that
+            # died, or a begin-time evaluation) defers rather than aborting, so
+            # leave the package uncomposed when that happened, as the legacy
+            # frontend does by unwinding before package composition.
+            # $*PACKAGE-BEGIN-SORRY-BASE is the count at package open.
+            nqp::iseq_i($R.deferred-begin-sorries, $*PACKAGE-BEGIN-SORRY-BASE)
+              ?? $ast.IMPL-COMPOSE($R, $context)
+              !! $ast.IMPL-WITHDRAW-FAILED($R);
+        }
+
+        self.attach: $/, $ast;
+        if $<unit-block> {
+            my $origin := $<unit-block>.ast.origin;
+            self.WIDEN-NODE-ORIGIN($ast, $origin.from, $origin.to);
+        }
+        # The body of a role holds the name and signature written before it
+        if $<longname> && nqp::istype($ast.body, Nodify('RoleBody'))
+          && nqp::isconcrete($ast.body.origin) {
+            self.WIDEN-NODE-ORIGIN($ast.body, $<longname>.from, $ast.body.origin.to);
+        }
+        # The body of a package holds the traits written before it
+        elsif $<trait> && nqp::isconcrete($ast.body.origin) {
+            self.WIDEN-NODE-ORIGIN($ast.body, $<trait>[0].from, $ast.body.origin.to);
+        }
+    }
+
+    method stub-package($/) {
+        # Resolve the meta-object.
+        my $declarator := $*PKGDECL;
+        my $how := $/.know_how($declarator)
+          ?? $/.how($declarator)
+          !! $/.panic("Cannot resolve meta-object for $declarator");
+
+        # A custom declarator can register a companion attribute meta-object
+        # under `<declarator>-attr`, used for the `has` declarations in its
+        # body. A `value-class` declarator pairs with `value-class-attr`. With
+        # no companion registered, attributes use the standard Attribute.
+        my str $attr-declarator := $declarator ~ '-attr';
+        my $attribute-type := $/.know_how($attr-declarator)
+          ?? $/.how($attr-declarator)
+          !! NQPMu;
+
+        # Stub the package AST node.
+
+        my $name-match := $*PACKAGE-NAME;
+        my $name       := $name-match ?? $name-match.ast !! Nodify('Name');
+
+        my str $scope := $*SCOPE || ($name-match eq '::' ?? 'anon' !! 'our');
+        # EXPORTHOW is a compile-time directive package, read from a module's
+        # lexical scope through its handle to override declarator HOWs. Default
+        # it to `my` rather than `our` so it does not leak into GLOBAL, where on
+        # load it would clash with the setting's own EXPORTHOW. This matches the
+        # setting, which declares `my module EXPORTHOW`.
+        $scope := 'my' if !$*SCOPE && $name-match && $name.canonicalize eq 'EXPORTHOW';
+        my $augmented := $scope eq 'augment';
+        $/.typed-panic('X::Syntax::Augment::WithoutMonkeyTyping')
+          if $augmented && !$*LANG.pragma('MONKEY-TYPING');
+
+        my %special := nqp::hash(
+            'package', 'Package',
+            'role', 'Role',
+            'class', 'Class',
+            'module', 'Module',
+            'grammar', 'Grammar',
+            'knowhow', 'Knowhow',
+            'native', 'Native',
+        );
+        my str $ast-class;
+        if nqp::existskey(%special, $declarator) {
+            $ast-class := %special{$declarator};
+        }
+        else {
+            # A custom declarator registered via EXPORTHOW::DECLARE. A HOW
+            # that takes a body block makes a RakuAST::Role. That test comes
+            # first, since a role HOW takes attributes too. A HOW that takes
+            # attributes makes a RakuAST::Class, so the `has` declarations of
+            # its body have an attach target. Any other HOW makes a bare
+            # RakuAST::Package, so a `has` in its body reports the typed
+            # `cannot have attributes` error instead of a missing method. The
+            # HOW composes the type in every case.
+            $ast-class := nqp::can($how, 'set_body_block')
+              ?? 'Role'
+              !! nqp::can($how, 'add_attribute') ?? 'Class' !! 'Package';
+        }
+        my $package := Nodify($ast-class).new(
+          :declarator-how($how), :$name, :$scope, :$augmented, :$attribute-type,
+          :parsed-declarator($declarator)
+        );
+
+        $package.to-parse-time($*R, $*CU.context);
+        self.throw-errors();
+
+        self.set-declarand($/, $*PACKAGE := $package);
+
+        $*R.enter-scope($*PACKAGE);
+    }
+
+    method enter-package-scope($/) {
+        # Perform BEGIN-time effects (declaring the package, applying traits,
+        # etc.)
+        my $R := $*R;
+        my $package := $*PACKAGE;
+        $package.ensure-installed($R, $*CU.context);
+
+        if $*LEXICAL-SCOPE {
+            $*R.re-enter-scope($*LEXICAL-SCOPE);
+        }
+        else { # Require
+            $*R.enter-scope($package);
+        }
+
+        $package.declare-lexicals($*R, $*CU.context);
+
+        # The traits are applied with the parsed body in scope, as it holds what
+        # they declare.
+        my $body := $*BODY-SCOPE;
+        $R.re-enter-scope($body) if nqp::isconcrete($body);
+        $package.ensure-begin-performed($R, $*CU.context);
+        $R.leave-scope() if nqp::isconcrete($body);
+
+        # Let the resolver know which package we're in.
+        $R.push-package($package);
+    }
+
+    method leave-package-scope($/) {
+        $*R.pop-package();
+    }
+
+    method scope-declarator:sym<my>($/)    { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<our>($/)   { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<has>($/)   { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<HAS>($/)   { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<anon>($/)  { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<state>($/) { self.DECLARATOR($/, $<scoped>.ast); }
+    method scope-declarator:sym<unit>($/)  { self.DECLARATOR($/, $<scoped>.ast); }
+
+    method scope-declarator:sym<augment>($/) { self.DECLARATOR($/, $<scoped>.ast); }
+
+    method scoped($/) {
+        self.attach: $/, $<DECL>.ast;
+    }
+
+    method multi-declarator:sym<multi>($/) {
+        self.DECLARATOR($/, ($<declarator> || $<routine-def>).ast);
+    }
+
+    method multi-declarator:sym<proto>($/) {
+        self.DECLARATOR($/, ($<declarator> || $<routine-def>).ast);
+    }
+
+    method multi-declarator:sym<only>($/) {
+        self.DECLARATOR($/, ($<declarator> || $<routine-def>).ast);
+    }
+
+    method multi-declarator:sym<null>($/) {
+        self.attach: $/, $<declarator>.ast;
+    }
+
+    method declarator($/) {
+        my $ast;
+
+        if $<variable-declarator> {
+            $ast := $<variable-declarator>.ast;
+        }
+        elsif $<type-declarator> {
+            $ast := $<type-declarator>.ast;
+        }
+        elsif $<signature> {
+            my str $scope   := $*SCOPE;
+            my     $type    := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
+            my $initializer := $<initializer>
+              ?? $<initializer>.ast
+              !! Nodify('Initializer');
+
+            $ast := Nodify('VarDeclaration::Signature').new:
+              :signature($<signature>.ast), :$scope, :$type, :$initializer,
+              :sig-literal(?$<sig-literal>);
+            for $<trait> {
+                $ast.add-trait($_.ast);
+            }
+        }
+        elsif $<routine-declarator> {
+            $ast := $<routine-declarator>.ast;
+        }
+        elsif $<regex-declarator> {
+            $ast := $<regex-declarator>.ast;
+        }
+        elsif $<defterm> {
+            # The declaration was installed after <defterm> so it could be
+            # seen within its own initializer; here we just complete it.
+            $ast := $*TERM-DECL;
+            $ast.set-initializer($<term-init>.ast);
+            self.set-declarand($/, $ast, :expression($<term-init>.ast));
+        }
+        else {
+            nqp::die('Unimplemented declarator');
+        }
+
+        self.attach: $/, $ast;
+    }
+
+    method initializer:sym<=>($/) {
+        self.attach: $/, Nodify('Initializer::Assign').new($<EXPR>.ast);
+    }
+
+    method initializer:sym<:=>($/) {
+        self.attach: $/, Nodify('Initializer::Bind').new($<EXPR>.ast);
+    }
+
+    method initializer:sym<.=>($/) {
+        self.attach: $/, Nodify('Initializer::CallAssign').new($<dottyop>.ast);
+    }
+
+    method stub-variable($stub) {
+        my $/ := $*VARIABLE-MATCH;
+
+        my str $scope := $*SCOPE;
+        my     $type  := $*OFTYPE.ast if $*OFTYPE;
+        my str $sigil := $<variable><sigil>;
+        my     $where := $*WHERE;
+
+        # No type or type is not a native type
+        if !$type || !$type.is-native {
+            my str $pragma  := $scope eq 'has' || $scope eq 'HAS'
+              ?? 'attributes'
+              !! $scope eq 'my' || $scope eq 'our' || $scope eq 'state'
+                ?? 'variables'
+                !! '';
+
+            # Need to check pragma setting *and* there is a setting
+            if $pragma && $*LANG.pragma($pragma) -> $value {
+                my $definedness := Nodify('Type::Definedness');
+                my $is-base := 0;
+                for $*OFTYPE<longname><colonpair> {
+                    $is-base := 1 if $_.ast.key eq '_';
+                }
+                if !nqp::eqaddr($type.WHAT,$definedness)  # not already :D or :U
+                  && !$is-base                            # not :_
+                  && ($value eq 'D' || $value eq 'U') {   # want :D or :U
+                    $type := $definedness.new(            # wrap existing or new
+                      :base-type(
+                        $type // Nodify('Type::Simple').from-identifier('Any')
+                      ),
+                      :definite($value eq 'D'),
+                      :through-pragma
+                    );
+                }
+            }
+        }
+
+        # Fallback to no explicit type
+        $type := Nodify('Type') unless $type;
+
+        my $decl;
+        $/.panic('Multiple shapes not yet understood')
+          if $<semilist> && nqp::elems($<semilist>) > 1;
+        my $shape := $<semilist> ?? $<semilist>[0].ast !! Nodify('SemiList');
+        if $<variable><desigilname> -> $desigilname {
+            my $ast := $desigilname<longname>
+                ?? $desigilname<longname>.ast
+                !! Nodify('Name').from-identifier(~$desigilname);
+            $ast.to-begin-time($*R, $*CU.context);
+
+            my str $twigil := $<variable><twigil> || '';
+            my str $name   := $sigil ~ $twigil ~ $ast.canonicalize;
+            my $dynprag := $*LANG.pragma('dynamic-scope');
+            my $forced-dynamic := ?($dynprag ?? $dynprag($name) !! 0);
+            $decl := Nodify('VarDeclaration::Simple').new:
+              :$scope, :$type, :$sigil, :$twigil, :desigilname($ast),
+              :$shape, :$forced-dynamic, :$where;
+
+            if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
+                my $prev := $*R.declare-lexical($decl);
+                if $prev {
+                    # The setting declares $_, $/ and $! itself for the legacy
+                    # frontend, which does not provide them. Here they are
+                    # already implicit.
+                    my $shadows-implicit := $*COMPILING_CORE_SETTING
+                      && nqp::istype($prev, Nodify('VarDeclaration::Implicit::Special'));
+                    # An implicit the scope gives up to a declaration of its
+                    # name is no prior declaration of it.
+                    my $gives-way := nqp::istype($prev, Nodify('VarDeclaration::Implicit'))
+                      && !$prev.report-redeclaration;
+                    unless $shadows-implicit || $gives-way {
+                        $*R.find-scope-property(-> $scope { $scope.fatal })
+                          ?? $/.typed-sorry('X::Redeclaration', :symbol($name))
+                          !! $/.typed-worry('X::Redeclaration', :symbol($name));
+                    }
+                    $decl.set-already-declared unless $gives-way;
+                }
+            }
+
+            self.set-declarand($/, $decl);
+        }
+        else {
+            $scope ne 'my' && $scope ne 'state'
+              ?? $/.panic(
+                   "Cannot declare an anonymous '$scope' scoped variable"
+                 )
+              !! ($decl := Nodify('VarDeclaration::Anonymous').new(
+                     :$scope, :$type, :$sigil, :twigil(~$<variable><twigil> || ''),
+                     :$shape,
+                   ));
+        }
+
+        $decl.to-parse-time($*R, $*CU.context);
+
+        $*VARIABLE := $decl;
+    }
+
+    method variable-declarator($/) {
+        my str $scope := $*SCOPE;
+        my     $var   := $*VARIABLE;
+
+        my $initializer := $<initializer>;
+        if $initializer {
+            $/.panic("Cannot use := to initialize an attribute")
+              if $scope eq 'has' && $initializer<sym> eq ':=';
+
+            $var.set-initializer($initializer.ast);
+        }
+
+        for $<trait> {
+            $var.add-trait($_.ast);
+        }
+
+        if $var.is-attribute && !$var.twigil {
+            $*R.declare-lexical:
+                Nodify('VarDeclaration::AttributeAlias').new(
+                    :desigilname($var.desigilname),
+                    :sigil($var.sigil),
+                    :attribute($var),
+                );
+        }
+
+        self.attach: $/, $var;
+    }
+
+    method routine-declarator:sym<sub>($/) {
+        self.DECLARATOR($/, $<routine-def>.ast);
+    }
+    method routine-declarator:sym<method>($/) {
+        self.DECLARATOR($/, $<method-def>.ast);
+    }
+    method routine-declarator:sym<submethod>($/) {
+        self.DECLARATOR($/, $<method-def>.ast);
+    }
+
+    # An onlystar body is created directly rather than through an action
+    # method of its own, so position information is attached here. The
+    # body's dispatch op is the only code in the proto's frame, making
+    # this origin the source of the code object's reported file and line.
+    method onlystar-body($/) {
+        my $body := Nodify('OnlyStar').new;
+        self.SET-NODE-ORIGIN($/, $body);
+        $body
+    }
+
+    method routine-def($/) {
+        my $routine := $*BLOCK;
+
+        # If there was no signature specification at all, but there *was*
+        # a type specification, we need to add the return type now
+        if $*OFTYPE -> $returns {
+            $returns := $returns.ast;
+            if $routine.signature -> $signature {
+                $signature.set-returns($returns)
+                  unless $signature.returns;
+            }
+            else {
+                $routine.replace-signature(Nodify('Signature').new(:$returns))
+            }
+        }
+
+        $routine.replace-body($<onlystar>
+          ?? self.onlystar-body($<onlystar>)
+          !! $<blockoid>
+            ?? $<blockoid>.ast
+            !! Nodify("Blockoid").new($<statementlist>.ast)  # unit sub MAIN
+        );
+        # Entering scope again would throw off proto installation
+        self.attach: $/, $routine;
+    }
+
+    method method-def($/) {
+        my $method := $*BLOCK;
+
+        # Handle localizations for BUILD, TWEAK, ACCEPTS, etc
+        if $method.name.simple-identifier -> $name {
+            my $sys-name := $/.system2str($name);
+            $method.replace-name(Nodify('Name').from-identifier($sys-name))
+              unless $sys-name eq $name;
+        }
+
+        if $<specials> {
+            my $specials := ~$<specials>;
+            if $specials eq '^' {
+                $method.set-meta(True);
+            }
+            elsif $specials eq '!' {
+                $method.set-private(True);
+            }
+        }
+        $method.replace-body($<onlystar>
+          ?? self.onlystar-body($<onlystar>)
+          !! $<blockoid>.ast
+        );
+        # Entering scope again to ensure implicits are attached to the method
+        $*R.enter-scope($method);
+        self.attach: $/, $method;
+        $*R.leave-scope;
+    }
+
+    method regex-declarator:sym<regex>($/) {
+        self.DECLARATOR($/, $<regex-def>.ast);
+    }
+
+    method regex-declarator:sym<token>($/) {
+        self.DECLARATOR($/, $<regex-def>.ast);
+    }
+
+    method regex-declarator:sym<rule>($/) {
+        self.DECLARATOR($/, $<regex-def>.ast);
+    }
+
+    method regex-def($/) {
+        my $regex := $*BLOCK;
+        $regex.set-source(~$/);
+        if $<signature> {
+            $regex.replace-signature($<signature>.ast);
+        }
+        $regex.replace-body($<onlystar>
+          ?? self.onlystar-body($<onlystar>)
+          !! $<nibble>.ast
+        );
+        # Entering scope again to ensure implicits are attached to the method
+        $*R.enter-scope($regex);
+        self.attach: $/, $regex;
+        $*R.leave-scope;
+    }
+
+    method type-declarator:sym<constant>($/) {
+        # Provided it's named, install it.
+        my %args;
+        if $<defterm> {
+            %args<name> := $<defterm>.ast.canonicalize;
+        }
+        elsif $<variable> {
+            my $variable := $<variable>;
+            if $variable<twigil> {
+                my $twigil := ~$variable<twigil>;
+
+                if $twigil eq '?' {
+                    unless $*COMPILING_CORE_SETTING {
+                        $/.typed-panic('X::Comp::NYI',
+                          feature => "Constants with a '$twigil' twigil"
+                        );
+                    }
+                }
+                elsif $twigil eq '*' {
+                    $/.typed-panic('X::Syntax::Variable::Twigil',
+                      name       => ~$variable,
+                      what       => 'constant',
+                      twigil     => $twigil,
+                      scope      => $*SCOPE,
+                      additional => ' because values cannot be constant and dynamic at the same time',
+                    );
+                }
+                # Don't handle other twigil'd case yet.
+                else {
+                    $/.typed-panic('X::Comp::NYI',
+                      feature => "Constants with a '$twigil' twigil");
+                }
+            }
+
+            %args<name> := ~$variable;
+        }
+        %args<scope> := $*SCOPE;
+        %args<type>  := $*OFTYPE.ast if nqp::defined($*OFTYPE);
+        %args<initializer> := $<initializer>.ast;
+        if $<trait> {
+            %args<traits> := my @traits;
+            @traits.push($_.ast) for $<trait>;
+        }
+
+        my $decl := Nodify('VarDeclaration::Constant').new(|%args);
+        self.set-declarand($/, $decl, :expression(%args<initializer>));
+        $/.typed-panic('X::Redeclaration', :symbol(%args<name>))
+          if $*R.declare-lexical($decl);
+        self.attach: $/, $decl;
+    }
+
+    method type-declarator:sym<enum>($/) {
+        if $<variable> {
+            $/.typed-panic('X::Comp::NYI', feature => "Variable case of enums");
+        }
+        my $name := $<longname>
+          ?? $<longname>.ast
+          !! Nodify('Name').from-identifier('');
+        my $base-type := $*OFTYPE ?? $*OFTYPE.ast !! Nodify("Type");
+        my $decl := Nodify('Type::Enum').new(
+            :name($name),
+            :term($<term>.ast),
+            :scope($*SCOPE),
+            :of($base-type)
+        );
+        self.set-claimed-declarand($/, $decl, $<term>.ast);
+        for $<trait> {
+            $decl.add-trait($_.ast)
+        }
+        self.attach: $/, $decl;
+    }
+
+    method type-declarator:sym<subset>($/) {
+        my $where := $<EXPR> ?? $<EXPR>.ast !! Nodify('Expression');
+        my $decl  := Nodify('Type::Subset').new(
+            :name($<longname>.ast),
+            :where($where),
+            :scope($*SCOPE),
+            :of($*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type'))
+        );
+        # without a where clause the subset ends with its last trait or name
+        my $last := $<EXPR>
+          ?? $where
+          !! $<trait>
+            ?? nqp::atpos($<trait>, nqp::elems($<trait>) - 1).ast
+            !! $<longname>.ast;
+        self.set-claimed-declarand($/, $decl, $last);
+
+        for $<trait> {
+            $decl.add-trait($_.ast);
+        }
+        self.attach: $/, $decl;
+    }
+
+    method trait($/) {
+        my $trait := $<trait_mod>.ast;
+        if $trait { # is repr(...) won't be handled as a trait
+            if $*TARGET {
+                # Already have the target to apply it to.
+                $*TARGET.add-trait($trait);
+            }
+            else {
+                # Will be added to a target later, so attach to the match.
+                self.attach: $/, $trait;
+            }
+        }
+    }
+
+    # Special handling for "is repr"
+    method handle-is-repr($/) {
+        my $circumfix := $<circumfix>;
+        if $circumfix {
+            my $ast  := $circumfix.ast;
+            my $repr;
+            if nqp::istype($ast,Nodify('Circumfix')) {
+                # A leading pod block parses into the circumfix as a Doc::Block.
+                # The circumfix is consumed here, so hand the block back for
+                # attachment to the following declaration, else it never reaches
+                # $=pod. The repr value is the remaining code statement.
+                for $ast.IMPL-UNWRAP-LIST($ast.semilist.statements) {
+                    $*DOC-BLOCKS-COLLECTED.push(
+                      nqp::list($*STATEMENT-ID - 1, $_, -1)
+                    ) if nqp::istype($_, Nodify('Doc::Block'));
+                }
+                $repr := $ast.semilist.code-statements[0];
+            }
+            elsif nqp::istype($ast,Nodify('QuotedString')) {
+                $repr := $ast;
+            }
+            else {
+                nqp::die("NYI trait_mod circumfix " ~ $ast.HOW.name($ast));
+            }
+
+            unless $repr.IMPL-CAN-INTERPRET {
+                $/.typed-panic: 'X::Value::Dynamic',
+                  :what('is repr(...) trait');
+            }
+            $repr := $repr.IMPL-INTERPRET(Nodify('IMPL::InterpContext').new);
+            $*PACKAGE.set-repr($repr);
+        }
+        else {
+            $/.panic("is repr(...) trait needs a parameter");
+        }
+    }
+
+    method trait_mod:sym<is>($/) {
+        my $longname := $<longname>;
+        return self.handle-is-repr($/) if ~$longname eq 'repr';
+
+        my $circumfix := $<circumfix>;
+        my $argument := $circumfix ?? $circumfix.ast !! Nodify('Expression');
+        my $trait;
+        if $<typename> {
+            $trait := Nodify('Trait::Is').new-from-type(
+                :type($<typename>.ast), :$argument);
+        }
+        # `is ::Foo` names an existing type indirectly. The typename above
+        # rejects the `::` form as a capture, so resolve it here as a type,
+        # like a plain `is Foo`.
+        elsif nqp::eqat(~$longname, '::', 0)
+          && $*R.resolve-name-constant($longname.trait-is2ast) {
+            my $type := Nodify('Type::Simple').new($longname.trait-is2ast);
+            self.SET-NODE-ORIGIN($/, $type);
+            $type.to-begin-time($*R, $*CU.context);
+            $trait := Nodify('Trait::Is').new-from-type(:$type, :$argument);
+        }
+        else {
+            $trait := Nodify('Trait::Is').new(
+                :name($longname.trait-is2ast), :$argument);
+        }
+
+        self.attach: $/, $trait;
+    }
+
+    method trait_mod:sym<hides>($/) {
+        self.attach: $/, Nodify('Trait::Hides').new($<typename>.ast);
+    }
+
+    method trait_mod:sym<does>($/) {
+        self.attach: $/, Nodify('Trait::Does').new($<typename>.ast);
+    }
+
+    method trait_mod:sym<will>($/) {
+        self.attach: $/, Nodify('Trait::Will').new(:phase(~$<identifier>), :block($<pointy-block>.ast));
+    }
+
+    method trait_mod:sym<of>($/) {
+        self.attach: $/, Nodify('Trait::Of').new($<typename>.ast);
+    }
+
+    method trait_mod:sym<returns>($/) {
+        self.attach: $/, Nodify('Trait::Returns').new($<typename>.ast);
+    }
+
+    method trait_mod:sym<handles>($/) {
+        self.attach: $/, Nodify('Trait::Handles').new($<term>.ast);
+    }
+
+#-------------------------------------------------------------------------------
+# Values
+
+    method value:sym<quote>($/)   { self.attach: $/, $<quote>.ast   }
+    method value:sym<number>($/)  { self.attach: $/, $<number>.ast  }
+    method value:sym<version>($/) { self.attach: $/, $<version>.ast }
+
+    method number:sym<numish>($/) { self.attach: $/, $<numish>.ast }
+
+    sub ord-to-numerator($ord) {
+        nqp::coerce_si(
+          nqp::getuniprop_str(
+            $ord, nqp::unipropcode("Numeric_Value_Numerator")
+          )
+        )
+    }
+    sub ord-to-denominator($ord) {
+        nqp::coerce_si(
+          nqp::getuniprop_str(
+            $ord, nqp::unipropcode("Numeric_Value_Denominator")
+          )
+        )
+    }
+
+    method numish($/) {
+        my $attachee;
+
+        # 42
+        if $<integer> {
+            $attachee := Nodify('IntLiteral').new($<integer>.ast);
+        }
+
+        # 0x1.8p+1
+        elsif $<hex-float> {
+            $attachee := $<hex-float>.ast;
+        }
+
+        # 42.137
+        elsif $<decimal-number> {
+            $attachee := $<decimal-number>.ast;
+        }
+
+        # :16(42)
+        elsif $<radix-number> {
+            $attachee := $<radix-number>.ast;
+        }
+
+        # -22/33
+        elsif $<rational-number> {
+            $attachee := $<rational-number>.ast;
+        }
+
+        # 42+i1
+        elsif $<complex-number> {
+            $attachee := $<complex-number>.ast;
+        }
+
+        # Ⅼ or ⅔
+        elsif $<unum> {
+            my int $ord := nqp::ord($/.Str);
+            my int $nu  := ord-to-numerator($ord);
+            my int $de  := ord-to-denominator($ord);
+
+            # Ⅼ
+            if !$de || $de == 1 {
+                $attachee := Nodify('IntLiteral').new(
+                  $*LITERALS.intern-Int($*NEGATE_VALUE ?? "-$nu" !! ~$nu)
+                );
+            }
+
+            # ⅔
+            else {
+                my $LITERALS := $*LITERALS;
+                $attachee := Nodify('RatLiteral').new(
+                  $LITERALS.intern-rat(
+                    $LITERALS.intern-Int($*NEGATE_VALUE ?? "-$nu" !! ~$nu),
+                    $LITERALS.intern-Int(~$de)
+                  )
+                );
+            }
+        }
+
+        # ∞ or other floating point value
+        else {
+            my str $value := $<uinf> ?? "Inf" !! ~$/;
+            $attachee := Nodify('NumLiteral').new(
+              $*LITERALS.intern-Num($*NEGATE_VALUE ?? "-$value" !! $value)
+            );
+        }
+
+        self.attach: $/, $attachee;
+    }
+
+    method decint($/) {
+        make $*LITERALS.intern-Int-by-base(
+          ($*NEGATE_VALUE ?? '-' !! '') ~ $/,
+          10,
+          -> { $/.panic("'$/' is not a valid number") }
+        );
+    }
+
+    method hexint($/) {
+        make $*LITERALS.intern-Int-by-base(
+          ($*NEGATE_VALUE ?? '-' !! '') ~ $/,
+          16,
+          -> { $/.panic("'$/' is not a valid number") }
+        );
+    }
+
+    method octint($/) {
+        make $*LITERALS.intern-Int-by-base(
+          ($*NEGATE_VALUE ?? '-' !! '') ~ $/,
+          8,
+          -> { $/.panic("'$/' is not a valid number") }
+        );
+    }
+
+    method binint($/) {
+        make $*LITERALS.intern-Int-by-base(
+          ($*NEGATE_VALUE ?? '-' !! '') ~ $/,
+          2,
+          -> { $/.panic("'$/' is not a valid number") }
+        );
+    }
+
+    method integer($/) { make $<VALUE>.ast }
+
+    method signed-integer($/) {
+        my $integer := $<integer>.ast;
+        make $<sign> eq '-' || $<sign> eq '−'
+            ?? nqp::neg_I($integer, $integer.WHAT)
+            !! $integer;
+    }
+
+    method decimal-number($/) {
+        if $<escale> { # wants a Num
+            self.attach: $/, Nodify('NumLiteral').new(
+              $*LITERALS.intern-Num(($*NEGATE_VALUE ?? '-' !! '') ~ $/)
+            );
+        }
+        else { # wants a Rat
+            my $rat;
+            if ($*NEGATE_VALUE) {
+                # Can't build the negated value directly, because a negative numerator throws
+                # off the normalization calculation. So first build the positive rat, e.g.
+                # 1/2 for .5 and then negate it.
+                $rat := $*LITERALS.intern-decimal(
+                    $<int> ?? ~$<int> !! NQPMu, # $<int>.ast would already be negated
+                    ~$<frac>);
+                $rat := $*LITERALS.intern-rat(nqp::neg_I($rat.numerator, $*LITERALS.int-type), $rat.denominator);
+            }
+            else {
+                $rat := $*LITERALS.intern-decimal(
+                    $<int> ?? $<int>.ast !! NQPMu,
+                    ~$<frac>);
+            }
+            self.attach: $/, Nodify('RatLiteral').new($rat);
+        }
+    }
+
+    method hex-float($/) {
+        # The mantissa hex digits form an integer H with $f bits shifted
+        # into the fraction, so the value is H * 2 ** ($exp - $f).  H is
+        # exact in bigint arithmetic and the power-of-two scaling is
+        # applied in two steps so the intermediate product stays exact
+        # for any representable result: a single correctly rounded
+        # conversion in total.
+        my $LITERALS := $*LITERALS;
+        my str $digits := ($<int> ?? $<int>.Str !! '') ~ ($<frac> ?? $<frac>.Str !! '');
+        my $H := nqp::radix_I(16, $digits, 0, 0, $LITERALS.int-type)[0];
+
+        my int $f := 0;
+        if $<frac> {
+            my str $fs := $<frac>.Str;
+            my int $i  := 0;
+            my int $n  := nqp::chars($fs);
+            while $i < $n {
+                $f := $f + 4 unless nqp::eqat($fs, '_', $i);
+                $i := $i + 1;
+            }
+        }
+
+        my str $estr := nqp::join('', nqp::split('_', $<exp>.Str));
+        my int $k := nqp::chars($estr) > 6
+            ?? 999999   # any such exponent over/underflows anyway
+            !! nqp::radix(10, $estr, 0, 0)[0];
+        $k := -$k if $<sign> eq '-' || $<sign> eq '−';
+        $k := $k - $f;
+
+        my int $k1 := nqp::div_i($k, 2);
+        my num $value := nqp::mul_n(
+            nqp::mul_n(nqp::tonum_I($H), nqp::pow_n(2.0, $k1)),
+            nqp::pow_n(2.0, $k - $k1));
+        $value := nqp::neg_n($value) if $*NEGATE_VALUE;
+        self.attach: $/, Nodify('NumLiteral').new(
+          nqp::box_n($value, $LITERALS.num-type)
+        );
+    }
+
+    method radix-number($/) {
+        my $literals := $*LITERALS;
+        my $ast;
+
+        if $<bracket> {
+            $ast := Nodify('Term::RadixNumber').new:
+              :radix($literals.intern-Int(~$<radix>)),
+              :value($<bracket>.ast),
+              :multi-part;
+        }
+        elsif $<circumfix> {
+            $ast := Nodify('Term::RadixNumber').new:
+              :radix($literals.intern-Int(~$<radix>)),
+              :value($<circumfix>.ast);
+        }
+
+        else {
+            # Check and override $radix if necessary.
+            my int $radix := nqp::radix(10, $<radix>, 0, 0)[0];
+            $/.typed-panic('X::Syntax::Number::RadixOutOfRange', :$radix)
+                unless (2 <= $radix) && ($radix <= 36);
+
+            my $ohradix := ~$<ohradix>;
+            if $ohradix {
+                $radix := $ohradix eq "0x"
+                  ?? 16
+                  !! $ohradix eq "0o"
+                    ?? 8
+                    !! $ohradix eq "0d"
+                      ?? 10
+                      !! $ohradix eq "0b"
+                        ?? 2
+                        !! $/.panic("Unknown radix prefix '$ohradix'.");
+            }
+
+            # Parse and assemble number.
+            my $Int := $literals.int-type;
+            my $Num := $literals.num-type;
+            my str $intpart  := ~$<intpart>;
+            my str $fracpart := ~$<fracpart>;
+
+            my $ipart := nqp::radix_I($radix, $intpart, 0, 0, $Int);
+            my $fpart := nqp::radix_I($radix, $fracpart || ".0", 1, 4, $Int);
+
+            my $pos := $ipart[2] < nqp::chars($intpart)
+              ?? ($ipart[2] < 0 ?? 0 !! $ipart[2])
+              !! $fpart[2] < nqp::chars($fracpart)
+                # the -1 dance is due to nqp::radix returning -1 for
+                # failure to parse the first char, instead of 0;
+                # we return `1` to cover the decimal dot in that case
+                ?? ($ipart[2] + ($fpart[2] == -1 ?? 1 !! $fpart[2]))
+                !! nqp::null;
+            $/.typed-panic('X::Str::Numeric',
+              source => $intpart ~ $fracpart,
+              reason => "malformed base-$radix number",
+              pos    => $pos
+            ) unless nqp::isnull($pos);
+
+            my $base := nqp::pow_I(nqp::box_i($radix, $Int), $fpart[1], $Num, $Int);
+            $ipart := nqp::mul_I($ipart[0], $base, $Int);
+            $ipart := nqp::add_I($ipart, $fpart[0], $Int);
+            $fpart := $base;
+
+            my $bpart := $<base> ?? nqp::tonum_I($<base>[0].ast) !! $radix;
+            my $epart := $<exp>  ?? nqp::tonum_I($<exp>[0].ast)  !! 0;
+            my $scientific := nqp::pow_n($bpart, $epart);
+            $ipart := nqp::mul_I($ipart, nqp::fromnum_I($scientific, $Int), $Int);
+
+            $ast := $fpart != 1
+              # non-unit fractional part, wants Rat
+              ?? Nodify('RatLiteral').new(
+                   $literals.intern-decimal($ipart, $fpart)
+                 )
+              # wants Int
+              !! Nodify('IntLiteral').new($ipart);
+        }
+
+        self.attach: $/, $ast
+    }
+
+    method rational-number($/) {
+        my $ast;
+
+        if $<bare-rational-number> -> $rat {
+            $ast := $rat.ast;
+        }
+        else {
+            my $nu := super-int-to-Int(~$<super-integer>, ~$<super-sign>);
+            my $de := sub-int-to-Int(~$<sub-integer>);
+            $ast := Nodify('RatLiteral').new(
+              $*LITERALS.intern-rat($nu, $de)
+            );
+        }
+
+        self.attach: $/, $ast;
+    }
+
+    method bare-rational-number($/) {
+        self.attach: $/, Nodify('RatLiteral').new(
+          $*LITERALS.intern-decimal($<nu>.ast, $<de>.ast)
+        );
+    }
+
+    method complex-number($/) {
+        self.attach: $/, $<bare-complex-number>.ast;
+    }
+
+    method bare-complex-number($/) {
+        self.attach: $/, Nodify('ComplexLiteral').new(
+          $*LITERALS.intern-complex(~$<re>, ~$<im>)
+        );
+    }
+
+    method version($/) {
+        # We don't self.attach: $/, an object for the initial language version line,
+        # which occurs before a setting is loaded.
+        make Nodify('VersionLiteral').new(
+          $*R.resolve-lexical-constant('Version').compile-time-value.new(
+            ~$<vstr>
+          )
+        ) if $*R;
+    }
+
+    method quote:sym<apos>($/)  { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<sapos>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<lapos>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<hapos>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<dblq>($/)  { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<sdblq>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<ldblq>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<hdblq>($/) { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<crnr>($/)  { self.QUOTED($/, $<nibble>.ast); }
+    method quote:sym<qq>($/)    { self.QUOTED($/, $<quibble>.ast); }
+    method quote:sym<q>($/)     { self.QUOTED($/, $<quibble>.ast); }
+    method quote:sym<Q>($/)     { self.QUOTED($/, $<quibble>.ast); }
+
+    method quote:sym</ />($/) {
+        self.attach: $/, Nodify('QuotedRegex').new(body => $<nibble>.ast);
+    }
+
+    method quote:sym<rx>($/) {
+        self.attach: $/, Nodify('QuotedRegex').new:
+          body => $<quibble>.ast,
+          adverbs => $<rx-adverbs>.ast;
+    }
+
+    # Helper sub to codegen matches
+    sub setup-match($/, :$samespace) {
+        my @adverbs := $<rx-adverbs>.ast // nqp::list;
+        @adverbs.push(Nodify('ColonPair::True').new("s")) if $samespace;
+
+        Nodify('QuotedRegex').new:
+          :match-immediately,
+          body => $<quibble>.ast,
+          :@adverbs
+    }
+
+    # Handle all m/// cases
+    method quote:sym<m>($/)  { self.attach: $/, setup-match($/)             }
+    method quote:sym<ms>($/) { self.attach: $/, setup-match($/, :samespace) }
+
+    # Helper sub to codegen substitutions
+    sub setup-substitution($/, *%_) {
+        my $sibble := $<sibble>;
+        Nodify('Substitution').new:
+          adverbs     => $<rx-adverbs>.ast,
+          pattern     => $sibble<left>.ast,
+          infix       => $sibble<infixish>
+            ?? $sibble<infixish>.ast
+            !! Nodify('Infixish'),
+          replacement => $sibble<right>.ast,
+          |%_
+    }
+
+    # Handle all s/// cases
+    method quote:sym<s>($/) {
+        self.attach: $/, setup-substitution($/)
+    }
+    method quote:sym<ss>($/) {
+        self.attach: $/, setup-substitution($/, :samespace)
+    }
+    method quote:sym<S>($/) {
+        self.attach: $/, setup-substitution($/, :immutable)
+    }
+    method quote:sym<Ss>($/) {
+        self.attach: $/, setup-substitution($/, :immutable, :samespace)
+    }
+
+    method quote:sym<tr>($/) {
+        self.attach: $/, Nodify('Transliteration').new:
+            :adverbs($<rx-adverbs>.ast),
+            :left($<tribble><left>.ast),
+            :right($<tribble><right>.ast),
+            :destructive($<sym> eq 'tr'),
+    }
+
+    # We make a list of the quotepairs to attach them to the regex
+    # construct; validation of what is valid takes place in the AST.
+    # However, a limited number of them are required for parsing the
+    # regex and constructing its AST correctly. Of note, these are
+    # s (sigspace, as it controls how whitespce is parsed) and m (so
+    # we can construct character class ranges correctly). These get
+    # special handling.
+    my constant SPECIAL-RX-ADVERBS := nqp::hash(
+        'ignoremark', 'm',
+        'm',          'm',
+        'mm',         'm',
+        'samemark',   'm',
+        's',          's',
+        'samespace',  's',
+        'sigspace',   's',
+        'ss',         's'
+    );
+    method rx-adverbs($/) {
+        my @pairs;
+        for $<quotepair> {
+            my $ast := $_.ast;
+            @pairs.push($ast);
+
+            my $key := SPECIAL-RX-ADVERBS{$ast.key};
+            if $key {
+                my $value := $ast.simple-compile-time-quote-value;
+                nqp::isconcrete($value)
+                  ?? (%*RX{$key} := ?$value)
+                  !! $_.typed-panic: 'X::Value::Dynamic',
+                       what => 'Adverb ' ~ $ast.key;
+            }
+        }
+        make @pairs;
+    }
+
+    method quotepair($/) {
+        my $key := $*LITERALS.intern-Str(~$*KEY);
+        self.attach: $/, $<num>
+          ?? Nodify('ColonPair::Number').new(
+               key   => $key,
+               value => Nodify('IntLiteral').new(
+                          $*LITERALS.intern-Int(~$<num>)
+                        )
+             )
+          !! $<circumfix>
+            ?? Nodify('ColonPair::Value').new(
+                 key   => $key,
+                 value => $<circumfix>.ast
+               )
+            !! Nodify(
+                 $<neg> ?? 'ColonPair::False' !! 'ColonPair::True'
+               ).new($key);
+    }
+
+#-------------------------------------------------------------------------------
+# Types
+
+    # The definedness smiley of a type name, D, U, _ or none; any other
+    # colonpair and a second smiley are reported
+    method type-smiley($/, $name) {
+        my str $smiley := '';
+        for $name.IMPL-UNWRAP-LIST($name.colonpairs) {
+            my str $key := $_.key;
+            if $key eq 'D' || $key eq 'U' || $key eq '_' {
+                $/.typed-sorry('X::MultipleTypeSmiley') if $smiley;
+                $smiley := $key;
+            }
+            else {
+                $/.typed-sorry('X::InvalidTypeSmiley', :name($key));
+            }
+        }
+        $smiley
+    }
+
+    method type-for-name($/, $name) {
+        my str $smiley := self.type-smiley($/, $name);
+        my $type-name := $name.without-colonpairs;
+        self.SET-NODE-ORIGIN($<longname> ?? $<longname><name> !! $/, $type-name);
+        my $type := Nodify('Type::Simple').new($type-name);
+        # Resolving the name can report it, so the node needs its origin
+        # before it is begun.
+        self.SET-NODE-ORIGIN($/, $type);
+        $type.to-begin-time($*R, $*CU.context);
+
+        $type := Nodify('Type::Parameterized').new(
+          :base-type($type), :args($<arglist>.ast)
+        ).to-begin-time($*R, $*CU.context) if $<arglist>;
+
+        $type := $smiley eq 'D'
+          ?? Nodify('Type::Definedness').new(:base-type($type), :definite).to-begin-time($*R, $*CU.context)
+          !! $smiley eq 'U'
+            ?? Nodify('Type::Definedness').new(:base-type($type), :!definite).to-begin-time($*R, $*CU.context)
+            !! $smiley eq '_'
+              ?? Nodify('Type::AnyDefinedness').new(:base-type($type)).to-begin-time($*R, $*CU.context)
+              !! $type;
+
+        $<accept>
+          ?? Nodify('Type::Coercion').new(
+               :base-type($type), :constraint($<accept>.ast)).to-begin-time($*R, $*CU.context)
+          !! $<accept_any>
+            ?? Nodify('Type::Coercion').new(:base-type($type)).to-begin-time($*R, $*CU.context)
+            !! $type
+    }
+
+    method typename($/) {
+        my $base-name := $<longname>
+          ?? $<longname>.ast
+          !! Nodify('Name').from-identifier('::?' ~ $<identifier>);
+        self.add-name-extensions($/, $base-name);
+        my str $longname := ~$<longname>;
+        if nqp::eqat($longname, '::', 0) {
+            $base-name := $base-name.without-first-part;
+            if $<arglist> || $<typename> {
+                $/.panic("Cannot put type parameters on a type capture");
+            }
+            if $<accept> || $<accept_any> {
+                $/.panic("Cannot base a coercion type on a type capture");
+            }
+            if $longname eq '::' {
+                $/.panic("Cannot use :: as a type name");
+            }
+            my $type-capture := Nodify('Type::Capture').new(
+              $base-name.without-colonpairs,
+              :smiley(self.type-smiley($/, $base-name))
+            );
+            self.attach: $/, $type-capture;
+
+            # Declare the lexical so it is available right away (e.g. for traits)
+            $*R.declare-lexical($type-capture);
+        }
+        else {
+            my $type := self.type-for-name($/, $base-name);
+            if $<typename> { # Foo of Bar
+                $type := Nodify('Type::Parameterized').new(:base-type($type),
+                  :args(self.SET-ORIGIN-OF($<typename>, Nodify('ArgList').new($<typename>.ast))));
+            }
+            self.attach: $/, $type;
+        }
+    }
+
+#-------------------------------------------------------------------------------
+# Signatures
+
+    method fakesignature($/) {
+        self.attach: $/, Nodify('FakeSignature').new: $<signature>.ast, :block($*BLOCK)
+    }
+
+    method signature($/) {
+        my @parameters;
+        my int $param_idx;
+        for $<parameter> {
+            my $param := $_.ast;
+            my $sep := @*SEPS[$param_idx];
+            if ~$sep eq ':' {
+                if $param_idx != 0 {
+                    $/.typed-sorry('X::Syntax::Signature::InvocantMarker');
+                }
+                unless $*ALLOW_INVOCANT {
+                    $/.typed-sorry('X::Syntax::Signature::InvocantNotAllowed');
+                }
+                $param.set-invocant(True);
+            }
+            @parameters.push($param);
+            ++$param_idx;
+        }
+        my $returns;
+        if $<typename> {
+            $returns := $<typename>.ast;
+        }
+        elsif $<value> {
+            $returns := $<value>.ast;
+            # A heredoc has no value until its body is parsed at the end of the line.
+            unless $returns.has-compile-time-value
+              || nqp::istype($returns, Nodify('Heredoc')) && $returns.IMPL-AWAITS-BODY {
+                $<value>.panic:
+                  'Return value after --> may only be a type or a constant';
+            }
+        }
+        else {
+            $returns := Nodify('Node');
+        }
+        if $*OFTYPE {
+            $/.typed-sorry('X::Redeclaration', :what('return type for'))
+                if $returns;
+            $returns := $*OFTYPE.ast;
+        }
+        my $signature := Nodify('Signature').new(:@parameters, :$returns, :is-array(?$*ARRAY));
+        if $*ON-ROUTINE {
+            $signature.set-default-type(
+                Nodify('Type::Setting').new(Nodify('Name').from-identifier('Any')).to-begin-time($*R, $*CU.context)
+            );
+        }
+        if $*ON-VARDECLARATION {
+            self.SET-NODE-ORIGIN($/, $signature);
+            make $signature
+        }
+        else {
+            self.attach: $/, $signature
+        }
+    }
+
+    method parameter($/) {
+        my $parameter := $<param-var> || $<named-param> || $<param-term>;
+        $parameter := $parameter ?? $parameter.ast !! Nodify('Parameter').new;
+
+        if $*DEFAULT-RW {
+            $parameter.set-bindable(True);
+            $parameter.set-default-rw if $*DEFAULT-RW > 1;
+        }
+
+        if nqp::defined($*MULTI-INVOCANT) {
+            $parameter.set-multi-invocant(?$*MULTI-INVOCANT);
+        }
+
+        my $capture := Nodify('Type::Capture');
+        my $raku-type := Nodify('Type');
+        my $raku-quotedstring := Nodify('QuotedString');
+        my $raku-compiletimevalue := Nodify('CompileTimeValue');
+
+        for $<type-constraint> {
+            my $type-constraint := $_.ast;
+            if nqp::istype($type-constraint, $capture) {
+                $parameter.add-type-capture($type-constraint);
+            }
+            elsif nqp::istype($type-constraint, $raku-type) {
+                $parameter.set-type($type-constraint);
+            }
+            elsif nqp::istype($type-constraint,$raku-quotedstring) {
+                my $value := $type-constraint.literal-value;
+                if nqp::defined($value) {  # not Nil
+                    $parameter.set-type($type-constraint.ast-type);
+                    $parameter.set-value($value);
+                }
+                elsif nqp::istype($type-constraint, Nodify('Heredoc'))
+                  && $type-constraint.IMPL-AWAITS-BODY {
+                    $_.panic('Premature heredoc consumption');
+                }
+                else {
+                    nqp::die("Could not get a literal value of a quoted string as a parameter");
+                }
+            }
+            else {
+                $parameter.set-type($type-constraint.ast-type);
+                my $value := $type-constraint.compile-time-value;
+                $parameter.set-value($value);
+            }
+        }
+        if $<quant> {
+            my str $q := ~$<quant>;
+            $parameter.set-optional() if $q eq '?';
+            $parameter.set-required() if $q eq '!';
+            $parameter.set-slurpy(Nodify('Parameter::Slurpy::Flattened'))
+                if $q eq '*';
+            $parameter.set-slurpy(Nodify('Parameter::Slurpy::Unflattened'))
+                if $q eq '**';
+            $parameter.set-slurpy(Nodify('Parameter::Slurpy::SingleArgument'))
+                if $q eq '+';
+            $parameter.set-slurpy(Nodify('Parameter::Slurpy::Capture'))
+                if $q eq '|';
+        }
+        for $<trait> {
+            $parameter.add-trait($_.ast);
+        }
+        if $<default-value> {
+            $parameter.set-default($<default-value>.ast);
+        }
+        if $<post-constraint> {
+            my @wheres;
+            my $sub-signature;
+            my int $have-sub-sig;
+            for $<post-constraint> {
+                if $_<EXPR> {
+                    nqp::push(@wheres, $_<EXPR>.ast);
+                }
+                elsif $_<signature> {
+                    $/.panic('Cannot have more than one sub-signature for a parameter')
+                        if $have-sub-sig;
+                    $sub-signature := $_<signature>.ast;
+                    $have-sub-sig := 1;
+                }
+            }
+            $parameter.set-sub-signature($sub-signature) if $have-sub-sig;
+            # Every `where` must hold. Combine multiples into one all-junction.
+            if nqp::elems(@wheres) == 1 {
+                $parameter.set-where(@wheres[0]);
+            }
+            elsif nqp::elems(@wheres) > 1 {
+                $parameter.set-where(Nodify('Call::Name').new(
+                    name => Nodify('Name').from-identifier('all'),
+                    args => Nodify('ArgList').new(|@wheres)));
+            }
+        }
+        if $<param-var><name><sigterm> || $<param-var><sigterm> -> $sig {
+            my $signature := $sig.ast;
+            if $parameter.type && $signature.signature.set-returns($parameter.type) {
+                $/.typed-panic('X::Redeclaration',
+                    what    => 'return type for',
+                    symbol  => ~$<param-var><declname>,
+                    postfix => "(previous return type was "
+                                ~ $parameter.type.name.canonicalize
+                                ~ ')');
+            }
+            $parameter.set-signature-constraint($signature);
+        }
+
+        self.SET-NODE-ORIGIN($/, $parameter);
+
+        # Leave the exact time of Parameter's BEGIN to the signature
+        make $parameter;
+    }
+
+    method param-var($/) {
+        # Work out what kind of thing we're binding into, if any.
+        my %args;
+        my str $name := $<sigil> ~ $<twigil> ~ ($<name><subshortname> // $<name>);
+        if $name {
+            my $dynprag := $*LANG.pragma('dynamic-scope');
+            my $forced-dynamic := ?(
+              $dynprag ?? $dynprag($name) !! 0);
+            my $decl := Nodify('ParameterTarget::Var').new(
+              :$name, :$forced-dynamic, :var-declaration(?$*ON-VARDECLARATION),
+            );
+            self.SET-NODE-ORIGIN($<declname>, $decl);
+            self.SET-NODE-ORIGIN($<declname>, $decl.declaration)
+              if $decl.declaration;
+            self.SET-NODE-ORIGIN($<declname>, $decl.attribute)
+              if $decl.attribute;
+            if $decl.can-be-resolved && $*DECLARE-TARGETS {
+                my $prev := $*R.declare-lexical($decl);
+                # An implicit the scope gives up to a declaration of its
+                # name is no prior declaration of it.
+                $/.typed-panic('X::Redeclaration', :symbol($name))
+                  if $prev
+                  && !(nqp::istype($prev, Nodify('VarDeclaration::Implicit'))
+                       && !$prev.report-redeclaration);
+            }
+            %args<target> := $decl;
+        }
+        elsif $<signature> {
+            %args<sub-signature> := $<signature>.ast;
+        }
+
+        if $<arrayshape> {
+            %args<array-shape> := $<arrayshape><semilist><statement>[0].ast;
+        }
+
+        # Build the parameter.
+        make self.set-declarand($/, Nodify('Parameter').new(|%args));
+    }
+
+    method param-term($/) {
+        if $<defterm> {
+            # Create sigilless target to bind into
+            my $ast  := $<defterm>.ast;
+            my $decl := Nodify('ParameterTarget::Term').new($ast );
+            self.SET-NODE-ORIGIN($/, $decl);
+            $/.typed-panic('X::Redeclaration', :symbol($ast.canonicalize))
+              if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
+            make Nodify('Parameter').new(target => $decl);
+        }
+        else {
+            # Anonymous
+            make Nodify('Parameter').new();
+        }
+    }
+
+    method named-param($/) {
+        my $ast;
+
+        # Explicitly specified name to attach.
+        if $<name> {
+            $ast := ($<named-param> || $<param-var>).ast;
+            $ast.add-name(~$<name>);
+        }
+
+        # Name comes from the parameter variable.
+        elsif $<param-var><name> {
+            my $param-var := $<param-var>;
+            $ast     := $param-var.ast;
+            my $name := $param-var<name>;
+            $ast.add-name(~($name<subshortname> // $name));
+        }
+        else {
+            my $param-var := $<param-var>;
+            $ast     := $param-var.ast;
+            $ast.add-name('');
+        }
+        make $ast;
+    }
+
+    method default-value($/) {
+        make $<EXPR>.ast;
+    }
+
+    method type-constraint($/) {
+        self.attach: $/, ($<typename> || $<value>).ast;
+    }
+
+    method post-constraint($/) {
+        my $target := $<EXPR> || $<signature>;
+        make $target.ast if $target;
+    }
+
+#-------------------------------------------------------------------------------
+# Argument lists and captures
+
+    method args($/) {
+        self.attach: $/, (my $target := $<semiarglist> || $<arglist>)
+          ?? $target.ast
+          !! Nodify('ArgList').new
+    }
+
+    method semiarglist($/) {
+        if nqp::elems($<arglist>) == 1 {
+            self.attach: $/, $<arglist>[0].ast
+        }
+        else {
+            my $R := $*R;
+            my $context := $*CU.context;
+            my $ast := Nodify('ArgList').new;
+            for $<arglist> {
+                my $infix  := Nodify('Infix').new(',').to-begin-time($R, $context);
+                my $apply  := Nodify('ApplyListInfix').new(:$infix, :operands($_.ast.args)).to-begin-time($R, $context);
+                my $stmt   := Nodify('Statement::Expression').new(:expression($apply)).to-begin-time($R, $context);
+                my $semi   := Nodify('SemiList').new($stmt).to-begin-time($R, $context);
+                my $parens := Nodify('Circumfix::Parentheses').new($semi).to-begin-time($R, $context);
+                $ast.push($parens);
+            }
+            if $<arglist>[0].ast.invocant -> $invocant {
+                $ast.set-invocant($invocant);
+            }
+            self.attach: $/, $ast
+        }
+    }
+
+    method arglist($/) {
+        my $ast;
+        my $ArgList := Nodify('ArgList');
+        my $expr    := $<EXPR>;
+        if $expr {
+            $ast := $expr.ast;
+            $ast := nqp::istype($ast,Nodify('ColonPairs'))
+              ?? $ArgList.new(|$ast.colonpairs)
+              !! nqp::istype($ast,Nodify('ApplyListInfix'))
+                   && nqp::istype($ast.infix,Nodify('Infix'))
+                ?? $ast.infix.operator eq ','
+                  ?? Nodify('ArgList').from-comma-list($ast)
+                  !! $ast.infix.operator eq ':'
+                    ?? $ArgList.from-invocant-list($ast)
+                    !! $ArgList.new($ast)
+                !! $ArgList.new($ast);
+        }
+        else {
+            $ast := $ArgList.new;
+        }
+        self.SET-LIST-ORIGIN($/, $ast);
+        self.attach: $/, $ast;
+    }
+
+#-------------------------------------------------------------------------------
+# Lexer stuff
+
+    method name($/) {
+        if $<morename> {
+            my @parts;
+            if $<identifier> {
+                @parts.push(Nodify('Name::Part::Simple').new(~$<identifier>));
+            }
+            elsif $<morename> {
+                @parts.push(Nodify('Name::Part::EmptyEdge').new);
+            }
+            for $<morename> {
+                @parts.push($_.ast);
+            }
+            self.attach: $/, Nodify('Name').new(|@parts);
+        }
+        else {
+            self.attach: $/, Nodify('Name').from-identifier(~$<identifier>);
+        }
+    }
+
+    method morename($/) {
+        if $<identifier> {
+            make Nodify('Name::Part::Simple').new(~$<identifier>);
+        }
+        elsif $<EXPR> {
+            my $ast := $<EXPR>.ast;
+            $ast.to-begin-time($*R, $*CU.context);
+            make Nodify('Name::Part::Expression').new($ast);
+        }
+        else {
+            make Nodify('Name::Part::EmptyEdge').new;
+        }
+    }
+
+    # Adds the extensions parsed after a name to it. A colonpair, a quoted
+    # string and a bracketed list can be part of a name, and :<> is the null
+    # string. Anything else is refused where it was written.
+    method add-name-extensions($/, $name) {
+        for $<colonpair> {
+            my $ast := $_.ast;
+            if nqp::istype($ast, Nodify('ColonPairish')) {
+                $name.add-colonpair($ast);
+            }
+            elsif $_<coloncircumfix> && !$_<coloncircumfix><circumfix> {
+                $name.add-colonpair(Nodify('QuotedString').new(
+                    :segments([Nodify('StrLiteral').new('')])
+                ));
+            }
+            elsif $_<fakesignature> {
+                $_.typed-panic('X::NYI', :feature('A signature as part of a name'));
+            }
+            else {
+                $_.typed-panic('X::Syntax::Extension::TooComplex',
+                    :name($_<coloncircumfix> ?? ~$_<coloncircumfix> !! ~$_));
+            }
+        }
+    }
+
+    method longname($/) {
+        my $name := $<name>.ast;
+        self.add-name-extensions($/, $name);
+        self.WIDEN-NODE-ORIGIN($name, $/.from, $/.to) if $<colonpair>;
+        self.attach: $/, $name;
+    }
+
+    method deflongname($/) {
+        # Set the name on the definition immediately, since it's known at this
+        # point onwards.
+        my $name := $<name>.ast;
+        self.add-name-extensions($/, $name);
+        self.WIDEN-NODE-ORIGIN($name, $/.from, $/.to) if $<colonpair>;
+        $*BLOCK.replace-name($name);
+
+        # Register it with the resolver.
+        my $scope := $*SCOPE || $*DEFAULT-SCOPE;
+        $*BLOCK.replace-scope($scope);
+        if $*MULTINESS ne 'multi' {
+            if $scope eq 'my' || $scope eq 'our' || $scope eq 'unit' {
+                my $existing := $*R.declare-lexical-in-outer($*BLOCK);
+                if $existing {
+                    if nqp::istype($existing, Nodify('Routine')) && $existing.is-stub {
+                        $*BLOCK.set-replace-stub(True);
+                    }
+                    else {
+                        $/.typed-sorry('X::Redeclaration',
+                            :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
+                    }
+                }
+            }
+            elsif $*DEFAULT-SCOPE ne 'has' {
+                my $existing := $*R.declare-lexical($*BLOCK);
+                if $existing {
+                    if nqp::istype($existing, Nodify('Routine')) && $existing.is-stub {
+                        $*BLOCK.set-replace-stub(True);
+                    }
+                    else {
+                        $/.typed-sorry('X::Redeclaration',
+                            :symbol($name.canonicalize), :what($*BLOCK.declaration-kind))
+                    }
+                }
+            }
+        }
+    }
+
+    method defterm($/) {
+        my $name := Nodify('Name').from-identifier(~$<identifier>);
+        self.add-name-extensions($/, $name);
+        self.attach: $/, $name;
+    }
+
+    method comment:sym<line_directive>($/) {
+        my $origin-source := $*ORIGIN-SOURCE;
+        $origin-source.register-line-directive(
+            $origin-source.original-line($/.from()),
+            nqp::radix(10, $<line>, 0, 0)[0],
+            $<filename> );
+    }
+
+#-------------------------------------------------------------------------------
+# Declator doc handling
+
+    method add-leading-declarator-doc($/) {
+        nqp::push(@*LEADING-DOC,$/) unless $*FROM-SEEN{$/.from}++;
+    }
+
+    # Widens the origin of a declarator doc over a doc comment, given the
+    # match of the comment's text, which follows its #| or #= and openers.
+    method WIDEN-DOC-ORIGIN($WHY, $doc) {
+        if nqp::isconcrete($WHY) {
+            my str $orig := $doc.orig;
+            my int $from := $doc.from - 2;
+            --$from
+              while $from > 0
+                && !(nqp::eqat($orig, '#|', $from) || nqp::eqat($orig, '#=', $from));
+            my int $to := $doc.to;
+            # a bracketed doc closes with as many closers as it has openers
+            $to := $to + $doc.from - $from - 2
+              unless nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $orig, $from + 2);
+            self.WIDEN-NODE-ORIGIN($WHY, $from, $to);
+        }
+    }
+
+    method comment:sym<#|(...)>($/) {
+        self.add-leading-declarator-doc($<attachment><nibble>);
+    }
+
+    method comment:sym<#|>($/) {
+        self.add-leading-declarator-doc($<attachment>);
+    }
+
+    method add-trailing-declarator-doc($/) {
+        my $from := $/.from;
+
+        # `enter-block-scope` set-declarands the Routine stub first;
+        # the signature's parameters then overwrite `$*DECLARAND`.  By
+        # the time the .ws-consumed trailing `#=` after a routine body
+        # fires its action, `$*DECLARAND` is the last Parameter and
+        # the doc lands on the wrong target.  Promote back to the
+        # Routine when we're past the signature (the grammar clears
+        # `$*IN-DECL` before parsing the body), leaving mid-signature
+        # `#=` attached to the Parameter.  A routine that is still its
+        # own declarand takes a doc on any line of its body the same way.
+        if $*IN-DECL eq ''
+            && $*BLOCK
+            && nqp::istype($*BLOCK, Nodify('Routine'))
+            && (nqp::istype($*DECLARAND, Nodify('Parameter'))
+                 || nqp::eqaddr($*DECLARAND, $*BLOCK))
+        {
+            $*DECLARAND          := $*BLOCK;
+            $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
+        }
+
+        my $actions := self;
+        sub accept($/) {
+            $*DECLARAND.add-trailing(~$/);
+            $*DECLARAND.IMPL-UPDATE-WHY;
+            $actions.WIDEN-DOC-ORIGIN($*DECLARAND.WHY, $/);
+            ++$*FROM-SEEN{$from};
+            nqp::deletekey($*DECLARAND-WORRIES,$from);
+        }
+
+        if $*FROM-SEEN{$from} {
+            # nothing to do, all has been done already
+        }
+        elsif $*DECLARAND {
+            my $line := +$*ORIGIN-SOURCE.original-line($from);
+            # accept the trailing declarator doc if it is on the same line
+            # as the declarand, or it is on the *start* of the next line
+            # (-4 to get to the newline in "\n#= ")
+            if $line == $*LAST-TRAILING-LINE {
+                accept($/);
+            }
+            elsif $line == $*LAST-TRAILING-LINE + 1 {
+                my $orig := $/.orig;
+
+                # verify \n \s* #=
+                my $i := $from - 3;
+                unless nqp::eqat($orig,"\n",$i) {
+                    while nqp::eqat($orig,' ',--$i) { }
+                }
+
+                if nqp::eqat($orig,"\n",$i) {
+                    accept($/);
+                    $*LAST-TRAILING-LINE := $line;
+                }
+                else {
+                    $*DECLARAND-WORRIES{$from} := $/;
+                }
+            }
+            else {
+                $*DECLARAND-WORRIES{$from} := $/;
+            }
+        }
+        else {
+            $*DECLARAND-WORRIES{$from} := $/;
+        }
+    }
+
+    method comment:sym<#=(...)>($/) {
+        self.add-trailing-declarator-doc($<attachment><nibble>);
+    }
+
+    method comment:sym<#=>($/) {
+        self.add-trailing-declarator-doc($<attachment>);
+    }
+
+#-------------------------------------------------------------------------------
+# Doc blocks handling
+
+    method doc-TOP($/) {
+        my $docs := nqp::elems($*SEEN);
+        if $docs > 1 {
+            nqp::die("Found $docs doc blocks instead of just one");
+        }
+        elsif $docs {
+            for $*SEEN {
+                $*DOC-BLOCKS-COLLECTED.push(
+                  nqp::list($*NEXT-STATEMENT-ID, $_.value, $/.from)
+                );
+            }
+        }
+        else {
+            # A block seen on an earlier pass is not collected anew.
+            # Statements inside its configuration have
+            # advanced the statement counter on this pass, so refresh the
+            # mark of the pending block at this source position to keep it
+            # claimable by the statement that follows it.
+            for $*DOC-BLOCKS-COLLECTED {
+                nqp::bindpos($_, 0, $*NEXT-STATEMENT-ID)
+                  if nqp::atpos($_, 2) == $/.from;
+            }
+        }
+    }
+
+    # The pairs of the config, in the order they were written
+    method extract-config($/) {
+        my $Pair := $*R.setting-constant('Pair');
+        my @config;
+        nqp::push(@config, $Pair.new('numbered', Nodify('IntLiteral').new(1)))
+          if $<doc-numbered>;
+        nqp::push(@config, $Pair.new('uri', Nodify('StrLiteral').new(~$<uri>)))
+          if $<uri>;
+
+        if $<colonpair> {
+            for $<colonpair> -> $/ {
+                my $key := ~$<identifier>;
+                my $value;
+                if $<num> {
+                    $value := Nodify('IntLiteral').new(+$<num>);
+                }
+                elsif $<coloncircumfix> {  # :bar("foo",42)
+                    $value := $<coloncircumfix>.ast;
+                }
+                elsif $<var> {             # :$bar
+                    $value := $<var>.ast;
+                }
+                else {                             # :!bar | :bar
+                    $value := Nodify($<neg> ?? 'Term::False' !! 'Term::True').new;
+                }
+                nqp::push(@config, $Pair.new($key, $value));
+            }
+        }
+        @config
+    }
+
+    method extract-type($/) {
+        if $<type> {
+            my $type := $<type>;
+            if $type<level> {
+                my $level := ~$type<level>;
+                $type := ~$type;
+                nqp::substr(
+                  $type,0,nqp::chars($type) - nqp::chars($level)
+                )
+            }
+            else {
+                ~$type;
+            }
+        }
+        else {
+            ""
+        }
+    }
+
+    method extract-level($/) {
+        +($<type><level> // '0')
+    }
+
+    sub directive-no-level($/, $level, $directive) {
+        $/.typed-panic(
+          'X::Syntax::Pod::DirectiveWithLevel', :$directive, :$level
+        )
+    }
+
+    method doc-block:sym<finish>($/) {
+        if ~$<level> -> $level {
+            directive-no-level($/, $level, 'finish');
+        }
+
+        $*CU.replace-finish-content(~$<finish>) if $*CU;
+    }
+
+    method doc-origin($/, $node) {
+        self.SET-NODE-ORIGIN: $/, $*SEEN{$/.from} := $node;
+    }
+
+    method doc-block:sym<alias>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'alias');
+            }
+
+            my @paragraphs := nqp::list(~$<first>);
+            if $<line> {
+                for $<line> {
+                    nqp::push(@paragraphs,~$_);
+                }
+            }
+
+            self.doc-origin: $/, Nodify('Doc::Block').from-alias:
+              :directive(True), :margin(~$<margin>), :type<alias>,
+              :lemma(~$<lemma>), :@paragraphs
+        }
+    }
+
+    # helper method for simple directives
+    method add-as-directive($/, $type) {
+        unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, $type);
+            }
+
+            self.doc-origin: $/, Nodify('Doc::Block').new:
+              :abbreviated, :directive, :margin(~$<margin>), :$type,
+              :config(self.extract-config($/))
+        }
+    }
+
+    method doc-block:sym<column>($/) {
+        self.add-as-directive($/, 'column');
+    }
+
+    method doc-block:sym<document>($/) {
+        self.add-as-directive($/, 'document');
+    }
+
+    method doc-block:sym<row>($/) {
+        self.add-as-directive($/, 'row');
+    }
+
+    method doc-block:sym<place>($/) {
+        self.add-as-directive($/, 'place');
+    }
+
+    method doc-block:sym<counter>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'counter');
+            }
+
+            self.doc-origin: $/, Nodify('Doc::Block').from-config:
+              :directive(True), :margin(~$<margin>), :type<counter>,
+              :config(self.extract-config($/)), :key(~$<doc-identifier>)
+        }
+    }
+
+    method doc-block:sym<formula>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'formula');
+            }
+
+            my @paragraphs := nqp::list(~$<formula>);
+            self.doc-origin: $/, Nodify('Doc::Block').new:
+              :abbreviated, :margin(~$<margin>), :type<formula>,
+              :config(self.extract-config($/)), :@paragraphs
+        }
+    }
+
+    method doc-block:sym<config>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'config');
+            }
+
+            self.doc-origin: $/, Nodify('Doc::Block').from-config:
+              :directive(True), :margin(~$<margin>), :type<config>,
+              :config(self.extract-config($/)), :key(~$<doc-identifier>)
+        }
+    }
+
+    method doc-block:sym<verbatim>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, ~$<type>);
+            }
+
+            my $config := self.extract-config($/);
+            my @paragraphs;
+            if $<lines> {
+                my $text := ~$<lines>;
+                nqp::push(@paragraphs,$text) if $text;
+            }
+
+            self.doc-origin: $/, Nodify('Doc::Block').from-paragraphs:
+              :margin(~$<margin>), :type(~$<type>), :$config, :@paragraphs;
+        }
+    }
+
+    method doc-block:sym<ignore-block>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            self.doc-origin: $/, Nodify('Doc::Block').from-paragraphs:
+              :margin(~$<margin>), :type<ignore>, :paragraphs([~$<ignored>]);
+        }
+    }
+
+    method doc-block:sym<begin>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'begin');
+            }
+
+            my $SEEN   := $*SEEN;
+            my $config := self.extract-config($/);
+            my $type   := self.extract-type($/);
+            my $level  := self.extract-level($/);
+
+            my @paragraphs;
+            if $<doc-content> {
+                for $<doc-content> {
+                    my $from := ~$_.from;
+                    if nqp::existskey($SEEN,$from) {
+                        nqp::push(@paragraphs,nqp::atkey($SEEN,$from));
+                        nqp::deletekey($SEEN,$from);
+                    }
+                    else {
+                        my $text := ~$_;
+                        nqp::push(@paragraphs,$text) if $text;
+                    }
+                }
+            }
+
+            self.doc-origin: $/, Nodify('Doc::Block').from-paragraphs:
+              :margin(~$<margin>), :$type, :$level, :$config, :@paragraphs;
+        }
+    }
+
+    method doc-block:sym<for>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            if ~$<level> -> $level {
+                directive-no-level($/, $level, 'for');
+            }
+
+            my $config := self.extract-config($/);
+            my $type   := self.extract-type($/);
+            my $level  := self.extract-level($/);
+
+            my @paragraphs;
+            if $<lines> {
+                my $text := ~$<lines>;
+                nqp::push(@paragraphs,$text) if $text;
+            }
+            self.doc-origin: $/, Nodify('Doc::Block').from-paragraphs:
+              :margin(~$<margin>), :for(True), :$type, :$level, :$config, :@paragraphs;
+        }
+    }
+
+    method doc-block:sym<abbreviated>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            my $config := self.extract-config($/);
+            my $type   := self.extract-type($/);
+            my $level  := self.extract-level($/);
+
+            my @paragraphs;
+            my $text := ($<header> ?? $<margin> ~ $<header> !! "")
+              ~ ($<lines> ?? ~$<lines> !! "");
+            @paragraphs := nqp::list($text) if $text;
+
+            self.doc-origin: $/, Nodify('Doc::Block').from-paragraphs:
+              :margin(~$<margin>), :abbreviated(True), :$type, :$level, :$config,
+              :@paragraphs;
+        }
+    }
+}
+
+class Raku::QActions is HLL::Actions does Raku::CommonActions {
+    # This overrides NQP during the deprecation period for Unicode 1 names
+    # not covered by Alias Names
+    method charname-panic($/) { $/.panic("Unrecognized character name [$/]") }
+
+    method charname($/) {
+        my $codepoint := $<integer>
+          ?? nqp::chr($<integer>.made)
+          !! nqp::strfromname(~$/);
+        $codepoint := self.deprecated-charnames($/) if $codepoint eq '';
+        make $codepoint;
+    }
+
+    # Check for deprecated charnames: worry if a deprecated one is found
+    # and return the appropriate one.  Otherwise panic
+    method deprecated-charnames($/) {
+        my str $name  := ~$/;
+        my str $worry := $name eq "LINE FEED (LF)"
+          ?? "LINE FEED, NEW LINE, END OF LINE, LF, NL or EOL"
+          !! $name eq "FORM FEED (FF)"
+            ?? "FORM FEED or FF"
+            !! $name eq "CARRIAGE RETURN (CR)"
+              ?? "CARRIAGE RETURN or CR"
+              !! $name eq "NEXT LINE (NEL)"
+                ?? "NEXT LINE or NEL"
+                !! "";
+
+        if $worry {
+            $/.worry:
+"Deprecated character name [$name] in lookup of Unicode
+character by name.  Unicode 1 names are deprecated.
+Please use $worry.";
+            nqp::strfromname(
+              nqp::join(" ",nqp::slice(nqp::split(" ",$name),0,1))
+            )
+        }
+        else {
+            self.charname-panic($/);
+        }
+    }
+
+    method nibbler($/) {
+        my @segments;
+        my str $sofar  := '';
+        my $LITERALS   := $*LITERALS;
+        my $StrLiteral := Nodify('StrLiteral');
+        my $Origin     := Nodify('Origin');
+        my $source     := $*ORIGIN-SOURCE;
+
+        # The nibbles are contiguous source text from the start of the
+        # nibble, so a plain string ends where its length says.
+        my int $pos        := $/.from;
+        my int $sofar-from := $pos;
+
+        # the string collected so far, spanning its source text
+        sub literal() {
+            my $literal := $StrLiteral.new($LITERALS.intern-Str($sofar));
+            $literal.set-origin($Origin.new(
+              :from($sofar ?? $sofar-from !! $pos), :to($pos), :$source));
+            $sofar := '';
+            $literal
+        }
+
+        for @*NIBBLES {
+            if nqp::istype($_, NQPMatch) {
+                my $ast := $_.ast;
+
+                # a comment in quote words is not part of the literal text
+                if nqp::isstr($ast) && $ast eq '' && nqp::eqat($_.orig, '#', $_.from) {
+                    @segments.push(literal()) if $sofar;
+                }
+
+                # a string was "made" ?
+                elsif nqp::isstr($ast) {
+                    $sofar-from := $_.from unless $sofar;
+                    $sofar := $sofar ~ $ast;
+                }
+
+                # a real AST, but collected string so far
+                elsif $sofar {
+                    @segments.push(literal());
+                    @segments.push(self.SET-ORIGIN-OF($_, $ast));
+                }
+
+                # a real AST without string
+                else {
+                    @segments.push(self.SET-ORIGIN-OF($_, $ast));
+                }
+                $pos := $_.to;
+            }
+
+            # assume string or something stringifiable
+            else {
+                $sofar-from := $pos unless $sofar;
+                $sofar := $sofar ~ $_;
+                $pos := $pos + nqp::chars($_);
+            }
+        }
+
+        # make sure we have at least an empty string in segments
+        @segments.push(literal()) if $sofar || !@segments;
+
+        self.attach: $/, Nodify(
+          nqp::can($/,'herelang') ?? 'Heredoc' !! 'QuotedString'
+        ).new(
+          segments   => @segments,
+          processors => nqp::can($/,'postprocessors') ?? $/.postprocessors !! []
+        );
+    }
+
+    method backslash:sym<qq>($/) { self.attach: $/, $<quote>.ast; }
+    method backslash:sym<\\>($/) { make '\\' }
+    method backslash:delim ($/) { make $<text>.Str }
+    method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
+    method backslash:sym<misc>($/) { make ~$/; }
+    method backslash:sym<c>($/) { make $<charspec>.ast }
+
+    method backslash:sym<0>($/) { make nqp::chr( 0) }
+    method backslash:sym<a>($/) { make nqp::chr( 7) }
+    method backslash:sym<b>($/) { make nqp::chr( 8) }
+    method backslash:sym<e>($/) { make nqp::chr(27) }
+    method backslash:sym<f>($/) { make nqp::chr(12) }
+
+    sub heredoc-whitespace($/, str $string) {
+        nqp::can($/,'parsing-heredoc')
+          # In heredocs, we spit out a QAST::SVal here to prevent newlines
+          # being taken literally and affecting the dedent.
+          ?? Nodify('Heredoc::InterpolatedWhiteSpace').new(
+               $*LITERALS.intern-Str($string)
+             )
+          !! $string
+    }
+    method backslash:sym<n>($/) {
+        make heredoc-whitespace(
+          $/, $*R.resolve-lexical-constant('$?NL').compile-time-value
+        );
+    }
+    method backslash:sym<r>($/)  { make heredoc-whitespace($/, "\r");   }
+    method backslash:sym<rn>($/) { make heredoc-whitespace($/, "\r\n"); }
+    method backslash:sym<t>($/)  { make heredoc-whitespace($/, "\t");   }
+
+    method backslash:sym<o>($/) {
+        make self.ints_to_string($<octint> || $<octints><octint>);
+    }
+    method backslash:sym<x>($/) {
+        make self.ints_to_string($<hexint> || $<hexints><hexint>);
+    }
+
+    method escape:sym<#>($/) { make ''; }
+
+    method escape:sym<\\>($/)  { make $<item>.ast }
+    method escape:sym<$>($/)   { self.attach: $/, $<EXPR>.ast  }
+    method escape:sym<@>($/)   { self.attach: $/, $<EXPR>.ast  }
+    method escape:sym<%>($/)   { self.attach: $/, $<EXPR>.ast  }
+    method escape:sym<&>($/)   { self.attach: $/, $<EXPR>.ast  }
+    method escape:sym<{ }>($/) { self.attach: $/, $<block>.ast }
+
+    sub qwatom($node) { Nodify('QuoteWordsAtom').new($node.ast) }
+    method escape:sym<'>($/)         { self.attach: $/, qwatom($<quote>)     }
+    method escape:sym<colonpair>($/) { self.attach: $/, qwatom($<colonpair>) }
+    #
+    # The next three are currently only used for tr///.
+    method escape:ch ($/)     { make ~$/; }
+    method escape:sym<..>($/) { make ~$/; }
+    method escape:ws ($/)     { make ~$/; }
+}
+
+#-------------------------------------------------------------------------------
+
+class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
+
+    method nibbler($/) {
+        self.reject-modifier-only($<termseq><termaltseq>, 0);
+        self.attach: $/, $<termseq>.ast;
+    }
+
+    method termseq($/) {
+        self.attach: $/, $<termaltseq>.ast;
+    }
+
+    # Internal modifiers are not atoms, so a regex, or a branch of an
+    # alternation or conjunction, holding nothing but modifiers would match
+    # the empty string. Walk down through the levels that hold a single part
+    # to the termish and refuse it when every noun is a modifier, from 6.e
+    # on. Earlier revisions compile it as that empty match.
+    method reject-modifier-only($branch, int $in-branch) {
+        return 0 if nqp::getcomp('Raku').language_revision < 3;
+        my $termish := $branch;
+        until $termish<noun> {
+            my $inner := $termish<termconjseq> || $termish<termalt>
+              || $termish<termconj> || $termish<termish>;
+            return 0 unless $inner && nqp::elems($inner) == 1;
+            $termish := $inner[0];
+        }
+        my @modifiers;
+        for $termish<noun> {
+            my $metachar := $_<atom><metachar>;
+            return 0 unless $metachar && $metachar<modifier>;
+            @modifiers.push(~$metachar);
+        }
+        $termish.typed-sorry-at($termish.from,
+          'X::Syntax::Regex::SolitaryModifier',
+          :modifiers(p6ize_recursive(@modifiers)), :branch($in-branch));
+    }
+
+    # helper method to handle regex sequences
+    method handle-regex-seq($/, str $key, str $class) {
+        my $ast;
+        my @parts := nqp::atkey($/,$key);
+
+        if nqp::elems(@parts) == 1 {
+            $ast := @parts[0].ast;
+        }
+        else {
+            my @branches;
+            for @parts {
+                @branches.push($_.ast);
+            }
+            unless $class eq 'Sequence' {
+                for @parts { self.reject-modifier-only($_, 1) }
+            }
+            $ast := Nodify('Regex::' ~ $class).new(|@branches);
+        }
+
+        self.attach: $/, $ast
+    }
+
+    method termaltseq($/) {
+        self.handle-regex-seq($/, 'termconjseq', 'SequentialAlternation')
+    }
+    method termconjseq($/) {
+        self.handle-regex-seq($/, 'termalt', 'SequentialConjunction')
+    }
+    method termalt($/) {
+        self.handle-regex-seq($/, 'termconj', 'Alternation')
+    }
+    method termconj($/) {
+        self.handle-regex-seq($/, 'termish', 'Conjunction')
+    }
+    method termish($/) {
+        self.handle-regex-seq($/, 'noun', 'Sequence')
+    }
+
+    method quantified_atom($/) {
+        my $atom       := self.wrap-whitespace($<sigmaybe>, $<atom>.ast);
+        my $quantifier := $<quantifier>;
+        self.SET-NODE-ORIGIN($<atom>, $atom);
+
+        # Set up separator info
+        my %separator;
+        my $separator := $<separator>;
+        if $separator {
+            my str $type := ~$separator<septype>;
+            $/.panic(
+              "'$type' may only be used immediately following a quantifier"
+            ) unless $quantifier;
+
+            %separator<separator>          := $separator.ast;
+            %separator<trailing-separator> := True if $type eq '%%';
+        }
+
+        my $ast := $quantifier
+          ?? Nodify('Regex::QuantifiedAtom').new(
+               :$atom, :quantifier($quantifier.ast), |%separator
+             )
+          !! $<backmod>
+            ?? Nodify('Regex::BacktrackModifiedAtom').new(
+                 :$atom, :backtrack($<backmod>.ast)
+               )
+            !! $atom;
+        # A quantified atom ends with its quantifier or backtrack modifier, or
+        # with its separator, whose sigspace wrapper covers what follows it.
+        my $last := $separator || $quantifier || $<backmod>;
+        $ast.set-origin(Nodify('Origin').new(
+          :from($<atom>.from), :to($last.to), :source($*ORIGIN-SOURCE)
+        )) if $last && !nqp::isconcrete($ast.origin);
+        self.attach: $/, self.wrap-whitespace($<sigfinal>, $ast);
+    }
+
+    method wrap-whitespace($cond, $ast) {
+        nqp::chars(~$cond)
+          && nqp::istype($ast,Nodify('Regex::Term'))
+          && $ast.whitespace-wrappable
+          ?? Nodify('Regex::WithWhitespace').new($ast)
+          !! $ast
+    }
+
+    method atom($/) {
+        self.attach: $/, (my $metachar := $<metachar>)
+          ?? $metachar.ast // Nodify('Regex::Assertion::Fail').new # a sorry is already recorded
+          !! Nodify('Regex::Literal').new(~$/);
+    }
+
+    method quantifier:sym<*>($/) {
+        self.attach: $/, Nodify('Regex::Quantifier::ZeroOrMore').new(backtrack => $<backmod>.ast);
+    }
+
+    method quantifier:sym<+>($/) {
+        self.attach: $/, Nodify('Regex::Quantifier::OneOrMore').new(backtrack => $<backmod>.ast);
+    }
+
+    method quantifier:sym<?>($/) {
+        self.attach: $/, Nodify('Regex::Quantifier::ZeroOrOne').new(backtrack => $<backmod>.ast);
+    }
+
+    method quantifier:sym<**>($/) {
+        my $ast;
+
+        my $backtrack:= $<backmod>.ast;
+        if $<codeblock> {
+            $ast := Nodify('Regex::Quantifier::BlockRange').new(
+              block     => $<codeblock>.ast,
+              backtrack => $backtrack
+            );
+        }
+        else {
+            my $LITERALS := $*LITERALS;
+            my $min := $<min>
+              ?? $LITERALS.intern-Int(~$<min>)
+              !! $LITERALS.int-type;
+
+            my $max := $<max>;
+            $max := !$max
+              ?? $min
+              !! $max eq '*'
+                ?? $LITERALS.int-type
+                !! $LITERALS.intern-Int(~$max);
+
+            $ast := Nodify('Regex::Quantifier::Range').new(
+              excludes-min => $<from> eq '^',
+              min          => $min,
+              max          => $max,
+              excludes-max => $<upto> eq '^',
+              backtrack    => $backtrack
+            );
+        }
+
+        self.attach: $/, $ast
+    }
+
+    method backmod($/) {
+        my str $backmod := ~$/;
+        my str $class   := $backmod eq ':'
+          ?? 'Ratchet'
+          !! $backmod eq ':?' || $backmod eq '?'
+            ?? 'Frugal'
+            !! $backmod eq ':!' || $backmod eq '!'
+              ?? 'Greedy'
+              !! '';
+
+        make $class
+          ?? Nodify('Regex::Backtrack::' ~ $class)
+          !! Nodify('Regex::Backtrack')
+    }
+
+    method separator($/) {
+        self.attach: $/, $<quantified_atom>.ast;
+    }
+
+    method metachar:sym<[ ]>($/) {
+        self.attach: $/, Nodify('Regex::Group').new($<nibbler>.ast);
+    }
+
+    method metachar:sym<( )>($/) {
+        self.attach: $/, Nodify('Regex::CapturingGroup').new($<nibbler>.ast);
+    }
+
+    method metachar:sym<.>($/) {
+        self.attach: $/, Nodify('Regex::CharClass::Any').new;
+    }
+
+    method metachar:sym<^>($/) {
+        self.attach: $/, Nodify('Regex::Anchor::BeginningOfString').new;
+    }
+
+    method metachar:sym<^^>($/) {
+        self.attach: $/, Nodify('Regex::Anchor::BeginningOfLine').new;
+    }
+
+    method metachar:sym<$>($/) {
+        self.attach: $/, Nodify('Regex::Anchor::EndOfString').new;
+    }
+
+    method metachar:sym<$$>($/) {
+        self.attach: $/, Nodify('Regex::Anchor::EndOfLine').new;
+    }
+
+    method metachar:sym<lwb>($/) {
+        self.attach: $/, Nodify('Regex::Anchor::LeftWordBoundary').new;
+    }
+
+    method metachar:sym<rwb>($/) {
+        self.attach: $/, Nodify('Regex::Anchor::RightWordBoundary').new;
+    }
+
+    method metachar:sym<from>($/) {
+        self.attach: $/, Nodify('Regex::MatchFrom').new;
+    }
+
+    method metachar:sym<to>($/) {
+        self.attach: $/, Nodify('Regex::MatchTo').new;
+    }
+
+    method metachar:sym<bs>($/) {
+        # If we don't get an AST for backslash it means we're reporting an error.
+        my $ast := $<backslash>.ast // Nodify('Regex::Assertion::Fail').new;
+        # the backslash is part of the escape
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to)
+          if nqp::istype($ast, Nodify('Node'));
+        self.attach: $/, $ast;
+    }
+
+    method metachar:sym<mod>($/) {
+        my constant CLASS := nqp::hash(
+          'i',          'IgnoreCase',
+          'ignorecase', 'IgnoreCase',
+          'm',          'IgnoreMark',
+          'ignoremark', 'IgnoreMark',
+          'r',          'Ratchet',
+          'ratchet',    'Ratchet',
+          's',          'Sigspace',
+          'sigspace',   'Sigspace'
+        );
+        my str $modifier := $*MODIFIER;
+        if CLASS{$modifier} -> $class {
+            self.attach: $/, Nodify('Regex::InternalModifier::' ~ $class).new(
+              modifier => $modifier, negated => ?$*NEGATED
+            );
+        }
+        elsif $modifier eq 'dba' {
+            my $quoted := $<qstr>;
+            $quoted := $quoted[0] if nqp::islist($quoted);
+            if nqp::isconcrete($quoted) {
+                self.attach: $/, Nodify('Regex::InternalModifier::Dba').new(
+                  name => ~$quoted
+                );
+            }
+            else {
+                $/.panic('Internal modifier strings must be literals');
+            }
+        }
+        else {
+            $/.typed-panic: 'X::Syntax::Regex::UnrecognizedModifier',
+              modifier => $modifier;
+        }
+    }
+
+    method metachar:sym<assert>($/) {
+        my $ast := $<assertion>.ast;
+        # the angle brackets are part of the assertion
+        self.WIDEN-NODE-ORIGIN($ast, $/.from, $/.to)
+          if nqp::istype($ast, Nodify('Node'));
+        self.attach: $/, $ast;
+    }
+
+    method metachar:sym<:my>($/) {
+        my $ast := $<statement>.ast;
+        self.reclaim-doc-blocks($ast);
+        self.attach: $/, Nodify('Regex::Statement').new($ast);
+    }
+
+    method metachar:sym<{ }>($/) {
+        self.attach: $/, Nodify('Regex::Block').new($<codeblock>.ast);
+    }
+
+    method metachar:sym<var>($/) {
+        self.attach: $/, $<quantified_atom>
+          ?? Nodify('Regex::NamedCapture').new(
+               name  => ~($<name> || $<pos>),
+               array => ?$<wantarray>,
+               regex => $<quantified_atom>[0].ast
+             )
+          !! $<pos>
+            ?? Nodify('Regex::BackReference::Positional').new(+$<pos>)
+            !! Nodify('Regex::BackReference::Named').new(~$<name>);
+    }
+
+    method metachar:sym<rakvar>($/) {
+        if $<var><sigil> eq '%' {
+            $<var>.typed-panic('X::Syntax::Reserved', :reserved('use of hash variables in regexes'))
+        }
+        self.attach: $/, Nodify('Regex::Interpolation').new(
+          :var($<var>.ast), :sequential(?$*SEQ)
+        );
+    }
+
+    method metachar:sym<qw>($/) {
+        self.attach: $/, Nodify('Regex::Quote').new($<nibble>.ast);
+    }
+
+    method metachar:sym<'>($/) {
+        self.attach: $/, Nodify('Regex::Quote').new($<quote>.ast);
+    }
+
+    method metachar:sym<~>($/) {
+        self.attach: $/, Nodify('Regex::Nested').new($<GOAL>.ast, $<EXPR>.ast);
+    }
+
+    method backslash:sym<e>($/) {
+        self.attach: $/, Nodify('Regex::CharClass::Escape').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<f>($/) {
+        self.attach: $/, Nodify('Regex::CharClass::FormFeed').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<h>($/) {
+        self.attach: $/, Nodify('Regex::CharClass::HorizontalSpace').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<r>($/) {
+        self.attach: $/, Nodify('Regex::CharClass::CarriageReturn').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<s>($/) {
+        my constant NAME := nqp::hash('d', 'Digit', 'n', 'Newline', 's', 'Space', 'w', 'Word');
+        self.attach: $/, Nodify('Regex::CharClass::' ~ NAME{nqp::lc(~$<sym>)}).new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<t>($/) {
+        self.attach: $/, Nodify('Regex::CharClass::Tab').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<v>($/) {
+        self.attach: $/, Nodify('Regex::CharClass::VerticalSpace').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<0>($/) {
+        self.attach: $/, Nodify('Regex::CharClass::Nul').new();
+    }
+
+    method backslash:sym<o>($/) {
+        my str $characters := HLL::Actions.ints_to_string($<octint> || $<octints><octint>);
+        self.attach: $/, Nodify('Regex::CharClass::Specified').new:
+            :negated($<sym> le 'Z'), :$characters, :codepoint($<octint> ?? $<octint>.ast !! $<octints><octint>[0].ast)
+    }
+
+    method backslash:sym<x>($/) {
+        my str $characters := HLL::Actions.ints_to_string($<hexint> || $<hexints><hexint>);
+        self.attach: $/, Nodify('Regex::CharClass::Specified').new:
+            :negated($<sym> le 'Z'), :$characters, :codepoint($<hexint> ?? $<hexint>.ast !! $<hexints><hexint>[0].ast)
+    }
+
+    method backslash:sym<c>($/) {
+        self.attach: $/, Nodify('Regex::CharClass::Specified').new:
+            :negated($<sym> le 'Z'), :characters($<charspec>.ast)
+    }
+
+    method backslash:sym<misc>($/) {
+        self.attach: $/, Nodify('Regex::Literal').new(~$/)
+    }
+
+    method assertion:sym<?>($/) {
+        self.attach: $/, $<assertion>
+          ?? Nodify('Regex::Assertion::Lookahead').new(
+               assertion => $<assertion>.ast
+            )
+          !! Nodify('Regex::Assertion::Pass').new
+    }
+
+    method assertion:sym<!>($/) {
+        self.attach: $/, $<assertion>
+          ?? Nodify('Regex::Assertion::Lookahead').new(
+               :assertion($<assertion>.ast), :negated
+             )
+          !! Nodify('Regex::Assertion::Fail').new
+    }
+
+    method assertion:sym<|>($/) {
+        my $ast;
+        my $name := ~$<identifier>;
+        if $name eq 'c' {
+            # codepoint boundaries always match in
+            # our current Unicode abstraction level
+            $ast := Nodify('Regex::Assertion::Pass').new;
+        }
+        elsif $name eq 'w' {
+            $ast := Nodify('Regex::Assertion::Named').new(:name(Nodify('Name').from-identifier('wb')));
+        }
+        else {
+            # Only `w` and `c` are real boundaries, so any other name is a typo.
+            # Pre-6.e code already compiles it as a silent no-op, so the error is
+            # gated on 6.e to keep that working.
+            if $*LANGUAGE-REVISION >= 3 {
+                $/.typed-panic: 'X::Syntax::Regex::UnrecognizedBoundary', :boundary($name);
+            }
+            else {
+                $ast := Nodify('Regex::Assertion::Pass').new;
+            }
+        }
+        make $ast;
+    }
+
+    method assertion:sym<method>($/) {
+        my $ast := $<assertion>.ast;
+        if nqp::can($ast,'set-capturing') {
+            $ast.set-capturing(False);
+        }
+        self.attach: $/, $ast;
+    }
+
+    method assertion:sym<name>($/) {
+        my $longname := $<longname>;
+        my $name     := $longname.ast;
+
+        if $name.is-indirect-lookup {
+            if $<assertion> {
+                if $name.is-multi-part {
+                    $/.typed-panic('X::Syntax::Regex::Alias::LongName');
+                }
+                else {
+                    # If ever implemented, take care with RESTRICTED
+                    $/.typed-panic('X::Syntax::Reserved', :reserved('dynamic alias name in regex'));
+                }
+            }
+            if $name.is-multi-part {
+                # If ever implemented, take care with RESTRICTED
+                $/.typed-panic('X::NYI', :feature('long dynamic name in regex assertion'));
+            }
+            if $*RESTRICTED {
+                $/.typed-panic('X::SecurityPolicy::Eval', :payload($*RESTRICTED));
+            }
+        }
+
+        if $<assertion> {
+            if $name.is-multi-part {
+                $/.typed-panic('X::Syntax::Regex::Alias::LongName');
+            }
+        }
+
+        self.attach: $/, $<assertion>
+          ?? Nodify('Regex::Assertion::Alias').new(
+               :name(~$longname), :assertion($<assertion>.ast)
+             )
+          !! !$name.is-multi-part && $name.canonicalize eq 'sym' && %*RX<name>
+            ?? (my $sym:= %*RX<name>.first-colonpair('sym'))
+                ?? (nqp::isconcrete(my $sym-value := $sym.simple-compile-time-quote-value)
+                     ?? Nodify('Regex::Literal').new($sym-value)
+                     !! Nodify('Regex::Sym').new($sym))
+                !! $/.panic('Can only use <sym> token in a proto regex')
+            !! $<arglist>
+              ?? Nodify('Regex::Assertion::Named::Args').new(
+                   :$name, :capturing, :args($<arglist>.ast)
+                 )
+              !! $<nibbler>
+                ?? Nodify('Regex::Assertion::Named::RegexArg').new(
+                     :$name, :capturing, :regex-arg($<nibbler>.ast)
+                   )
+                !! Nodify('Regex::Assertion::Named').new(
+                     :$name, :capturing
+                   );
+    }
+
+    method assertion:sym<{ }>($/) {
+        self.attach: $/, Nodify('Regex::Assertion::InterpolatedBlock').new:
+          :block($<codeblock>.ast), :sequential(?$*SEQ),
+          :allow-eval(?monkey-see-no-eval($/));
+    }
+
+    method assertion:sym<?{ }>($/) {
+        self.attach: $/, Nodify('Regex::Assertion::PredicateBlock').new:
+          :block($<codeblock>.ast);
+    }
+
+    method assertion:sym<!{ }>($/) {
+        self.attach: $/, Nodify('Regex::Assertion::PredicateBlock').new:
+          :negated, :block($<codeblock>.ast);
+    }
+
+    method assertion:sym<var>($/) {
+        if nqp::eqat(~$<var>, '%', 0) {
+            $<var>.typed-panic('X::Syntax::Reserved', :reserved('use of a hash as a regex assertion'))
+        }
+        if $<call> {
+            my $node := Nodify('Regex::Assertion::Callable');
+            self.attach: $/, $<arglist>
+              ?? $node.new(:callee($<call>.ast), :args($<arglist>.ast))
+              !! $node.new(:callee($<call>.ast));
+        }
+        else {
+            self.attach: $/, Nodify('Regex::Assertion::InterpolatedVar').new:
+              :var($<var>.ast), :sequential(?$*SEQ),
+              :allow-eval(?monkey-see-no-eval($/));
+        }
+    }
+
+    method assertion:sym<[>($/) {
+        my @elems := $<cclass_elem>;
+        my @asts;
+        my int $i;
+        my int $n := nqp::elems(@elems);
+        while $i < $n {
+            my $sign := @elems[$i]<sign>;
+            if $i > 0 && $sign eq '' {
+                $sign."!clear_highwater"();
+                $sign.panic('Missing + or - between character class elements')
+            }
+            @asts.push(@elems[$i].ast);
+            ++$i;
+        }
+        self.attach: $/, Nodify('Regex::Assertion::CharClass').new(|@asts);
+    }
+
+    method assertion:sym<~~>($/) {
+        if $<num> {
+            $/.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
+        }
+        elsif $<desigilname> {
+            $/.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
+        }
+        else {
+            self.attach: $/, Nodify('Regex::Assertion::Recurse').new;
+        }
+    }
+
+    method cclass_elem($/) {
+        my $ast;
+
+        my $negated := $<sign> eq '-';
+        if $<name> {
+            $ast := Nodify('Regex::CharClassElement::Rule').new(
+              :name(~$<name>), :$negated
+            );
+        }
+        elsif $<identifier> {
+            $ast := Nodify('Regex::CharClassElement::Property').new(
+              property  => ~$<identifier>,
+              inverted  => $<invert> eq '!',
+              predicate => $<coloncircumfix>
+                            ?? $<coloncircumfix>.ast
+                            !! Nodify('Expression'),
+              negated   => $negated
+            );
+        }
+        else {
+            my @elements;
+            for $<charspec> {
+                my $node := $_[0];
+                my $element := $_[1]
+                  ?? Nodify('Regex::CharClassEnumerationElement::Range').new(
+                       from => extract-endpoint($node),
+                       to   => extract-endpoint($_[1][0])
+                     )
+                  !! $node<cclass_backslash>
+                    ?? $node<cclass_backslash>.ast
+                    !! Nodify('Regex::CharClassEnumerationElement::Character').new(
+                         ~$node
+                       );
+                # a backslash escape covers its backslash
+                self.WIDEN-NODE-ORIGIN($element,
+                  $node.from, ($_[1] ?? $_[1][0] !! $node).to);
+                @elements.push: $element
+            }
+            $ast := Nodify('Regex::CharClassElement::Enumeration').new(
+              :@elements, :$negated
+            );
+        }
+
+        self.attach: $/, $ast
+    }
+
+    sub extract-endpoint($/) {
+        my str $chr := $<cclass_backslash>
+          ?? (my $end := $<cclass_backslash>.ast.range-endpoint)
+            ?? $end
+            !! $/.panic("Illegal range endpoint: " ~ $/)
+          !! ~$/;
+        ($<cclass_backslash> ?? $<cclass_backslash>.ast.codepoint !! NQPMu) // (%*RX<m>
+          ?? nqp::ordbaseat($chr, 0)
+          !! non-synthetic-ord($/, $chr))
+    }
+
+    sub non-synthetic-ord($/, $chr) {
+        nqp::chr(my int $ord := nqp::ord($chr)) eq $chr
+          ?? $ord
+          !! $/.panic(
+               "Cannot use $chr as a range endpoint, as it is not a single codepoint"
+             )
+    }
+
+    method cclass_backslash:sym<s>($/) {
+        self.backslash:sym<s>($/)
+    }
+
+    method cclass_backslash:sym<b>($/) {
+        self.attach: $/,
+          Nodify('Regex::CharClass::BackSpace').new(negated => $<sym> le 'Z')
+    }
+
+    method cclass_backslash:sym<e>($/) {
+        self.backslash:sym<e>($/)
+    }
+
+    method cclass_backslash:sym<f>($/) {
+        self.backslash:sym<f>($/)
+    }
+
+    method cclass_backslash:sym<h>($/) {
+        self.backslash:sym<h>($/)
+    }
+
+    method cclass_backslash:sym<r>($/) {
+        self.backslash:sym<r>($/)
+    }
+
+    method cclass_backslash:sym<t>($/) {
+        self.backslash:sym<t>($/)
+    }
+
+    method cclass_backslash:sym<v>($/) {
+        self.backslash:sym<v>($/)
+    }
+
+    method cclass_backslash:sym<o>($/) {
+        self.backslash:sym<o>($/)
+    }
+
+    method cclass_backslash:sym<x>($/) {
+        self.backslash:sym<x>($/)
+    }
+
+    method cclass_backslash:sym<c>($/) {
+        self.backslash:sym<c>($/)
+    }
+
+    method cclass_backslash:sym<0>($/) {
+        self.backslash:sym<0>($/)
+    }
+
+    method cclass_backslash:sym<any>($/) {
+        self.attach: $/,
+          Nodify('Regex::CharClassEnumerationElement::Character').new(~$/)
+    }
+
+    method codeblock($/) {
+        make $<block>.ast;
+    }
+
+    method arglist($/) {
+        make $<arglist>.ast;
+    }
+}

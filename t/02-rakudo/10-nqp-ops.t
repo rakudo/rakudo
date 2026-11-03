@@ -1,4 +1,4 @@
-use lib <t/packages/>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
 use nqp;
@@ -7,6 +7,8 @@ use nqp;
 plan 2;
 
 # https://github.com/Raku/old-issue-tracker/issues/6538
+todo 'org.raku.nqp.sixmodel.reprs.P6OpaqueBaseInstance$BadReferenceRuntimeException: Cannot access a native attribute as a reference attribute',
+    1, if $*VM eq 'jvm';
 lives-ok {
     nqp::p6bindattrinvres(($ := 42), Int, q|$!value|, nqp::getattr(42, Int, q|$!value|))
 }, 'p6bindattrinvres with getattr of bigint does not crash';

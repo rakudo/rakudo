@@ -1,37 +1,57 @@
 class Perl6::Metamodel::DefiniteHOW
-    #~ does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Nominalizable
-
-    #~ does Perl6::Metamodel::MethodDelegation
-    #~ does Perl6::Metamodel::TypePretense
-
-    #~ does Perl6::Metamodel::Stashing
-    #~ does Perl6::Metamodel::AttributeContainer
-    #~ does Perl6::Metamodel::MethodContainer
-    #~ does Perl6::Metamodel::MultiMethodContainer
-    #~ does Perl6::Metamodel::RoleContainer
-    #~ does Perl6::Metamodel::BaseType
-    #~ does Perl6::Metamodel::MROBasedMethodDispatch
-    #~ does Perl6::Metamodel::MROBasedTypeChecking
-    #~ does Perl6::Metamodel::BUILDPLAN
-    #~ does Perl6::Metamodel::BoolificationProtocol
-    #~ does Perl6::Metamodel::REPRComposeProtocol
-    #~ does Perl6::Metamodel::InvocationProtocol
 {
-    my $archetypes := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable(1));
-    method archetypes() {
-        $archetypes
+    # ATypeN are used as parameterization arguments to have a
+    # definite report correct archetypes.
+    my class ArchetypeDefinite {
+        my $type := Perl6::Metamodel::Archetypes.new(
+          :definite, :nominalizable);
+        method archetype() { $type }
+    }
+    my class ArchetypeDefiniteGeneric {
+        my $type := Perl6::Metamodel::Archetypes.new(
+          :definite, :nominalizable, :generic);
+        method archetype() { $type }
+    }
+    my class ArchetypeDefiniteCoercive {
+        my $type := Perl6::Metamodel::Archetypes.new(
+          :definite, :nominalizable, :coercive);
+        method archetype() { $type }
+    }
+    my class ArchetypeDefiniteCoerciveGeneric {
+        my $type := Perl6::Metamodel::Archetypes.new(
+          :definite, :nominalizable, :coercive, :generic);
+        method archetype() { $type }
+    }
+    my @archetypes := nqp::list(ArchetypeDefinite,
+                                ArchetypeDefiniteGeneric,
+                                ArchetypeDefiniteCoercive,
+                                ArchetypeDefiniteCoerciveGeneric);
+
+    method archetypes($definite_type = nqp::null()) {
+        nqp::isnull($definite_type)
+          ?? ArchetypeDefinite.archetype()
+          !! nqp::typeparameterat(nqp::decont($definite_type), 2).archetype
     }
 
     #~ has @!mro;
 
-    my class Definite { }
+    my class Definite    { }
     my class NotDefinite { }
 
     method new_type(:$base_type!, :$definite!) {
+        my $base_archetypes := $base_type.HOW.archetypes($base_type);
+        # Use generic and coercive as positional bits to form a numeric suffix for 'ATypeN' names.
+        my $atype := nqp::atpos(
+          @archetypes,
+          nqp::bitor_i(
+            nqp::bitshiftl_i($base_archetypes.coercive, 1),
+            $base_archetypes.generic)
+        );
+
         my $root := nqp::parameterizetype((Perl6::Metamodel::DefiniteHOW.WHO)<root>,
-            [$base_type, $definite ?? Definite !! NotDefinite]);
+            [$base_type, $definite ?? Definite !! NotDefinite, $atype]);
         nqp::setdebugtypename($root, self.name($root));
     }
 
@@ -72,39 +92,26 @@ class Perl6::Metamodel::DefiniteHOW
         nqp::eqaddr(nqp::typeparameterat($definite_type, 1), Definite) ?? 1 !! 0
     }
 
-    #~ # Our MRO is just that of base type.
-    #~ method mro($obj) {
-        #~ unless @!mro {
-            #~ @!mro[0] := $obj;
-            #~ for $!base_type.HOW.mro($!base_type) {
-                #~ @!mro.push($_);
-            #~ }
-        #~ }
-        #~ @!mro
-    #~ }
+    method nominalize($target) {
+        my $base_type := self.base_type($target);
+        $base_type.HOW.archetypes($base_type).nominalizable
+            ?? $base_type.HOW.nominalize($base_type)
+            !! $base_type
+    }
 
-    #~ method parents($obj, :$local, :$excl, :$all) {
-        #~ my @parents := [$!base_type];
-        #~ unless $local {
-            #~ for $!base_type.HOW.parents($!base_type, :excl($excl), :all($all)) {
-                #~ @parents.push($_);
-            #~ }
-        #~ }
-        #~ @parents
-    #~ }
-
-    method nominalize($obj) {
-        my $base_type := $obj.HOW.base_type($obj);
-        $base_type.HOW.archetypes.nominal ??
-            $base_type !!
-            $base_type.HOW.nominalize($base_type)
+    method instantiate_generic($definite_type, $type_env) {
+        my $base_type := $definite_type.HOW.base_type($definite_type);
+        return $definite_type unless $base_type.HOW.archetypes($base_type).generic;
+        self.new_type(
+            base_type => $base_type.HOW.instantiate_generic($base_type, $type_env),
+            definite => $definite_type.HOW.definite($definite_type))
     }
 
     #~ # Should have the same methods of the base type that we refine.
     #~ # (For the performance win, work out a way to steal its method cache.)
-    method find_method($definite_type, $name) {
+    method find_method($definite_type, $name, *%c) {
         my $base_type := self.base_type($definite_type);
-        $base_type.HOW.find_method($base_type, $name)
+        $base_type.HOW.find_method($base_type, $name, |%c)
     }
 
     method find_method_qualified($definite_type, $qtype, $name) {
@@ -131,7 +138,7 @@ class Perl6::Metamodel::DefiniteHOW
 
     # Methods needed by Perl6::Metamodel::Nominalizable
     method nominalizable_kind() { 'definite' }
-    method !wrappee($obj) { self.base_type($obj) }
+    method !wrappee($target) { self.base_type($target) }
 }
 
 BEGIN {
@@ -141,7 +148,7 @@ BEGIN {
     nqp::setparameterizer($root, sub ($type, $params) {
         # Re-use same HOW.
         my $thing := nqp::settypehll(nqp::newtype($type.HOW, 'Uninstantiable'), 'Raku');
-        nqp::settypecheckmode($thing, 2)
+        nqp::settypecheckmode($thing, nqp::const::TYPE_CHECK_NEEDS_ACCEPTS)
     });
     (Perl6::Metamodel::DefiniteHOW.WHO)<root> := $root;
 }

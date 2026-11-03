@@ -1,5 +1,3 @@
-use v6;
-
 use lib <lib>;
 use NativeCall :TEST;
 use Test;

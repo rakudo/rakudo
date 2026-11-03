@@ -7,7 +7,7 @@
 # When introspection of the SIL object is done, the "exit" method should be
 # called on the object to prevent the code of the program actually running
 # twice.
-# 
+#
 # A typical use case would be:
 #
 #  use MoarVM::SIL;
@@ -28,7 +28,7 @@ class BB {
     my constant $prefix = 'unspecialized ';
     my constant $offset = $prefix.chars;
 
-    method TWEAK() {
+    submethod TWEAK() {
         if $!name.starts-with($prefix) {
             $!name        := $!name.substr($offset);
             $!specialized := False;
@@ -77,7 +77,7 @@ class Not-Inlined {
 class MoarVM::SIL {
     has Bag $.inlineds     is built(:bind);
     has Bag $.not-inlineds is built(:bind);
-    has Int $status        is built(:bind);
+    has Int $!status       is built(:bind);
 
     method sink() { say self.report }
     method report() {
@@ -87,22 +87,31 @@ class MoarVM::SIL {
             now.DateTime.truncated-to('second')
         })";
         @lines.push: "Executing: " ~ Rakudo::Internals.PROGRAM;
-        @lines.push: "";
 
-        @lines.push: "Successful inlines";
-        @lines.push: "-" x 80;
-        @lines.push("{
-            $_ == 1 ?? '   ' !! .fmt('%2dx') given $!inlineds{$_}
-        } $_.gist()") for $!inlineds.keys.sort: +*.inlinee.id;
-        @lines.push: "-" x 80;
+        if $!inlineds.keys -> @inlineds {
+            @lines.push: "";
+            @lines.push: "Successful inlines";
+            @lines.push: "-" x 80;
+            @lines.push("{
+                $_ == 1 ?? '   ' !! .fmt('%2dx') given $!inlineds{$_}
+            } $_.gist()") for @inlineds.sort: +*.inlinee.id;
+            @lines.push: "-" x 80;
+        }
 
-        @lines.push: "";
-        @lines.push: "Unsuccessful inlines:";
-        @lines.push: "-" x 80;
-        @lines.push("{
-            $_ == 1 ?? '   ' !! .fmt('%2dx') given $!not-inlineds{$_}
-        } $_.gist()") for $!not-inlineds.keys.sort: +*.frame.id;
-        @lines.push: "-" x 80;
+        if $!not-inlineds.keys -> @not-inlineds {
+            @lines.push: "";
+            @lines.push: "Unsuccessful inlines:";
+            @lines.push: "-" x 80;
+            @lines.push("{
+                $_ == 1 ?? '   ' !! .fmt('%2dx') given $!not-inlineds{$_}
+            } $_.gist()") for @not-inlineds.sort: +*.frame.id;
+            @lines.push: "-" x 80;
+        }
+
+        if @lines == 2 {
+            @lines.push: "";
+            @lines.push: "Only system-related inlines detected";
+        }
 
         @lines.join("\n");
     }
@@ -121,7 +130,16 @@ class MoarVM::SIL {
     method exit() { exit $!status }
 }
 
-sub SIL is export {
+sub SIL(:$skip-core) is export {
+    my %skips;
+
+    if $skip-core {
+        my %env = %*ENV, :MVM_SPESH_INLINE_LOG;
+        my $proc := run $*EXECUTABLE, '-e', "use Test", :err, :%env;
+        for $proc.err.lines {
+            %skips{~$/}++ if / ' (' <( \d+ )> ') ' /;
+        }
+    }
 
     my $proc := Rakudo::Internals.RERUN-WITH(MVM_SPESH_INLINE_LOG => 1);
     return Nil unless $proc;
@@ -143,22 +161,24 @@ sub SIL is export {
                    ' into ' (<-[(]>+)
                    '(' (\d+) /
             {
-                @inlineds.push: Inlined.new:
+                @inlineds.push: Inlined.new(
                   inlinee => BB.new(name => $0.chop, id => $1, size => $2),
-                  into    => BB.new(name => $3.chop, id => $4);
+                  into    => BB.new(name => $3.chop, id => $4)
+                ) unless %skips{~$1};
 
             }
             elsif m/^ 'Can NOT inline ' (<-[(]>+)
                    '(' (\d+)
                    ') with bytecode size ' (\d+)
                    ' into ' (<-[(]>+)
-                   '(' (\d+) 
+                   '(' (\d+)
                    '): ' (.*) /
             {
-                @not-inlineds.push: Not-Inlined.new:
+                @not-inlineds.push: Not-Inlined.new(
                   frame  => BB.new(name => $0.chop, id => $1, size => $2),
                   target => BB.new(name => $3.chop, id => $4),
-                  reason => $5;
+                  reason => $5
+                ) unless %skips{~$1};
             }
             else {
                 $err.say($_);

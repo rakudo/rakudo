@@ -1,0 +1,234 @@
+use v6.e.PREVIEW;
+use Test;
+use nqp;
+
+plan 6;
+
+throws-like { EVAL(RakuAST::Term::Self.new) },
+    X::Syntax::Self::WithoutObject;
+
+{
+    my sub hello() { }
+    throws-like { EVAL RakuAST::Call::Name.new(name => RakuAST::Name.from-identifier('helo')) },
+        X::Undeclared::Symbols,
+        message => *.contains(Q[Did you mean 'hello']),
+        'an undeclared routine in a synthesized AST is reported with a suggestion';
+}
+
+subtest 'a stand-in exception for a setting still compiling renders readably' => {
+    plan 10;
+
+    my $with-string := RakuAST::BOOTException.new('X::Redeclaration', nqp::hash('symbol', '$_'));
+    is $with-string.message, 'X::Redeclaration(symbol => $_)',
+      'a string option renders as its value';
+
+    my $with-int := RakuAST::BOOTException.new('X::Comp', nqp::hash('line', 3));
+    is $with-int.message, 'X::Comp(line => 3)',
+      'an integer option renders as its value';
+
+    my $bare := RakuAST::BOOTException.new('X::AdHoc', nqp::hash());
+    is $bare.message, 'X::AdHoc',
+      'no options renders just the type name';
+
+    is $with-string.gist(:!sorry, :!expect), $with-string.message,
+      'the gist takes the named arguments a compile-time exception gist takes';
+    is $with-string.Str, $with-string.message,
+      'the Str is the message';
+    isa-ok $with-string.gist, Str,
+      'the gist is a Raku Str';
+
+    my $with-two := RakuAST::BOOTException.new('X::Comp', nqp::hash('line', 3, 'filename', 'foo.raku'));
+    is $with-two.message, 'X::Comp(filename => foo.raku, line => 3)',
+      'options render in key order';
+
+    my $with-five := RakuAST::BOOTException.new('X::Comp', nqp::hash('c', 1, 'a', 2, 'b', 3, 'z', 4, 'aa', 5));
+    is $with-five.message, 'X::Comp(a => 2, aa => 5, b => 3, c => 1, z => 4)',
+      'five options render sorted by key';
+
+    $with-string.SET_FILE_LINE('bar.raku', 7);
+    is $with-string.message, 'X::Redeclaration(symbol => $_) at bar.raku:7',
+      'a file and line set on the stand-in render after the options';
+
+    $with-string.SET_PRE_POST('my $_; my ', '$_;');
+    is $with-string.message,
+      "X::Redeclaration(symbol => \$_) at bar.raku:7\n------> my \$_; my <HERE>\$_;",
+      'the source around the problem renders on its own line after the location';
+}
+
+subtest 'the source excerpt around a position is cut to its line and width' => {
+    plan 12;
+
+    sub prepost(str $orig, int $pos) {
+        RakuAST::Origin::Source.new(:$orig).prepost-of-pos($pos).List
+    }
+
+    is-deeply prepost('abc', 1), ('a', 'bc'),
+      'a position inside one line splits it there';
+    is-deeply prepost('abc', 3), ('abc', '<EOL>'),
+      'a position at the end of the source marks the line end';
+    is-deeply prepost('abc', 0), ('<BOL>', 'abc'),
+      'a position at the start of the source marks the line start';
+    is-deeply prepost('', 0), ('<BOL>', '<EOL>'),
+      'an empty source marks both sides';
+    is-deeply prepost('abc', -5), ('<BOL>', 'abc'),
+      'a position before the source counts as its start';
+    is-deeply prepost('abc', 99), ('abc', '<EOL>'),
+      'a position past the source counts as its end';
+    is-deeply prepost("ab\ncd", 2), ('ab', '<EOL>'),
+      'a position before a newline stops the post side there';
+    is-deeply prepost("ab\ncd", 3), ('<BOL>', 'cd'),
+      'a position after a newline starts the pre side there';
+    is-deeply prepost("ab\r\ncd", 3), ('<BOL>', 'cd'),
+      'a carriage return newline pair is one line break';
+    is-deeply prepost("ab\rcd", 3), ('<BOL>', 'cd'),
+      'a lone carriage return is a line break';
+    is-deeply prepost("ab\x[2028]cd", 3), ('<BOL>', 'cd'),
+      'a unicode line separator is a line break';
+    my ($pre, $post) = prepost('x' x 100, 50);
+    ok $pre.chars == 40 && $post.chars == 40,
+      'each side is cut to forty characters';
+}
+
+if nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast' {
+    subtest 'worries render plainly when the group gist cannot' => {
+        plan 8;
+
+        my $actions := nqp::getcomp('Raku').parseactions;
+        sub vm-exception(&code) {
+            my $exception;
+            try {
+                code();
+                CATCH { default { $exception := nqp::getattr($_, Exception, '$!ex') } }
+            }
+            $exception
+        }
+        my class MessageDies  is Exception { method message() { die 'inner reason' } }
+        my class MessageFails is Exception { method message() { fail 'soft' } }
+        my class MessageNil   is Exception { method message() { Nil } }
+        my class Unprintable { method Str() { die 'no Str' } }
+        my class MessageUnprintable is Exception { method message() { Unprintable.new } }
+
+        is $actions.exception-reason(vm-exception({ die 'boom' })), 'boom',
+          'a Raku exception reports the message of its payload';
+        is $actions.exception-reason(vm-exception({ nqp::die('vm boom') })), 'vm boom',
+          'a VM exception reports its own message';
+        is $actions.exception-reason(vm-exception({ MessageDies.new.throw })),
+          'MessageDies thrown, its message unavailable: inner reason',
+          'a payload whose message dies reports the inner reason';
+
+        my $*R := class :: {
+            has @.worries;
+            method all-worries() { @!worries }
+        }.new(worries => [
+            X::Redeclaration.new(symbol => '$x'),
+            RakuAST::BOOTException.new('X::Comp', nqp::hash('line', 3)),
+            MessageDies.new,
+            MessageNil.new,
+            MessageUnprintable.new,
+        ]);
+        my $text := $actions.render-worries('the gist broke');
+        is $text, q:to/END/, 'every worry renders on its own line with the reason last';
+            Potential difficulties:
+                Redeclaration of symbol '$x'.
+                X::Comp(line => 3)
+                MessageDies, message unavailable: inner reason
+                MessageNil, message unavailable: the message was empty
+                MessageUnprintable, message unavailable: no Str
+            The full rendering of these failed: the gist broke
+            END
+        isa-ok $text, Str, 'the plain rendering is a Raku Str';
+
+        $*R.worries = [MessageFails.new];
+        ok $actions.render-worries('the gist broke').contains('soft'),
+          'a message that is a Failure still renders with its reason';
+
+        my $located := X::Redeclaration.new(symbol => '$y');
+        $located.SET_FILE_LINE('foo.raku', 3);
+        $*R.worries = [$located];
+        is $actions.render-worries('the gist broke').lines[1],
+          q[    Redeclaration of symbol '$y'. at foo.raku:3],
+          'a worry with a location renders it after the message';
+        is $actions.exception-reason(vm-exception({ MessageUnprintable.new.throw })),
+          'MessageUnprintable thrown, its message unavailable: no Str',
+          'a payload whose message cannot be stringified reports why';
+    }
+}
+else {
+    skip 'the plain rendering belongs to the RakuAST frontend';
+}
+
+subtest 'a class that fails to compose reports only its own error' => {
+    plan 6;
+
+    my role NeedsMethod { method m { ... } }
+    my $class := RakuAST::Class.new(
+      name   => RakuAST::Name.from-identifier('HandBuiltClass'),
+      traits => [
+        RakuAST::Trait::Does.new(
+          RakuAST::Type::Simple.from-identifier('NeedsMethod')
+        )
+      ]
+    );
+    throws-like { EVAL $class }, X::Comp::AdHoc,
+      message => *.contains('must be implemented by HandBuiltClass'),
+      'the composition error is thrown';
+    is $class.meta-object.^name, 'HandBuiltClass',
+      'the meta-object is the type that failed to compose';
+
+    my role DocMethodRoleA { method m { 1 } }
+    my role DocMethodRoleB { method m { 2 } }
+    throws-like {
+        EVAL RakuAST::Class.new(
+          name   => RakuAST::Name.from-identifier('HandBuiltDocClass'),
+          traits => [
+            RakuAST::Trait::Does.new(
+              RakuAST::Type::Simple.from-identifier('DocMethodRoleA')
+            ),
+            RakuAST::Trait::Does.new(
+              RakuAST::Type::Simple.from-identifier('DocMethodRoleB')
+            )
+          ]
+        ).declarator-docs(leading => ("leading doc\n",))
+    }, X::Role::Unresolved::Method,
+      'a documented class built by hand getting a method from two roles';
+
+    try EVAL RakuAST::Class.new(
+      name   => RakuAST::Name.from-identifier('HandBuiltBodyErrorClass'),
+      traits => [
+        RakuAST::Trait::Does.new(
+          RakuAST::Type::Simple.from-identifier('NeedsMethod')
+        )
+      ],
+      body   => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope       => 'has',
+                sigil       => '$',
+                twigil      => '.',
+                desigilname => RakuAST::Name.from-identifier('a'),
+                traits      => [
+                  RakuAST::Trait::Is.new(
+                    name => RakuAST::Name.from-identifier('nosuchtrait')
+                  )
+                ]
+              )
+            )
+          )
+        )
+      )
+    );
+    isa-ok $!, X::Comp::Trait::Unknown,
+      'a class built by hand with an error in its body reports only that error';
+
+    try Q:to/SOURCE/.AST;
+    role UndocumentedRole { }
+    role UndocumentedRole { }
+    class UndocumentedClass does UndocumentedRole { has $.a is nosuchtrait }
+    SOURCE
+    isa-ok $!, X::Comp::Trait::Unknown,
+      'a parsed class with an error in its body reports only that error';
+    is $!.?line, 3,
+      'the error in the body of a parsed class is reported at its line';
+}

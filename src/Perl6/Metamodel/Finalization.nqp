@@ -1,43 +1,49 @@
+#- Metamodel::Finalization -----------------------------------------------------
 role Perl6::Metamodel::Finalization {
     has @!destroyers;
 
-    method setup_finalization($obj) {
-        my @mro   := self.mro($obj);
-        my int $i := -1;
-        my int $ocount := nqp::elems(@mro);
+    method setup_finalization($target) {
+        my @mro := self.mro($target);
         my @destroyers;
-        while ++$i < $ocount {
-            my $class   := @mro[$i];
-            my $classHOW := $class.HOW;
-            my $destroy := $classHOW.find_method($class, 'DESTROY', :no_fallback(1));
-            if !nqp::isnull($destroy) && $destroy {
-                nqp::push(@destroyers, $destroy);
-            }
-            if !self.lang-rev-before($obj, 'e')
-                && nqp::can($classHOW, 'ins_roles')
-                && nqp::can($classHOW, 'roles')
+
+        my int $m := nqp::elems(@mro);
+        my int $i;
+        while $i < $m {
+            my $class   := nqp::atpos(@mro, $i);
+            my $HOW     := $class.HOW;
+            my $DESTROY := $HOW.find_method($class, 'DESTROY', :no_fallback);
+            nqp::push(@destroyers, $DESTROY) unless nqp::isnull($DESTROY);
+
+            if self.language_revision >= 3
+                && nqp::can($HOW, 'ins_roles')
+                && nqp::can($HOW, 'roles')
             {
-                my @ins_roles := $classHOW.ins_roles($class, :with-submethods-only);
-                my int $j := -1;
-                my int $rcount := nqp::elems(@ins_roles);
-                while ++$j < $rcount {
-                    my $r := @ins_roles[$j];
-                    my $submeth := nqp::atkey(@ins_roles[$j].HOW.submethod_table(@ins_roles[$j]), 'DESTROY');
-                    if !nqp::isnull($submeth) && $submeth {
-                        nqp::push(@destroyers, $submeth);
-                    }
+                my @roles := $HOW.ins_roles($class, :with-submethods-only);
+
+                my int $n := nqp::elems(@roles);
+                my int $j;
+                while $j < $n {
+                    my $role    := nqp::atpos(@roles, $j);
+                    my $DESTROY := nqp::atkey(
+                      $role.HOW.submethod_table($role), 'DESTROY'
+                    );
+                    nqp::push(@destroyers, $DESTROY)
+                      unless nqp::isnull($DESTROY);
+
+                    ++$j;
                 }
             }
+
+            ++$i;
         }
-        @!destroyers := @destroyers;
-        if @destroyers {
-            nqp::settypefinalize($obj, 1);
+
+        if nqp::elems(@destroyers) {
+            @!destroyers := @destroyers;
+            nqp::settypefinalize($target, 1);
         }
     }
 
-    method destroyers($obj) {
-        @!destroyers
-    }
+    method destroyers($XXX?) { @!destroyers }
 }
 
 # vim: expandtab sw=4

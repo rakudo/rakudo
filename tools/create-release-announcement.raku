@@ -10,7 +10,7 @@ the Raku[^1] language.
 
 The source tarball for this release is available from
 <https://rakudo.org/files/rakudo>.
-Pre-compiled archives will be available shortly.
+Precompiled archives will be available shortly.
 
 New in «release-name»:
 «changes»
@@ -30,26 +30,18 @@ pragma. Our goal is to ensure that anything that is tested as part of
 be incremental spec releases this year as well.
 
 If you would like to contribute or get more information, visit
-<https://raku.org>, <https://rakudo.org/community>, ask on the
-<perl6-compiler@perl.org> mailing list, or ask on IRC #raku on Libera.
+<https://raku.org>, <https://rakudo.org/community>, or join us
+on IRC (#raku on Libera), or the Discord.
 
-Additionally, we invite you to make a donation to The Perl Foundation
-to sponsor Raku development: <https://donate.perlfoundation.org/>
-(put “Raku Core Development Fund” in the ‘Purpose’ text field)
+Additionally, we invite you to make a donation to The Raku Foundation
+to sponsor Raku development: <https://raku.foundation/Donations>.
 
 The next release of Rakudo (#«next-release-num»), is tentatively scheduled for «next-release-date».
 
-A list of the other planned release dates is available in the
-“docs/release_guide.pod” file.
-
 The development team appreciates feedback! If you’re using Rakudo, do
 get back to us. Questions, comments, suggestions for improvements, cool
-discoveries, incredible hacks, or any other feedback – get in touch with
-us through (the above-mentioned) mailing list or IRC channel. Enjoy!
-
-Please note that recent releases have known issues running on the JVM.
-We are working to get the JVM backend working again but do not yet have
-an estimated delivery date.
+discoveries, incredible hacks, or any other feedback are welcome
+through the channels listed above.
 
 [^1]: See <https://raku.org/>
 END_TEMPLATE

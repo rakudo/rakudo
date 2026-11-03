@@ -1,27 +1,31 @@
-use v6;
-use lib <t/packages>;
+use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
+use nqp;
 
-plan 47;
+plan 53;
+
+my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
 
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
-    $_ = .lines.skip(4).join("\n");
-    s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
-        " or use rlwrap for a line editor\n\n"//;
-    s/^^ "To exit type 'exit' or $eof\n"//;
-    s:g/ ^^ "> "  //; # Strip out the prompts
-    s:g/    ">" $ //; # Strip out the final prompt
-    s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
-    $_
+    .lines
+      .skip(4)
+      .join("\n")
+      .subst( /^^ "You may want to `zef install Readline`, `zef install Linenoise`,"
+        " or `zef install Terminal::LineEditor`"
+        " or use rlwrap for a line editor\n\n"/)
+      .subst( /^^ "To exit type 'exit' or $eof\n"/ )
+      .subst( /^^ '[' \d+ '] > '  /, :global)  # Strip out the prompts
+      .subst( /^^ "* "+ /,           :global)  # Strip out the continuation-prompts
+      .subst( /    ">" $ /,          :global)  # Strip out the final prompt
 }
 
 {
     (temp %*ENV)<RAKUDO_ERROR_COLOR  RAKUDO_LINE_EDITOR>:delete;
     subtest 'sanity check; load without tweaking line editor' => {
         plan 3;
-        my $p := run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
+        my $p := run $*EXECUTABLE, '--repl-mode=process', :in, :out, :err;
         $p.in.say: '133742.flip.say';
         $p.in.close;
         like $p.out.slurp(:close),     /247331/, 'result of code is on STDOUT';
@@ -103,6 +107,15 @@ is-run-repl "''\n", "\n", 'an empty string gives back one blank line';
 is-run-repl "}\n", /'===SORRY!===' .* 'Unexpected closing bracket'/,
     'syntax error gives a compile-time error';
 
+if $rakuast {
+    is-run-repl «'my &f = sub (--> q:to/END/) { }; say 1'  'say "next"'»,
+      /'Premature heredoc consumption' .* 'next'/,
+      'a heredoc needed while compiling is reported without waiting for more input';
+}
+else {
+    skip 'the legacy frontend does not report this while compiling';
+}
+
 is-run-repl "}\nsay 42", {
     .match: /'===SORRY!===' .* 'Unexpected closing bracket' .* '42'/
     and 1 == .comb: 'Error while compiling'
@@ -164,12 +177,13 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     skip 'Result differs on OSX';
     # is-run-repl ['say "hi"'], {
     #     .subst(:g, /\W+/, '') eq
-    #     'YoumaywanttozefinstallReadlineorzefinstallLinenoise'
+    #     'YoumaywanttozefinstallReadlinezefinstallLinenoise'
+    #     ~ 'orzefinstallTerminalLineEditor'
     #     ~ 'oruserlwrapforalineeditor' ~ 'ToexittypeexitorD' ~ 'hi'
     # }, 'REPL session does not have unexpected stuff';
 
-    ## XXX TODO: need to write tests that exercise the REPL with Linenoise
-    # and Readline installed. Particular things to check:
+    ## XXX TODO: need to write tests that exercise the REPL with Linenoise,
+    # Readline, and Terminal::LineEditor installed. Particular things to check:
     # 1. History file can be made on all OSes:
     #    https://github.com/rakudo/rakudo/commit/b4fa6d6792dd02424d2182b73c31a071cddc0b8e
     # 2. Test REPL does not show errors when $*HOME is not set:
@@ -178,13 +192,16 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
 
 # https://github.com/Raku/old-issue-tracker/issues/3211
 {
-    is-run-repl ['say 069'], :out("69\n"), :err(/'Potential difficulties:'
-        .* 'Leading 0' .+ "use '0o' prefix,"
-        .* '69 is not a valid octal number'
+    is-run-repl ['say 069'], :out("69\n"), :err(/
+      'Potential difficulties:'
+      \s+ 'Leading 0 has no meaning'
+      .*? '69 is not a valid octal number'
     /), 'prefix 0 on invalid octal warns in REPL';
 
-    is-run-repl ['say 067'], :out("67\n"), :err(/'Potential difficulties:'
-        .* 'Leading 0' .+ "use '0o' prefix" .* "like, '0o67'"
+    is-run-repl ['say 067'], :out("67\n"), :err(/
+      'Potential difficulties:'
+      \s+ 'Leading 0 has no meaning'
+      .*? "like, '0o67'"
     /), 'prefix 0 on valid octal warns in REPL';
 }
 
@@ -220,7 +237,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
                                               'num32 $i,  num64 $j,',
                     ') = 1, 2, 3, 4, 5, 6, 7, 8, 9e0, 10e0;';
 
-    todo 'https://github.com/rakudo/rakudo/issues/4161';
+    todo 'https://github.com/rakudo/rakudo/issues/4161' unless $*VM.name eq 'jvm' || $rakuast;
     is-run-repl "$code\nsay 'test is good';\n",
         :err(''),
         :out(/'(1 2 3 4 5 6 7 8 9 10)' .* 'test is good'/),
@@ -232,7 +249,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     # REPL must not start, but if it does start and wait for input, it'll
     # "hang", from our point of view, which the test function will detect
     doesn't-hang \(:w, $*EXECUTABLE,
-        '--repl-mode=interactive', '-M', 'NonExistentModuleRT128595'
+        '--repl-mode=process', '-M', 'NonExistentModuleRT128595'
     ), :out(/^$/), :err(/'Could not find NonExistentModuleRT128595'/),
     'REPL with -M with non-existent module does not start';
 }
@@ -327,5 +344,38 @@ is-run-repl 'my $fh = $*EXECUTABLE.open(:r)',
 	:out{.contains: 'IO::Handle' and not .contains('Failed to write')},
 	:err(''),
 	｢no complaints about failed writing to filehandle when opening a file｣;
+
+# https://github.com/rakudo/rakudo/issues/3952
+subtest 'check with additional CLI arguments' => {
+    plan 3;
+    my $p := run $*EXECUTABLE,
+      '--repl-mode=process', <foo bar baz>, :in, :out, :err;
+    $p.in.say: '@*ARGS';
+    $p.in.close;
+    ok $p.out.slurp(:close).contains('[foo bar baz]'),
+      'got the command line arguments';
+    is $p.err.slurp(:close).chars, 0,        'no STDERR output';
+    is $p.exitcode,                0,        'successful exit code';
+}
+
+subtest 'check that trying to run a REPL that expects a TTY fails without a TTY' => {
+    plan 2;
+    my $p := run $*EXECUTABLE, '--repl-mode=tty', :in, :out, :err;
+    ok $p.err.slurp(:close).contains('Invalid REPL environment'), "Cannot start a REPL that wants a TTY without a TTY";
+    is $p.exitcode, 1, 'Exit code (1) reflects expected failure';
+}
+
+# https://github.com/rakudo/rakudo/issues/6777
+is-run-repl ('role R[::T] { method type { T } }', 'say R[Int].type =:= Int'),
+    :out{.lines.tail eq 'True'}, :err(''),
+    'a parametric role declared on an earlier line can be parameterized';
+
+is-run-repl ('my class Bar { }', 'BEGIN say EVAL(q{Bar}).^name'),
+    :out{.lines.tail eq 'Bar'}, :err(''),
+    'an EVAL at BEGIN time of a line sees a class declared on an earlier line';
+
+is-run-repl ('sub repl-export is export { }', 'say EXPORT::DEFAULT::<&repl-export>.name'),
+    :out{.lines.tail eq 'repl-export'}, :err(''),
+    'a sub exported on an earlier line is in the EXPORT package of a later line';
 
 # vim: expandtab shiftwidth=4

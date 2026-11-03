@@ -3,22 +3,28 @@
 @if(silent_build==on @make_pp_pfx@ifdef VERBOSE_BUILD
 NOECHO = 
 VERBOSE = -v
+MONITOR_BYPASS = --bypass
 @make_pp_pfx@endif
 @make_pp_pfx@ifndef VERBOSE_BUILD
 NOECHO = @
 VERBOSE = 
+MONITOR_BYPASS =
 @make_pp_pfx@endif
 )@@if(silent_build!=on @make_pp_pfx@ifdef SILENT_BUILD
 NOECHO = @
 VERBOSE = 
+MONITOR_BYPASS =
 @make_pp_pfx@endif
 @make_pp_pfx@ifndef SILENT_BUILD
 NOECHO = 
 VERBOSE = -v
+MONITOR_BYPASS = --bypass
 @make_pp_pfx@endif
 )@
 PERL5   = @shquot(@perl@)@ -I@nfpq(@base_dir@/tools/lib)@ -I@nfpq(@base_dir@/3rdparty/nqp-configure/lib)@
 CONFIGURE = $(PERL5) @shquot(@configure_script@)@ @configure_opts()@
+MONITOR_OPTS = $(MONITOR_BYPASS)
+MONITOR = $(PERL5) @shquot(@script(monitor-process.pl)@)@ $(MONITOR_OPTS)
 MKPATH  = @mkpath@
 CHMOD   = @chmod@
 CP      = @cp@
@@ -51,8 +57,6 @@ CONFIGURE_SOURCES = \
 	@nfp(tools/lib/NQP/Config/Rakudo.pm)@ \
 	@nfp($(NQP_CONFIG_DIR)/NQP/Config.pm)@ \
 	@nfp($(NQP_CONFIG_DIR)/NQP/Macros.pm)@ 
-
-R_SETTING_SRC = @nfp(src/RESTRICTED.setting)@
 
 SPECTEST_DATA = @nfp(t/spec/spectest.data)@
 

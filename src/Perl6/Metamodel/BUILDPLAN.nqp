@@ -2,232 +2,344 @@ role Perl6::Metamodel::BUILDPLAN {
     has @!BUILDALLPLAN;
     has @!BUILDPLAN;
 
+    method BUILDPLAN(   $XXX?) { @!BUILDPLAN    }
+    method BUILDALLPLAN($XXX?) { @!BUILDALLPLAN }
+
     # Empty BUILDPLAN shared by all classes with empty BUILDPLANs
     my @EMPTY := nqp::list;
+
+    # Mapping of primspec to HLL type names
+    my @primspec2typename := nqp::list_s(
+      "", "Int", "Num", "Str", "", "", "", "", "", "", "Int"
+    );
+
+    # Cache for HLL type objects we need to check against
+    my $Code        := nqp::null;
+    my $Positional  := nqp::null;
+    my $Associative := nqp::null;
 
     # Creates the plan for building up the object. This works
     # out what we'll need to do up front, so we can just zip
     # through the "todo list" each time we need to make an object.
     # The plan is an array of code objects / arrays. If the element
-    # is a code object, it should be called as a method without any
-    # further parameters.  If it is an array, then the first element
-    # of each array is an "op" # representing the task to perform:
+    # is a code object, it should be called as a method with the named
+    # parameters of the call to .bless.  If it is an array, then the
+    # first element of each array is an "op" # representing the task
+    # to perform:
     #   code = call as method (for BUILD or TWEAK)
+    #
+    # NOTE: Any changes here, should also be reflected in the
+    #       lib/BUILDPLAN.rakumod module, to allow for easier
+    #       core debugging of BUILDPLAN issues.
+    #
     #    0 class name attr_name = set attribute from init hash
     #    1 class name attr_name = set a native int attribute from init hash
     #    2 class name attr_name = set a native num attribute from init hash
     #    3 class name attr_name = set a native str attribute from init hash
-    #    4 class attr_name code = call default value closure if needed
-    #    5 class attr_name code = call default value closure if needed, int attr
-    #    6 class attr_name code = call default value closure if needed, num attr
-    #    7 class attr_name code = call default value closure if needed, str attr
-    #    8 die if a required attribute is not present
-    #    9 class attr_name code = run attribute container initializer
-    #   10 class attr_name = touch/vivify attribute if part of mixin
-    #   11 same as 0, but init to nqp::list if value absent (nqp only)
-    #   12 same as 0, but init to nqp::hash if value absent (nqp only)
-    #   13 same as 0 but *bind* the received value + optional type constraint
-    #   14 same as 4 but *bind* the default value + optional type constraint
-    method create_BUILDPLAN($obj) {
+    #   10 class name attr_name = set a native uint attribute from init hash
+    #  400 class attr_name code = call default closure if needed
+    #  401 class attr_name code = call default closure if needed, int attr
+    #  402 class attr_name code = call default closure if needed, num attr
+    #  403 class attr_name code = call default closure if needed, str attr
+    #  410 class attr_name code = call default closure if needed, uint attr
+    #  800 die if a required attribute is not present
+    #  900 class attr_name code = run attribute container initializer
+    # 1000 class attr_name = touch/vivify attribute if part of mixin
+    # 1100 same as 0, but init to nqp::list if value absent (nqp only)
+    # 1200 same as 0, but init to nqp::hash if value absent (nqp only)
+    # 1300 same as 0 but *bind* the received value + optional type constraint
+    # 1400 same as 400 but *bind* the default value + optional type constraint
+    # 1501 die if a required int attribute is 0
+    # 1502 die if a required num attribute is 0e0
+    # 1503 die if a required str attribute is null_s (will be '' in the future)
+    # 1510 die if a required uint attribute is 0
+
+    method create_BUILDPLAN($target) {
+
         # First, we'll create the build plan for just this class.
         my @plan;
-        my @attrs := $obj.HOW.attributes($obj, :local(1));
-        my $consider-roles := !self.lang-rev-before($obj, 'e') && nqp::can(self, 'roles');
+
+        # Find number of attributes, and Type and primspec of each attribute,
+        # to avoid repeated lookups (set at first iteration)
+        my     @attributes     := self.attributes($target, :local);
+        my int $num_attributes := nqp::elems(@attributes);
+        my @names     := nqp::setelems(nqp::list_s, $num_attributes);
+        my @types     := nqp::setelems(nqp::list,   $num_attributes);
+        my @primspecs := nqp::setelems(nqp::list_i, $num_attributes);
+
+        # When adding role's BUILD/TWEAK into the buildplan for pre-6.e
+        # classes only roles of 6.e+ origin must be considered.
+        my $only_6e_roles := nqp::can(self, 'language_revision')
+          ?? self.language_revision < 3
+          !! nqp::can(self, 'lang-rev-before')
+            # Support legacy approach where implemented
+            ?? self.lang-rev-before($target, 'e')
+            # Assume the HOW being compiled against older Raku language version
+            !! 1;
+
+        # Add system method (BUILD or TWEAK) to the plan, checking in any
+        # roles as well.
+        my @ins_roles := nqp::null;
+        sub add_system_method_to_plan(str $name) {
+            @ins_roles := self.ins_roles($target, :with-submethods-only)
+              if nqp::isnull(@ins_roles);
+            my int $i := nqp::elems(@ins_roles);
+
+            # Only submethods from roles 6.e and higher
+            if $only_6e_roles {
+                while --$i >= 0 {
+                    my $role := nqp::atpos(@ins_roles, $i);
+
+                    # Skip any non-6.e+ role if the target is pre-6.e
+                    unless $role.HOW.language_revision < 3 {
+                        my $submethod :=
+                          nqp::atkey($role.HOW.submethod_table($role), $name);
+                        nqp::push(@plan, $submethod)
+                          unless nqp::isnull($submethod);
+                    }
+                }
+            }
+
+            # Any submethods from all roles
+            else {
+                while --$i >= 0 {
+                    my $role := nqp::atpos(@ins_roles, $i);
+                    my $submethod :=
+                      nqp::atkey($role.HOW.submethod_table($role), $name);
+                    nqp::push(@plan, $submethod)
+                      unless nqp::isnull($submethod);
+                }
+            }
+
+            # Does it have its own system method?
+            my $method := self.find_method($target, $name, :no_fallback);
+            if nqp::isconcrete($method) {
+                nqp::push(@plan, $method);
+                1
+            }
+        }
+
+        # The HLL Mu.  Since we may wind up here at runtime, get Mu by
+        # HLLizing a VMNull instead of looking it up through $*W
+        my $Mu := nqp::hllizefor(nqp::null, 'Raku');
 
         # Emit any container initializers. Also build hash of attrs we
         # do not touch in any of the BUILDPLAN so we can spit out vivify
         # ops at the end.
         my %attrs_untouched;
-        for @attrs {
-            if nqp::can($_, 'container_initializer') {
-                my $ci := $_.container_initializer;
-                if nqp::isconcrete($ci) {
+        my int $i;
+        while $i < $num_attributes {
+            my $attribute := nqp::atpos(@attributes, $i);
+            nqp::bindpos_s(
+              @names, $i, my str $name := $attribute.name
+            );
+            nqp::bindpos(
+              @types, $i, my $type := $attribute.type
+            );
+            nqp::bindpos_i(
+              @primspecs, $i, my int $primspec := nqp::objprimspec($type)
+            );
 
-                    # https://github.com/rakudo/rakudo/issues/1226
-                    if nqp::can($_, 'build') {
-                        my $default := $_.build;
-                        if nqp::isconcrete($default) {
-                            $*W.find_symbol(["X","Comp","NYI"]).new(
-                              feature =>
-                                "Defaults on compound attribute types",
-                              workaround =>
-                                "Create/Adapt TWEAK method in class "
-                                  ~ $obj.HOW.name($obj)
-                                  ~ ", e.g:\n\n    method TWEAK() \{\n        "
-                                  ~ $_.name
-                                  ~ " := (initial values) unless "
-                                  ~ $_.name
-                                  ~ ";\n    }"
-                            ).throw;
-                        }
-                    }
+            # Do we haz a container initializer?
+            if nqp::can($attribute, 'container_initializer')
+              && nqp::isconcrete(my $ci := $attribute.container_initializer) {
 
-                    nqp::push(@plan,[9, $obj, $_.name, $ci]);
-                    next;
-                }
+                # https://github.com/rakudo/rakudo/issues/1226
+                self.throw_compound_attribute_NYI($target, $attribute)
+                  if nqp::can($attribute, 'build')
+                  && nqp::isconcrete($attribute.build);
+
+                nqp::push(@plan, nqp::list(900, $target, $name, $ci));
             }
-            if nqp::objprimspec($_.type) == 0 {
-                %attrs_untouched{$_.name} := NQPMu;
+
+            # Need to check for touchedness if not a native
+            elsif $primspec == nqp::const::BIND_VAL_OBJ {
+                nqp::bindkey(%attrs_untouched, $attribute.name, NQPMu);
             }
+            ++$i;
         }
 
-        sub add_from_roles($name) {
-            my @ins_roles := self.ins_roles($obj, :with-submethods-only) unless +@ins_roles;
-            my $i := +@ins_roles;
-            while --$i >= 0 {
-                my $submeth := nqp::atkey(@ins_roles[$i].HOW.submethod_table(@ins_roles[$i]), $name);
-                if !nqp::isnull($submeth) {
-                    nqp::push(@plan, $submeth);
-                }
-            }
-        }
+        # No custom BUILD. Rather than having an actual BUILD
+        # in Mu, we produce ops here per attribute that may
+        # need initializing.
+        unless add_system_method_to_plan("BUILD") {
+            $i := 0;
+            while $i < $num_attributes {
+                my $attribute := nqp::atpos(  @attributes, $i);
 
-        add_from_roles('BUILD') if $consider-roles;
-
-        # Does it have its own BUILD?
-        my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
-        if !nqp::isnull($build) && $build {
-            # We'll call the custom one.
-            nqp::push(@plan,$build);
-        }
-        else {
-            # No custom BUILD. Rather than having an actual BUILD
-            # in Mu, we produce ops here per attribute that may
-            # need initializing.
-            for @attrs {
-                my int $primspec := nqp::objprimspec($_.type);
+                # Attribute to be set at build time
+                if $attribute.is_built {
+                    my str $name     := nqp::atpos_s(@names, $i);
+                    my int $primspec := nqp::atpos_i(@primspecs,  $i);
 #?if js
-                my int $is_oversized_int := $primspec == 4 || $primspec == 5;
-                $primspec := $is_oversized_int ?? 0 !! $primspec;
+                    $primspec := nqp::const::BIND_VAL_OBJ
+                      if $primspec == 4 || $primspec == 5;
 #?endif
 
-                if $_.is_built {
-                    my $name := $_.name;
-                    my $action := $primspec || !$_.is_bound
-                      ?? 0 + $primspec
-                      !! 13;
-
-                    my $info := [$action,$obj,$name,nqp::substr($name,2)];
-
-                    # binding may need type info for runtime checks
-                    if $action == 13 {
-                        my $type := $_.type;
-                        # since we may wind up here at runtime, get Mu by
-                        # HLLizing a VMNull instead of looking it up through
-                        # $*W
-                        unless $type =:= nqp::hllizefor(nqp::null(), 'Raku') {
-                            nqp::push($info,$type);
-                        }
+                    # Set attribute from init hash
+                    if $primspec || !$attribute.is_bound {
+                        nqp::push(@plan, nqp::list(
+                          $primspec, $target, $name, nqp::substr($name,2)
+                        ));
                     }
 
-                    nqp::push(@plan,$info);
+                    # Needs binding
+                    else {
+                        my $entry := nqp::list(
+                          1300, $target, $name, nqp::substr($name,2)
+                        );
+                        my $type := nqp::atpos(@types, $i);
+                        nqp::push($entry, $type)
+                          unless nqp::eqaddr($type, $Mu);
+                        nqp::push(@plan, $entry);
+                    }
+
                 }
+                ++$i;
             }
         }
 
         # Ensure that any required attributes are set
-        for @attrs {
-            if nqp::can($_, 'required') && $_.required {
-                nqp::push(@plan,[8, $obj, $_.name, $_.required]);
-                nqp::deletekey(%attrs_untouched, $_.name);
+        $i := 0;
+        while $i < $num_attributes {
+            my $attribute := nqp::atpos(@attributes, $i);
+            if nqp::can($attribute, 'required')
+              && (my $required := $attribute.required) {
+                my str $name     := nqp::atpos_s(@names,     $i);
+                my int $primspec := nqp::atpos_i(@primspecs, $i);
+                nqp::push(
+                  @plan,
+                  nqp::list(
+                    ($primspec ?? 1500 + $primspec !! 800),
+                    $target,
+                    $name,
+                    $required
+                  )
+                );
+                nqp::deletekey(%attrs_untouched, $name);
             }
+            ++$i;
         }
 
-        # Check if there's any default values to put in place.
-        for @attrs {
-            next unless nqp::can($_, 'build');
+        # XXX Needs fix for RakuAST
+        my $world := nqp::getlexdyn('$*W');
 
-            my $default := nqp::decont($_.build);
-            my $type    := $_.type;
-            my int $primspec := nqp::objprimspec($type);
-#?if js
-            my int $is_oversized_int := $primspec == 4 || $primspec == 5;
-            $primspec := $is_oversized_int ?? 0 !! $primspec;
-#?endif
+        # Check if there's any default values to put in place.
+        $i := 0;
+        while $i < $num_attributes {
+            my $attribute := nqp::atpos(@attributes, $i);
 
             # compile check constants for correct type
-            if nqp::isconcrete($default) {
-                my $name   := $_.name;
-                my $opcode := $primspec || !$_.is_bound ?? 4 + $primspec !! 14;
-                my @action := [$opcode, $obj, $name, $default];
+            if nqp::can($attribute, 'build')
+              && nqp::isconcrete(my $default := nqp::decont($attribute.build)) {
+                my str $name     := nqp::atpos_s(@names,     $i);
+                my     $type     := nqp::atpos(  @types,     $i);
+                my int $primspec := nqp::atpos_i(@primspecs, $i);
+#?if js
+                $primspec := nqp::const::BIND_VAL_OBJ
+                  if $primspec == 4 || $primspec == 5;
+#?endif
 
-                # binding defaults to additional check at runtime
-                my $check-at-runtime := $opcode == 14;
+                # Binding defaults to additional check at runtime
+                my int $check-at-runtime :=
+                  nqp::not_i($primspec) && $attribute.is_bound;
+                my $entry := nqp::list(
+                  ($check-at-runtime ?? 1400 !! 400 + $primspec),
+                  $target,
+                  $name,
+                  $default
+                );
 
-                # currently compiling, so we can do typechecking now.
-                if !nqp::isnull(nqp::getlexdyn('$*W')) && $*W.in_unit_parse {
-                    if nqp::istype(nqp::decont($default), $*W.find_single_symbol('Code')) {
-                        # cannot typecheck code to be run later
+                # Not compiling, no typechecks possible
+                if nqp::isnull($world) {
+                }
+
+                # Currently compiling, so we can do typechecking now.
+                elsif $world.in_unit_parse {
+
+                    # Cannot typecheck code to be run later
+                    if nqp::istype(
+                      $default,
+                      nqp::ifnull(
+                        $Code,
+                        $Code := $world.find_single_symbol('Code')
+                      )
+                    ) {
                     }
 
-                    # check native attribute
+                    # Check native attribute
                     elsif $primspec {
-                        my $destination := $*W.find_single_symbol(
-                          $primspec == 2
-                            ?? "Num"
-                            !! $primspec == 3
-                              ?? "Str"
-                              !! "Int"  # 1,4,5
+                        my $destination := $world.find_single_symbol(
+                          nqp::atpos_s(@primspec2typename, $primspec)
                         );
-                        nqp::istype($default,$destination)
+                        nqp::istype($default, $destination)
                           ?? ($check-at-runtime := 0)
-                          !! self.throw_typecheck($_, $default, $destination)
+                          !! self.throw_typecheck(
+                               $attribute, $default, $destination
+                             )
                     }
 
-                    # check opaque attribute
-                    elsif nqp::istype($default,$type) {
+                    # Check opaque attribute
+                    elsif nqp::istype($default, $type) {
                         $check-at-runtime := 0;
                     }
 
-                    # associatives need to be checked at runtime
-                    elsif nqp::istype($type,$*W.find_single_symbol('Associative')) {
-                        # cannot do type checks on associatives
-                    }
-
-                    # positionals could be checked now
+                    # Positionals could be checked now
                     elsif nqp::istype(
                       $type,
-                      my $Positional := $*W.find_single_symbol('Positional')
-                    ) && nqp::istype($default,$Positional.of) {
+                      nqp::ifnull(
+                        $Positional,
+                        $Positional := $world.find_single_symbol('Positional')
+                      )
+                    ) && nqp::istype($default, $Positional.of) {
                         $check-at-runtime := 0;
                     }
 
-                    # alas, something is wrong
+                    # Associatives need to be checked at runtime
+                    elsif nqp::istype(
+                      $type,
+                      nqp::ifnull(
+                        $Associative,
+                        $Associative := $world.find_single_symbol('Associative')
+                      )
+                    ) {
+                    }
+
+                    # Alas, something is wrong
                     else {
-                        self.throw_typecheck($_, $default, $type);
+                        self.throw_typecheck($attribute, $default, $type);
                     }
                 }
 
-                # add type if we need to check at runtime
-                # since we may wind up here at runtime, get Mu by HLLizing
-                # a VMNull instead of looking it up through $*W
-                nqp::push(@action,$type)
+                nqp::push($entry, $type)
                   if $check-at-runtime
-                  && !nqp::eqaddr($type,nqp::hllizefor(nqp::null(), 'Raku'));
+                  && nqp::not_i(nqp::eqaddr($type, $Mu));
 
                 # store the action, mark as seen
-                nqp::push(@plan,@action);
+                nqp::push(@plan, $entry);
                 nqp::deletekey(%attrs_untouched, $name);
             }
+            ++$i;
         }
 
-        # Add vivify instructions.
-        for @attrs { # iterate over the array to get a consistent order
-            if nqp::existskey(%attrs_untouched, $_.name) {
-                nqp::push(@plan,[10, $obj, $_.name]);
+        # Add vivify instructions for attributes not handled yet
+        if nqp::elems(%attrs_untouched) {
+
+            # Iterate over the array to get a consistent order
+            $i := 0;
+            while $i < $num_attributes {
+                my str $name := nqp::atpos_s(@names, $i);
+                nqp::push(@plan, nqp::list(1000, $target, $name))
+                  if nqp::existskey(%attrs_untouched, $name);
+                ++$i;
             }
         }
 
-        add_from_roles('TWEAK') if $consider-roles;
-
-        # Does it have a TWEAK?
-        my $TWEAK := $obj.HOW.find_method($obj, 'TWEAK', :no_fallback(1));
-        if !nqp::isnull($TWEAK) && $TWEAK {
-            nqp::push(@plan,$TWEAK);
-        }
+        # Handle any TWEAKs
+        add_system_method_to_plan('TWEAK');
 
         # Something in the buildplan of this class
-        if @plan || nqp::elems(self.parents($obj)) > 1 {
+        if @plan || nqp::elems(self.parents($target)) > 1 {
 
             # Install plan for this class.
             @!BUILDPLAN := @plan;
@@ -235,26 +347,31 @@ role Perl6::Metamodel::BUILDPLAN {
             # Now create the full plan by getting the MRO, and working from
             # least derived to most derived, copying the plans.
             my @all_plan;
-            my @mro := self.mro($obj);
-            my $i := +@mro;
-            my $noops := 0;
-            while $i > 0 {
-                $i := $i - 1;
-                my $class := @mro[$i];
-                for $class.HOW.BUILDPLAN($class) {
-                    if nqp::islist($_) && $_[0] == 10 {   # noop in BUILDALLPLAN
-                        $noops := 1;
-                    }
-                    else {
-                        nqp::push(@all_plan, $_);
-                    }
+            my @mro := self.mro($target);
+            my int $noops;
+
+            my int $i := nqp::elems(@mro);
+            while --$i >= 0 {
+                my $class     := nqp::atpos(@mro, $i);
+                my @buildplan := $class.HOW.BUILDPLAN($class);
+
+                my int $n := nqp::elems(@buildplan);
+                my int $j;
+                while $j < $n {
+                    my $entry := nqp::atpos(@buildplan, $j);
+                    nqp::islist($entry) && nqp::atpos($entry, 0) == 1000
+                      # noop in BUILDALLPLAN
+                      ?? ($noops := 1)
+                      !! nqp::push(@all_plan, $entry);
+                    ++$j;
                 }
             }
 
             # Same number of elems and no noops, identical, so just keep 1 copy
-            @!BUILDALLPLAN := $noops || +@all_plan != +@plan
+            @!BUILDALLPLAN := $noops
+              || nqp::elems(@all_plan) != nqp::elems(@plan)
               ?? @all_plan
-              !! @plan
+              !! @plan;
         }
 
         # BUILDPLAN of class itself is empty
@@ -264,48 +381,62 @@ role Perl6::Metamodel::BUILDPLAN {
             @!BUILDPLAN := @EMPTY;
 
             # Take the first "super"class's BUILDALLPLAN if possible
-            my @mro := self.mro($obj);
-            @!BUILDALLPLAN := +@mro > 1
-              ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
+            my @mro := self.mro($target);
+            @!BUILDALLPLAN := nqp::elems(@mro) > 1
+              ?? nqp::atpos(@mro, 1).HOW.BUILDALLPLAN(nqp::atpos(@mro, 1))
               !! @EMPTY
         }
     }
 
     # constant value did not typecheck ok
-    method throw_typecheck($attr, $default, $type) {
-        my $typecheck := $*W.find_symbol(["X","TypeCheck","Attribute","Default"]);
+    method throw_typecheck($attribute, $got, $expected) {
+        my str $name  := $attribute.name;
+        my $typecheck :=  # XXX needs fix for RakuAST
+          $*W.find_symbol(["X","TypeCheck","Attribute","Default"]);
+
         if nqp::can($typecheck,'new') {
             $typecheck.new(
-              operation => $attr.is_bound ?? 'bind' !! 'assign',
-              name      => $attr.name,
-              got       => $default,
-              expected  => $type,
+              :operation($attribute.is_bound ?? 'bind' !! 'assign'),
+              :$name, :$got, :$expected
             ).throw;
         }
 
         # should only be in the setting
         else {
-            nqp::die("Attribute '" ~ $attr.name ~ "'s default does not match type");
+            nqp::die("Attribute '" ~ $name ~ "'s default does not match type");
         }
     }
 
-    method ins_roles($obj, :$with-submethods-only = 0) {
+    method ins_roles($target, :$with-submethods-only) {
         my @ins_roles;
-        if nqp::can(self, 'concretizations') {
-            for self.concretizations($obj, :local) {
-                next if $with-submethods-only && !nqp::can($_.HOW, 'submethod_table');
-                @ins_roles.push($_);
+        if $with-submethods-only && nqp::can(self, 'concretizations') {
+            my @concretizations := self.concretizations($target, :local);
+            my int $m := nqp::elems(@concretizations);
+            my int $i;
+            while $i < $m {
+                my $concretization := nqp::atpos(@concretizations, $i);
+                nqp::push(@ins_roles, $concretization)
+                 if nqp::can($concretization.HOW, 'submethod_table');
+                ++$i;
             }
         }
         @ins_roles
     }
 
-    method BUILDPLAN($obj) {
-        @!BUILDPLAN
-    }
-
-    method BUILDALLPLAN($obj) {
-        @!BUILDALLPLAN
+    method throw_compound_attribute_NYI($target, $attribute) {
+        my $NYI := $*R
+            ?? $*R.setting-constant('X', 'Comp', 'NYI')
+            !! $*W.find_symbol(["X","Comp","NYI"]);
+        $NYI.new(
+          feature    => "Defaults on compound attribute types",
+          workaround => "Create/Adapt TWEAK method in class "
+            ~ self.name($target)
+            ~ ", e.g:\n\n    method TWEAK() \{\n        "
+            ~ $attribute.name
+            ~ " := (initial values) unless "
+            ~ $attribute.name
+            ~ ";\n    }"
+        ).throw;
     }
 }
 

@@ -1,0 +1,60 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 4;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(:expression($node))
+    );
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; use nqp; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'Check number of chars' => {
+    my $x = "foo";
+
+    # nqp::chars($x)
+    ast RakuAST::Nqp.new(
+      "chars",
+      RakuAST::Var::Lexical.new('$x')
+    );
+    is-deeply $deparsed, 'nqp::chars($x)', 'deparse';
+
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL("use nqp; $deparsed"), EVAL(EVAL $raku);
+}
+
+subtest 'Check constant' => {
+    # nqp::const::STAT_FILESIZE
+    ast RakuAST::Nqp::Const.new("STAT_FILESIZE");
+    is-deeply $deparsed, 'nqp::const::STAT_FILESIZE', 'deparse';
+
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL("use nqp; $deparsed"), EVAL(EVAL $raku);
+}
+
+subtest 'Set up a lookup hash' => {
+    # nqp::hash("a",42,"b",666);
+    ast RakuAST::Nqp.new("hash", "a", 42, "b", 666);
+    is-deeply $deparsed, 'nqp::hash("a", 42, "b", 666)', 'deparse';
+
+    is-deeply $_, { :42a, :666b }, @type[$++]
+      for EVAL($ast), EVAL("use nqp; $deparsed"), EVAL(EVAL $raku);
+}
+
+subtest 'Set up a list' => {
+    # nqp::list("a","b","c");
+    ast RakuAST::Nqp.new("list", <a b c>);
+    is-deeply $deparsed, 'nqp::list("a", "b", "c")', 'deparse';
+
+    is-deeply $_, <a b c>, @type[$++]
+      for EVAL($ast), EVAL("use nqp; $deparsed"), EVAL(EVAL $raku);
+}
+
+# vim: expandtab shiftwidth=4

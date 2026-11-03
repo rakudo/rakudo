@@ -1,6 +1,6 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
-# This script should be allowed to run sudo in a CentOS 6 installation (a
+# This script should be allowed to run sudo in a debian based distro (a
 # container will do just fine).
 # For some strange reason the environment variables are lost when running this
 # script with `sudo` in azure pipelines. So we just do sudo ourselves for the
@@ -11,12 +11,11 @@ set -o pipefail
 
 echo "========= Starting build"
 
-echo "========= Updating CentOS 7"
-sudo yum -y update
-sudo yum clean all
+echo "========= Updating distro"
+sudo apt update
 
 echo "========= Downloading dependencies"
-sudo yum -y install curl git perl perl-core gcc make
+sudo apt -y install build-essential curl git perl
 
 echo "========= Downloading release"
 curl -o rakudo.tgz $RELEASE_URL
@@ -35,7 +34,7 @@ echo "========= Installing Rakudo"
 make install
 
 echo "========= Testing Rakudo"
-rm -r t/spec
+rm -fr t/spec
 prove -e install/bin/raku -vlr t
 
 echo "========= Cloning Zef"

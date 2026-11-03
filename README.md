@@ -2,7 +2,7 @@
 
 This is Rakudo, a Raku Programming Language compiler for the MoarVM, JVM and Javascript virtual machines.
 
-Rakudo is Copyright © 2008-2021, Yet Another Society. Rakudo
+Rakudo is Copyright © 2008-2026, The Raku Foundation. Rakudo
 is distributed under the terms of the Artistic License 2.0. For more
 details, see the full text of the license in the file LICENSE.
 
@@ -12,18 +12,21 @@ that would normally come with a full Raku distribution.  If you're
 after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
-Rakudo is currently the most developed implementation of the Raku
-language; though there have been other partial implementations in the
-past. The `Rakudo` compiler has `moar`, `jvm` and `js` backends. Note
-that each backend has a slightly different set of features. For
-historical compilers see https://www.raku.org/compilers/.
+Rakudo is currently the primary implementation of the Raku
+language. The `Rakudo` compiler has `moar`, `jvm` and `js` backends. Note
+that each backend has a different set of features.
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
 
+## Support the Foundation
+
+If you find Rakudo useful, please consider [donating to the
+Raku Foundation](https://raku.foundation/Donations).
+
 ## Building and Installing Rakudo
 
-[![Build Status](https://dev.azure.com/Rakudo/rakudo/_apis/build/status/rakudo.rakudo?branchName=master)](https://dev.azure.com/Rakudo/rakudo/_build/latest?definitionId=1&branchName=master)
+[![Build Status](https://dev.azure.com/Rakudo/rakudo/_apis/build/status/rakudo.rakudo?branchName=main)](https://dev.azure.com/Rakudo/rakudo/_build/latest?definitionId=1&branchName=main)
 
 See the `INSTALL.md` file for detailed prerequisites and build and
 installation instructions. Check `CAVEATS.md` for platform specific notes.
@@ -187,7 +190,7 @@ For questions about MoarVM, you can join #moarvm on Libera.
 
 ## Code of Conduct
 
-The Raku community is committed to providing a welcoming, inclusive, safe, and enjoyable environment for everyone.  Programming should be `-Ofun`.  The Raku Community therefore has adopted a [Code of Conduct](https://github.com/Raku/problem-solving/blob/master/solutions/meta/code_of_conduct.md).  Please see the [CoC Incident Report Guide](https://github.com/Raku/problem-solving/blob/master/solutions/meta/coc_incident_response_guide.md) should you feel the need to report any violations of the Code of Conduct.
+The Raku community is committed to providing a welcoming, inclusive, safe, and enjoyable environment for everyone.  Programming should be `-Ofun`.  The Raku Community therefore has adopted a [Code of Conduct](https://github.com/Raku/problem-solving/blob/master/solutions/meta/code_of_conduct.md).  Please report any violations of the Code of Conduct by emailing the Raku community affairs team at CAT@raku.org.
 
 ## Reporting bugs
 

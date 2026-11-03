@@ -473,7 +473,6 @@ sub MAIN(*@ARGS) {
     @clo.push('c');
     @clo.push('I=s');
     @clo.push('M=s');
-    @clo.push('nqp-lib=s');
 
     # Set up module loading trace
     my @*MODULES := [];
@@ -506,7 +505,7 @@ sub MAIN(*@ARGS) {
     my $*DEBUG_HOOKS := Perl6::DebugHooks.new();
 
     # Enter the compiler.
-    $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
+    $comp.command_line(@ARGS, :encoding('utf8'));
 
     # Run any END blocks before exiting.
     for nqp::gethllsym('Raku', '@END_PHASERS') {

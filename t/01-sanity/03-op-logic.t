@@ -1,5 +1,3 @@
-use v6;
-
 # check logical ops
 say '1..16';
 

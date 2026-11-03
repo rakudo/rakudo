@@ -47,7 +47,7 @@ our sub mangle_cpp_symbol(Routine $r, $symbol) {
     $mangled
 }
 
-sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
+our sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
     given $type {
         when NativeCall::Types::void {
             $R ~ $K ~ 'X'

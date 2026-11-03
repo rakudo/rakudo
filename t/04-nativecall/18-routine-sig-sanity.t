@@ -1,9 +1,8 @@
-use v6;
-
 use lib <lib>;
 use NativeCall :ALL;
 use Test;
 
+plan 36;
 
 class A is repr('CStruct') {
     has int32 $a;
@@ -88,7 +87,7 @@ lives-ok {testr(&goodCStruct)}, "Taking a CStruct is fine";
 lives-ok {testr(&goodCArray)}, "Taking a CArray is fine";
 lives-ok {testr(&goodBuf)}, "Taking a Buf is fine";
 throws-like {testr(&badCArray)}, X::FailOnWarn, "Taking a CArray[int] is not fine";
-throws-like {testr(&badclass)}, X::FailOnWarn, "Taking a Perl6 class is NOT fine";
+throws-like {testr(&badclass)}, X::FailOnWarn, "Taking a Raku class is NOT fine";
 lives-ok {testr(&goodint)}, "Taking a int32 is fine";
 throws-like {testr(&badint)}, X::FailOnWarn, "Taking a Int is NOT fine";
 throws-like {testr(&badint2)}, X::FailOnWarn, "Taking a int is NOT fine";
@@ -124,7 +123,12 @@ eval-lives-ok 'use NativeCall; class Piko { method All_The_Things(int8, int16, i
 eval-lives-ok 'use NativeCall; sub p5_str_to_sv(int32, long, Blob) is native("foo") { * };', "Blob should work";
 eval-lives-ok 'use NativeCall; class Foo is repr("CPointer") {sub foo() returns Foo is native("foo") { * } }', "Return a type in its definition";
 
-done-testing
-
+# https://github.com/rakudo/rakudo/issues/1993
+{
+    my class B is repr("CStruct") {
+        has uint32 $.b is required
+    };
+    isa-ok B.new(:1b), B;
+}
 
 # vim: expandtab shiftwidth=4

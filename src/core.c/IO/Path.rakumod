@@ -1,0 +1,1217 @@
+my class IO::Path is Cool does IO {
+    has IO::Spec $.SPEC;  # the associated IO::Spec
+    has Str      $.CWD;   # the associated CWD
+    has Str      $.path;  # the path as specified
+    has $!is-absolute;    # Bool:D if we know $!path is an absolute path
+    has $!os-path;        # the absolute path associated with path/SPEC/CWD
+    has $!parts;          # IO::Path::Parts object, if any
+
+    sub empty-path-message() is hidden-from-backtrace {
+        die "Must specify a non-empty string as a path"
+    }
+    sub null-in-path() is hidden-from-backtrace {
+        X::IO::Null.new.throw
+    }
+
+    multi method ACCEPTS(IO::Path:D: Cool:D \other) {
+        nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
+    }
+
+    method !SET-SELF(str $path, IO::Spec $SPEC, $CWD) {
+        empty-path-message
+          unless nqp::chars($path);
+
+        null-in-path
+          if nqp::isne_i(nqp::index($path,"\0"),-1)
+          || nqp::isne_i(nqp::index($CWD, "\0"),-1);
+
+        $!path := $path;
+        $!SPEC := $SPEC;
+        $!CWD  := $CWD;
+        $!is-absolute := $!os-path := $!parts := nqp::null;
+
+        self
+    }
+
+    method from-dash(
+      str $what, %nameds?
+    ) is implementation-detail is hidden-from-backtrace {
+
+        .deprecate-IO-dash($what)
+          with Rakudo::Internals.client-callframe;
+
+        nqp::create(self)!SET-SELF(
+          "-", %nameds<SPEC> // $*SPEC, (%nameds<CWD> // $*CWD).Str
+        )
+    }
+
+    proto method new(|) {*}
+    multi method new(IO::Path: "-" --> IO::Path:D) {
+        self.from-dash('IO::Path.new("-")', %_)
+    }
+    multi method new(IO::Path:
+      Str:D $path, :$CWD!, IO::Spec :$SPEC = $*SPEC
+    --> IO::Path:D) {
+        nqp::create(self)!SET-SELF($path, $SPEC, $CWD.Str)
+    }
+    multi method new(IO::Path: Str:D $path, IO::Spec :$SPEC! --> IO::Path:D) {
+        nqp::create(self)!SET-SELF($path, $SPEC, $*CWD.Str)
+    }
+    multi method new(IO::Path: Str:D $path --> IO::Path:D) {
+        nqp::create(self)!SET-SELF($path, $*SPEC, $*CWD.Str)
+    }
+    multi method new(IO::Path:
+      Cool:D $path, IO::Spec :$SPEC = $*SPEC, :$CWD = $*CWD
+    --> IO::Path:D) {
+        nqp::create(self)!SET-SELF($path.Str, $SPEC, $CWD.Str)
+    }
+    multi method new(IO::Path:
+      :$basename!,
+      :$dirname  = '',
+      :$volume   = '',
+      :$SPEC     = $*SPEC,
+      :$CWD      = $*CWD,
+    ) {
+        nqp::create(self)!SET-SELF(
+          $SPEC.join($volume,$dirname,$basename), $SPEC, $CWD.Str)
+    }
+    multi method new(IO::Path:) { empty-path-message }
+
+    method is-absolute(--> Bool:D) {
+        nqp::ifnull(
+          $!is-absolute,
+          $!is-absolute := nqp::hllbool($!SPEC.is-absolute: $!path)
+        )
+    }
+    method is-relative(--> Bool:D) {
+        self.is-absolute ?? False !! True
+    }
+
+    method parts {
+        nqp::ifnull(
+          $!parts,
+          $!parts := $!SPEC.split($!path)
+        )
+    }
+    method volume(IO::Path:D:)   { self.parts.volume   }
+    method dirname(IO::Path:D:)  { self.parts.dirname  }
+    method basename(IO::Path:D:) { self.parts.basename }
+
+    my sub EXTENSION-MK-EXTENSION (
+        str $name, $no-ext, int $part-min, int $part-max = $part-min
+    ) is pure {
+      my int $offset = nqp::chars($name);
+      my int $next-offset;
+      my int $parts;
+      nqp::while(
+        nqp::if(
+          nqp::isne_i( -1,
+            ($next-offset = nqp::rindex($name, '.', nqp::sub_i($offset, 1)))),
+          nqp::if($offset, nqp::islt_i($parts, $part-max))
+        ),
+        nqp::stmts(
+          ($offset = $next-offset),
+          ++$parts
+        ),
+      );
+      nqp::if(
+        nqp::if(nqp::isle_i($part-min, $parts), nqp::isle_i($parts, $part-max)),
+        nqp::substr($name, nqp::add_i($offset, 1)),
+        $no-ext,
+      )
+    }
+    my sub EXTENSION-SUBST ($ext, $base, $subst, $joiner) is pure {
+      nqp::if(
+        nqp::defined($ext),
+        nqp::unless(
+          nqp::concat(
+            nqp::if(
+              nqp::unless( # if extension is empty, check $base to find out if...
+                nqp::chars($ext), #... it's a missing ext. or empty string ext.
+                nqp::eqat($base, '.', nqp::sub_i(nqp::chars($base), 1))
+              ),
+              nqp::substr($base, 0,
+                nqp::sub_i(nqp::chars($base), nqp::add_i(nqp::chars($ext), 1))
+              ),
+              $base,
+            ),
+            nqp::concat($joiner, $subst)
+          ), '.' # use `.` as basename if we ended up with it being empty
+        ),
+        $base,
+      )
+    }
+    proto method extension(|) {*}
+    multi method extension(IO::Path:D:) {
+      nqp::if(
+        nqp::iseq_i(-1, (my int $offset = nqp::rindex(
+          (my str $basename = nqp::unbox_s(self.basename)),'.'))),
+        '', nqp::substr($basename, nqp::add_i($offset, 1))
+      )
+    }
+    multi method extension(IO::Path:D: Int :$parts!) {
+      EXTENSION-MK-EXTENSION self.basename, '',
+        nqp::if(
+          nqp::islt_I(nqp::decont($parts), -2**63), -2**63,
+          nqp::if( nqp::isgt_I(nqp::decont($parts),  2**63-1), 2**63-1,
+            nqp::unbox_i($parts),
+          ),
+        )
+    }
+    multi method extension(IO::Path:D: Range :$parts!) {
+      my ($min, $max) := Rakudo::Internals.RANGE-AS-ints:
+        $parts, "Can only use numeric, non-NaN Ranges as :parts";
+      EXTENSION-MK-EXTENSION self.basename, '', $min, $max
+    }
+    multi method extension(IO::Path:D:
+      Str $subst,
+      Int :$parts = ?self.extension,
+      Str :$joiner = nqp::chars($subst) ?? '.' !! ''
+    ) {
+      self.new: :dirname(self.dirname), :volume(self.volume),
+       :$!SPEC, :$!CWD, basename => EXTENSION-SUBST
+            EXTENSION-MK-EXTENSION(
+              (my str $base = nqp::unbox_s(self.basename)),
+              Any, nqp::if(
+                nqp::islt_I(nqp::decont($parts), -2**63), -2**63,
+                nqp::if( nqp::isgt_I(nqp::decont($parts),  2**63-1), 2**63-1,
+                  nqp::unbox_i($parts),
+                ),
+              )
+            ), $base, $subst, $joiner;
+    }
+    multi method extension(
+      Str $subst,
+      Range :$parts,
+      Str :$joiner = nqp::chars($subst) ?? '.' !! ''
+    ) {
+      my ($min, $max) := Rakudo::Internals.RANGE-AS-ints:
+        $parts, "Can only use numeric, non-NaN Ranges as :parts";
+      self.new: :dirname(self.dirname), :volume(self.volume),
+       :$!SPEC, :$!CWD, basename => EXTENSION-SUBST
+        EXTENSION-MK-EXTENSION(
+            (my str $base = nqp::unbox_s(self.basename)), Any, $min, $max
+        ), $base, $subst, $joiner
+    }
+
+    method Numeric(IO::Path:D:) { self.basename.Numeric }
+
+    multi method Str (IO::Path:D:) { $!path }
+    multi method gist(IO::Path:D:) {
+        $!is-absolute
+          ?? qq|"$.absolute".IO|
+          !! qq|"$.path".IO|
+    }
+    multi method raku(IO::Path:D:) {
+        self.^name ~ ".new({$.path.raku}, {:$!SPEC.raku}, {:$!CWD.raku})"
+    }
+
+    method sibling(IO::Path:D: Str() \sibling) {
+        $_ := self.parts;
+        nqp::clone(self).cloned-with-path:
+          $!SPEC.join(.<volume>, .<dirname>, sibling)
+    }
+
+    method succ(IO::Path:D:) {
+        my int $i = nqp::index($!path,".");
+        $i = nqp::iseq_i($i,-1) ?? nqp::chars($!path) !! $i;
+        nqp::clone(self).cloned-with-path(Rakudo::Internals.SUCC($!path,$i - 1))
+    }
+    method pred(IO::Path:D:) {
+        my int $i = nqp::index($!path,".");
+        $i = nqp::iseq_i($i,-1) ?? nqp::chars($!path) !! $i;
+        nqp::clone(self).cloned-with-path(Rakudo::Internals.PRED($!path,$i - 1))
+    }
+
+    multi method IO() { self }
+
+    method open(IO::Path:D: |c) {
+        IO::Handle.new(:path(self), :no-dash-check).open(|c)
+    }
+
+#?if moar
+    method watch(IO::Path:D:) {
+        IO::Notification.watch-path($.absolute);
+    }
+#?endif
+
+    proto method absolute(|) {*}
+    multi method absolute (IO::Path:D: --> Str:D) {
+        nqp::ifnull(
+          $!os-path,
+          $!os-path := $!SPEC.rel2abs($!path,$!CWD)
+        )
+    }
+    multi method absolute (IO::Path:D: $CWD --> Str:D) {
+        $!is-absolute
+          ?? $!os-path
+          !! $!SPEC.rel2abs($!path, $CWD)  # do *not* set because different CWD
+    }
+
+    method relative (IO::Path:D: $CWD = $*CWD --> Str:D) {
+        $!SPEC.abs2rel($.absolute, $CWD);
+    }
+
+    method cleanup (IO::Path:D:) {
+        nqp::clone(self).cloned-with-path($!SPEC.canonpath($!path))
+    }
+
+    my int $max-depth  = 256;
+    my int $ord-slash  = "/".ord;
+    my int $ord-bslash = "\\".ord;
+    my str $curdir = ".";
+    my str $updir  = "..";
+
+    method resolve (IO::Path:D: :$completely) {
+        my str $volume;
+        my str $sep = $!SPEC.dir-sep;
+
+        # In this bit, we work with bytes, converting $sep (and assuming it's
+        # 1-char long) in the path to nul bytes and then splitting the path
+        # on nul bytes. This way, even if we get some weird paths like
+        # "/\x[308]", we still split on the /, leaving the lone combiner as
+        # part of the path part.  If the result has a drive letter, store
+        # that in $volume.
+        my sub safe-split(str $path) {
+#?if jvm
+            my $parts := nqp::split($sep, nqp::unbox_s($path));
+#?endif
+#?if !jvm
+            my $ords := nqp::encode($path,'utf8-c8',nqp::create(buf8.^pun));
+            my int $n = nqp::elems($ords);
+            my int $i = -1;
+            nqp::if(
+              nqp::istype($!SPEC,IO::Spec::Win32),
+              nqp::while(                        # two types of separators ok
+                nqp::islt_i(++$i,$n),
+                nqp::if(
+                  nqp::iseq_i((my int $ord = nqp::atpos_u($ords,$i)),$ord-bslash)
+                    || nqp::iseq_i($ord,$ord-slash),
+                  nqp::bindpos_i($ords,$i,0)
+                )
+              ),
+              nqp::while(                        # just one separator
+                nqp::islt_i(++$i,$n),
+                nqp::if(
+                  nqp::iseq_i(nqp::atpos_u($ords,$i),$ord-slash),
+                  nqp::bindpos_i($ords,$i,0)
+                )
+              )
+            );
+            my $parts := nqp::split("\0", nqp::decode($ords,'utf8-c8'));
+#?endif
+
+            # Take care of any drive letter indication, make that the
+            # volume.
+            nqp::if(
+              (my $first := nqp::atpos($parts,0)),
+              nqp::if(                              # possibly relative
+                $first.contains(/^ <[A..Z]> ":" /),
+                nqp::stmts(                         # drive letter
+                  ($volume = $first.substr(0,2)),
+                  nqp::if(
+                    nqp::bindpos($parts,0,$first.substr(2)),
+                    nqp::unshift($parts,"")         # relative, make absolute
+                  )
+                )
+              ),
+              ($volume = "")                        # already absolute
+            );
+
+            $parts
+        }
+
+        # Prefix CWD if not absolute
+        my $parts := safe-split($!path);
+        my str @resolved = nqp::if(
+          nqp::atpos($parts,0),
+          safe-split($!CWD),      # relative, so prefix with cwd
+          nqp::stmts(
+            nqp::shift($parts),   # absolute, no check on 1st
+            $volume               # set volume indication
+          )
+        );
+
+        # Process all parts
+        nqp::while(
+          nqp::elems($parts),
+          nqp::if(                                   # something to check
+            nqp::isge_i(
+              nqp::add_i(nqp::elems($parts),nqp::elems(@resolved)),
+              $max-depth
+            ),
+            fail("Resolved path too deep!"),         # too deep
+            nqp::unless(                             # not too deep
+              nqp::iseq_s((my str $part = nqp::shift($parts)),"")
+                || nqp::iseq_s($part,$curdir),
+              nqp::if(                               # not ignorable
+                nqp::iseq_s($part,$updir),
+                nqp::if(                             # going up
+                  nqp::elems(@resolved),
+                  nqp::pop_s(@resolved)              # can pop
+                ),
+                nqp::stmts(                          # need to check
+                  nqp::push_s(@resolved,$part),
+                  nqp::if(
+                    nqp::stat(
+                      (my str $next = nqp::join($sep,@resolved)),
+                      nqp::const::STAT_EXISTS
+                    ),
+                    nqp::if(                         # exists
+                      nqp::fileislink($next),
+                      nqp::stmts(                    # is a link
+                        (my $link := safe-split(nqp::readlink($next))),
+                        nqp::if(
+                          nqp::atpos($link,0),
+                          nqp::stmts(                # relative link
+                            nqp::pop_s(@resolved),
+                            nqp::splice($parts,$link,0,0)
+                          ),
+                          nqp::stmts(                # absolute link
+                            (@resolved = $link),
+                            nqp::bindpos_s(@resolved,0,$volume)
+                          )
+                        )
+                      )
+                    ),
+                    nqp::stmts(                      # does not exist
+                      nqp::if(
+                        $completely && nqp::elems($parts),
+                        X::IO::Resolve.new(:path(self)).fail # must quit
+                      ),
+                      nqp::while(                    # rest without check
+                        nqp::elems($parts),
+                        nqp::unless(                 # still something to check
+                          nqp::iseq_s(($part = nqp::shift($parts)),"")
+                            || nqp::iseq_s($part,$curdir),
+                          nqp::push_s(@resolved,$part)
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        nqp::p6bindattrinvres(
+          nqp::create(self)!SET-SELF(
+            nqp::join($sep,@resolved), $!SPEC, nqp::concat($volume,$sep)
+          ),
+          IO::Path,'$!is-absolute',True
+        )
+    }
+
+    # Return the resolved path of the invocant if it is inside the
+    # the resolved path of the given IO::Path object (which needs to
+    # be an existing directory), or Nil if it is not inside
+    method resolve-inside(IO::Path:D: IO::Path:D $io --> IO::Path:D) {
+        if $io.d {
+            with $io.resolve(:completely) -> $root {
+                with self.resolve(:completely) -> $target {
+                    my $sep     := $!SPEC.dir-sep;
+                    my $outside := $root.absolute;
+                    my $inside  := $target.absolute;
+
+                    return $target
+                      if $inside ne $outside
+                      && $inside.starts-with(
+                        $outside.ends-with($sep) ?? $outside !! $outside ~ $sep
+                      );
+                }
+            }
+        }
+        Nil
+    }
+
+    proto method parent(|) {*}
+    multi method parent(IO::Path:D: Int:D $depth is copy) {
+        if $depth > 0 {
+            my $io := self;
+            nqp::while(
+              $depth--,
+              $io := $io.parent
+            );
+            $io
+        }
+        else {
+            $depth
+              ?? X::OutOfRange.new(
+                   what  => 'Depth of .parent',
+                   got   => $depth,
+                   range => "0..*"
+                 ).throw
+              !! self
+        }
+    }
+    multi method parent(IO::Path:D:) {
+        my $curdir := $!SPEC.curdir;
+        my $updir  := $!SPEC.updir;
+
+        nqp::clone(self).cloned-with-path: self.is-absolute
+          ?? $!SPEC.join($.volume, $.dirname, '')
+          !! $.dirname eq $curdir && $.basename eq $curdir
+            ?? $!SPEC.join($.volume,$curdir,$updir)
+            !! $.basename eq $updir && ($.dirname eq $curdir
+                || !$!SPEC.splitdir($.dirname).first(* ne $updir))
+              ?? $!SPEC.join($.volume,$!SPEC.catdir($.dirname,$updir),$updir)
+              !! $!SPEC.join($.volume, $.dirname, '')
+    }
+
+    method child (IO::Path:D: \child) {
+        nqp::clone(self).cloned-with-path:
+          $!SPEC.join('', $!path, child.Str)
+    }
+
+    method add (IO::Path:D: *@children) {
+        nqp::clone(self).cloned-with-path:
+          $!SPEC.join: '', $!path, @children.join($!SPEC.dir-sep)
+    }
+
+    proto method chdir(|) {*}
+    multi method chdir(IO::Path:D: IO $path, |c) {
+        self.chdir: $path.absolute, |c
+    }
+    multi method chdir(
+        IO::Path:D: Str() $path is copy, :$d = True, :$r, :$w, :$x,
+    ) {
+        unless $!SPEC.is-absolute($path) {
+            my ($volume,$dirs) = $!SPEC.splitpath(self.absolute, :nofile);
+            my @dirs = $!SPEC.splitdir($dirs);
+            @dirs.shift; # the first is always empty for absolute dirs
+            for $!SPEC.splitdir($path) -> $dir {
+                if $dir eq '..' {
+                    @dirs.pop if @dirs;
+                }
+                elsif $dir ne '.' {
+                    @dirs.push: $dir;
+                }
+            }
+            @dirs.push('') if !@dirs;  # need at least the rootdir
+            $path = join($!SPEC.dir-sep, $volume, @dirs);
+        }
+        my $dir := nqp::p6bindattrinvres(
+          nqp::create(self)!SET-SELF($path, $!SPEC, $!path),
+          IO::Path,'$!is-absolute',True
+        );
+
+        nqp::stmts(
+            nqp::unless(
+                nqp::unless(nqp::isfalse($d), $dir.d),
+                fail X::IO::Chdir.new: :$path, :os-error(
+                    $dir.e ?? 'is not a directory' !! 'does not exist'
+                )
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($r), $dir.r),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :r test")
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($w), $dir.w),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :w test")
+            ),
+            nqp::unless(
+                nqp::unless(nqp::isfalse($x), $dir.x),
+                fail X::IO::Chdir.new: :$path, :os-error("did not pass :x test")
+            ),
+            $dir
+        )
+    }
+
+    method rename(IO::Path:D: IO() $to, :$createonly --> True) {
+        CATCH { default {
+            fail X::IO::Rename.new:
+                :from($!os-path), :to($to.absolute), :os-error(.Str);
+        }}
+        $createonly and $to.e and fail X::IO::Rename.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error(':createonly specified and destination exists');
+
+        nqp::rename($.absolute, nqp::unbox_s($to.absolute));
+    }
+
+    method copy(IO::Path:D: IO() $to, :$createonly --> True) {
+        CATCH { default {
+            fail X::IO::Copy.new:
+                :from($!os-path), :to($to.absolute), :os-error(.Str)
+        }}
+        # add fix for issue #3971 where attempt to copy a dir
+        # to a file clobbers the file.
+        self.d and $to.f and fail X::IO::Copy.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error('cannot copy a directory to a file');
+
+        $createonly and $to.e and fail X::IO::Copy.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error(':createonly specified and destination exists');
+
+        # XXX TODO: maybe move the sameness check to the nqp OP/VM
+        nqp::if(
+            nqp::iseq_s(
+                (my $from-abs :=   $.absolute),
+                (my $to-abs   := $to.absolute)),
+            X::IO::Copy.new(:from($from-abs), :to($to-abs),
+                :os-error('source and target are the same')).fail,
+            nqp::copy($from-abs, $to-abs));
+    }
+
+    method move(IO::Path:D: |c --> True) {
+        self.copy(|c) orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
+        self.unlink   orelse fail X::IO::Move.new: :from(.exception.from),
+            :to(.exception.to), :os-error(.exception.os-error);
+    }
+
+    method chmod(IO::Path:D: Int() $mode --> True) {
+        CATCH { default {
+            fail X::IO::Chmod.new(
+              :path($!os-path), :$mode, :os-error(.Str) );
+        }}
+        nqp::chmod($.absolute, nqp::unbox_i($mode));
+    }
+
+    method chown(IO::Path:D: :$uid is copy, :$gid is copy --> True) {
+        CATCH { default {
+            fail X::IO::Chown.new(
+              :path($!os-path), :$uid, :$gid, :os-error(.Str) );
+        }}
+        my str $path = self.absolute;
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s($path), 0);
+        die "Path does not exist" unless nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS);
+#?endif
+        $uid = $uid.defined
+          ?? $uid.UInt
+#?if moar
+          !! nqp::syscall("stat-flags", $stat, nqp::const::STAT_UID);
+#?endif
+#?if !moar
+          !! nqp::stat($path,nqp::const::STAT_UID);
+#?endif
+        $gid = $gid.defined
+          ?? $gid.UInt
+#?if moar
+          !! nqp::syscall("stat-flags", $stat, nqp::const::STAT_GID);
+#?endif
+#?if !moar
+          !! nqp::stat($path,nqp::const::STAT_GID);
+#?endif
+        nqp::chown($path, nqp::unbox_u($uid), nqp::unbox_u($gid))
+    }
+
+    method unlink(IO::Path:D: --> True) {
+        CATCH { default {
+            fail X::IO::Unlink.new( :path($!os-path), os-error => .Str );
+        }}
+        nqp::unlink($.absolute);
+    }
+
+    method symlink(IO::Path:D: IO() $name, Bool :$absolute = True --> True) {
+        CATCH { default {
+            fail X::IO::Symlink.new:
+                :target($!os-path), :name($name.absolute), :os-error(.Str);
+        }}
+        nqp::symlink($absolute ?? $.absolute !! ~self , nqp::unbox_s($name.absolute));
+    }
+
+    method link(IO::Path:D: IO() $name --> True) {
+        CATCH { default {
+            fail X::IO::Link.new:
+                :target($!os-path), :name($name.absolute), :os-error(.Str);
+        }}
+        nqp::link($.absolute, $name.absolute);
+    }
+
+    method readlink(IO::Path:D: $CWD? --> IO::Path:D) {
+        nqp::istype((my $islink := self.l),Failure)
+          ?? $islink
+          !! $islink
+            ?? self.new(nqp::readlink(self.relative), :CWD($CWD // self.parent))
+            !! self
+    }
+
+    method mkdir(IO::Path:D: Int() $mode = 0o777) {
+        CATCH { default {
+            fail X::IO::Mkdir.new(:path($!os-path), :$mode, os-error => .Str);
+        }}
+        my str $abspath = $.absolute;
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s($abspath), 0);
+#?endif
+        nqp::unless(
+#?if moar
+          nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS) && nqp::syscall("stat-flags", $stat, nqp::const::STAT_ISDIR),
+#?endif
+#?if !moar
+          nqp::stat($abspath,nqp::const::STAT_EXISTS)
+            && nqp::stat($abspath,nqp::const::STAT_ISDIR),
+#?endif
+          nqp::mkdir($abspath,$mode)
+        );
+        self
+    }
+
+    method rmdir(IO::Path:D: --> True) {
+        CATCH { default {
+            fail X::IO::Rmdir.new(:path($!os-path), os-error => .Str);
+        }}
+        nqp::rmdir($.absolute);
+    }
+
+
+    # Call with cloned object, update path, keep "is-absolute" setting
+    # and reset the rest.  If the source object was an absolute path,
+    # then the given path should also be an absolute path, and vice-versa.
+    method cloned-with-path(Str:D $path) is implementation-detail {
+        X::IO::Null.new.throw if nqp::isne_i(nqp::index($path, "\0"), -1);
+        $!path := $path;
+        $!os-path := $!parts := nqp::null;
+        self
+    }
+
+    # create prefix to be added to each directory entry
+    method prefix-for-dir() is implementation-detail {
+        my str $dir-sep = $!SPEC.dir-sep;
+        nqp::iseq_s($!path,'.')
+          ?? ''
+          !! $!path.ends-with($dir-sep)
+            ?? $!path
+            !! $!path.ends-with("$dir-sep.")
+              ?? nqp::substr($!path,0,nqp::chars($!path) - 1)
+              !! nqp::concat($!path,$dir-sep)
+    }
+
+    proto method dir(|) {*} # make it possible to augment with multies from modulespace
+    multi method dir(IO::Path:D: Mu :$test!) {
+        CATCH { default {
+            X::IO::Dir.new(:path(self.absolute), :os-error(.Str)).throw
+        } }
+
+        Seq.new: Rakudo::Iterator.Dir(self, $test)
+    }
+
+    multi method dir(IO::Path:D:) {
+        CATCH { default {
+            X::IO::Dir.new(:path(self.absolute), :os-error(.Str)).throw
+        } }
+
+        # if default tester is system default, use implicit no . .. iterator
+        Seq.new: nqp::eqaddr($!SPEC.curupdir,IO::Spec::Unix.curupdir)
+          ?? Rakudo::Iterator.Dir(self)
+          !! Rakudo::Iterator.Dir(self, $!SPEC.curupdir)
+    }
+
+
+    # Initial size for slurping a file
+    my int $slurp-size = 0x00100000;
+
+    # Maximum size for slurping with nqp::readfh.  This apparently takes
+    # a signed 32bit int and only accepts positive values.  This would
+    # make 0xffffffff the largest value, but that would cause all sorts
+    # of overhead because it's not a multiple of the block size.  So
+    # use a value that for sure is a multiple of the block size.
+    my int $max-size = 0x070000000;
+
+    # Slurp contents of low level handle.  If the initial slurp size is
+    # completely used, ask the OS for the size of the file.  If that is
+    # known, slurp directly for that number of bytes.  If that failed
+    # or is more than what can be read in one go, take the slow path
+    method !slurp-PIO(Mu \PIO is raw) {
+        my $blob := nqp::readfh(PIO,nqp::create(buf8.^pun),$slurp-size);
+
+        nqp::if(
+          nqp::iseq_i(nqp::elems($blob),$slurp-size),             # all read?
+          nqp::splice(                                            # no
+            $blob,
+            nqp::if(
+              nqp::istype((my $s := self.s),Failure)              # size unknown
+                || (my int $size = $s - $slurp-size) > $max-size, # too large
+              slurp-PIO-uncertain(PIO, $max-size),                # slow path
+              nqp::if(
+                nqp::isgt_i($size,0),
+                nqp::readfh(PIO,nqp::create(buf8.^pun),$size),    # read rest
+                nqp::create(buf8.^pun)                            # nothing left
+              )
+            ),
+            nqp::elems($blob),
+            0
+          ),
+          $blob                                                   # all read!
+        )
+    }
+
+    # Logic for reading from a PIO that cannot tell how many bytes
+    # can be read from it
+    sub slurp-PIO-uncertain(Mu \PIO is raw, int $size) {
+        my $cbuf8 := buf8.^pun;
+        my $blob;
+
+        nqp::while(
+          nqp::stmts(
+            (my $part := nqp::readfh(PIO,nqp::create($cbuf8),$size)),
+            nqp::if(
+              nqp::isconcrete($blob),
+              nqp::splice($blob,$part,nqp::elems($blob),0),
+              ($blob := $part)
+            ),
+            nqp::iseq_i(nqp::elems($part),$size)
+          ),
+          nqp::null
+        );
+        $blob
+    }
+
+    proto method slurp() {*}
+    multi method slurp(IO::Path:D: :$bin, :$enc, :$translate-nl = True) {
+        my $blob;
+
+        # Treating "-" as an indication of STDIN?
+        if nqp::iseq_s($!path,"-")
+          && Rakudo::Internals.client-language-revision < 3 {
+            $blob := slurp-PIO-uncertain(nqp::getstdin, $slurp-size);
+        }
+
+        # Reading from path
+        elsif nqp::open(self.absolute,'r') -> \PIO {
+            LEAVE nqp::closefh(PIO);
+            $blob := self!slurp-PIO(PIO);
+        }
+
+        # Wants a blob
+        if $bin {
+            $blob
+        }
+
+        # Need to have it decoded
+        else {
+            my $decoded := $blob.decode-with-valid-encoding(
+              $enc
+                ?? Rakudo::Internals.NORMALIZE_ENCODING($enc)
+                !! 'utf8'
+            );
+            nqp::istype($decoded,Failure) || !$translate-nl
+              ?? $decoded
+              !! nqp::join("\n",nqp::split("\r\n",$decoded))
+        }
+    }
+
+    # spurt data to given path and file mode
+    sub spurt-blob(str $path, str $mode, Blob:D \data) {
+        CATCH { .fail }
+
+        my $PIO := nqp::open($path,$mode);
+        nqp::writefh($PIO,nqp::decont(data));
+        nqp::closefh($PIO);
+        True
+    }
+
+    # spurt text to given path and file mode with given encoding
+    sub spurt-string(str $path, str $mode, str $text, $encoding) {
+        my $blob := nqp::encode(
+          $text,
+          (my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding)),
+          nqp::create(buf8.^pun)
+        );
+
+        # check if we need a BOM
+        if $enc eq 'utf16' {
+
+            # add a BOM if (over)writing
+            if $mode eq 'w' {
+                nqp::unshift_i($blob,254);
+                nqp::unshift_i($blob,255);
+            }
+            # or appending to a new or existing, but zero-length, file
+            else {
+#?if moar
+                my $stat := nqp::syscall("file-stat", nqp::decont_s($path), 0);
+                if nqp::not_i(nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)) ||
+                   nqp::not_i(nqp::syscall("stat-flags", $stat, nqp::const::STAT_FILESIZE)) {
+#?endif
+#?if !moar
+                if nqp::not_i(nqp::stat($path,nqp::const::STAT_EXISTS)) ||
+                   nqp::not_i(nqp::stat($path,nqp::const::STAT_FILESIZE)) {
+#?endif
+                    nqp::unshift_i($blob,254);
+                    nqp::unshift_i($blob,255);
+                }
+            }
+        }
+
+        spurt-blob($path, $mode, $blob)
+    }
+
+    method user(IO::Path:D:) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::syscall("stat-flags", $stat, nqp::const::STAT_UID)
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
+          ?? nqp::stat($path, nqp::const::STAT_UID)
+#?endif
+          !! self!does-not-exist("user")
+    }
+
+    method group(IO::Path:D:) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::syscall("stat-flags", $stat, nqp::const::STAT_GID)
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
+          ?? nqp::stat($path, nqp::const::STAT_GID)
+#?endif
+          !! self!does-not-exist("group")
+    }
+
+    proto method spurt(|) {*}
+    multi method spurt(IO::Path:D: --> Bool:D) {
+        self.open(:w).close
+    }
+    multi method spurt(IO::Path:D: Blob:D \data, :$append! --> Bool:D) {
+        spurt-blob(self.absolute, $append ?? 'wa' !! 'w', data)
+    }
+    multi method spurt(IO::Path:D: Blob:D \data, :$createonly! --> Bool:D) {
+        nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!os-path
+          ?? "Failed to open file $!os-path: File exists".Failure
+          !! spurt-blob($!os-path, 'w', data)
+    }
+    multi method spurt(IO::Path:D: Blob:D \data --> Bool:D) {
+        spurt-blob(self.absolute, 'w', data)
+    }
+    multi method spurt(IO::Path:D: \text, :$append!, :$enc --> Bool:D) {
+        spurt-string(self.absolute, $append ?? 'wa' !! 'w', text.Str, $enc)
+    }
+    multi method spurt(IO::Path:D: \text, :$createonly!, :$enc --> Bool:D) {
+        nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!os-path
+          ?? "Failed to open file $!os-path: File exists".Failure
+          !! spurt-string($!os-path, 'w', text.Str, $enc)
+    }
+    multi method spurt(IO::Path:D: \text, :$enc --> Bool:D) {
+        spurt-string(self.absolute, 'w', text.Str, $enc)
+    }
+
+    # XXX TODO: when we get definedness-based defaults in core, use them in
+    # IO::Handle.open and get rid of duplication of default values here
+    method lines(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).lines: |c, :close
+    }
+    method comb(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).comb:  |c, :close
+    }
+    method split(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).split: |c, :close
+    }
+    method words(IO::Path:D:
+        :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c
+    ) {
+        self.open(:$chomp, :$enc, :$nl-in).words: |c, :close
+    }
+
+    method !does-not-exist(
+      Str:D $trying
+    --> Failure) is hidden-from-backtrace {
+        X::IO::DoesNotExist.new(:path($!os-path),:$trying).Failure
+    }
+
+    method e(IO::Path:D: --> Bool:D) {
+        nqp::hllbool(Rakudo::Internals.FILETEST-E(self.absolute))
+    }
+    method d(IO::Path:D: --> Bool:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::syscall("stat-flags", $stat, nqp::const::STAT_ISDIR))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-D($!os-path))
+#?endif
+          !! self!does-not-exist("d")
+    }
+
+    method f(IO::Path:D: --> Bool:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::syscall("stat-flags", $stat, nqp::const::STAT_ISREG))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-F($!os-path))
+#?endif
+          !! self!does-not-exist("f")
+    }
+
+    method s(IO::Path:D: --> Int:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::syscall("stat-flags", $stat, nqp::const::STAT_FILESIZE)
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Rakudo::Internals.FILETEST-S($!os-path)
+#?endif
+          !! self!does-not-exist("s")
+    }
+
+    method l(IO::Path:D: --> Bool:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 1);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::syscall("stat-flags", $stat, nqp::const::STAT_ISLNK))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-LE(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-L($!os-path))
+#?endif
+          !! self!does-not-exist("l")
+    }
+
+    method r(IO::Path:D: --> Bool:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::syscall("stat-is-readable", $stat))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-R($!os-path))
+#?endif
+          !! self!does-not-exist("r")
+    }
+
+    method w(IO::Path:D: --> Bool:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::syscall("stat-is-writable", $stat))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-W($!os-path))
+#?endif
+          !! self!does-not-exist("w")
+    }
+
+    method rw(IO::Path:D: --> Bool:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::syscall("stat-is-readable", $stat) && nqp::syscall("stat-is-writable", $stat))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-RW($!os-path))
+#?endif
+          !! self!does-not-exist("rw")
+    }
+
+    method x(IO::Path:D: --> Bool:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::syscall("stat-is-executable", $stat))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-X($!os-path))
+#?endif
+          !! self!does-not-exist("x")
+    }
+
+    method rwx(IO::Path:D: --> Bool:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::syscall("stat-is-readable", $stat) && nqp::syscall("stat-is-writable", $stat) && nqp::syscall("stat-is-executable", $stat))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-RWX($!os-path))
+#?endif
+          !! self!does-not-exist("rwx")
+    }
+
+    method z(IO::Path:D: --> Bool:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::syscall("stat-flags", $stat, nqp::const::STAT_FILESIZE) == 0
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-Z($!os-path))
+#?endif
+          !! self!does-not-exist("z")
+    }
+
+    method created(IO::Path:D: --> Instant:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? Instant.from-posix-nanos(nqp::syscall("stat-time-nanos", $stat, nqp::const::STAT_CREATETIME))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CREATED($!os-path))
+#?endif
+          !! self!does-not-exist("created")
+    }
+
+    method modified(IO::Path:D: --> Instant:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? Instant.from-posix-nanos(nqp::syscall("stat-time-nanos", $stat, nqp::const::STAT_MODIFYTIME))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!os-path))
+#?endif
+          !! self!does-not-exist("modified")
+    }
+
+    method accessed(IO::Path:D: --> Instant:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? Instant.from-posix-nanos(nqp::syscall("stat-time-nanos", $stat, nqp::const::STAT_ACCESSTIME))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!os-path))
+#?endif
+          !! self!does-not-exist("accessed")
+    }
+
+    method changed(IO::Path:D: --> Instant:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? Instant.from-posix-nanos(nqp::syscall("stat-time-nanos", $stat, nqp::const::STAT_CHANGETIME))
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!os-path))
+#?endif
+          !! self!does-not-exist("changed")
+    }
+
+    method mode(IO::Path:D: --> IntStr:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        if nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS) {  # sets $!os-path
+            my Int $mode := nqp::bitand_i(nqp::syscall("stat-flags", $stat, nqp::const::STAT_PLATFORM_MODE), 0o7777);
+#?endif
+#?if !moar
+        if Rakudo::Internals.FILETEST-E(self.absolute) {  # sets $!os-path
+            my Int $mode := Rakudo::Internals.FILETEST-MODE($!os-path);
+#?endif
+            my str $str   = nqp::base_I($mode,8);
+            IntStr.new(
+              $mode,
+              nqp::concat(nqp::x('0',4 - nqp::chars($str)),$str)
+            )
+        }
+        else {
+            self!does-not-exist("mode")
+        }
+    }
+
+    method inode(IO::Path:D: --> Int:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::syscall("stat-flags", $stat, nqp::const::STAT_PLATFORM_INODE)
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::stat($!os-path, nqp::const::STAT_PLATFORM_INODE)
+#?endif
+          !! self!does-not-exist("inode")
+    }
+
+    method dev(IO::Path:D: --> Int:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::syscall("stat-flags", $stat, nqp::const::STAT_ISDEV)
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::stat($!os-path, nqp::const::STAT_PLATFORM_DEV)
+#?endif
+          !! self!does-not-exist("dev")
+    }
+
+    method devtype(IO::Path:D: --> Int:D) {
+#?if moar
+        my $stat := nqp::syscall("file-stat", nqp::decont_s(self.absolute), 0);
+        nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::syscall("stat-flags", $stat, nqp::const::STAT_PLATFORM_DEV)
+#?endif
+#?if !moar
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::stat($!os-path, nqp::const::STAT_PLATFORM_DEVTYPE)
+#?endif
+          !! self!does-not-exist("devtype")
+    }
+
+    proto method dir-with-entries(|) {*}
+    multi method dir-with-entries(IO::Path:D: --> Bool:D) {
+        my $handle := nqp::opendir(self.absolute);
+        nqp::while(
+          (my str $entry = nqp::nextfiledir($handle))
+            && (nqp::iseq_s($entry,'.') || nqp::iseq_s($entry,'..')),
+          nqp::null()
+        );
+        nqp::closedir($handle);
+        nqp::hllbool(nqp::chars($entry))
+    }
+    multi method dir-with-entries(IO::Path:D: :$test! --> Bool:D) {
+        my $handle := nqp::opendir(self.absolute);
+        nqp::while(
+          (my str $entry = nqp::nextfiledir($handle))
+            && !$test.ACCEPTS($entry),
+          nqp::null()
+        );
+        nqp::closedir($handle);
+        nqp::hllbool(nqp::chars($entry))
+    }
+
+    method CHECKSUM(IO::Path:D: --> Str:D) is implementation-detail {
+        my \slurped := self.slurp(:enc<iso-8859-1>);
+        nqp::istype(slurped,Failure)
+          ?? slurped
+          !! nqp::sha1(slurped)
+    }
+}
+
+my role IO::Path::Spec[$SPEC] is IO::Path {
+    method new(|c) { self.IO::Path::new(|c, :$SPEC) }
+    multi method raku(::?CLASS:D:) {
+        self.^name ~ ".new({$.path.raku}, {:$.CWD.raku})"
+    }
+}
+
+my class IO::Path::Cygwin does IO::Path::Spec[IO::Spec::Cygwin] { }
+my class IO::Path::QNX    does IO::Path::Spec[IO::Spec::QNX   ] { }
+my class IO::Path::Unix   does IO::Path::Spec[IO::Spec::Unix  ] { }
+my class IO::Path::Win32  does IO::Path::Spec[IO::Spec::Win32 ] { }
+
+# vim: expandtab shiftwidth=4

@@ -280,12 +280,22 @@ my class IO::Path is Cool does IO {
             my $ords := nqp::encode($path,'utf8-c8',nqp::create(buf8.^pun));
             my int $n = nqp::elems($ords);
             my int $i = -1;
-            nqp::while(
-              nqp::islt_i(++$i,$n),
-              nqp::if(
-                nqp::iseq_i((my int $ord = nqp::atpos_u($ords,$i)),$ord-slash)
-                  || nqp::iseq_i($ord,$ord-bslash),
-                nqp::bindpos_i($ords,$i,0)
+            nqp::if(
+              nqp::istype($!SPEC,IO::Spec::Win32),
+              nqp::while(                        # two types of separators ok
+                nqp::islt_i(++$i,$n),
+                nqp::if(
+                  nqp::iseq_i((my int $ord = nqp::atpos_u($ords,$i)),$ord-bslash)
+                    || nqp::iseq_i($ord,$ord-slash),
+                  nqp::bindpos_i($ords,$i,0)
+                )
+              ),
+              nqp::while(                        # just one separator
+                nqp::islt_i(++$i,$n),
+                nqp::if(
+                  nqp::iseq_i(nqp::atpos_u($ords,$i),$ord-slash),
+                  nqp::bindpos_i($ords,$i,0)
+                )
               )
             );
             my $parts := nqp::split("\0", nqp::decode($ords,'utf8-c8'));

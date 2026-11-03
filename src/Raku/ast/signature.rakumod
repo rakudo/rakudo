@@ -430,12 +430,14 @@ class RakuAST::Signature
     # their own. Used to surface them as block-local declarations so they
     # shadow rather than rebind an outer same-named capture.
     method IMPL-COLLECT-TYPE-CAPTURES(@captures) {
-        for self.IMPL-UNWRAP-LIST(self.parameters) -> $param {
-            for self.IMPL-UNWRAP-LIST($param.type-captures) {
-                nqp::push(@captures, $_);
+        if $!parameters {
+            for $!parameters -> $param {
+                for self.IMPL-UNWRAP-LIST($param.type-captures) {
+                    nqp::push(@captures, $_);
+                }
+                my $sub := $param.sub-signature;
+                $sub.IMPL-COLLECT-TYPE-CAPTURES(@captures) if $sub;
             }
-            my $sub := $param.sub-signature;
-            $sub.IMPL-COLLECT-TYPE-CAPTURES(@captures) if $sub;
         }
     }
 
@@ -443,10 +445,12 @@ class RakuAST::Signature
     # sub-signature after the parameter that holds it, so a list
     # declaration reaches every variable it declares.
     method IMPL-COLLECT-PARAMETERS(@parameters) {
-        for self.IMPL-UNWRAP-LIST(self.parameters) -> $param {
-            nqp::push(@parameters, $param);
-            my $sub := $param.sub-signature;
-            $sub.IMPL-COLLECT-PARAMETERS(@parameters) if $sub;
+        if $!parameters {
+            for $!parameters -> $param {
+                nqp::push(@parameters, $param);
+                my $sub := $param.sub-signature;
+                $sub.IMPL-COLLECT-PARAMETERS(@parameters) if $sub;
+            }
         }
     }
 

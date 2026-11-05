@@ -556,10 +556,7 @@ my class Rakudo::Internals::JSON is implementation-detail {
 
     my sub parse-obj(str $text, int $pos is rw) {
         my %result;
-        my $hash := nqp::ifnull(
-          nqp::getattr(%result,Map,'$!storage'),
-          nqp::bindattr(%result,Map,'$!storage',nqp::hash)
-        );
+        my $hash := nqp::getattr(%result,Map,'$!storage');
 
         nom-ws($text, $pos);
         my int $ordinal = nqp::ordat($text, $pos);

@@ -264,7 +264,8 @@ my class IO::Path is Cool does IO {
 
     method resolve (IO::Path:D: :$completely) {
         my str $volume;
-        my str $sep = $!SPEC.dir-sep;
+        my str $sep       = $!SPEC.dir-sep;
+        my int $max-links = 40;  # same as Linux' MAXSYMLINKS
 
         # In this bit, we work with bytes, converting $sep (and assuming it's
         # 1-char long) in the path to nul bytes and then splitting the path
@@ -353,13 +354,14 @@ my class IO::Path is Cool does IO {
                 nqp::stmts(                          # need to check
                   nqp::push_s(@resolved,$part),
                   nqp::if(
-                    nqp::stat(
+                    nqp::lstat(
                       (my str $next = nqp::join($sep,@resolved)),
                       nqp::const::STAT_EXISTS
                     ),
                     nqp::if(                         # exists
-                      nqp::fileislink($next),
-                      nqp::stmts(                    # is a link
+                      nqp::fileislink($next)
+                        && nqp::isge_i(--$max-links,0),
+                      nqp::stmts(                    # is link, not too many
                         (my $link := safe-split(nqp::readlink($next))),
                         nqp::if(
                           nqp::atpos($link,0),
@@ -376,7 +378,9 @@ my class IO::Path is Cool does IO {
                     ),
                     nqp::stmts(                      # does not exist
                       nqp::if(
-                        $completely && nqp::elems($parts),
+                        $completely
+                          && nqp::elems($parts)
+                          && nqp::not_i(nqp::stat($next,nqp::const::STAT_EXISTS)),
                         X::IO::Resolve.new(:path(self)).fail # must quit
                       ),
                       nqp::while(                    # rest without check

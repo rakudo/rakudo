@@ -54,13 +54,6 @@ my class Lock::Async {
     # The current holder record, with waiters queue, of the lock.
     has Holder $!holder = Holder;
 
-#?if js
-    # No actual locking on the Javascript backend (yet)
-    my \KEPT-PROMISE = Promise.kept;
-    method lock(Lock::Async:D: --> Promise) { KEPT-PROMISE }
-#?endif
-
-#?if !js
     # Singleton Promise to be used when there's no need to wait.
     my $KEPT-PROMISE := nqp::null;
     method lock(Lock::Async:D: --> Promise) {
@@ -79,11 +72,9 @@ my class Lock::Async {
                 return nqp::ifnull($KEPT-PROMISE,$KEPT-PROMISE := Promise.kept);
             }
         }
-#?endif
     }
 
     method unlock(Lock::Async:D: --> Nil) {
-#?if !js
         loop {
             my $holder := ⚛$!holder;
             if nqp::eqaddr($holder,SINGLE_HOLDER) {
@@ -118,17 +109,14 @@ my class Lock::Async {
                 X::Lock::Async::NotLocked.new.throw
             }
         }
-#?endif
     }
 
     proto method protect(|) {*}
     multi method protect(Lock::Async:D: &code) is raw {
-#?if !js
         my int $acquired = 0;
         $*AWAITER.await(self.lock());
         $acquired = 1;
         LEAVE self.unlock() if $acquired;
-#?endif
         code()
     }
 

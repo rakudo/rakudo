@@ -36,7 +36,6 @@ my $spec_dir = File::Spec->catdir( $base_dir, 't', 'spec' );
 my %backend_bin = (
     moar => 'rakudo-m',
     jvm  => 'rakudo-j',
-    js   => 'rakudo-js',
 );
 
 GetOptions( \%options, 'help!', 'backend=s@', );

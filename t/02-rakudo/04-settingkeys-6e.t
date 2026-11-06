@@ -826,7 +826,6 @@ my %nyi-for-backend = (
         Q{𝑒},
     ),
     'moar' => (),
-    'js' => (),
 );
 
 if SETTING::{'!RAKUAST_MARKER'}:exists {

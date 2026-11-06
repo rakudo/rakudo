@@ -157,12 +157,7 @@ augment class Rakudo::Internals {
               $release := $_ with $lookup<BuildVersion>;
               $auth    := 'Apple Inc.'; # presumably
 
-#?if !js
               my constant $names = nqp::hash(
-#?endif
-#?if js
-              my $names := nqp::hash(
-#?endif
                 '10.0',  'Cheetah',
                 '10.1',  'Puma',
                 '10.2',  'Jaguar',
@@ -232,10 +227,6 @@ augment class Rakudo::Internals {
 #?if moar
             || ($*VM.config<prefix> ~ '/bin/'
               ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.exe' !! 'perl6-m'))
-#?endif
-#?if js
-            // ($*VM.config<prefix> ~ '/bin/'
-              ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-js.bat' !! 'perl6-js'))
 #?endif
         )
       },
@@ -357,13 +348,7 @@ augment class Rakudo::Internals {
       },
 
       '$*SCHEDULER', anon sub SCHEDULER() is raw {
-#?if !js
           PROCESS::<$SCHEDULER> := ThreadPoolScheduler.new
-#?endif
-
-#?if js
-          PROCESS::<$SCHEDULER> := JavaScriptScheduler.new
-#?endif
       },
 
       '$*THREAD', anon sub THREAD() is raw {

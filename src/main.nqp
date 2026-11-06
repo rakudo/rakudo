@@ -49,10 +49,6 @@ my @clo := $comp.commandline_options();
 @clo.push('rakudo-home=s');
 @clo.push('disable-rakudo-opt');
 
-#?if js
-@clo.push('beautify');
-#?endif
-
 # Make Raku grammar / actions visible to HLL
 nqp::bindhllsym('Raku', 'Grammar', Raku::Grammar);
 nqp::bindhllsym('Raku', 'Actions', Raku::Actions);
@@ -63,13 +59,10 @@ nqp::bindhllsym('Raku', '@END_PHASERS', []);
 # In an embedding environment, let @*ARGS be empty instead of crashing
 nqp::bindhllsym('Raku', '$!ARGITER', 0);
 
-#?if jvm
-sub MAIN(*@ARGS) {
-#?endif
 #?if moar
 sub MAIN(@ARGS) {
 #?endif
-#?if js
+#?if !moar
 sub MAIN(*@ARGS) {
 #?endif
 

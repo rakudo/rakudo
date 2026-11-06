@@ -173,6 +173,20 @@ class CompUnit::RepositoryRegistry {
              )
            ) -> $home-path {
             $home = $home-path ~ $sep ~ '.raku';
+
+            # Follow the XDG Base Directory spec on Unix-likes, unless the
+            # legacy ~/.raku already holds installed distributions.  Check
+            # for dist/ rather than ~/.raku itself, as the REPL creates the
+            # latter for its history file.
+            unless Rakudo::Internals.IS-WIN
+              || nqp::stat($home ~ '/dist', nqp::const::STAT_EXISTS) {
+                my str $data = nqp::ifnull(nqp::atkey($ENV,'XDG_DATA_HOME'),'');
+                # relative paths are invalid per the spec and must be ignored
+                $home = (nqp::eqat($data,'/',0)
+                  ?? $data
+                  !! $home-path ~ '/.local/share'
+                ) ~ '/raku';
+            }
             $home-spec = 'inst#' ~ $home;
         }
 

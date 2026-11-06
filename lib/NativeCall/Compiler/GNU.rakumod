@@ -63,11 +63,11 @@ our sub mangle_cpp_symbol(Routine:D $routine, Str:D $symbol) {
 
     # Handle all name parts except the last
     my str $part;
-    my int $i;
+    my int $i = -1;
     nqp::while(
-      $i < $last,
+      nqp::islt_i(++$i,$last),
       nqp::stmts(
-        ($part = nqp::atpos_s(@parts, $i++)),
+        ($part = nqp::atpos_s(@parts,$i)),
         nqp::push_s(@mangled, nqp::concat(nqp::chars($part), $part))
       )
     );

@@ -894,14 +894,13 @@ sub guard-type-concreteness($tracker) {
 
 # Array initialization checker
 my $array-init-check := -> $arr {
-    my $storage := nqp::getattr($arr, List, '$!reified');
-    nqp::isconcrete($storage) && nqp::elems($storage)
+    nqp::isconcrete(my $reified := nqp::getattr($arr, List, '$!reified'))
+      && nqp::elems($reified)
 }
 
 # Hash initialization checker
 my $hash-init-check := -> $hash {
-    my $storage := nqp::getattr($hash, Map, '$!storage');
-    nqp::isconcrete($storage) && nqp::elems($storage)
+    nqp::elems(nqp::getattr($hash, Map, '$!storage'))
 }
 
 # Actual dispatcher taking the attribute and returning 1 if initialized,

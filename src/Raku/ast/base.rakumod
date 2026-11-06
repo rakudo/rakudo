@@ -695,10 +695,7 @@ class RakuAST::Node {
             $map
         }
         elsif nqp::istype($map, Map) {
-            my $storage := nqp::getattr($map, Map, '$!storage');
-            nqp::isconcrete($storage)
-                ?? $storage
-                !! $map.FLATTENABLE_HASH
+            nqp::getattr($map, Map, '$!storage');
         }
         else {
             nqp::die("Cannot hashify " ~ $map.HOW.name($map));

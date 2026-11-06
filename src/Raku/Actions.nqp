@@ -41,18 +41,20 @@ sub Nodify(str $class) {
 
 sub nodify-lookup(str $class) {
     my @todo := nqp::split("::",$class);
-    my int $idx;
-    my int $todo-elems := nqp::elems(@todo);
-    my $res := nqp::atkey($RakuAST-WHO,nqp::atpos(@todo, $idx++));
-    while $idx < $todo-elems && !nqp::isnull($res) {
-        $res := nqp::atkey($res.WHO,nqp::atpos(@todo, $idx++));
-    }
+    my $res  := nqp::atkey($RakuAST-WHO,nqp::shift(@todo));
+    nqp::while(
+      nqp::elems(@todo)
+        && nqp::not_i(nqp::isnull(
+             $res := nqp::atkey($res.WHO,nqp::shift(@todo))
+           )),
+      nqp::null
+    );
     nqp::bindkey(
       %type-cache,
       $class,
       nqp::ifnull(
         $res,
-        nqp::die('No such node RakuAST::' ~ nqp::join('::',@todo))
+        nqp::die("No such node RakuAST::$class")
       )
     )
 }

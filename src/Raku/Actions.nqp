@@ -2153,20 +2153,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast := $<OPER>.ast
           // self.SET-ORIGIN-OF($<OPER>, Nodify('Postfix').new(:operator(~$<postfix><sym>)));
 
-        if $<postfix-prefix-meta-operator> {
+        if $<postfix-prefix-meta-operator> -> $ppmo {
             # Check if we are inside «...» quoters and complain if the hyper creates
             # ambiguity with the quoters, since user may not wanted to have a hyper
-            my str $sym := ~$<postfix-prefix-meta-operator><sym>;
-            $/.worry("Ambiguous use of $sym; use "
-              ~ ($sym eq '>>' ?? '»' !! '>>')
-              ~ " instead to mean hyper, or insert whitespace before"
-              ~ " $sym to mean a quote terminator (or use different delimiters?)"
-            ) if ($/.pragma("STOPPER") // '') eq $sym;
+            my str $sym := ~$ppmo<sym>;
+            ($/.pragma("STOPPER") // '') eq $sym
+              ?? $/.worry("Ambiguous use of $sym; use "
+                   ~ ($sym eq '>>' ?? '»' !! '>>')
+                   ~ " instead to mean hyper, or insert whitespace before"
+                   ~ " $sym to mean a quote terminator (or use different delimiters?)"
+                 )
+               !! self.attach: $/,
+                    Nodify('MetaPostfix::Hyper').new($ast.to-begin-time($*R, $*CU.context));
         }
-
-        self.attach: $/, $<postfix-prefix-meta-operator>
-          ?? Nodify('MetaPostfix::Hyper').new($ast.to-begin-time($*R, $*CU.context))
-          !! $ast
+        else {
+            self.attach: $/, $ast;
+        }
     }
 
     method postfix:sym<i>($/) {

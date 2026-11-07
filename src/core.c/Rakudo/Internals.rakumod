@@ -771,7 +771,10 @@ my class Rakudo::Internals is implementation-detail {
     # The shape given by the key of a jagged array type, which joins the
     # length of each dimension or * for one of no set length with commas
     method JAGGED-SHAPE-OF(Str:D $key) {
-        $key.split(',').map({ $_ eq '*' ?? Whatever.new !! .Int }).List
+        $key.split(',').map({ $_ eq '*'
+          ?? Whatever.new  # need .new to avoid warning with stringification
+          !! .Int
+        }).eager
     }
 
     # An array of a shape that leaves the length of a dimension unset, of
@@ -796,15 +799,37 @@ my class Rakudo::Internals is implementation-detail {
                   ?? X::IllegalDimensionInShape.new(:$dim).throw
                   !! $dim
         }).join(',');
-        my str $which = nqp::concat(base.WHICH.Str,nqp::concat('|',$key));
-        my $what := nqp::atkey($jagged-types,$which);
-        $what := $jagged-lock.protect({
-            nqp::ifnull(
-              nqp::atkey($jagged-types,$which),
-              self!JAGGED-TYPE(base, $key, $which)
-            )
-        }) if nqp::isnull($what);
-        self.JAGGED-INSTANCE($what)
+        my str $which = nqp::concat(base.WHICH,nqp::concat('|',$key));
+
+        self.JAGGED-INSTANCE(nqp::ifnull(
+          nqp::atkey($jagged-types,$which),  # we have one already
+          $jagged-lock.protect({             # need to create a new one
+              # each array of the first dimension is of a type of its shape
+              my str $row-key =
+                nqp::substr($key,nqp::add_i(nqp::index($key,','),1));
+              my \row-shape := self.JAGGED-SHAPE-OF($row-key);
+              my \row-base  := base.new(:shape(row-shape)).^mro.head;
+
+              my $row := row-base.^mixin(Array::JaggedRow[base, $row-key]);
+              $row := $row.^mixin(Array::JaggedSlots[base.of])
+                if nqp::eqaddr(row-base,base)
+                && nqp::not_i(nqp::istype(base,Array));
+              $row.^set_name(row-base.^name);
+              my \row := nqp::decont($row.new).WHAT;
+
+              my $mixin := Array::Jagged[base, $key, row];
+              my $what  := nqp::istype(base,Array)
+                ?? base.^mixin($mixin)
+                !! Array.^mixin(Positional[base.of]).^mixin($mixin);
+              $what.^set_name(base.^name);
+
+              # a copy is changed, so a thread reading it never sees it change
+              my $types := nqp::clone($jagged-types);
+              nqp::bindkey($types,$which,$what);
+              $jagged-types := $types;
+              $what
+            })
+        ))
     }
 
     # A new jagged array of a type, with each row of a set length made
@@ -819,44 +844,16 @@ my class Rakudo::Internals is implementation-detail {
     # made yet made for it, which takes its place rather than a copy of it
     method JAGGED-MADE(\container, Mu \row) {
         my $container := nqp::getlexdyn('$*JAGGED-CONTAINER');
-        nqp::hllbool(
-          nqp::not_i(nqp::isnull($container))
-            && nqp::eqaddr($container,container)
-            && nqp::eqaddr(nqp::getlexdyn('$*JAGGED-ROW'),nqp::decont(row))
-        )
+        nqp::not_i(nqp::isnull($container))
+          && nqp::eqaddr($container,container)
+          && nqp::eqaddr(nqp::getlexdyn('$*JAGGED-ROW'),nqp::decont(row))
     }
 
     # Whether a write to an array was refused, which it reports with a
     # Failure other than the value it was to write
     method JAGGED-REFUSED(Mu \result, Mu \value) {
-        nqp::hllbool(
-          nqp::istype_nd(result,Failure)
-            && nqp::not_i(nqp::eqaddr(nqp::decont(result),nqp::decont(value)))
-        )
-    }
-
-    # The type of a jagged array, made once while holding the lock
-    method !JAGGED-TYPE(\base, Str:D $key, str $which) is raw {
-        # each array of the first dimension is of a type of its shape
-        my str $row-key = nqp::substr($key,nqp::add_i(nqp::index($key,','),1));
-        my \row-shape := self.JAGGED-SHAPE-OF($row-key);
-        my \row-base  := base.new(:shape(row-shape)).^mro.head;
-        my $row := row-base.^mixin(Array::JaggedRow[base, $row-key]);
-        $row := $row.^mixin(Array::JaggedSlots[base.of])
-          if nqp::eqaddr(row-base,base) && nqp::not_i(nqp::istype(base,Array));
-        $row.^set_name(row-base.^name);
-        my \row := nqp::decont($row.new).WHAT;
-
-        my $what := nqp::istype(base,Array)
-          ?? base.^mixin(Array::Jagged[base, $key, row])
-          !! Array.^mixin(Positional[base.of]).^mixin(Array::Jagged[base, $key, row]);
-        $what.^set_name(base.^name);
-
-        # a copy is changed, so a thread reading it never sees it change
-        my $types := nqp::clone($jagged-types);
-        nqp::bindkey($types,$which,$what);
-        $jagged-types := $types;
-        $what
+        nqp::istype_nd(result,Failure)
+          && nqp::not_i(nqp::eqaddr(nqp::decont(result),nqp::decont(value)))
     }
 
     our class SupplySequencer is implementation-detail {

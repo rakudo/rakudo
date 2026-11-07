@@ -402,115 +402,112 @@ my class ThreadPoolScheduler does Scheduler {
       nqp::atpos_i($affinity-add-thresholds,$affinity-max-index );
 
     method !affinity-queue() {
-        nqp::stmts(
-          # If there are no affinity workers, start one.
-          nqp::unless(
-            nqp::elems(my $cur-affinity-workers := $!affinity-workers),
-            nqp::stmts(
-              $!state-lock.protect( {
-                  nqp::unless(
-                    nqp::elems($!affinity-workers),
-                    nqp::stmts(
-                      # We don't have any affinity workers yet, so start one
-                      # and return its queue.
-                      ($!affinity-workers := first-worker(
-                        AffinityWorker.new(
-                          scheduler => self
-                        )
-                      )),
-                      scheduler-debug("Created initial affinity worker thread"),
-                      self!maybe-start-supervisor,
-                      (return nqp::atpos($!affinity-workers,0).queue)
-                    )
-                  )
-              } ),
-              ($cur-affinity-workers := $!affinity-workers) # lost race
-            )
-          ),
-
-          # Otherwise, see which has the least load (this is inherently racey
-          # and approximate, but enough to help us avoid a busy worker). If we
-          # find an empty queue, return it immediately.
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(++$i,nqp::elems($cur-affinity-workers)),
-            nqp::if(
-              nqp::isconcrete(my $most-free-worker),
-              nqp::stmts(
-                (my $cand := nqp::atpos($cur-affinity-workers,$i)),
+        # If there are no affinity workers, start one.
+        nqp::unless(
+          nqp::elems(my $cur-affinity-workers := $!affinity-workers),
+          nqp::stmts(
+            $!state-lock.protect( {
                 nqp::unless(
-                  nqp::elems(my $queue := $cand.queue),
-                  nqp::unless(
-                    $cand.working,
-                    (return $queue),
-                  ),
-                ),
-                nqp::if(
-                  nqp::islt_i(
-                    nqp::elems($queue),
-                    nqp::elems($most-free-worker.queue)
-                  ),
-                  $most-free-worker := $cand
+                  nqp::elems($!affinity-workers),
+                  nqp::stmts(
+                    # We don't have any affinity workers yet, so start one
+                    # and return its queue.
+                    ($!affinity-workers := first-worker(
+                      AffinityWorker.new(
+                        scheduler => self
+                      )
+                    )),
+                    scheduler-debug("Created initial affinity worker thread"),
+                    self!maybe-start-supervisor,
+                    (return nqp::atpos($!affinity-workers,0).queue)
+                  )
                 )
-              ),
-              ($most-free-worker := nqp::atpos($cur-affinity-workers,$i))
-            )
-          ),
+            } ),
+            ($cur-affinity-workers := $!affinity-workers) # lost race
+          )
+        );
 
-          # Otherwise, check if the queue beats the threshold to add another
-          # worker thread.
+        # Otherwise, see which has the least load (this is inherently racey
+        # and approximate, but enough to help us avoid a busy worker). If we
+        # find an empty queue, return it immediately.
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,nqp::elems($cur-affinity-workers)),
           nqp::if(
-            nqp::isle_i(
-              nqp::elems(my $chosen-queue := $most-free-worker.queue),
+            nqp::isconcrete(my $most-free-worker),
+            nqp::stmts(
+              (my $cand := nqp::atpos($cur-affinity-workers,$i)),
+              nqp::unless(
+                nqp::elems(my $queue := $cand.queue),
+                nqp::unless(
+                  $cand.working,
+                  (return $queue),
+                ),
+              ),
               nqp::if(
                 nqp::islt_i(
-                  nqp::elems($cur-affinity-workers),
-                  $affinity-max-index
+                  nqp::elems($queue),
+                  nqp::elems($most-free-worker.queue)
                 ),
-                nqp::atpos_i(
-                  $affinity-add-thresholds,
-                  nqp::elems($cur-affinity-workers)
-                ),
-                $affinity-max-threshold,
+                $most-free-worker := $cand
               )
             ),
-            # found one that is empty enough
-            $chosen-queue,
-            # need to add another one, unless another thread did already
-            $!state-lock.protect( {
-                nqp::stmts(
-                  nqp::if(
-                    nqp::isgt_i(
-                      nqp::elems($!general-workers)
-                        + nqp::elems($!timer-workers)
-                        + nqp::elems($!affinity-workers),
-                      $!max_threads
-                    ),
-                    # alas, no way to add more threads
-                    nqp::stmts(
-                      scheduler-debug("Will not add extra affinity worker; hit $!max_threads thread limit"),
-                      (return $chosen-queue)
-                    )
-                  ),
-                  nqp::if(
-                    nqp::isne_i(
-                      nqp::elems($cur-affinity-workers),
-                      nqp::elems($!affinity-workers)
-                    ),
-                    # different load found, take this one
-                    (return $chosen-queue)
-                  ),
-
-                  # ok ok, add new worker
-                  ($!affinity-workers := push-worker(
-                    $!affinity-workers,
-                    (my $new-worker := AffinityWorker.new(scheduler => self))
-                  )),
-                  scheduler-debug("Added an affinity worker thread"),
-                  $new-worker.queue
-                )
-            } )
+            ($most-free-worker := nqp::atpos($cur-affinity-workers,$i))
           )
+        );
+
+        # Otherwise, check if the queue beats the threshold to add another
+        # worker thread.
+        nqp::if(
+          nqp::isle_i(
+            nqp::elems(my $chosen-queue := $most-free-worker.queue),
+            nqp::if(
+              nqp::islt_i(
+                nqp::elems($cur-affinity-workers),
+                $affinity-max-index
+              ),
+              nqp::atpos_i(
+                $affinity-add-thresholds,
+                nqp::elems($cur-affinity-workers)
+              ),
+              $affinity-max-threshold,
+            )
+          ),
+          # found one that is empty enough
+          $chosen-queue,
+          # need to add another one, unless another thread did already
+          $!state-lock.protect({
+              nqp::if(
+                nqp::isgt_i(
+                  nqp::elems($!general-workers)
+                    + nqp::elems($!timer-workers)
+                    + nqp::elems($!affinity-workers),
+                  $!max_threads
+                ),
+                # alas, no way to add more threads
+                nqp::stmts(
+                  scheduler-debug("Will not add extra affinity worker; hit $!max_threads thread limit"),
+                  (return $chosen-queue)
+                )
+              );
+
+              nqp::if(
+                nqp::isne_i(
+                  nqp::elems($cur-affinity-workers),
+                  nqp::elems($!affinity-workers)
+                ),
+                # different load found, take this one
+                (return $chosen-queue)
+              );
+
+              # ok ok, add new worker
+              $!affinity-workers := push-worker(
+                $!affinity-workers,
+                (my $new-worker := AffinityWorker.new(scheduler => self))
+              );
+              scheduler-debug("Added an affinity worker thread");
+              $new-worker.queue
+          })
         )
     }
 
@@ -914,31 +911,30 @@ my class ThreadPoolScheduler does Scheduler {
     my class TimerCancellation is repr('AsyncTask') { }
 
     method !CUE_DELAY_TIMES(&code, int $delay, int $times, %args) {
-        nqp::stmts(
-          (my &run := nqp::if(                   # set up what we need to run
-            nqp::isnull(my $catch :=
-              nqp::atkey(nqp::getattr(%args,Map,'$!storage'),"catch")),
-            &code,
-            wrap-catch(&code, $catch) # wrap any catch handler around code
-          )),
-          Cancellation.new( async_handles => nqp::if(
-            $times,
-            nqp::stmts(                          # need to run more than once
-              (my @async_handles),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(++$i,$times),
-                @async_handles.push(
-                  nqp::timer(self!timer-queue,&run,$delay,0,TimerCancellation)
-                )
-              ),
-              @async_handles
+        my &run := nqp::if(                   # set up what we need to run
+          nqp::isnull(my $catch :=
+            nqp::atkey(nqp::getattr(%args,Map,'$!storage'),"catch")),
+          &code,
+          wrap-catch(&code, $catch) # wrap any catch handler around code
+        );
+
+        Cancellation.new(async_handles => nqp::if(
+          $times,
+          nqp::stmts(                          # need to run more than once
+            (my @async_handles),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(++$i,$times),
+              @async_handles.push(
+                nqp::timer(self!timer-queue,&run,$delay,0,TimerCancellation)
+              )
             ),
-            [                                    # only needs to run once
-              nqp::timer(self!timer-queue,&run,$delay,0,TimerCancellation)
-            ]
-          ))
-        )
+            @async_handles
+          ),
+          [                                    # only needs to run once
+            nqp::timer(self!timer-queue,&run,$delay,0,TimerCancellation)
+          ]
+        ))
     }
 
     proto method cue(|) {*}
@@ -1021,35 +1017,26 @@ my class ThreadPoolScheduler does Scheduler {
         )
     }
     multi method cue(&code, :$times!, *%_) {
-        nqp::stmts(
-          (my $args := nqp::getattr(%_,Map,'$!storage')),
-          nqp::if(
-            nqp::isconcrete(my $at := nqp::atkey($args,"at"))
-              && nqp::isconcrete(my $in := nqp::atkey($args,"in")),
-            die("Cannot specify :at and :in at the same time"),
-            nqp::stmts(
-              nqp::if(
-                nqp::isconcrete($at)
-                  && nqp::not_i(nqp::isconcrete($at := validate-seconds($at))),
-                (return Cancellation.new(async_handles => [])),
-                nqp::if(
-                  nqp::isconcrete($in)
-                    && nqp::not_i(nqp::isconcrete($in := validate-seconds($in))),
-                  (return Cancellation.new(async_handles => []))
-                )
-              ),
-              self!CUE_DELAY_TIMES(
-                &code,
-                to-millis(nqp::ifnull(
-                  $in,
-                  nqp::if(nqp::isnull($at), .001, $at - now)
-                )),
-                $times,
-                %_
-              )
-            )
-          )
-        )
+        my $args := nqp::getattr(%_,Map,'$!storage');
+        die("Cannot specify :at and :in at the same time")
+          if nqp::isconcrete(my $at := nqp::atkey($args,"at"))
+          && nqp::isconcrete(my $in := nqp::atkey($args,"in"));
+
+        nqp::isconcrete($at)
+          && nqp::not_i(nqp::isconcrete($at := validate-seconds($at)))
+          ?? Cancellation.new(async_handles => [])
+          !! nqp::isconcrete($in)
+               && nqp::not_i(nqp::isconcrete($in := validate-seconds($in)))
+            ?? Cancellation.new(async_handles => [])
+            !! self!CUE_DELAY_TIMES(
+                 &code,
+                 to-millis(nqp::ifnull(
+                   $in,
+                   nqp::if(nqp::isnull($at), .001, $at - now)
+                 )),
+                 $times,
+                 %_
+               )
     }
     multi method cue(&code, :$at!, *%_) {
         nqp::isconcrete($at)

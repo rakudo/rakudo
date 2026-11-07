@@ -108,11 +108,14 @@ class CompUnit::RepositoryRegistry {
                  for parse-include-specS($specs);
             }
 
-            if nqp::existskey($ENV,'RAKUDOLIB') {
+            my $rakudo-lib := nqp::existskey($ENV,'RAKUDOLIB');
+            my $raku-lib := nqp::existskey($ENV,'RAKULIB');
+
+            if $rakudo-lib {
                 nqp::push($raw-specs,$_)
                   for parse-include-specS(nqp::atkey($ENV,'RAKUDOLIB'));
             }
-            if nqp::existskey($ENV,'RAKULIB') {
+            if $raku-lib {
                 nqp::push($raw-specs,$_)
                   for parse-include-specS(nqp::atkey($ENV,'RAKULIB'));
             }
@@ -120,7 +123,7 @@ class CompUnit::RepositoryRegistry {
                 DEPRECATED(
                   "RAKULIB", "", "6.e", :what<PERL6LIB>,
                   :file<environment variable>
-                );
+                ) unless $rakudo-lib || $raku-lib;
                 nqp::push($raw-specs,$_)
                   for parse-include-specS(nqp::atkey($ENV,'PERL6LIB'));
             }

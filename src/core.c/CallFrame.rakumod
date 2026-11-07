@@ -6,22 +6,22 @@ my class CallFrame {
     method SET-SELF(
       \level, Mu \ctx is raw, Mu \bt is raw
     ) is implementation-detail {
-        nqp::stmts(
-          (my int $i = nqp::add_i(level,1)),
-          (my $bt := nqp::atpos(nqp::getattr(bt,List,'$!reified'),$i)),
-          ($!annotations := nqp::isnull($bt) ?? $bt !! nqp::atkey($bt,'annotations')),
-          (my $ctx := ctx),
-          nqp::while(
-            nqp::isgt_i(--$i,0),
-            nqp::ifnull(
-                ($ctx := nqp::ctxcallerskipthunks($ctx)),
-                fail "No callframe at level {level}"
-            )
-          ),
-          ($!my :=
-            nqp::p6bindattrinvres(Stash.new,Map,'$!storage',$ctx)),
-          self
-        )
+        my int $i = nqp::add_i(level,1);
+        my $bt := nqp::atpos(nqp::getattr(bt,List,'$!reified'),$i);
+        $!annotations := nqp::isnull($bt)
+          ?? $bt
+          !! nqp::atkey($bt,'annotations');
+
+        my $ctx := ctx;
+        nqp::while(
+          nqp::isgt_i(--$i,0),
+          nqp::ifnull(
+              ($ctx := nqp::ctxcallerskipthunks($ctx)),
+              fail "No callframe at level {level}"
+          )
+        );
+        $!my := nqp::p6bindattrinvres(Stash.new,Map,'$!storage',$ctx);
+        self
     }
 
     only method new(CallFrame: Int:D $level = 0) {  # MUST BE AN only

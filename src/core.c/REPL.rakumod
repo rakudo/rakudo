@@ -517,6 +517,10 @@ do {
                     $!save_ctx := $*MAIN_CTX;
                 }
 
+                # Hyper/Race may confuse the output checker, make sure
+                # they've completed running before doing anything else
+                $output.sink if nqp::istype($output,ParallelSequence);
+
                 # Print the result if:
                 # - there wasn't some other output
                 # - the result is an *unhandled* Failure

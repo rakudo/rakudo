@@ -1439,8 +1439,8 @@ my class X::Undeclared::Symbols does X::Comp {
             for %.unk_routines.sort(*.key) {
                 $r ~= "    $_.key() &l($_.value)";
                 $r ~= " (in Raku please use $_ instead)" with %obs{$_.key};
-                if +%.routine_suggestion{$_.key()}.list {
-                    $r ~= ". " ~ s(%.routine_suggestion{$_.key()}.list);
+                if %.routine_suggestion{$_.key} -> $suggestions {
+                    $r ~= ". " ~ s($suggestions.list);
                 }
                 $r ~= "\n";
             }

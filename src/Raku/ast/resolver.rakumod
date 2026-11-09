@@ -1284,7 +1284,8 @@ class RakuAST::Resolver {
         unless $with_sigil {
             my @no_sigils;  # can't do in-place $_ alteration
             for @suggestions {
-                nqp::push( @no_sigils, nqp::substr($_,1,nqp::chars($_) - 1) );
+                my str $name := nqp::eqat($_,'&',0) ?? nqp::substr($_,1) !! $_;
+                nqp::push(@no_sigils,$name) if $name;
             }
             @suggestions := @no_sigils;
         }

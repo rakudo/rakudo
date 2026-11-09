@@ -2579,9 +2579,13 @@ class RakuAST::ParameterTarget::Term
                 $where := ' at ' ~ $source.original-file
                     ~ ':' ~ $source.original-line($origin.from);
             }
-            RakuAST::IMPL::VarLowering.IMPL-NOTE(
-                'lex2local: minted ' ~ $!lowered-local-name ~ ' for term '
-                    ~ $!name.canonicalize ~ $where);
+            self.note(
+              'lex2local: minted ',
+              $!lowered-local-name,
+              ' for term ',
+              $!name.canonicalize,
+              $where
+            );
         }
         $!lowered-local-name
     }

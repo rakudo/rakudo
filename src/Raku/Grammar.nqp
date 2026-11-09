@@ -5867,6 +5867,9 @@ Rakudo significantly on *every* run."
             )
         );
 
+        # If an outer $*GRAMMAR is specified, then set it here
+        try $*GRAMMAR := self;
+
         $*LANG := self;
         #$*LEAF := self;
         return 1;

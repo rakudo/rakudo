@@ -644,6 +644,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         $*LANGUAGE-REVISION := $language-revision;
 
+        # Allow all isms in 6.e and higher
+        if $language-revision >= 3 {
+            my $LANG := $*LANG;
+            $LANG.set_pragma('p5isms',1);
+            $LANG.set_pragma('c++isms',1);
+        }
+
         # Locate an EXPORTHOW and set those mappings on our current language.
         # A subset or an enum looks them up in the resolver.
         my $EXPORTHOW := $RESOLVER.resolve-lexical-constant('EXPORTHOW');

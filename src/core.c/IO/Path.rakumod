@@ -306,32 +306,33 @@ my class IO::Path is Cool does IO {
             # volume.
             nqp::if(
               (my $first := nqp::atpos($parts,0)),
-              nqp::if(                              # possibly relative
+              nqp::if(                               # possibly relative
                 $first.contains(/^ <[A..Z]> ":" /),
-                nqp::stmts(                         # drive letter
+                nqp::stmts(                          # drive letter
                   ($volume = $first.substr(0,2)),
                   nqp::if(
                     nqp::bindpos($parts,0,$first.substr(2)),
-                    nqp::unshift($parts,"")         # relative, make absolute
+                    nqp::unshift($parts,"")          # relative, make absolute
                   )
                 )
               ),
-              ($volume = "")                        # already absolute
+              ($volume = "")                         # already absolute
             );
 
             $parts
         }
 
-        # Prefix CWD if not absolute
+        # Since the $!CWD attribute can really be anything, we also need
+        # to process that if a relative path was specified
         my $parts := safe-split($!path);
-        my str @resolved = nqp::if(
-          nqp::atpos($parts,0),
-          safe-split($!CWD),      # relative, so prefix with cwd
-          nqp::stmts(
-            nqp::shift($parts),   # absolute, no check on 1st
-            $volume               # set volume indication
-          )
-        );
+        nqp::atpos($parts,0)
+          ?? nqp::splice($parts,safe-split($!CWD),0,0)  # relative, prefix cwd
+          !! nqp::shift($parts);                     # absolute, dont check 1st
+
+        # Any volume indication either from the safe-split on $!path, or
+        # the safe-split on $!CWD needs to be added to the resolved list.
+        # On non-Windows systems, this will be the empty string.
+        my str @resolved = $volume;
 
         # Process all parts
         nqp::while(
@@ -362,17 +363,13 @@ my class IO::Path is Cool does IO {
                       nqp::fileislink($next)
                         && nqp::isge_i(--$max-links,0),
                       nqp::stmts(                    # is link, not too many
-                        (my $link := safe-split(nqp::readlink($next))),
+                        nqp::splice(
+                          $parts,safe-split(nqp::readlink($next)),0,0
+                        ),
                         nqp::if(
-                          nqp::atpos($link,0),
-                          nqp::stmts(                # relative link
-                            nqp::pop_s(@resolved),
-                            nqp::splice($parts,$link,0,0)
-                          ),
-                          nqp::stmts(                # absolute link
-                            (@resolved = $link),
-                            nqp::bindpos_s(@resolved,0,$volume)
-                          )
+                          nqp::atpos($parts,0),
+                          nqp::pop_s(@resolved),     # relative link, pop
+                          (@resolved = $volume)      # absolute link, init
                         )
                       )
                     ),

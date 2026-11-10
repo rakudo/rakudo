@@ -360,17 +360,20 @@ my class IO::Path is Cool does IO {
                       nqp::const::STAT_EXISTS
                     ),
                     nqp::if(                         # exists
-                      nqp::fileislink($next)
-                        && nqp::isge_i(--$max-links,0),
-                      nqp::stmts(                    # is link, not too many
-                        nqp::splice(
-                          $parts,safe-split(nqp::readlink($next)),0,0
+                      nqp::fileislink($next),
+                      nqp::if(                       # is link
+                        nqp::isge_i(--$max-links,0),
+                        nqp::stmts(                  # not too many
+                          nqp::splice(
+                            $parts,safe-split(nqp::readlink($next)),0,0
+                          ),
+                          nqp::if(
+                            nqp::atpos($parts,0),
+                            nqp::pop_s(@resolved),   # relative link, pop
+                            (@resolved = $volume)    # absolute link, init
+                          )
                         ),
-                        nqp::if(
-                          nqp::atpos($parts,0),
-                          nqp::pop_s(@resolved),     # relative link, pop
-                          (@resolved = $volume)      # absolute link, init
-                        )
+                        X::IO::Resolve.new(:path(self)).fail # too many
                       )
                     ),
                     nqp::stmts(                      # does not exist

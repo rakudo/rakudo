@@ -867,7 +867,13 @@ my class X::IO::NotAChild does X::IO {
 
 my class X::IO::Resolve does X::IO {
     has $.path;
-    method message() { "Failed to completely resolve {$.path.raku}" }
+    has $.reason;
+    method message() {
+        my str $message = "Failed to completely resolve $.path.raku()";
+        $.reason
+          ?? "$message: $.reason"
+          !! $message
+    }
 }
 
 my class X::IO::Rmdir does X::IO {

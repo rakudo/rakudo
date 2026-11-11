@@ -399,6 +399,7 @@ my class IO::Path is Cool does IO {
           )
         );
 
+        nqp::push_s(@resolved,"") if nqp::iseq_i(nqp::elems(@resolved),1);
         nqp::p6bindattrinvres(
           nqp::create(self)!SET-SELF(
             nqp::join($sep,@resolved), $!SPEC, nqp::concat($volume,$sep)

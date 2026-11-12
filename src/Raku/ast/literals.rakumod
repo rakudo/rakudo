@@ -43,6 +43,7 @@ class RakuAST::Literal
     method IMPL-CAN-INTERPRET() { True }
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
     method type-name() { 'value' }
+    method is-base-value() { False }
 
     method PERFORM-CHECK(
                RakuAST::Resolver $resolver,
@@ -120,6 +121,8 @@ class RakuAST::IntLiteral
              )
           !! $wval
     }
+
+    method is-base-value() { try self.value == 0 }
 }
 
 class RakuAST::NumLiteral
@@ -135,6 +138,8 @@ class RakuAST::NumLiteral
         my $wval := QAST::WVal.new( :$value );
         QAST::Want.new($wval,'Nn', QAST::NVal.new(:value(nqp::unbox_n($value))))
     }
+
+    method is-base-value() { self.value == 0e0 }
 }
 
 class RakuAST::RatLiteral

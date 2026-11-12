@@ -20,6 +20,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         '.exe', '-m.exe', '-j.exe', '-js.exe',
         '.bat', '-m.bat', '-j.bat', '-js.bat';
 
+    # #name# is replaced by a quoted (.raku) string literal
     my constant $raku-wrapper-code = 'sub MAIN(*@, *%) {
     CompUnit::RepositoryRegistry.run-script(#name#);
 }';
@@ -173,6 +174,26 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     method !bin-dir       { with $.prefix.add('bin')       { .mkdir unless .e; $_ } }
     method !short-dir     { with $.prefix.add('short')     { .mkdir unless .e; $_ } }
 
+    # bin/ name-paths in a distribution's "files" end up as wrappers in
+    # the bin/ directory of the repository.  Return the resolved paths of
+    # all wrappers for the given name-path (keyed by their path relative
+    # to the prefix), refusing any that would end up outside of bin/
+    # (e.g. because of '..' or a symlink).  Other name-paths (resources/)
+    # are only stored under content ids, so they don't need this.
+    method !wrapper-paths(Str:D $name-path) {
+        my $bin-dir    := self!bin-dir;
+        my $withoutext := $name-path.subst(/\.raku$/, '');
+        my $ext        := Rakudo::Internals.IS-WIN ?? '.exe' !! '';
+        my %paths;
+        for @script-postfixes -> $be {
+            for "$withoutext$be.raku", "$withoutext$be$ext" -> $path {
+                %paths{$path} := $.prefix.add($path).resolve-inside($bin-dir)
+                  // die "Refusing to install '$name-path' outside of '$bin-dir'";
+            }
+        }
+        %paths
+    }
+
     method !add-short-name($name, $dist, $source = "", $checksum = "" --> Nil) {
         my %meta := $dist.meta;
         self!short-dir
@@ -277,6 +298,9 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         my $resources-dir = self!resources-dir;
         my $bin-dir       = self!bin-dir;
         my $is-win        = Rakudo::Internals.IS-WIN;
+
+        # refuse to install before anything is written
+        self!wrapper-paths($_) for %files.keys.grep(*.starts-with('bin/'));
 
         self!add-short-name($dist.meta<name>, $dist); # so scripts can find their dist
 
@@ -408,8 +432,9 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         my $name         = $name-path.subst(/^bin\//, '');
         my $withoutext   = $name-path.subst(/\.raku$/, '');
         my $ext = Rakudo::Internals.IS-WIN ?? '.exe' !! '';
+        my %paths := self!wrapper-paths($name-path);
         for @script-postfixes -> $be {
-            $.prefix.add("$withoutext$be.raku").spurt:
+            %paths{"$withoutext$be.raku"}.spurt:
                 $raku-wrapper-code.subst('#name#', $name.raku, :g);
             my $prog-conf = do given self.config<wrapper-mode> {
                 when 'absolute' {
@@ -431,9 +456,10 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
               '<cmd-args>',
               ))
             );
-            $.prefix.add("$withoutext$be$ext").spurt: $blob;
+            my $wrapper = %paths{"$withoutext$be$ext"};
+            $wrapper.spurt: $blob;
             unless Rakudo::Internals.IS-WIN {
-                $.prefix.add("$withoutext$be").chmod: 0o755;
+                $wrapper.chmod: 0o755;
             }
         }
     }

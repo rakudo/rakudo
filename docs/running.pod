@@ -83,6 +83,29 @@ search list for modules. C<RAKUDOLIB> is evaluated first. B<NOTE:> These env
 vars were added in the Rakudo compiler in version 2020.05. The deprecated older
 env var C<PERL6LIB> is still available.
 
+=item C<XDG_DATA_HOME>, C<HOME> (I<Str>; F<src/core.c/CompUnit/RepositoryRegistry.rakumod>)
+
+Determine the location of the per-user C<home> repository, into which
+module installers such as C<zef> install for the current user.  On
+Unix-like systems this is:
+
+=over
+
+=item F<$HOME/.raku>, if it already contains installed distributions
+(i.e. F<$HOME/.raku/dist> exists).  This keeps installations made by
+older Rakudo versions working; they are not migrated.
+
+=item F<$XDG_DATA_HOME/raku>, if C<XDG_DATA_HOME> is set to an absolute
+path.  Relative paths are invalid according to the XDG Base Directory
+specification and are ignored.
+
+=item F<$HOME/.local/share/raku> otherwise.
+
+=back
+
+On Windows, the repository is always F<.raku> in the user's home directory
+(C<HOME>, or C<HOMEDRIVE> and C<HOMEPATH>).
+
 =item C<RAKUDO_MODULE_DEBUG> (I<Bool>; F<src/Perl6/ModuleLoader.nqp>)
 
 If true, causes the module loader to print debugging information to standard

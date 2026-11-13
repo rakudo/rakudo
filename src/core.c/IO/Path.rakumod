@@ -524,27 +524,29 @@ my class IO::Path is Cool does IO {
           IO::Path,'$!is-absolute',True
         );
 
-        nqp::stmts(
-            nqp::unless(
-                nqp::unless(nqp::isfalse($d), $dir.d),
-                fail X::IO::Chdir.new: :$path, :os-error(
-                    $dir.e ?? 'is not a directory' !! 'does not exist'
-                )
-            ),
-            nqp::unless(
-                nqp::unless(nqp::isfalse($r), $dir.r),
-                fail X::IO::Chdir.new: :$path, :os-error("did not pass :r test")
-            ),
-            nqp::unless(
-                nqp::unless(nqp::isfalse($w), $dir.w),
-                fail X::IO::Chdir.new: :$path, :os-error("did not pass :w test")
-            ),
-            nqp::unless(
-                nqp::unless(nqp::isfalse($x), $dir.x),
-                fail X::IO::Chdir.new: :$path, :os-error("did not pass :x test")
-            ),
-            $dir
-        )
+        nqp::unless(
+          nqp::unless(nqp::isfalse($d), $dir.d),
+          fail X::IO::Chdir.new: :$path, :os-error(
+              $dir.e ?? 'is not a directory' !! 'does not exist'
+          )
+        );
+
+        nqp::unless(
+          nqp::unless(nqp::isfalse($r), $dir.r),
+          fail X::IO::Chdir.new: :$path, :os-error("did not pass :r test")
+        );
+
+        nqp::unless(
+          nqp::unless(nqp::isfalse($w), $dir.w),
+          fail X::IO::Chdir.new: :$path, :os-error("did not pass :w test")
+        );
+
+        nqp::unless(
+          nqp::unless(nqp::isfalse($x), $dir.x),
+          fail X::IO::Chdir.new: :$path, :os-error("did not pass :x test")
+        );
+
+        $dir
     }
 
     method rename(IO::Path:D: IO() $to, :$createonly --> True) {

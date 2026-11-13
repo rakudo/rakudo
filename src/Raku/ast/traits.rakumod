@@ -113,6 +113,51 @@ role RakuAST::TraitTarget {
     }
 }
 
+class RakuAST::TraitTarget::Variable
+  is RakuAST::Node
+  does RakuAST::TraitTarget
+  does RakuAST::Meta
+  does RakuAST::ImplicitLookups
+  does RakuAST::BeginTime
+{
+    has str $!name;
+    has str $!scope;
+    has Mu $!cont;
+    has Mu $!code-object;
+    has Mu $!slash;
+
+    method new(str $name, str $scope, Mu $cont, Mu $code-object, Mu $slash) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::TraitTarget::Variable, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::TraitTarget::Variable, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::TraitTarget::Variable, '$!cont', $cont);
+        nqp::bindattr($obj, RakuAST::TraitTarget::Variable, '$!code-object', $code-object);
+        nqp::bindattr($obj, RakuAST::TraitTarget::Variable, '$!slash', $slash);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        [ RakuAST::Type::Setting.from-identifier('Variable') ]
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    }
+
+    method PRODUCE-META-OBJECT(:$resolver, :$context) {
+        my $Variable  := self.get-implicit-lookups[0].compile-time-value;
+        my $varvar := nqp::create($Variable);
+        nqp::bindattr_s($varvar, $Variable, '$!name', $!name);
+        nqp::bindattr_s($varvar, $Variable, '$!scope', $!scope);
+        nqp::bindattr($varvar, $Variable, '$!var', $!cont);
+        nqp::bindattr($varvar, $Variable, '$!block', $!code-object);
+        nqp::bindattr($varvar, $Variable, '$!slash', $!slash);
+        nqp::assign(
+            nqp::getattr($varvar, $Variable, '$!implicit-lexical-usage'),
+            True);
+        $varvar
+    }
+}
+
 # The base of all traits.
 class RakuAST::Trait
   is RakuAST::Node

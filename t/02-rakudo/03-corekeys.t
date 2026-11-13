@@ -871,7 +871,6 @@ my %nyi-for-backend = (
         Q{𝑒},
     ),
     'moar' => (),
-    'js' => (),
 );
 
 my $rakuast-built = SETTING::{'!RAKUAST_MARKER'}:exists;

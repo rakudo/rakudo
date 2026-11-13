@@ -13,7 +13,7 @@ after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
 Rakudo is currently the primary implementation of the Raku
-language. The `Rakudo` compiler has `moar`, `jvm` and `js` backends. Note
+language. The `Rakudo` compiler has `moar` and `jvm` backends. Note
 that each backend has a different set of features.
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`

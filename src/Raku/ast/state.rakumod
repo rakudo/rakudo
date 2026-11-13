@@ -125,33 +125,46 @@ role RakuAST::StateInitGuard {
     # Whether the declaration has a state initializer to guard. A binding
     # one keeps nqp::p6stateinit, as the binder writes into its own frame.
     method IMPL-GUARDS-STATE-INIT() {
-        self.scope eq 'state' && nqp::isconcrete(self.initializer)
+        self.scope eq 'state'
+          && nqp::isconcrete(self.initializer)
           && !self.initializer.is-binding
     }
 
     method IMPL-STATE-INIT-GUARD() {
-        $!state-init-guard // nqp::bindattr(self, RakuAST::StateInitGuard,
-            '$!state-init-guard', RakuAST::VarDeclaration::Implicit::State.new(
-                QAST::Node.unique('!state_init_guard'), :sentinel))
+        $!state-init-guard  # XXX is this attribute needed???
+          // nqp::bindattr(self,RakuAST::StateInitGuard,'$!state-init-guard',
+               RakuAST::VarDeclaration::Implicit::State.new(
+                 QAST::Node.unique('!state_init_guard'),
+                 :sentinel
+               )
+             )
     }
 
     # Whether the initializer is to run, marking the guard on the first reach.
     # A sub in a role body forms its code before its scope gathers the
     # implicit declarations, so the guard is produced here as well.
     method IMPL-STATE-INIT-CONDITION-QAST(RakuAST::IMPL::QASTContext $context) {
-        return QAST::Op.new( :op('p6stateinit') ) unless self.IMPL-GUARDS-STATE-INIT;
-        self.get-implicit-declarations;
-        my $guard := self.IMPL-STATE-INIT-GUARD;
-        QAST::Op.new(:op<if>,
-          $guard.IMPL-SENTINEL-TEST-QAST($context),
-          QAST::Stmts.new(
-            QAST::Op.new(:op<p6store>,
-              QAST::Var.new( :name($guard.name), :scope<lexical> ),
-              QAST::WVal.new( :value(True) )
-            ),
-            QAST::IVal.new( :value(1) )
-          ),
-          QAST::IVal.new( :value(0) )
-        )
+
+        # Assume assigning
+        if self.IMPL-GUARDS-STATE-INIT {
+            self.get-implicit-declarations;
+            my $guard := self.IMPL-STATE-INIT-GUARD;
+            QAST::Op.new(:op<if>,
+              $guard.IMPL-SENTINEL-TEST-QAST($context),
+              QAST::Stmts.new(
+                QAST::Op.new(:op<p6store>,
+                  QAST::Var.new(:name($guard.name), :scope<lexical>),
+                  QAST::WVal.new(:value(True))
+                ),
+                QAST::IVal.new(:value(1))
+              ),
+              QAST::IVal.new(:value(0))
+            )
+        }
+
+        # Assume binding
+        else {
+            QAST::Op.new(:op<p6stateinit>)
+        }
     }
 }

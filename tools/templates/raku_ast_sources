@@ -23,6 +23,8 @@ src/Raku/ast/nqp.rakumod
 src/Raku/ast/term.rakumod
 src/Raku/ast/name.rakumod
 src/Raku/ast/type.rakumod
+src/Raku/ast/initializer.rakumod
+src/Raku/ast/state.rakumod
 src/Raku/ast/variable-declaration.rakumod
 src/Raku/ast/variable-access.rakumod
 src/Raku/ast/contextualizer.rakumod

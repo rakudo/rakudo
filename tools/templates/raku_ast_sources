@@ -27,6 +27,7 @@ src/Raku/ast/initializer.rakumod
 src/Raku/ast/state.rakumod
 src/Raku/ast/container.rakumod
 src/Raku/ast/variable-declaration.rakumod
+src/Raku/ast/implicit.rakumod
 src/Raku/ast/placeholder.rakumod
 src/Raku/ast/variable-access.rakumod
 src/Raku/ast/contextualizer.rakumod

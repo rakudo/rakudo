@@ -8,19 +8,19 @@ role RakuAST::ContainerCreator {
     has RakuAST::Type $!explicit-container-base-type-ast;
     has RakuAST::Type $!conflicting-base-type-ast;
     has Bool $.forced-dynamic;
-
-    method IMPL-SET-FORCED-DYNAMIC(Bool $forced-dynamic) {
-        nqp::bindattr(self, RakuAST::ContainerCreator, '$!forced-dynamic', $forced-dynamic);
-    }
     has Bool $!initialized;
     has Mu $.container-base-type;
     has Mu $.container-type;
     has ContainerDescriptor $.container-descriptor;
     has Mu $.bind-constraint;
-    # 1 when the explicit base type is one of the immutable QuantHashes that
-    # must be bare-created. Resolved by identity at BEGIN time, where a
-    # resolver is available, and read at code-gen.
+
+    # 1 when the explicit base type is one of the immutable QuantHashes
+    # that need special handling on creation
     has int $!explicit-base-bare-create;
+
+    method IMPL-SET-FORCED-DYNAMIC(Bool $forced-dynamic) {
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!forced-dynamic', $forced-dynamic);
+    }
 
     method IMPL-SET-EXPLICIT-CONTAINER-BASE-TYPE(RakuAST::Type $ast) {
         if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
@@ -43,14 +43,19 @@ role RakuAST::ContainerCreator {
     }
 
     method IMPL-EXPLICIT-CONTAINER-BASE-TYPE() {
-        return Mu unless self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE;
-        # A container cannot be an instance of a definite type, so `@a is List:D`
-        # uses List as the base. This holds in every language version, unlike the
-        # definite semantics elsewhere, so it is not version-gated.
-        my $type := $!explicit-container-base-type-ast.meta-object;
-        nqp::eqaddr($type.HOW, Perl6::Metamodel::DefiniteHOW)
-            ?? $type.HOW.base_type($type)
-            !! $type
+        # A container cannot be an instance of a definite type, so
+        # `@a is List:D` uses List as the base. This holds in every
+        # language version, unlike the definite semantics elsewhere,
+        # so it is not version-gated.
+        if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
+            my $type := $!explicit-container-base-type-ast.meta-object;
+            nqp::eqaddr($type.HOW, Perl6::Metamodel::DefiniteHOW)
+              ?? $type.HOW.base_type($type)
+              !! $type
+        }
+        else {
+            Mu
+        }
     }
 
     method IMPL-CONFLICTING-BASE-TYPE() {
@@ -90,8 +95,6 @@ role RakuAST::ContainerCreator {
     }
 
     method IMPL-CALCULATE-TYPES(Mu $of) {
-        return Nil if $!initialized;
-
         # Form the container type.
         my str $sigil := self.sigil;
         my $key-type := self.IMPL-CONTAINER-KEY-TYPE;
@@ -210,25 +213,25 @@ role RakuAST::ContainerCreator {
     }
 
     method IMPL-CONTAINER-DESCRIPTOR(Mu $of) {
-        self.IMPL-CALCULATE-TYPES($of);
+        self.IMPL-CALCULATE-TYPES($of) unless $!initialized;
 
         self.container-descriptor
     }
 
     method IMPL-CONTAINER-TYPE(Mu $of) {
-        self.IMPL-CALCULATE-TYPES($of);
+        self.IMPL-CALCULATE-TYPES($of) unless $!initialized;
 
         self.container-type
     }
 
     method IMPL-BIND-CONSTRAINT(Mu $of) {
-        self.IMPL-CALCULATE-TYPES($of);
+        self.IMPL-CALCULATE-TYPES($of) unless $!initialized;
 
         self.bind-constraint
     }
 
     method IMPL-CONTAINER(Mu $of, Mu $cont-desc, Bool :$attribute) {
-        self.IMPL-CALCULATE-TYPES($of);
+        self.IMPL-CALCULATE-TYPES($of) unless $!initialized;
 
         my $container-type := self.container-type;
         # Form the container.
@@ -247,9 +250,11 @@ role RakuAST::ContainerCreator {
             }
             my $container := nqp::create($container-type);
             try nqp::bindattr($container, $!container-base-type, '$!descriptor', $cont-desc);
-            unless $sigil eq '@' || $sigil eq '%' {
-                nqp::bindattr($container, $!container-base-type, '$!value', $cont-desc.default);
-            }
+
+            nqp::bindattr(
+              $container, $!container-base-type, '$!value', $cont-desc.default
+            ) unless $sigil eq '@' || $sigil eq '%';
+
             $container
         }
     }

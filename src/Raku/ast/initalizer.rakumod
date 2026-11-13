@@ -2049,6 +2049,7 @@ class RakuAST::VarDeclaration::Simple
             }
         }
         $qast.push(QAST::Var.new( :name($target), :scope('local') ));
+nqp::say("qasting");
         $qast
     }
 

@@ -15,24 +15,31 @@ class RakuAST::VarDeclaration::Constant
     has Mu                   $!package;
 
     method new(
-                       str :$scope,
-             RakuAST::Type :$type,
                        str :$name!,
       RakuAST::Initializer :$initializer!,
+                       str :$scope,
+             RakuAST::Type :$type,
                       List :$traits
     ) {
         my $obj := nqp::create(self);
+        nqp::bindattr_s($obj,RakuAST::VarDeclaration::Constant,'$!name',
+          $name
+        );
+        nqp::bindattr($obj,RakuAST::VarDeclaration::Constant,'$!initializer',
+          $initializer // RakuAST::Initializer  # XXX why default if required?
+        );
         $obj.replace-scope($scope);
-        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Constant,'$!name',$name);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Constant, '$!initializer',
-            $initializer // RakuAST::Initializer);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Constant, '$!type',
-          $type // RakuAST::Type);
+        nqp::bindattr($obj,RakuAST::VarDeclaration::Constant,'$!type',
+          $type // RakuAST::Type
+        );
         $obj.set-traits($traits) if $traits;
         $obj
     }
 
     method lexical-name()   { $!name }
+    method sigil() { nqp::substr($!name,0,1) }
+    method compile-time-value() { $!value }
+
     method default-scope()  { 'our'   }
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
     method is-simple-lexical-declaration() { True }
@@ -48,10 +55,6 @@ class RakuAST::VarDeclaration::Constant
         self.visit-traits($visitor);
         $visitor(self.WHY)      if self.WHY;
     }
-
-    method sigil { nqp::substr($!name,0,1) }
-
-    method compile-time-value() { $!value }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         my str $sigil := self.sigil;
@@ -211,35 +214,33 @@ class RakuAST::VarDeclaration::Constant
         )
     }
 
-    # A native-typed constant references a compile-time-known value, so emit
-    # that value as a native primitive rather than a lexical lookup of the
-    # boxed object. A lexical lookup produces an object even for a native
-    # type, which passes the constant as its boxed type at call sites and so
-    # never selects a native candidate; the native primitive passes as native
-    # and auto-boxes wherever an object is wanted. Returns nqp::null when the
-    # value is not the plain native type, in which case the boxed value (which
-    # a native-typed constant keeps unchanged) has to be looked up as-is.
+    # Return QAST for constant if QAST for a native value can be determined,
+    # otherwise return nqp::null to indicate absence of native QAST
     method IMPL-NATIVE-VALUE-QAST() {
-        return nqp::null unless $!type;
-        my $native-type := $!type.meta-object;
-        my int $primspec := nqp::objprimspec($native-type);
-        return nqp::null unless $primspec == nqp::const::BIND_VAL_INT
-          || $primspec == nqp::const::BIND_VAL_NUM
-          || $primspec == nqp::const::BIND_VAL_STR;
-        # The boxed companion of a native type sits directly above it in the
-        # MRO (int -> Int, num -> Num, str -> Str); only unbox a value that is
-        # actually one of those.
-        my $mro := $native-type.HOW.mro($native-type);
-        return nqp::null unless nqp::elems($mro) > 1;
-        my $value := nqp::decont($!value);
-        return nqp::null unless nqp::istype($value, nqp::atpos($mro, 1));
-        $primspec == nqp::const::BIND_VAL_INT
-          ?? (nqp::isbig_I($value)
-                ?? nqp::null
-                !! QAST::IVal.new(:value(nqp::unbox_i($value))))
-          !! $primspec == nqp::const::BIND_VAL_NUM
-            ?? QAST::NVal.new(:value(nqp::unbox_n($value)))
-            !! QAST::SVal.new(:value(nqp::unbox_s($value)))
+        if $!type {
+            my int $primspec := nqp::objprimspec($!type.meta-object);
+            if $primspec {
+                my $value := nqp::decont($!value);
+                $primspec == nqp::const::BIND_VAL_INT
+                  || $primspec == nqp::const::BIND_VAL_UINT
+                  ?? nqp::isbig_I($value)
+                    ?? nqp::null   # too big for native int
+                    !! QAST::IVal.new(:value(nqp::unbox_i($value)))
+                  !! $primspec == nqp::const::BIND_VAL_STR
+                    ?? QAST::SVal.new(:value(nqp::unbox_s($value)))
+                    !! QAST::NVal.new(:value(nqp::unbox_n($value)))
+            }
+
+            # Not a native type
+            else {
+                nqp::null
+            }
+        }
+
+        # No type info
+        else {
+            nqp::null
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

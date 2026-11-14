@@ -17,7 +17,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2026-10-24   Rakudo #196 (Coke)
+  2026-12-24   Rakudo #199 (Coke)
 
 (More planned dates can be generated with F<tools/release-dates.raku>).
 
@@ -30,65 +30,21 @@ C<Ake> uses C<gpg2> to sign releases (available in the C<gnugpg2> system package
 
 =head2 Steps to create a release (for release managers)
 
-Currently there are two tools:
-
-=over
-
-=item *
+The source release is primarily handled with the
 L<Release Akefile|https://github.com/rakudo/rakudo/blob/main/tools/releasable/Akefile>
 which is meant to be used together with
 L<Releasable|https://github.com/Raku/whateverable/wiki/Releasable> bot
 
-=item *
-L<NeuralAnomaly|https://github.com/zoffixznet/na> bot
-
-=back
-
 Some things are hard to automate, and you have to understand what is
-(and what is not) done by the tool you are using, so read on.
+(and what is not) done by the tool you are using, as well as how to avoid
+some issues, so read on.
 
 =over 4
 
 =item 1.
 
-Once a week or on-demand run the L<Blin tool|https://github.com/Raku/Blin> to
-check regressions in the ecosystem modules.
-
-First, bump MoarVM and NQP if necessary. To do so you can either use
-a very helpful L<Z script|https://github.com/Raku/z> or obtain
-actual values using C<git describe> in appropriate repo and edit the MOAR_REVISION
-and NQP_REVISION files.
-
-Given you have a Blin image built and ready, run it to get results.
-Don't forget to remove previous results with
-
-    sudo rm -rf /var/tmp/Blin-volume/
-
-On a machine with 12-16 cores Ryzen CPU and SSD it usually
-takes about 2 hours to test the ecosystem.
-Note you need at least 32 GB of RAM for this.
-
-When the results are here, a file C<failures.md> is generated in
-the C</var/tmp/Blin-volume/output/> directory. Carefully read what
-modules are there and manually check them for false positives.
-
-Possible false positives are:
-
-* Modules related to async sometimes have flapping tests
-* The C<November> module
-
-If the module installs fine on the latest Rakudo built from HEAD
-and failed on Blin it is likely not necessary to report it,
-when in doubt ask. If the module has weird failure mode (MoarVM oops, a segfault etc)
-then it's a good idea to report it anyway, if it fails more times than installs
-it's a good idea to report it too.
-
-Modify the C<failures.md> report to remove false positives and
-post it as a new Rakudo blocker ticket.
-
-Generally, any kind of breakage in modules is unwanted, but there are
-exceptions. Submit Pull Requests to anything that is affected and file
-rakudo tickets for all unwanted changes in Rakudo behavior.
+Leading up to the release, regularly run L<Blin|https://github.com/Raku/Blin/wiki/Release>
+to find (and resolve!) any regressions in the ecosystem.
 
 =over 4
 

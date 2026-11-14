@@ -970,7 +970,7 @@ my class ThreadPoolScheduler does Scheduler {
               ));
               nqp::unless(
                 nqp::isconcrete($delay-in-seconds),
-                (return Cancellation.new(async_handles => []))
+                (return Cancellation.new)
               ),
               (my int $delay = to-millis-allow-zero($delay-in-seconds)),
               (my &run := nqp::if(                         # set up what should run
@@ -993,7 +993,7 @@ my class ThreadPoolScheduler does Scheduler {
                   nqp::stmts(
                     (warn "Inf was passed via :every; running the given block only once, immediately"),
                     run(),
-                    (return Cancellation.new(async_handles => []))
+                    (return Cancellation.new)
                   )
                 ),
                 nqp::if(
@@ -1031,11 +1031,11 @@ my class ThreadPoolScheduler does Scheduler {
               nqp::if(
                 nqp::isconcrete($at)
                   && nqp::not_i(nqp::isconcrete($at := validate-seconds($at))),
-                (return Cancellation.new(async_handles => [])),
+                (return Cancellation.new),
                 nqp::if(
                   nqp::isconcrete($in)
                     && nqp::not_i(nqp::isconcrete($in := validate-seconds($in))),
-                  (return Cancellation.new(async_handles => []))
+                  (return Cancellation.new)
                 )
               ),
               self!CUE_DELAY_TIMES(
@@ -1059,12 +1059,12 @@ my class ThreadPoolScheduler does Scheduler {
             ?? self!CUE_DELAY_TIMES(
                  &code, to-millis-allow-zero($time - now), 0, %_
                )
-            !! Cancellation.new(async_handles => [])
+            !! Cancellation.new
     }
     multi method cue(&code, :$in!, *%_) {
         nqp::isconcrete(my $delay := validate-seconds($in))
           ?? (self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($delay), 0, %_))
-          !! Cancellation.new(async_handles => [])
+          !! Cancellation.new
     }
     multi method cue(&code, :&catch! --> Nil) {
         nqp::push(self!general-queue, wrap-catch(&code, &catch))

@@ -387,10 +387,10 @@ our class CArray is repr('CArray') is array_type(Pointer) {
             my $array := nqp::create(self);
             my $type  := ::?CLASS.^array_type;
 
-            my int $i;
+            my int $i = -1;
             nqp::while(
-              $i < $elems,
-              nqp::bindpos($array, $i++, nqp::create($type))
+              nqp::islt_i(++$i,$elems),
+              nqp::bindpos($array,$i,nqp::create($type))
             );
             $array
         }
@@ -433,11 +433,11 @@ our class CArray is repr('CArray') is array_type(Pointer) {
           nqp::setelems(nqp::create(IterationBuffer), $m),
           0
         );
-        my int $i;
 
+        my int $i = -1;
         nqp::while(
-          $i < $m,
-          nqp::push($buffer, self.AT-POS($i++))
+          nqp::islt_i(++$i,$m),
+          nqp::push($buffer,self.AT-POS($i))
         );
 
         $buffer.List

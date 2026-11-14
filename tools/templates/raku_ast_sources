@@ -28,6 +28,7 @@ src/Raku/ast/initializer.rakumod
 src/Raku/ast/state.rakumod
 src/Raku/ast/container.rakumod
 src/Raku/ast/variable-declaration.rakumod
+src/Raku/ast/constant-declaration.rakumod
 src/Raku/ast/term-declaration.rakumod
 src/Raku/ast/implicit-declaration.rakumod
 src/Raku/ast/placeholder-declaration.rakumod

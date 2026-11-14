@@ -3,7 +3,7 @@ use nqp;
 use Test;
 use Test::Helpers;
 
-plan 39;
+plan 43;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -232,5 +232,21 @@ is-run ｢print so "abc de" ~~ / a [ :s bc ] d e /｣,
 is-run ｢grammar G { rule R { a { my token T { c d } } b } }; print so "a b" ~~ /<G::R>/｣,
     'a token declared inside a rule body block warns about a space between atoms',
     :out<True>, :err(/'Space is not significant'/);
+
+is-run ｢my $x = 12; print <<a b $x>>;｣,
+    'a >> quote terminator after an interpolation does not warn',
+    :out('a b 12'), :err('');
+
+is-run ｢my $x = 12; print «a b $x»;｣,
+    'a » quote terminator after an interpolation does not warn',
+    :out('a b 12'), :err('');
+
+is-run ｢my $x = ["a", "b"]; print <<a b $x>>.uc;｣,
+    'a bare method call after a >> quote terminator does not warn',
+    :out('A B A B'), :err('');
+
+is-run ｢my $x = <c d>; print <<a b $x>>.uc() >>;｣,
+    'a >> hyper postfix matching the quote terminator warns',
+    :out('a b C D'), :err(/'Ambiguous use of >>'/);
 
 # vim: expandtab shiftwidth=4

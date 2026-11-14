@@ -651,10 +651,10 @@ class RakuAST::Parameter
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type',
           $type // RakuAST::Type);
-        if $target {
-            $target.set-type($type)
-              if nqp::can($target, 'set-type') && $type;
-        }
+
+        $target.set-type($type)
+          if $target && $type && nqp::can($target,'set-type');
+
         nqp::bindattr($obj, RakuAST::Parameter, '$!target',
           $target // RakuAST::ParameterTarget);
         nqp::bindattr($obj, RakuAST::Parameter, '$!names',
@@ -664,17 +664,14 @@ class RakuAST::Parameter
         nqp::bindattr($obj, RakuAST::Parameter, '$!multi-invocant',
           ($multi-invocant // True) ?? True !! False);
         nqp::bindattr($obj, RakuAST::Parameter, '$!optional',
-          nqp::defined($optional)
-            ?? ($optional ?? True !! False)
-            !! Bool);
+          $optional ?? True !! nqp::defined($optional) ?? False !! Bool
+        );
         nqp::bindattr($obj, RakuAST::Parameter, '$!default-rw',
-          nqp::defined($default-rw)
-            ?? ($default-rw ?? True !! False)
-            !! Bool);
+          $default-rw ?? True !! nqp::defined($default-rw) ?? False !! Bool
+        );
         nqp::bindattr($obj, RakuAST::Parameter, '$!default-raw',
-          nqp::defined($default-raw)
-            ?? ($default-raw ?? True !! False)
-            !! Bool);
+          $default-raw ?? True !! nqp::defined($default-raw) ?? False !! Bool
+        );
         nqp::bindattr($obj, RakuAST::Parameter, '$!slurpy',
           nqp::istype($slurpy, RakuAST::Parameter::Slurpy)
             ?? $slurpy
@@ -994,18 +991,14 @@ class RakuAST::Parameter
     }
 
     method IMPL-SIGIL() {
-        my str $sigil := $!target.sigil;
-        $sigil := '@' if $!sub-signature && $!sub-signature.is-array;
-        $sigil;
+        $!sub-signature && $!sub-signature.is-array
+          ?? "@"
+          !! $!target.sigil
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups;
+        my @lookups := ['Positional','PositionalBindFailover','Iterable'];
         my str $sigil := self.IMPL-SIGIL;
-        my str $sigil-type;
-        nqp::push(@lookups, 'Positional');
-        nqp::push(@lookups, 'PositionalBindFailover');
-        nqp::push(@lookups, 'Iterable');
         if $sigil eq '%' { nqp::push(@lookups, 'Associative') }
         elsif $sigil eq '&' { nqp::push(@lookups, 'Callable') }
 
@@ -1044,23 +1037,24 @@ class RakuAST::Parameter
         nqp::bindattr_i($parameter, Parameter, '$!flags', self.IMPL-FLAGS);
         my $type := self.IMPL-NOMINAL-TYPE();
         nqp::bindattr($parameter, Parameter, '$!type', $type.WHAT); # "Type" could be a concrete value
-        if $!target {
-            $!target.set-ro(True);
-            my $name := $!target.introspection-name;
+        my $target := $!target;
+        if $target {
+            $target.set-ro(True);
+            my $name := $target.introspection-name;
             my str $trait-rw := '';
             for self.IMPL-UNWRAP-LIST(self.traits) {
-                if nqp::istype($_, RakuAST::Trait::Is)
-                    && (
-                        $_.name.canonicalize eq 'copy' || $_.name.canonicalize eq 'rw'
-                    )
-                {
-                    $trait-rw := $_.name.canonicalize;
-                    last;
+                if nqp::istype($_, RakuAST::Trait::Is) {
+                    my str $name := $_.name.canonicalize;
+                    if $name eq 'copy' || $name eq 'rw' {
+                        $trait-rw := $name;
+                        last;
+                    }
                 }
             }
             my str $rw := $trait-rw || ($!default-rw ?? 'rw' !! '');
 
             if $rw {
+
                 # A definite type like `int:D` nominalizes to its native base.
                 # The wrapper answers no primitive spec, so testing it would
                 # send a native copy parameter down the container path, whose
@@ -1070,15 +1064,15 @@ class RakuAST::Parameter
                     my $cd := RakuAST::IMPL::Containers.create-descriptor(
                         :of($type), :default($type), :dynamic(0), :$name);
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
-                    $!target.set-bindable(True);
+                    $target.set-bindable(True);
                 }
                 elsif nqp::istype($!type, RakuAST::Type::Definedness)
-                    && nqp::istype($!target, RakuAST::ParameterTarget::Var) {
+                    && nqp::istype($target, RakuAST::ParameterTarget::Var) {
                     # Retype the target to the base type so it declares a
                     # plain native lexical rather than an object lexical.
                     # Definedness stays with the binder, and a native value
                     # is always defined.
-                    $!target.set-type($!type.base-type, :replace);
+                    $target.set-type($!type.base-type, :replace);
                 }
                 # A <-> block starter flags every parameter rw and a trait
                 # does not clear that, so the target follows the flag even
@@ -1087,9 +1081,9 @@ class RakuAST::Parameter
                 # rw trait, but its targets declare ordinary variables,
                 # and a native one must stay a plain lexical for
                 # assignment to reach it.
-                $!target.set-rw if ($trait-rw eq 'rw' || $!default-rw)
-                    && !$!target.var-declaration;
-                $!target.set-ro(False);
+                $target.set-rw if ($trait-rw eq 'rw' || $!default-rw)
+                    && !$target.var-declaration;
+                $target.set-ro(False);
             }
         }
         unless nqp::isnull($!attr-package) {
@@ -1239,21 +1233,19 @@ class RakuAST::Parameter
                         RakuAST::Type.IMPL-MAYBE-NOMINALIZE($!type.meta-object))
                 !! $sigil-type
         }
+        elsif $!type {
+            my $type       := $!type.meta-object;
+            my $archetypes := $type.HOW.archetypes;
+            $archetypes.nominal
+              || $archetypes.coercive
+              || $archetypes.generic
+              ?? $type
+              !! $archetypes.nominalizable
+                ?? $type.HOW.nominalize($type)
+                !! $type
+        }
         else {
-            if $!type {
-                my $type       := $!type.meta-object;
-                my $archetypes := $type.HOW.archetypes;
-                $archetypes.nominal
-                  || $archetypes.coercive
-                  || $archetypes.generic
-                  ?? $type
-                  !! $archetypes.nominalizable
-                    ?? $type.HOW.nominalize($type)
-                    !! $type
-            }
-            else {
-                Mu
-            }
+            Mu
         }
     }
 

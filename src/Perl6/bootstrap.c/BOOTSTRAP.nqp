@@ -108,13 +108,6 @@ my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub BOOTLanguageRevision metaclass Perl6::Metamodel::ClassHOW { ... };
 
-#?if js
-my stub Int64LexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub Int64AttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub Int64PosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-#?endif
-
 #- NativeInstantiation ---------------------------------------------------------
 # Role bodies compile against generic types with object access ops and boxed
 # value semantics, and are never recompiled for an instantiation. A generic
@@ -122,36 +115,38 @@ my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 # native type's box type wherever the instantiation decides storage or
 # checks values.
 my class NativeInstantiation {
+
+    # Map primspec values to types they need to be boxed into if necessary
+    my constant BOXTYPES := nqp::list(
+      #       0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10
+      nqp::null, Int, Num, Str, Int, Int, Int, Int, Int, Int, Int
+    );
+
     # Returns the box type for a native type, rewrapped for a definite type
-    # over a native type, or null when no boxing applies. Callers pass
-    # values as well as types through this. Container descriptor defaults
-    # and auto_viv container values arrive here, and a concrete value
-    # reports null. The box is selected by primitive spec, so a native
-    # type with unrelated object ancestors still constrains its values to
-    # what the storage can hold.
+    # over a native type, or null when no boxing applies.
     method box($type) {
-        return nqp::null()
-          if nqp::isnull($type) || nqp::isconcrete_nd($type);
 
-        my $prim_type    := $type;
-        my $how          := $type.HOW;
-        my int $definite := 0;
-        if nqp::can($how, 'archetypes')
-          && $how.archetypes($type).definite
-          && nqp::can($how, 'base_type') {
-            $prim_type := $how.base_type($type);
-            $definite  := 1;
+        if nqp::isnull($type) || nqp::isconcrete_nd($type) {
+            nqp::null                                       # no need to box
         }
+        else {
+            my $how          := $type.HOW;
+            my int $definite := nqp::can($how,'archetypes')
+              && $how.archetypes($type).definite
+              && nqp::can($how,'base_type');
 
-        my int $spec := nqp::objprimspec($prim_type);
-        if $spec {
-            my $box := $spec == 2 ?? Num !! $spec == 3 ?? Str !! Int;
-            return $definite
-              ?? Perl6::Metamodel::DefiniteHOW.new_type(
-                   :base_type($box), :definite($how.definite($type)))
-              !! $box;
+            my int $primspec := nqp::objprimspec($definite
+              ?? $how.base_type($type)
+              !! $type
+            );
+
+            $definite && $primspec
+              ?? Perl6::Metamodel::DefiniteHOW.new_type(    # box with :D
+                  :base_type(nqp::atpos(BOXTYPES,$primspec)),
+                  :definite($how.definite($type))
+                )
+              !! nqp::atpos(BOXTYPES,$primspec)             # just box or not
         }
-        nqp::null()
     }
 
     # Returns the box type when boxing applies and the type itself
@@ -1757,10 +1752,7 @@ class ContainerDescriptor::BindHashKey does ContainerDescriptor::Whence {
         $name ?? $name ~ "\{'" ~ $!key ~ "'\}" !! $name
     }
     method assigned($scalar) {
-        my $hash := nqp::getattr($!target, Map, '$!storage');
-        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
-          unless nqp::isconcrete($hash);
-        nqp::bindkey($hash, $!key, $scalar);
+        nqp::bindkey(nqp::getattr($!target,Map,'$!storage'),$!key,$scalar);
     }
 }
 
@@ -1793,10 +1785,11 @@ class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
         $name ?? 'element of ' ~ $name !! $name
     }
     method assigned($scalar) {
-        my $hash := nqp::getattr($!target, Map, '$!storage');
-        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
-          unless nqp::isconcrete($hash);
-        nqp::bindkey($hash, $!which, $!pair.new($!key, $scalar));
+        nqp::bindkey(
+          nqp::getattr($!target, Map, '$!storage'),
+          $!which,
+          $!pair.new($!key, $scalar)
+        );
     }
 }
 
@@ -2016,10 +2009,8 @@ my class UninitializedAttributeChecker {
                 }
             }
             elsif nqp::istype_nd($attr, Hash) {
-                my $storage := nqp::getattr($attr, Map, '$!storage');
-                unless nqp::isconcrete($storage) && nqp::elems($storage) {
-                    $desc := nqp::getattr($attr, Hash, '$!descriptor');
-                }
+                $desc := nqp::getattr($attr,Hash,'$!descriptor');
+                  unless nqp::elems(nqp::getattr($attr,Map,'$!storage'));
             }
             else {
                 try {
@@ -2751,13 +2742,6 @@ BEGIN {
     setup_native_ref_type(UIntMultidimRef, uint, 'multidim');
     setup_native_ref_type(NumMultidimRef,   num, 'multidim');
     setup_native_ref_type(StrMultidimRef,   str, 'multidim');
-
-#?if js
-    setup_native_ref_type(Int64LexRef,      int64, 'lexical'   );
-    setup_native_ref_type(Int64AttrRef,     int64, 'attribute' );
-    setup_native_ref_type(Int64PosRef,      int64, 'positional');
-    setup_native_ref_type(Int64MultidimRef, int64, 'multidim'  );
-#?endif
 
 #- Proxy -----------------------------------------------------------------------
 # class Proxy is Any {
@@ -5378,15 +5362,10 @@ BEGIN {
                   )
                 ),
                 $result
-              ),
-#?if js
-                # HACK js backend bug workaround
-                nqp::list
-#?endif
-#?if !js
-              @EMPTY-LIST
-#?endif
-            )
+            }
+            else {
+                @EMPTY-LIST
+            }
         }
 
         # Build a hash of named captures, or return a shared empty hash if there
@@ -5411,15 +5390,10 @@ BEGIN {
                   )
                 ),
                 $result
-              ),
-#?if js
-                # HACK js backend bug workaround
-                nqp::hash
-#?endif
-#?if !js
-              %EMPTY-HASH
-#?endif
-            )
+            }
+            else {
+                %EMPTY-HASH
+            }
         }
 
         ## NQP Match object building
@@ -5914,12 +5888,6 @@ BEGIN {
     Perl6::Metamodel::NativeRefHOW.add_stash(UIntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
-#?if js
-    Perl6::Metamodel::NativeRefHOW.add_stash(Int64LexRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(Int64AttrRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(Int64PosRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(Int64MultidimRef);
-#?endif
     Perl6::Metamodel::ClassHOW.add_stash(List);
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
@@ -6062,11 +6030,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<UIntPosRef> := UIntPosRef;
     EXPORT::DEFAULT.WHO<NumPosRef>  := NumPosRef;
     EXPORT::DEFAULT.WHO<StrPosRef>  := StrPosRef;
-#?if js
-    EXPORT::DEFAULT.WHO<Int64LexRef>  := Int64LexRef;
-    EXPORT::DEFAULT.WHO<Int64AttrRef> := Int64AttrRef;
-    EXPORT::DEFAULT.WHO<Int64PosRef>  := Int64PosRef;
-#?endif
     EXPORT::DEFAULT.WHO<Proxy>      := Proxy;
     EXPORT::DEFAULT.WHO<Grammar>    := Grammar;
     EXPORT::DEFAULT.WHO<Junction>   := Junction;
@@ -6350,12 +6313,6 @@ nqp::sethllconfig('Raku', nqp::hash(
     'uint_multidim_ref', UIntMultidimRef,
     'num_multidim_ref',  NumMultidimRef,
     'str_multidim_ref',  StrMultidimRef,
-#?if js
-    'int64_lex_ref',      Int64LexRef,
-    'int64_attr_ref',     Int64AttrRef,
-    'int64_pos_ref',      Int64PosRef,
-    'int64_multidim_ref', Int64MultidimRef,
-#?endif
 
 #?if moar
     'call_dispatcher',         'raku-call',

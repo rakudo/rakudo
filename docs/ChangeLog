@@ -1,3 +1,79 @@
+New in 2026.11:
+
++ Improvements:
+    + Add support for Unicode 18.0 [21607b37][9f2f8a37][e1058f0b]
+    + Make `.sort` on lists consisting of just `Int`/`Str`/`Num` up to 2.1x as fast [73c91568]
+    + Make `num cmp num` / `Num cmp Num` up to 2x as fast [47daec28]
+    + Make `.sort(&mapper)` up to 60% faster if the mapped values are just `Int`/`Str`/`Num` [b96702f4]
+    + Make `List/Array.EXISTS-POS` 3 - 70% faster [019d4405][ae983bb7]
+    + Make `List.join` upto 40% faster [571213df]
+    + Make `List/Array.sum` about 14% faster [9a3cea7f]
+    + Make `List.tail` about 13% faster [e9ff8f21]
+    + Improve dispatch logic for lexically defined method [276bd239]
+    + Fully support `IO::Path.resolve` on Windows as well + various fixes [4b5d0071][f571d2fa][[b45de7d8][4b5d0071][f571d2fa][fc989841][a6dbcff2][a4d096ab]
+    + Improve various error messages and warnings [1c00b800][cb4cc2ee][8f74e51d][15a56435]
+    + Bump Żmij to v1.2 [7d98fe92]
+
++ Removals:
+    + Removed support for the JS backend [a2361ae5]
+
++ Additions:
+    + Add support for shaped, ragged arrays [2771bf5d][70ed52aa][c907ebf5][28322ca4]
+    + Implement multidimensional shaped hashes [ad4e8d21][5246e200][2a2afaf4][f20534cb][a3cd3e49][5c6e8b53][5ffa9075]
+    + Add `IO::Path.resolve-inside` method [75698c70]
+
++ Fixes:
+    + Fix issue with installing scripts outside of the repository prefix [540d1485]
+    + Fix issue with adding operators in the REPL [1a058e17]
+    + Fix issue with `.race` / `.hyper` in the REPL [6b13553c]
+    + Fix line number annotations in the remote debugger [11ac8bea][61840cfd]
+    + .clone with twiddles can now handle native unsigned integer attributes[9adc19cb]
+    + Any.AT-POS(Int:D) wasn't returning a container when it should [cfb221c3]
+    + Make `dd` properly report about the current scope [7373bf69]
+    + Refuse a native value as a type for a hash [07a089ad]
+    + Fix issue with `next`/`last label` [5614812a]
+    + Fix support for `shell` on Windows MSYS2 [c5d06d2e]
+    + Fix quoting issue in `Proc::Async` on Windows [90deb4d6]
+    + Fix slurping of files of exactly 1MB [b61241d0]
+    + Fix an issue in GC collection [c6d6fc3c]
+    + Fix issue in shell escaping [c649167d]
+    + Fix issue in rendering script name [4b46d140]
+    + Fix issue with `:r`, `:g` and positional capture in regex [5ccfdc23]
+    + Fix error reporting on `use lib` inside a package [cab77c1b]
+    + Fix using coercive types in typed arrays / hashes [109ac0d4]
+    + Fix issue with semicolon separated argument lists [30b42b24]
+    + Fix issue with parameter defaults consisting of code [1d0261b1]
+    + Fix issue with `constant &MAIN = ...` [654da2dc]
+    + Fix issue with signature literals [4736c948]
+    + Fix issue with coercion [61978f51]
+    + Allow `sink` as a `for` prefix [164a8909]
+    + Parse `Int(Str:D)` and `Int(Array[Int])` as coercion types [a541fb6b]
+    + Keep `EVAL` of a RakuAST node from running its MAIN [69f2b375]
+    + Instantiate a generic array or hash where it is declared [a61b582d]
+    + Prime a Whatever under a meta-operator as any operator does [31d48fde]
+    + Various vivification issues [d7d818fb][bda4440b][69b47497]
+    + Various `EVAL` issues [8aa1b7d1][dd4af839][ed2d9682]
+    + Various `BEGIN` issues [0b3ef452][04ffbfbe][826884f7]
+    + Various object hash issues [d9444467][f92eb5d6]
+    + Various priming issues [fdb0d563][20096c92][3a872128][1c25287e][9d806754][5c20512f][0f43d902][1c970ff0][df0de9ae][feb3b4f8][6ab77a19][a63762da][1ec70229][0cdbad07]
+    + Various issues with loop structures [ded2dc04][099bbf9d][03a996a1][b218bd06][4b4f256f][aff83215][74596b7a][6a3feeac][94de42d9]
+    + Various scoping / thunking fixes [f81bf038][029152ca][d3b23ad5][0980d7fa][584ab8df][40fca14d][16506c59][b969d54f][e16fb74d][0325c3a9][06a42793][74b7282e][11978c3a][ec207844]
+    + Various "Useless use warning" fixes [3334454b][6eb744de][d6107d05][97788fa4]
+    + Various invocant marker fixes [2202fa29]
+    + Various JIT and spesh fixes [d4d0df63][3388d045][3172ab0a]
+    + Various macro-like method fixes (`.VAR`, `.WHERE`) [09463bdc][78487a43]
+    + Various `enum` fixes and improvements [40c2c633][86847b4c]
+    + Various heredoc fixes [de5aa237][a6b94c83][fb79d40e][a0433344]
+    + Various RakuDoc fixes [1a3fbf87][be7cfed7][4609b58b][d41bd7f3][1f48abb1][e80e60d8][88626a34]
+    + Various smartmatch fixes [66ba2944][60ab773a][62bdf265][34f87ea8][55777664][5c2d3280][533993a4][13cce58d][274b58ac][fe96ed2a][0601ad84][33d0242d][357988ea][bc3d6430][5273fa8e]
+
++ Internal:
+
+    + Various RakuAST speed/maintainability improvements [83baac0d][2191a57a][6611063c][9c778647][aff385f3][c62dc64d][9bb53f07][fdab3016][c4f48ce9][d985b897][6f5479cb][59eafee5][d898bc6d][a3e36863][4872dd89][8d60a827][fba5df08][72076fa9][db8e2b41][d9a5d7dd][1ca0a100][8bc8f978][bb691c09][0138d1dd][dfebad8a][88211044][dc339a5d][aa1262d2][f8134ffb][b0bdeead][0b9326d7][83fad92f][c1920c09][2982e56e][17827021][a3af6b85][8d886fa3][4fa2be82][b22a0daf][5f8a56a6][2a9aedcc][eb5ebefd][f358b4ec][2329b3b4][732caa56][0a83ba53][13e65aec][76d4625d][8b1593ea][501af82c][d3c07b25][04a96091][3b50b57e][e62f971f][1ed9dc48][f336b137][73fd98d3][2056b166]
+    + Other core speed/maintainability improvements [e98da4e0][664e4a88][7214725c][7c74b992]
+    + Fix named argument in helper script [a7cbac9e]
+    + Optimized accesses to `$?CLASS` in NQP [e77aaaef][50379ea2]
+
 New in 2026.09:
 
 + Improvements:

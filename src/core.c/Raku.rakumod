@@ -8,7 +8,7 @@ class Raku does Systemic {
         nqp::bind($!version,nqp::getcomp('Raku').language_version.Version);
     }
 
-    method VMnames { <moar jvm js> }
+    method VMnames { <moar jvm> }
 
     method DISTROnames { <macos linux freebsd mswin32 openbsd dragonfly netbsd browser> }
     method KERNELnames { <darwin linux freebsd openbsd netbsd dragonfly sunos win32 browser>  }

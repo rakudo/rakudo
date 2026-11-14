@@ -33,7 +33,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method Hash(Map:D: --> Hash:D) {
         if nqp::iterator($!storage) -> \iter {
             my \hash       := nqp::create(Hash);
-            my \storage    := nqp::bindattr(hash,Map,'$!storage',nqp::hash);
+            my \storage    := nqp::getattr(hash,Map,'$!storage');
             my \descriptor := BEGIN nqp::getcurhllsym('default_cont_spec');
             nqp::while(
               iter,
@@ -306,6 +306,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     # Directly copy from the other Map's internals.
     method !STORE_MAP_FROM_MAP_DECONT(\map --> Map:D) {
+        my $storage := $!storage;
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -313,7 +314,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             nqp::while(
               iter,
               nqp::bindkey(
-                $!storage,
+                $storage,
                 nqp::iterkey_s(nqp::shift(iter)),
                 nqp::decont(nqp::iterval(iter))
               )
@@ -323,6 +324,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self
     }
     method !STORE_MAP_FROM_MAP(\map --> Map:D) {
+        my $storage := $!storage;
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -330,7 +332,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             nqp::while(
               iter,
               nqp::bindkey(
-                $!storage,
+                $storage,
                 nqp::iterkey_s(nqp::shift(iter)),
                 nqp::iterval(iter)
               )
@@ -344,6 +346,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # fact that we're only interested in the values (which contain a Pair with
     # the object key and a value that we need to decontainerize.
     method !STORE_MAP_FROM_OBJECT_HASH_DECONT(\map --> Map:D) {
+        my $storage := $!storage;
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -351,7 +354,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             nqp::while(
               iter,
               nqp::bindkey(
-                $!storage,
+                $storage,
                 nqp::getattr(
                   (my Mu \pair := nqp::iterval(nqp::shift(iter))),
                   Pair, '$!key'
@@ -364,6 +367,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self
     }
     method !STORE_MAP_FROM_OBJECT_HASH(\map --> Map:D) {
+        my $storage := $!storage;
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -371,7 +375,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             nqp::while(
               iter,
               nqp::bindkey(
-                $!storage,
+                $storage,
                 nqp::getattr(
                   (my Mu \pair := nqp::iterval(nqp::shift(iter))),
                   Pair, '$!key'
@@ -527,7 +531,7 @@ ERROR
     multi method STORE(Map:D: \keys, \values, :INITIALIZE($)! --> Map:D) {
         my \iterkeys   := keys.iterator;
         my \itervalues := values.iterator;
-        my \storage    := $!storage := nqp::hash;
+        my \storage    := $!storage;
         nqp::until(
           nqp::eqaddr((my \key := iterkeys.pull-one),IterationEnd),
           nqp::bindkey(
@@ -558,11 +562,11 @@ ERROR
 
     multi method roll(Map:D:) {
         nqp::if(
-          $!storage && nqp::elems($!storage),
+          nqp::elems(my $storage := $!storage),
           nqp::stmts(
             (my int $i =
-              nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems($!storage))),1)),
-            (my \iter := nqp::iterator($!storage)),
+              nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems($storage))),1)),
+            (my \iter := nqp::iterator($storage)),
             nqp::while(
               nqp::shift(iter) && --$i,
               nqp::null
@@ -625,7 +629,7 @@ ERROR
     }
     multi method roll(Map:D: $count) {
         Seq.new(
-          $!storage && nqp::elems($!storage) && $count > 0
+          nqp::elems($!storage) && $count > 0
             ?? RollN.new(self,$count)
             !! Rakudo::Iterator.Empty
         )

@@ -108,14 +108,12 @@ plan 43;
     throws-like { $x ~= pack "V",1 }, X::Buf::AsStr;
 }
 
-#?rakudo.js.browser 3 skip "use at EVAL time not supported in the browser"
 {
     throws-like { pack("B",  1) },       X::Buf::Pack, directive => 'B';
     throws-like { Buf.new.unpack("B") }, X::Buf::Pack, directive => 'B';
     throws-like { pack "A2", "mÄ" },     X::Buf::Pack::NonASCII, char => 'Ä';
 }
 
-#?rakudo.js.browser skip "use at EVAL time not supported in the browser"
 # https://github.com/rakudo/rakudo/issues/2111
 {
     lives-ok { EVAL(

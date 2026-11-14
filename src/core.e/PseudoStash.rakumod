@@ -27,7 +27,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         # All values in $!storage hash are choosen to minimize memory footprint of the structure. All of them either
         # taken from where they already exists anyway (like lexpads), or are typeobjects (kind of the previous case),
         # or allocated once ever, like GLOBAL/PROCESS thunking objects.
-        nqp::p6bindattrinvres($stash, Map, '$!storage', nqp::hash())
+        $stash
     }
 
     method new-from-ctx(Mu $ctx is raw, Mu :$package!, :$mode = STATIC_CHAIN) {
@@ -38,7 +38,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         nqp::bindattr_i($stash, PseudoStash6c, '$!mode', nqp::decont($mode));
         nqp::bindattr($stash, PseudoStash, '$!package', nqp::decont($package));
         # See the other method candidate
-        nqp::p6bindattrinvres($stash, Map, '$!storage', nqp::hash())
+        $stash
     }
 
     my Int $id = 0;

@@ -63,10 +63,6 @@ sub MAIN(*@ARGS) {
                   nqp::join("'$flavor'", nqp::split('#RAKUDO_FLAVOR#', $_))
                 );
             }
-            elsif $backend eq 'js' && $_ ~~ /'#?js: NFG'/ {
-                print(subst($_, /nqp\:\:[chars|substr|iseq_s|iscclass]/,
-                    -> $op {$op ~ 'nfg'}, :global));
-            }
             else {
                 print($_) unless nqp::eqat($_,"# vim:",0);
             }

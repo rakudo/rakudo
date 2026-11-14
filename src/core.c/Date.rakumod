@@ -2,12 +2,7 @@ my class Date does Dateish {
 
     method !formatter(--> Str:D) { self.yyyy-mm-dd }
 
-#?if !js
     my constant $valid-units = nqp::hash(
-#?endif
-#?if js
-    my $valid-units := nqp::hash(
-#?endif
       'day',    1,
       'days',   1,
       'week',   7,

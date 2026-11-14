@@ -264,7 +264,8 @@ my class IO::Path is Cool does IO {
 
     method resolve (IO::Path:D: :$completely) {
         my str $volume;
-        my str $sep = $!SPEC.dir-sep;
+        my str $sep       = $!SPEC.dir-sep;
+        my int $max-links = 40;  # same as Linux' MAXSYMLINKS
 
         # In this bit, we work with bytes, converting $sep (and assuming it's
         # 1-char long) in the path to nul bytes and then splitting the path
@@ -305,32 +306,53 @@ my class IO::Path is Cool does IO {
             # volume.
             nqp::if(
               (my $first := nqp::atpos($parts,0)),
-              nqp::if(                              # possibly relative
+              nqp::if(                               # possibly relative
                 $first.contains(/^ <[A..Z]> ":" /),
-                nqp::stmts(                         # drive letter
+                nqp::stmts(                          # drive letter
                   ($volume = $first.substr(0,2)),
                   nqp::if(
                     nqp::bindpos($parts,0,$first.substr(2)),
-                    nqp::unshift($parts,"")         # relative, make absolute
+                    nqp::unshift($parts,"")          # relative, make absolute
                   )
                 )
               ),
-              ($volume = "")                        # already absolute
+              ($volume = "")                         # already absolute
             );
 
             $parts
         }
 
-        # Prefix CWD if not absolute
+        # Must be a block to make .fail exit .resolve
+        my &meh := -> $reason {
+            X::IO::Resolve.new(:path(self), :$reason).fail
+        }
+
+        # Since the $!CWD attribute can really be anything, we also need
+        # to process that if a relative path was specified
         my $parts := safe-split($!path);
-        my str @resolved = nqp::if(
-          nqp::atpos($parts,0),
-          safe-split($!CWD),      # relative, so prefix with cwd
-          nqp::stmts(
-            nqp::shift($parts),   # absolute, no check on 1st
-            $volume               # set volume indication
-          )
-        );
+
+        # Relative prefix, prefix cwd
+        nqp::splice($parts,safe-split($!CWD),0,0) if nqp::atpos($parts,0);
+
+        # Absolute path, dont check 1st
+        nqp::shift($parts) unless nqp::atpos($parts,0);
+
+        # Any volume indication either from the safe-split on $!path, or
+        # the safe-split on $!CWD needs to be added to the resolved list.
+        # On non-Windows systems, this will be the empty string.
+        my str @resolved = $volume;
+
+        # Handling for upping a directory, must be a block for meh to work
+        my &updir := {
+            nqp::if(
+              nqp::isge_i(nqp::elems(@resolved),2),
+              nqp::pop_s(@resolved),                # can pop
+              nqp::if(                              # nothing to pop back to
+                $completely,
+                meh("No parent dir to go back to")  # doesn't exist
+              )
+            )
+        }
 
         # Process all parts
         nqp::while(
@@ -340,51 +362,54 @@ my class IO::Path is Cool does IO {
               nqp::add_i(nqp::elems($parts),nqp::elems(@resolved)),
               $max-depth
             ),
-            fail("Resolved path too deep!"),         # too deep
+            meh("Resolved path deeper than $max-depth levels"),
             nqp::unless(                             # not too deep
               nqp::iseq_s((my str $part = nqp::shift($parts)),"")
                 || nqp::iseq_s($part,$curdir),
               nqp::if(                               # not ignorable
                 nqp::iseq_s($part,$updir),
-                nqp::if(                             # going up
-                  nqp::elems(@resolved),
-                  nqp::pop_s(@resolved)              # can pop
-                ),
+                updir(),                             # going up
                 nqp::stmts(                          # need to check
                   nqp::push_s(@resolved,$part),
                   nqp::if(
-                    nqp::stat(
+                    nqp::lstat(
                       (my str $next = nqp::join($sep,@resolved)),
                       nqp::const::STAT_EXISTS
                     ),
                     nqp::if(                         # exists
                       nqp::fileislink($next),
-                      nqp::stmts(                    # is a link
-                        (my $link := safe-split(nqp::readlink($next))),
-                        nqp::if(
-                          nqp::atpos($link,0),
-                          nqp::stmts(                # relative link
-                            nqp::pop_s(@resolved),
-                            nqp::splice($parts,$link,0,0)
+                      nqp::if(                       # is link
+                        nqp::isge_i(--$max-links,0),
+                        nqp::stmts(                  # not too many
+                          nqp::splice(
+                            $parts,safe-split(nqp::readlink($next)),0,0
                           ),
-                          nqp::stmts(                # absolute link
-                            (@resolved = $link),
-                            nqp::bindpos_s(@resolved,0,$volume)
+                          nqp::if(
+                            nqp::atpos($parts,0),
+                            nqp::pop_s(@resolved),   # relative link, pop
+                            (@resolved = $volume)    # absolute link, init
                           )
-                        )
+                        ),
+                        meh("More than 40 symlinks followed")
                       )
                     ),
                     nqp::stmts(                      # does not exist
                       nqp::if(
-                        $completely && nqp::elems($parts),
-                        X::IO::Resolve.new(:path(self)).fail # must quit
+                        $completely
+                          && nqp::elems($parts)
+                          && nqp::not_i(nqp::stat($next,nqp::const::STAT_EXISTS)),
+                        meh("Doesn't resolve to an existing path")
                       ),
                       nqp::while(                    # rest without check
                         nqp::elems($parts),
                         nqp::unless(                 # still something to check
                           nqp::iseq_s(($part = nqp::shift($parts)),"")
                             || nqp::iseq_s($part,$curdir),
-                          nqp::push_s(@resolved,$part)
+                          nqp::if(                   # not ignorable
+                            nqp::iseq_s($part,$updir),
+                            updir(),
+                            nqp::push_s(@resolved,$part)
+                          )
                         )
                       )
                     )
@@ -394,6 +419,9 @@ my class IO::Path is Cool does IO {
             )
           )
         );
+
+        # Resolved to root, make sure we get a separator after it
+        nqp::push_s(@resolved,"") if nqp::iseq_i(nqp::elems(@resolved),1);
 
         nqp::p6bindattrinvres(
           nqp::create(self)!SET-SELF(

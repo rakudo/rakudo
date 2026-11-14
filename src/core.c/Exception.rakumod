@@ -867,7 +867,13 @@ my class X::IO::NotAChild does X::IO {
 
 my class X::IO::Resolve does X::IO {
     has $.path;
-    method message() { "Failed to completely resolve {$.path.raku}" }
+    has $.reason;
+    method message() {
+        my str $message = "Failed to completely resolve $.path.raku()";
+        $.reason
+          ?? "$message: $.reason"
+          !! $message
+    }
 }
 
 my class X::IO::Rmdir does X::IO {
@@ -1439,8 +1445,8 @@ my class X::Undeclared::Symbols does X::Comp {
             for %.unk_routines.sort(*.key) {
                 $r ~= "    $_.key() &l($_.value)";
                 $r ~= " (in Raku please use $_ instead)" with %obs{$_.key};
-                if +%.routine_suggestion{$_.key()}.list {
-                    $r ~= ". " ~ s(%.routine_suggestion{$_.key()}.list);
+                if %.routine_suggestion{$_.key} -> $suggestions {
+                    $r ~= ". " ~ s($suggestions.list);
                 }
                 $r ~= "\n";
             }
@@ -2168,12 +2174,7 @@ my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
-#?if !js
     my constant $m = nqp::hash(
-#?endif
-#?if js
-    my $m := nqp::hash(
-#?endif
       '$"',    '.join() method',
       '$$',    '$*PID',
       '$;',    'real multidimensional hashes',

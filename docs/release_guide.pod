@@ -30,22 +30,14 @@ C<Ake> uses C<gpg2> to sign releases (available in the C<gnugpg2> system package
 
 =head2 Steps to create a release (for release managers)
 
-Currently there are two tools:
-
-=over
-
-=item *
+The source release is primarily handled with the
 L<Release Akefile|https://github.com/rakudo/rakudo/blob/main/tools/releasable/Akefile>
 which is meant to be used together with
 L<Releasable|https://github.com/Raku/whateverable/wiki/Releasable> bot
 
-=item *
-L<NeuralAnomaly|https://github.com/zoffixznet/na> bot
-
-=back
-
 Some things are hard to automate, and you have to understand what is
-(and what is not) done by the tool you are using, so read on.
+(and what is not) done by the tool you are using, as well as how to avoid
+some issues, so read on.
 
 =over 4
 

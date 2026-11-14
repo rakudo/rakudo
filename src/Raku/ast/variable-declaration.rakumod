@@ -860,9 +860,13 @@ class RakuAST::VarDeclaration::Simple
                 $where := ' at ' ~ $source.original-file
                     ~ ':' ~ $source.original-line($origin.from);
             }
-            RakuAST::IMPL::VarLowering.IMPL-NOTE(
-                'lex2local: minted ' ~ $!lowered-local-name ~ ' for '
-                    ~ self.name ~ $where);
+            self.note(
+              'lex2local: minted ',
+              $!lowered-local-name,
+              ' for ',
+              self.name,
+              $where
+            );
         }
         $!lowered-local-name
     }
@@ -3294,9 +3298,12 @@ class RakuAST::VarDeclaration::Term
             '$!lowered-local-name',
             QAST::Node.unique('__lowered_' ~ $!name.canonicalize));
         if nqp::atkey(nqp::getenvhash(), 'RAKUDO_LOWERING_DEBUG') {
-            RakuAST::IMPL::VarLowering.IMPL-NOTE(
-                'lex2local: minted ' ~ $!lowered-local-name ~ ' for '
-                    ~ $!name.canonicalize);
+            self.note(
+              'lex2local: minted ',
+              $!lowered-local-name,
+              ' for ',
+              $!name.canonicalize
+            );
         }
         $!lowered-local-name
     }
@@ -3848,8 +3855,11 @@ class RakuAST::VarDeclaration::Implicit::Self
             '$!lowered-local-name',
             QAST::Node.unique('__lowered_self'));
         if nqp::atkey(nqp::getenvhash(), 'RAKUDO_LOWERING_DEBUG') {
-            RakuAST::IMPL::VarLowering.IMPL-NOTE(
-                'lex2local: minted ' ~ $!lowered-local-name ~ ' for self');
+            self.note(
+              'lex2local: minted ',
+              $!lowered-local-name,
+              ' for self'
+            );
         }
         $!lowered-local-name
     }

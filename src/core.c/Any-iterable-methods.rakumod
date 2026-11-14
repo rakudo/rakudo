@@ -463,56 +463,54 @@ Consider using a block if any of these are necessary for your mapping code."
     method !grep-accepts(Mu $test) { Seq.new(Grep-Accepts.new(self,$test)) }
 
     method !first-result(\index,\value,$what,%a) is raw {
-        nqp::stmts(
-          (my $storage := nqp::getattr(%a,Map,'$!storage')),
+        my $storage := nqp::getattr(%a,Map,'$!storage');
+        nqp::if(
+          nqp::elems($storage),                       # some adverb
           nqp::if(
-            nqp::elems($storage),                       # some adverb
+            nqp::iseq_i(nqp::elems($storage),1),      # one adverb
             nqp::if(
-              nqp::iseq_i(nqp::elems($storage),1),      # one adverb
+              nqp::atkey($storage,"k"),               # :k
+              nqp::p6box_i(index),
               nqp::if(
-                nqp::atkey($storage,"k"),               # :k
-                nqp::p6box_i(index),
+                nqp::atkey($storage,"p"),             # :p
+                Pair.new(index,value),
                 nqp::if(
-                  nqp::atkey($storage,"p"),             # :p
-                  Pair.new(index,value),
+                  nqp::atkey($storage,"v"),           # :v
+                  value,
                   nqp::if(
-                    nqp::atkey($storage,"v"),           # :v
-                    value,
-                    nqp::if(
-                      nqp::atkey($storage,"kv"),        # :kv
-                      (index,value),
-                      nqp::stmts(                       # no truthy or different
-                        (my str $key =
-                          nqp::iterkey_s(nqp::shift(nqp::iterator($storage)))),
+                    nqp::atkey($storage,"kv"),        # :kv
+                    (index,value),
+                    nqp::stmts(                       # no truthy or different
+                      (my str $key =
+                        nqp::iterkey_s(nqp::shift(nqp::iterator($storage)))),
+                      nqp::if(
+                        (nqp::iseq_s($key,"k")        # :!k || :!p || :!kv
+                          || nqp::iseq_s($key,"p")
+                          || nqp::iseq_s($key,"kv")),
+                        value,
                         nqp::if(
-                          (nqp::iseq_s($key,"k")        # :!k || :!p || :!kv
-                            || nqp::iseq_s($key,"p")
-                            || nqp::iseq_s($key,"kv")),
-                          value,
-                          nqp::if(
-                            nqp::iseq_s($key,"v"),      # :!v
-                            "Specified a negated :v adverb".Failure,
-                            X::Adverb.new(  # :foo ??
-                              :$what,
-                              :source(try { self.VAR.name } // self.WHAT.raku),
-                              :unexpected(%a.keys)
-                            ).Failure
-                          )
+                          nqp::iseq_s($key,"v"),      # :!v
+                          "Specified a negated :v adverb".Failure,
+                          X::Adverb.new(  # :foo ??
+                            :$what,
+                            :source(try { self.VAR.name } // self.WHAT.raku),
+                            :unexpected(%a.keys)
+                          ).Failure
                         )
                       )
                     )
                   )
                 )
-              ),
-              X::Adverb.new(                # multiple adverbs ??
-                :$what,
-                :source(try { self.VAR.name } // self.WHAT.raku),
-                :nogo(%a.keys.grep: /k|v|p/),
-                :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )
-              ).Failure
+              )
             ),
-            value                                       # no adverb
-          )
+            X::Adverb.new(                # multiple adverbs ??
+              :$what,
+              :source(try { self.VAR.name } // self.WHAT.raku),
+              :nogo(%a.keys.grep: /k|v|p/),
+              :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )
+            ).Failure
+          ),
+          value                                       # no adverb
         )
     }
 

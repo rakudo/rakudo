@@ -931,18 +931,16 @@ my class Array { # declared in BOOTSTRAP
         self!prepend-list(value)
     }
     multi method unshift(Array:D: \value --> Array:D) {
-        nqp::stmts(
-          nqp::unshift(
-            nqp::if(
-              nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-              nqp::getattr(self,List,'$!reified'),
-              nqp::bindattr(self,List,'$!reified',
-                nqp::create(IterationBuffer))
-            ),
-            nqp::p6scalarwithvalue($!descriptor,value)
+        nqp::unshift(
+          nqp::if(
+            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
+            nqp::getattr(self,List,'$!reified'),
+            nqp::bindattr(self,List,'$!reified',
+              nqp::create(IterationBuffer))
           ),
-          self
-        )
+          nqp::p6scalarwithvalue($!descriptor,value)
+        );
+        self
     }
     multi method unshift(Array:D: **@values is raw --> Array:D) {
         self!prepend-list(@values)

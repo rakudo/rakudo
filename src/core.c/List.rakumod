@@ -884,16 +884,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method eager(List:D: --> List:D) {
-        nqp::stmts(
-          nqp::if(
-            nqp::isconcrete($!todo),
-            nqp::stmts(
-              $!todo.reify-all,
-              ($!todo := nqp::null)
-            )
-          ),
-          self
-        )
+        nqp::if(
+          nqp::isconcrete($!todo),
+          nqp::stmts(
+            $!todo.reify-all,
+            ($!todo := nqp::null)
+          )
+        );
+        self
     }
 
     method Capture(List:D: --> Capture:D) {
@@ -1146,38 +1144,37 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
     multi method combinations(Range:D $ofrange --> Seq:D) {
-        nqp::stmts(
-          (my int $elems = self.elems),      # reifies
-          nqp::if(
-            $ofrange.is-int,
-            $ofrange.int-bounds(my int $i, my int $to),
-            nqp::stmts(
-              nqp::unless(
-                $ofrange.min < 0,   # $i already 0 if not
-                ($i = ($ofrange.min + $ofrange.excludes-min).Int)
-              ),
-              nqp::if(
-                $ofrange.max > $elems,
-                ($to = $elems),
-                ($to = ($ofrange.max - $ofrange.excludes-max).Int)
-              )
+        my int $elems = self.elems;         # reifies
+        nqp::if(
+          $ofrange.is-int,
+          $ofrange.int-bounds(my int $i, my int $to),
+          nqp::stmts(
+            nqp::unless(
+              $ofrange.min < 0,   # $i already 0 if not
+              ($i = ($ofrange.min + $ofrange.excludes-min).Int)
+            ),
+            nqp::if(
+              $ofrange.max > $elems,
+              ($to = $elems),
+              ($to = ($ofrange.max - $ofrange.excludes-max).Int)
             )
-          ),
-          ($i = nqp::if(nqp::islt_i($i,0),-1,nqp::sub_i($i,1))),
-          nqp::if(nqp::isgt_i($to,$elems),($to = $elems)),
-          Seq.new(
-            Rakudo::Iterator.SequentialIterators(
-              Rakudo::Iterator.Callable( {
-                  nqp::if(
-                    nqp::isle_i(++$i,$to),
-                    Rakudo::Iterator.ListIndexes( # basically .combinations($i)
-                      self,
-                      Rakudo::Iterator.Combinations($elems, $i, 1)
-                    ),
-                    IterationEnd
-                  )
-              } )
-            )
+          )
+        );
+
+        $i = nqp::islt_i($i,0) ?? -1 !! nqp::sub_i($i,1);
+
+        $to = $elems if nqp::isgt_i($to,$elems);
+
+        Seq.new(
+          Rakudo::Iterator.SequentialIterators(
+            Rakudo::Iterator.Callable( {
+                nqp::isle_i(++$i,$to)
+                  ?? Rakudo::Iterator.ListIndexes( # basically .combinations($i)
+                       self,
+                       Rakudo::Iterator.Combinations($elems, $i, 1)
+                     )
+                  !! IterationEnd
+            } )
           )
         )
     }
@@ -1263,73 +1260,71 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # of the list as junctions, and stringify the parts between Junctions
     # normally, for performance.
     method !JUNCTIONIZE(\sep, Mu \strings, \i, \elems, Mu \initial) {
-        nqp::stmts(
-          nqp::if(
-            nqp::elems(strings),
-            nqp::stmts(                          # some strings on left
-              (my $junction := infix:<~>(
-                nqp::concat(nqp::join(sep,strings),sep),
-                initial
-              )),
-              nqp::setelems(strings,0)
-            ),
-            ($junction := initial)               # just start with this one
+        nqp::if(
+          nqp::elems(strings),
+          nqp::stmts(                          # some strings on left
+            (my $junction := infix:<~>(
+              nqp::concat(nqp::join(sep,strings),sep),
+              initial
+            )),
+            nqp::setelems(strings,0)
           ),
-          nqp::while(
-            nqp::islt_i((i = nqp::add_i(i,1)),elems),
-            nqp::stmts(                          # something left in list
-              (my $tmp := nqp::ifnull(
-                nqp::atpos($!reified,i),
-                nqp::if(
-                  nqp::isconcrete(my $default),
-                  $default,                      # seen before
-                  ($default := nqp::if(          # first time we have a null
-                    nqp::can(self,'default'),
-                    self.default.Str,
-                    ''
-                  ))
-                )
-              )),
+          ($junction := initial)               # just start with this one
+        );
+
+        nqp::while(
+          nqp::islt_i((i = nqp::add_i(i,1)),elems),
+          nqp::stmts(                          # something left in list
+            (my $tmp := nqp::ifnull(
+              nqp::atpos($!reified,i),
               nqp::if(
-                nqp::isconcrete($tmp),
-                nqp::if(                         # not a type object
-                  nqp::istype($tmp,Junction),
-                  nqp::stmts(                    # found another Junction
-                    nqp::if(
-                      nqp::elems(strings),
-                      nqp::stmts(                # process string on left
-                        ($junction := infix:<~>(
-                          $junction,
-                          nqp::concat(sep,nqp::join(sep,strings))
-                        )),
-                        nqp::setelems(strings,0)
-                      )
-                    ),
-                    ($junction := infix:<~>($junction, $tmp))
-                  ),
-                  nqp::push(strings,nqp::if(   # not a Junction
-                    nqp::istype($tmp,Str),
-                    $tmp,
-                    nqp::if(
-                      nqp::can($tmp,'Str'),
-                      $tmp.Str,
-                      nqp::box_s($tmp,Str)
-                    )
-                  ))
-                ),
-                nqp::push(strings,$tmp.Str)    # type object
+                nqp::isconcrete(my $default),
+                $default,                      # seen before
+                ($default := nqp::if(          # first time we have a null
+                  nqp::can(self,'default'),
+                  self.default.Str,
+                  ''
+                ))
               )
+            )),
+            nqp::if(
+              nqp::isconcrete($tmp),
+              nqp::if(                         # not a type object
+                nqp::istype($tmp,Junction),
+                nqp::stmts(                    # found another Junction
+                  nqp::if(
+                    nqp::elems(strings),
+                    nqp::stmts(                # process string on left
+                      ($junction := infix:<~>(
+                        $junction,
+                        nqp::concat(sep,nqp::join(sep,strings))
+                      )),
+                      nqp::setelems(strings,0)
+                    )
+                  ),
+                  ($junction := infix:<~>($junction, $tmp))
+                ),
+                nqp::push(strings,nqp::if(   # not a Junction
+                  nqp::istype($tmp,Str),
+                  $tmp,
+                  nqp::if(
+                    nqp::can($tmp,'Str'),
+                    $tmp.Str,
+                    nqp::box_s($tmp,Str)
+                  )
+                ))
+              ),
+              nqp::push(strings,$tmp.Str)    # type object
             )
-          ),
-          nqp::if(
-            nqp::elems(strings),
-            infix:<~>(                           # need to concat right
-              $junction,
-              nqp::concat(sep,nqp::join(sep,strings))
-            ),
-            $junction                            # nothing left to concat
           )
-        )
+        );
+
+        nqp::elems(strings)
+          ?? infix:<~>(                           # need to concat right
+               $junction,
+               nqp::concat(sep,nqp::join(sep,strings))
+             )
+          !! $junction                            # nothing left to concat
     }
 
     # helper method for .sort

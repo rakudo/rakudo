@@ -391,21 +391,20 @@ my role Array::Shaped
     # The values are stored in new storage that then takes the place of the
     # old, so values read through a view of this array are those it had
     multi method STORE(::?CLASS:D: Iterable:D \in, :$INITIALIZE) {
-        nqp::stmts(
-          nqp::if(
-            $INITIALIZE,
-            StoreIterable.new(self,in).sink-all,
-            nqp::stmts(
-              (my \fresh := self.new(:shape(self.shape))),
-              nqp::bindattr(fresh,Array,'$!descriptor',
-                nqp::getattr(self,Array,'$!descriptor')),
-              StoreIterable.new(fresh,in).sink-all,
-              nqp::bindattr(self,List,'$!reified',
-                nqp::getattr(fresh,List,'$!reified'))
-            )
-          ),
-          self
-        )
+        nqp::if(
+          $INITIALIZE,
+          StoreIterable.new(self,in).sink-all,
+          nqp::stmts(
+            (my \fresh := self.new(:shape(self.shape))),
+            nqp::bindattr(fresh,Array,'$!descriptor',
+              nqp::getattr(self,Array,'$!descriptor')),
+            StoreIterable.new(fresh,in).sink-all,
+            nqp::bindattr(self,List,'$!reified',
+              nqp::getattr(fresh,List,'$!reified'))
+          )
+        );
+
+        self
     }
 
     my class StoreIterator does Rakudo::Iterator::ShapeLeaf {

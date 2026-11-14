@@ -1752,10 +1752,7 @@ class ContainerDescriptor::BindHashKey does ContainerDescriptor::Whence {
         $name ?? $name ~ "\{'" ~ $!key ~ "'\}" !! $name
     }
     method assigned($scalar) {
-        my $hash := nqp::getattr($!target, Map, '$!storage');
-        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
-          unless nqp::isconcrete($hash);
-        nqp::bindkey($hash, $!key, $scalar);
+        nqp::bindkey(nqp::getattr($!target,Map,'$!storage'),$!key,$scalar);
     }
 }
 
@@ -1788,10 +1785,11 @@ class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
         $name ?? 'element of ' ~ $name !! $name
     }
     method assigned($scalar) {
-        my $hash := nqp::getattr($!target, Map, '$!storage');
-        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
-          unless nqp::isconcrete($hash);
-        nqp::bindkey($hash, $!which, $!pair.new($!key, $scalar));
+        nqp::bindkey(
+          nqp::getattr($!target, Map, '$!storage'),
+          $!which,
+          $!pair.new($!key, $scalar)
+        );
     }
 }
 
@@ -2011,10 +2009,8 @@ my class UninitializedAttributeChecker {
                 }
             }
             elsif nqp::istype_nd($attr, Hash) {
-                my $storage := nqp::getattr($attr, Map, '$!storage');
-                unless nqp::isconcrete($storage) && nqp::elems($storage) {
-                    $desc := nqp::getattr($attr, Hash, '$!descriptor');
-                }
+                $desc := nqp::getattr($attr,Hash,'$!descriptor');
+                  unless nqp::elems(nqp::getattr($attr,Map,'$!storage'));
             }
             else {
                 try {

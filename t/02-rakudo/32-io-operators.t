@@ -19,15 +19,15 @@ subtest "chmod across the revisions", {
     is-run 'use v6.d;' ~ Q:c| print chmod(0o777, '{$non-existent}') ~~ [] |,
             :out("True"), q|[v6.d] chmod with nonexistent file produces empty array |;
 
-    is-run 'use v6.e.PREVIEW;' ~ Q:c| print chmod(0o777, '{$non-existent}', '{$non-existent-also}') ~~ [] |,
+    is-run 'use v6.e.PREVIEW; %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;' ~ Q:c| print chmod(0o777, '{$non-existent}', '{$non-existent-also}') ~~ [] |,
             :out("True"), :err(/ .* 'Please use @paths.grep(*.IO.chmod) instead.' .* /),
             q|[v6.e] chmod with multiple nonexistent files and old signature produces empty array and expected deprecation message |;
 
-    is-run 'use v6.e.PREVIEW;' ~ Q:c| print chmod(0o777, '{$non-existent}') ~~ [] |,
+    is-run 'use v6.e.PREVIEW; %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;' ~ Q:c| print chmod(0o777, '{$non-existent}') ~~ [] |,
             :exitcode(0), :out("True"), :err(/.* 'Please use chmod(Str $path, Int() :$mode) instead.' .*/),
             q|[v6.e] chmod with single nonexistent file (Str) and old signature produces empty array and expected deprecation message '|;
 
-    is-run 'use v6.e.PREVIEW;' ~ Q:c| print chmod(0o777, '{$non-existent}'.IO) ~~ [] |,
+    is-run 'use v6.e.PREVIEW; %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;' ~ Q:c| print chmod(0o777, '{$non-existent}'.IO) ~~ [] |,
             :exitcode(0), :out("True"), :err(/.* 'Please use chmod(IO $path, Int() :$mode) instead.' .*/),
             q|[v6.e] chmod with single nonexistent file (IO) and old signature produces empty array and expected deprecation message '|;
 
@@ -48,15 +48,15 @@ subtest "chown across the revisions", {
     is-run 'use v6.d;' ~ Q:c| print chown('{$non-existent}', :uid(111), :gid(222)) ~~ [] |,
             :out("True"), q|[v6.d] chown with nonexistent file produces empty array|;
 
-    is-run 'use v6.e.PREVIEW;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :uid(111), :gid(222)) ~~ [] |,
+    is-run 'use v6.e.PREVIEW; %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :uid(111), :gid(222)) ~~ [] |,
             :out("True"), :err(/ .* '@paths.grep(*.IO.chown(:uid(111), :gid(222)))' .* /),
             q|[v6.e] chown with multiple nonexistent files (UID + GID) produces empty array and deprecation |;
 
-    is-run 'use v6.e.PREVIEW;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :uid(111)) ~~ [] |,
+    is-run 'use v6.e.PREVIEW; %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :uid(111)) ~~ [] |,
             :out("True"), :err(/ .* '@paths.grep(*.IO.chown(:uid(111)))' .* /),
             q|[v6.e] chown with multiple nonexistent files (UID) produces empty array and deprecation |;
 
-    is-run 'use v6.e.PREVIEW;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :gid(222)) ~~ [] |,
+    is-run 'use v6.e.PREVIEW; %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;' ~ Q:c| print chown('{$non-existent}', '{$non-existent-also}', :gid(222)) ~~ [] |,
             :out("True"), :err(/ .* '@paths.grep(*.IO.chown(:gid(222)))' .* /),
             q|[v6.e] chown with multiple nonexistent files (GID) produces empty array and deprecation |;
 
@@ -77,7 +77,7 @@ subtest "unlink across the revisions", {
     is-run 'use v6.d;' ~ Q:c| print unlink('{$non-existent}') ~~ ['{$non-existent}'] |,
             :out("True"), q|[v6.d] unlink with nonexistent file produces array containing file name |;
 
-    is-run 'use v6.e.PREVIEW;' ~ Q:c| print unlink('{$non-existent}', '{$non-existent-also}') ~~ ['{$non-existent}', '{$non-existent-also}'] |,
+    is-run 'use v6.e.PREVIEW; %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;' ~ Q:c| print unlink('{$non-existent}', '{$non-existent-also}') ~~ ['{$non-existent}', '{$non-existent-also}'] |,
             :out("True"), :err(/ .* '@paths.grep(*.IO.unlink)' .* /),
             q|[v6.e] unlink with multiple nonexistent files produces empty array and deprecation |;
 
@@ -97,7 +97,7 @@ subtest "rmdir across the revisions", {
     is-run 'use v6.d;' ~ Q:c| print rmdir('{$non-existent}') ~~ [] |,
             :out("True"), q|[v6.d] unlink with nonexistent directory produces empty array |;
 
-    is-run 'use v6.e.PREVIEW;' ~ Q:c| print rmdir('{$non-existent}', '{$non-existent-also}') ~~ [] |,
+    is-run 'use v6.e.PREVIEW; %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;' ~ Q:c| print rmdir('{$non-existent}', '{$non-existent-also}') ~~ [] |,
             :out("True"), :err(/ .* '@paths.grep(*.IO.rmdir)' .* /),
             q|[v6.e] rmdir with multiple nonexistent directory produces empty array and deprecation |;
 

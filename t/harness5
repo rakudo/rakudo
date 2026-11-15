@@ -45,6 +45,10 @@ $ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($moar ? "m" : $jvm ? "j" : "m");
 $ENV{'RAKULIB'} = "./lib";
 my $rakuast = ((!exists $ENV{'RAKUDO_RAKUAST'}) || $ENV{'RAKUDO_RAKUAST'});
 
+# Silence the legacy frontend deprecation notice.
+$ENV{'RAKUDO_NO_DEPRECATIONS'} = 1
+  if !$rakuast && !exists $ENV{'RAKUDO_NO_DEPRECATIONS'};
+
 my @slow;
 if ($list_file) {
     $list_file = convert_to_versioned_file($list_file);

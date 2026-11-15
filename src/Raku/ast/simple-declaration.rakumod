@@ -68,14 +68,233 @@ class RakuAST::VarDeclaration::Simple
     has str $!lowered-local-name;
     has Mu $!lowered-away-sentinel;
 
-    method IMPL-SET-LOWERED-ARRAY-INIT(int $on) {
-        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!lowered-array-init', $on)
-    }
+    # Set when a bind statement targets this declaration: the bind
+    # replaces the declared container, so anything relying on the
+    # declaration's own container must stand down.
+    has int $!bind-targeted;
 
     # Set by the lexical-to-local lowering analysis on a method's unused
     # implicit %_ target: the slurpy parameter still accepts and
     # discards stray nameds, but no hash is wrapped, declared, or bound.
     has int $!unused-slurpy;
+
+    method new(          str :$scope,
+               RakuAST::Name :$desigilname!,
+                         str :$sigil,
+                         str :$twigil,
+               RakuAST::Type :$type,
+                        List :$traits,
+        RakuAST::Initializer :$initializer,
+           RakuAST::SemiList :$shape,
+                        Bool :$forced-dynamic,
+                        Bool :$is-parameter,
+         RakuAST::Expression :$where,
+    RakuAST::Doc::Declarator :$WHY
+    ) {
+        my $obj := nqp::create(self);
+        if $desigilname.is-empty {
+            nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous variable; use RakuAST::VarDeclaration::Anonymous');
+        }
+
+        $obj.replace-scope($scope);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname', $desigilname);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil || '');
+
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type',
+          $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape',
+          $shape // RakuAST::SemiList);
+        $obj.set-traits($traits);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
+            $initializer // RakuAST::Initializer);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor',
+          RakuAST::Method);
+        $obj.IMPL-SET-FORCED-DYNAMIC($forced-dynamic ?? True !! False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-parameter',
+          $is-parameter ?? True !! False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!where',
+          $where // RakuAST::Expression);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!original-type',
+          $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-rw', False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-ro', False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-bindable', True);
+
+        if $WHY {
+            $scope && $obj.is-attribute
+              ?? $obj.set-WHY($WHY)
+              !! nqp::die("Declarator doc only supported on scope 'has'");
+        }
+
+        $obj
+    }
+
+    method set-initializer(RakuAST::Initializer $initializer) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer',
+            $initializer // RakuAST::Initializer);
+        self.IMPL-CLEAR-IMPLICIT-DECLARATIONS;
+    }
+
+    method name() {
+        self.sigil ~ (self.twigil || (self.is-attribute ?? '!' !! '')) ~ $!desigilname.canonicalize;
+    }
+
+    method lexical-name() {
+        self.twigil eq '.' ?? self.sigil ~ '!' ~ self.desigilname.canonicalize !! self.name
+    }
+
+    method set-type(RakuAST::Type $type, Bool :$replace, Bool :$outer) {
+        if $!type && !$replace {
+            if $outer {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $type);
+                return Nil;
+            }
+            else {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $!type);
+            }
+        }
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $type);
+    }
+
+    method set-rw() {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-rw', True);
+    }
+
+    method set-ro(Bool $ro) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-ro', $ro);
+    }
+
+    method set-bindable(Bool $bindable) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-bindable', $bindable);
+    }
+
+    method set-already-declared() {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!already-declared', True);
+    }
+    method already-declared() { $!already-declared ?? True !! False }
+
+    # Name the lexical the scope already makes, such as a block's topic. The
+    # declaration then declares nothing of its own, and an `our` binds that
+    # lexical to the package container it installs.
+    method claim-implicit() {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!shares-implicit', True)
+          if self.IMPL-CAN-SHARE-IMPLICIT;
+        Nil
+    }
+
+    method shares-implicit() { $!shares-implicit ?? True !! False }
+
+    method set-where(RakuAST::Expression $where) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!where', $where);
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!where-in-type', 0);
+    }
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        nqp::die("Cannot add colonpair to variable declaration without initializer")
+            unless $!initializer;
+        $!initializer.add-colonpair($pair);
+    }
+
+    method report-redeclaration() {
+        !$!already-declared
+    }
+
+    # Generate a lookup of this variable, already resolved to this declaration.
+    method generate-lookup() {
+        if self.is-lexical {
+            my $lookup := RakuAST::Var::Lexical.new(self.name);
+            $lookup.set-resolution(self);
+            $lookup
+        }
+        else {
+            nqp::die('Cannot generate lookup of simple var for scope ' ~ self.scope);
+        }
+    }
+
+    method can-be-bound-to() {
+        # Must be lexical and non-native.
+        if $!is-bindable && (self.scope eq 'my' || self.scope eq 'our' || self.scope eq 'state') {
+            my str $sigil := self.sigil;
+            return True if $sigil eq '@' || $sigil eq '%';
+            return True unless $!type;
+            return True unless nqp::objprimspec(self.IMPL-OF-TYPE);
+        }
+        False
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!type)        if nqp::isconcrete($!type);
+        if !$!initializer-in-method && nqp::isconcrete($!initializer) {
+            $visitor($!initializer);
+            $visitor($!initializer-method) if nqp::isconcrete($!initializer-method);
+        }
+        $visitor($!shape)       if nqp::isconcrete($!shape);
+        $visitor($!accessor)    if nqp::isconcrete($!accessor);
+        # The subset made of a where carries it, so the where has one parent.
+        $visitor($!where)       if nqp::isconcrete($!where) && !$!where-in-type;
+        $visitor($!original-type) if nqp::isconcrete($!original-type) && !($!original-type =:= $!type);
+        self.visit-traits($visitor);
+        $visitor(self.WHY) if self.WHY;
+    }
+
+    method default-scope() {
+        'my'
+    }
+
+    method allowed-scopes() {
+        self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has', 'HAS'])
+    }
+
+    method is-lexical(--> Bool) {
+        # Overridden here because our-scoped variables are really lexical aliases.
+        my constant SCOPES := nqp::hash('my', 1, 'state', 1, 'our', 1);
+        nqp::existskey(SCOPES,self.scope)
+    }
+
+    method is-attribute(--> Bool) {
+        my constant SCOPES := nqp::hash('has', 1, 'HAS', 1);
+        nqp::existskey(SCOPES,self.scope)
+    }
+
+    method needs-sink-call() { False }
+
+    method dump-markers() {
+        '【' ~ self.name ~ '】'
+    }
+
+    # Only an attribute has a meta-object that can carry documentation
+    # at runtime. The documentation of other variable declarations is
+    # only available through $=rakudoc.
+    method podifiable() { self.is-attribute }
+
+    method return-type() {
+        self.IMPL-BIND-CONSTRAINT(self.IMPL-OF-TYPE)
+    }
+
+    method IMPL-IS-RW() { $!is-rw }
+
+    # Whether the declaration can name a lexical the scope already made. One
+    # that asks for a container of its own cannot: that lexical is the
+    # scope's, shaped before the declaration runs.
+    method IMPL-CAN-SHARE-IMPLICIT() {
+        my str $scope := self.scope;
+        return False unless $scope eq 'my' || $scope eq 'our';
+        return False if $!is-parameter || $!type || $!shape || $!where;
+        return False if self.forced-dynamic;
+        return False if nqp::elems(self.IMPL-UNWRAP-LIST(self.traits));
+        True
+    }
+
+    method IMPL-WHERE-IN-TYPE() { $!where-in-type ?? True !! False }
+
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-GUARDS-STATE-INIT ?? [self.IMPL-STATE-INIT-GUARD] !! []
+    }
+
+    method IMPL-SET-LOWERED-ARRAY-INIT(int $on) {
+        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!lowered-array-init', $on)
+    }
 
     method IMPL-SET-UNUSED-SLURPY() {
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!unused-slurpy', 1)
@@ -167,215 +386,6 @@ class RakuAST::VarDeclaration::Simple
         }
     }
 
-    method new(          str :$scope,
-               RakuAST::Name :$desigilname!,
-                         str :$sigil,
-                         str :$twigil,
-               RakuAST::Type :$type,
-                        List :$traits,
-        RakuAST::Initializer :$initializer,
-           RakuAST::SemiList :$shape,
-                        Bool :$forced-dynamic,
-                        Bool :$is-parameter,
-         RakuAST::Expression :$where,
-    RakuAST::Doc::Declarator :$WHY
-    ) {
-        my $obj := nqp::create(self);
-        if $desigilname.is-empty {
-            nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous variable; use RakuAST::VarDeclaration::Anonymous');
-        }
-
-        $obj.replace-scope($scope);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname', $desigilname);
-        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
-        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil || '');
-
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type',
-          $type // RakuAST::Type);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape',
-          $shape // RakuAST::SemiList);
-        $obj.set-traits($traits);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
-            $initializer // RakuAST::Initializer);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor',
-          RakuAST::Method);
-        $obj.IMPL-SET-FORCED-DYNAMIC($forced-dynamic ?? True !! False);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-parameter',
-          $is-parameter ?? True !! False);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!where',
-          $where // RakuAST::Expression);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!original-type',
-          $type // RakuAST::Type);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-rw', False);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-ro', False);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!is-bindable', True);
-
-        if $WHY {
-            $scope && $obj.is-attribute
-              ?? $obj.set-WHY($WHY)
-              !! nqp::die("Declarator doc only supported on scope 'has'");
-        }
-
-        $obj
-    }
-
-    method set-initializer(RakuAST::Initializer $initializer) {
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer',
-            $initializer // RakuAST::Initializer);
-        self.IMPL-CLEAR-IMPLICIT-DECLARATIONS;
-    }
-
-    method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-GUARDS-STATE-INIT ?? [self.IMPL-STATE-INIT-GUARD] !! []
-    }
-
-    method name() {
-        self.sigil ~ (self.twigil || (self.is-attribute ?? '!' !! '')) ~ $!desigilname.canonicalize;
-    }
-
-    method lexical-name() {
-        self.twigil eq '.' ?? self.sigil ~ '!' ~ self.desigilname.canonicalize !! self.name
-    }
-
-    method set-type(RakuAST::Type $type, Bool :$replace, Bool :$outer) {
-        if $!type && !$replace {
-            if $outer {
-                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $type);
-                return Nil;
-            }
-            else {
-                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $!type);
-            }
-        }
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $type);
-    }
-
-    method set-rw() {
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-rw', True);
-    }
-
-    method IMPL-IS-RW() { $!is-rw }
-
-    method set-ro(Bool $ro) {
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-ro', $ro);
-    }
-
-    method set-bindable(Bool $bindable) {
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-bindable', $bindable);
-    }
-
-    method set-already-declared() {
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!already-declared', True);
-    }
-    method already-declared() { $!already-declared ?? True !! False }
-
-    # Name the lexical the scope already makes, such as a block's topic. The
-    # declaration then declares nothing of its own, and an `our` binds that
-    # lexical to the package container it installs.
-    method claim-implicit() {
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!shares-implicit', True)
-          if self.IMPL-CAN-SHARE-IMPLICIT;
-        Nil
-    }
-
-    method shares-implicit() { $!shares-implicit ?? True !! False }
-
-    # Whether the declaration can name a lexical the scope already made. One
-    # that asks for a container of its own cannot: that lexical is the
-    # scope's, shaped before the declaration runs.
-    method IMPL-CAN-SHARE-IMPLICIT() {
-        my str $scope := self.scope;
-        return False unless $scope eq 'my' || $scope eq 'our';
-        return False if $!is-parameter || $!type || $!shape || $!where;
-        return False if self.forced-dynamic;
-        return False if nqp::elems(self.IMPL-UNWRAP-LIST(self.traits));
-        True
-    }
-
-    method set-where(RakuAST::Expression $where) {
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!where', $where);
-        nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!where-in-type', 0);
-    }
-
-    method IMPL-WHERE-IN-TYPE() { $!where-in-type ?? True !! False }
-
-    method add-colonpair(RakuAST::ColonPair $pair) {
-        nqp::die("Cannot add colonpair to variable declaration without initializer")
-            unless $!initializer;
-        $!initializer.add-colonpair($pair);
-    }
-
-    method report-redeclaration() {
-        !$!already-declared
-    }
-
-    # Generate a lookup of this variable, already resolved to this declaration.
-    method generate-lookup() {
-        if self.is-lexical {
-            my $lookup := RakuAST::Var::Lexical.new(self.name);
-            $lookup.set-resolution(self);
-            $lookup
-        }
-        else {
-            nqp::die('Cannot generate lookup of simple var for scope ' ~ self.scope);
-        }
-    }
-
-    method can-be-bound-to() {
-        # Must be lexical and non-native.
-        if $!is-bindable && (self.scope eq 'my' || self.scope eq 'our' || self.scope eq 'state') {
-            my str $sigil := self.sigil;
-            return True if $sigil eq '@' || $sigil eq '%';
-            return True unless $!type;
-            return True unless nqp::objprimspec(self.IMPL-OF-TYPE);
-        }
-        False
-    }
-
-    method visit-children(Code $visitor) {
-        $visitor($!type)        if nqp::isconcrete($!type);
-        if !$!initializer-in-method && nqp::isconcrete($!initializer) {
-            $visitor($!initializer);
-            $visitor($!initializer-method) if nqp::isconcrete($!initializer-method);
-        }
-        $visitor($!shape)       if nqp::isconcrete($!shape);
-        $visitor($!accessor)    if nqp::isconcrete($!accessor);
-        # The subset made of a where carries it, so the where has one parent.
-        $visitor($!where)       if nqp::isconcrete($!where) && !$!where-in-type;
-        $visitor($!original-type) if nqp::isconcrete($!original-type) && !($!original-type =:= $!type);
-        self.visit-traits($visitor);
-        $visitor(self.WHY) if self.WHY;
-    }
-
-    method default-scope() {
-        'my'
-    }
-
-    method allowed-scopes() {
-        self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has', 'HAS'])
-    }
-
-    method is-lexical(--> Bool) {
-        # Overridden here because our-scoped variables are really lexical aliases.
-        my constant SCOPES := nqp::hash('my', 1, 'state', 1, 'our', 1);
-        nqp::existskey(SCOPES,self.scope)
-    }
-
-    method is-attribute(--> Bool) {
-        my constant SCOPES := nqp::hash('has', 1, 'HAS', 1);
-        nqp::existskey(SCOPES,self.scope)
-    }
-
-    # Only an attribute has a meta-object that can carry documentation
-    # at runtime. The documentation of other variable declarations is
-    # only available through $=rakudoc.
-    method podifiable() { self.is-attribute }
-
-    # Set when a bind statement targets this declaration: the bind
-    # replaces the declared container, so anything relying on the
-    # declaration's own container must stand down.
-    has int $!bind-targeted;
-
     method IMPL-SET-BIND-TARGETED() {
         nqp::bindattr_i(self, RakuAST::VarDeclaration::Simple, '$!bind-targeted', 1);
     }
@@ -392,10 +402,6 @@ class RakuAST::VarDeclaration::Simple
                 !! $!type
              ).compile-time-value
           !! Mu;
-    }
-
-    method return-type() {
-        self.IMPL-BIND-CONSTRAINT(self.IMPL-OF-TYPE)
     }
 
     # Yields NQPMu for check time to report unless the shape is one or more
@@ -1826,12 +1832,6 @@ class RakuAST::VarDeclaration::Simple
             }
         }
         self.IMPL-BIND-QAST($context, $source-qast)
-    }
-
-    method needs-sink-call() { False }
-
-    method dump-markers() {
-        '【' ~ self.name ~ '】'
     }
 }
 

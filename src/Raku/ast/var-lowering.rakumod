@@ -1390,6 +1390,15 @@ class RakuAST::IMPL::VarLowering {
         Nil
     }
 
+    method IMPL-POISON-ALL() {
+        my $frames := $!frames;
+        my int $i  := nqp::elems($frames);
+        while --$i >= 0 {
+            nqp::atpos($frames, $i).poison();
+        }
+        Nil
+    }
+
     # The frame the given node made, if it made one, may still drop an
     # unused implicit slurpy hash. Every frame around it is poisoned
     # outright.

@@ -131,7 +131,7 @@ class RakuAST::VarDeclaration::Simple
                 $where := ' at ' ~ $source.original-file
                     ~ ':' ~ $source.original-line($origin.from);
             }
-            RakuAST::IMPL::VarLowering.IMPL-NOTE(
+            self.note(
                 'lex2local: minted ' ~ $!lowered-local-name ~ ' for '
                     ~ self.name ~ $where);
         }

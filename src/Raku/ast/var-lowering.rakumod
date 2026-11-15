@@ -1390,28 +1390,6 @@ class RakuAST::IMPL::VarLowering {
         Nil
     }
 
-    # This code runs where the NQP setting's IO subs are not reachable,
-    # so stderr output is spelled out in ops, including the byte buffer
-    # type to encode into.
-    method IMPL-NOTE(str $message) {
-        my $u8 := nqp::newtype(nqp::knowhow(), 'P6int');
-        nqp::composetype($u8, nqp::hash('integer', nqp::hash('unsigned', 1, 'bits', 8)));
-        my $buf-type := nqp::newtype(nqp::knowhow(), 'VMArray');
-        nqp::composetype($buf-type, nqp::hash('array', nqp::hash('type', $u8)));
-        nqp::writefh(nqp::getstderr(),
-            nqp::encode($message ~ "\n", 'utf8', nqp::create($buf-type)));
-        Nil
-    }
-
-    method IMPL-POISON-ALL() {
-        my $frames := $!frames;
-        my int $i  := nqp::elems($frames);
-        while --$i >= 0 {
-            nqp::atpos($frames, $i).poison();
-        }
-        Nil
-    }
-
     # The frame the given node made, if it made one, may still drop an
     # unused implicit slurpy hash. Every frame around it is poisoned
     # outright.

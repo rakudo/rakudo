@@ -23,7 +23,7 @@ role RakuAST::IMPL::Lowerable {
               $local-name := self.IMPL-GENERATE-LOWERED-NAME
             );
 
-            RakuAST::IMPL::VarLowering.IMPL-NOTE(
+            self.note(
               "lex2local: minted $local-name  for "
                 ~ self.lexical-name
             ) if nqp::getenvhash<RAKUDO_LOWERING_DEBUG>;

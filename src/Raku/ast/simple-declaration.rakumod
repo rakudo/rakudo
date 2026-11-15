@@ -1,7 +1,3 @@
-# Done by variable declarations
-role RakuAST::VarDeclaration
-  does RakuAST::Declaration { }
-
 # A basic variable declaration of the form `my SomeType $foo = 42` or
 # `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple

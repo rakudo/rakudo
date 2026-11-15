@@ -5362,10 +5362,9 @@ BEGIN {
                   )
                 ),
                 $result
-            }
-            else {
-                @EMPTY-LIST
-            }
+              ),
+              @EMPTY-LIST
+            )
         }
 
         # Build a hash of named captures, or return a shared empty hash if there
@@ -5390,10 +5389,9 @@ BEGIN {
                   )
                 ),
                 $result
-            }
-            else {
-                %EMPTY-HASH
-            }
+              ),
+              %EMPTY-HASH
+            )
         }
 
         ## NQP Match object building

@@ -464,8 +464,7 @@ class RakuAST::Name::Part {
         False
     }
 
-    method visit-children(Code $visitor) {
-    }
+    method visit-children(Code $visitor) { }
 
     method is-empty(--> Bool) {
         nqp::die("is-empty not implemented on " ~ self.HOW.name(self));

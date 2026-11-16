@@ -896,10 +896,10 @@ class RakuAST::CompUnit
     method visit-children(Code $visitor) {
         $visitor($!mainline);
         $visitor($!statement-list);
-        $visitor($!pod)     if $!pod;
-        $visitor($!data)    if $!data;
-        $visitor($!finish)  if $!finish;
-        $visitor($!rakudoc) if $!rakudoc;
+        $visitor($!pod)     if nqp::isconcrete($!pod);
+        $visitor($!data)    if nqp::isconcrete($!data);
+        $visitor($!finish)  if nqp::isconcrete($!finish);
+        $visitor($!rakudoc) if nqp::isconcrete($!rakudoc);
     }
 }
 

@@ -4258,7 +4258,7 @@ class RakuAST::Postcircumfix::ArrayIndex
 
     method visit-children(Code $visitor) {
         $visitor($!index);
-        $visitor($!assignee) if $!assignee;
+        $visitor($!assignee) if nqp::isconcrete($!assignee);
         self.visit-colonpairs($visitor);
     }
 
@@ -4570,7 +4570,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex
 
     method visit-children(Code $visitor) {
         $visitor($!index);
-        $visitor($!assignee) if $!assignee;
+        $visitor($!assignee) if nqp::isconcrete($!assignee);
         self.visit-colonpairs($visitor);
     }
 
@@ -5040,7 +5040,7 @@ class RakuAST::Statement::For
     method visit-children(Code $visitor) {
         $visitor($!source);
         $visitor($!body);
-        $visitor($!otherwise) if $!otherwise;
+        $visitor($!otherwise) if nqp::isconcrete($!otherwise);
         self.visit-labels($visitor);
     }
 }

@@ -285,6 +285,6 @@ class RakuAST::Circumfix::HashComposer
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!expression) if $!expression;
+        $visitor($!expression) if nqp::isconcrete($!expression);
     }
 }

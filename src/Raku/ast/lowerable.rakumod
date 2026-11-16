@@ -10,14 +10,19 @@ role RakuAST::IMPL::Lowerable {
 
     method IMPL-LOWERED-AWAY-SENTINEL() { $!sentinel }
 
+    # Any additional reasons to not lower, intended to be shadowed if applicable
+    method IMPL-NO-LOWERING() { False }
+
     # The frame-local name for a lowered term, or the empty string when
     # the term stays a by-name lexical.
     method IMPL-LOWERED-LOCAL-NAME() {
-        my $local-name := $!local-name;
+        my str $local-name := $!local-name;
         if $local-name {
             $local-name
         }
-        elsif nqp::not_i($!lowered) || nqp::isnull($!sentinel) {
+        elsif nqp::not_i($!lowered)
+          || nqp::isnull($!sentinel)
+          || self.IMPL-NO-LOWERING {
             ''
         }
         else {

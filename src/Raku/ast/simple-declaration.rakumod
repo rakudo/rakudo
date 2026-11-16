@@ -330,7 +330,7 @@ class RakuAST::VarDeclaration::Simple
         my $decl := QAST::Var.new(:name($local-name),
           :scope<local>, :decl<var>
         );
-        if $!initializer && $!initializer.is-binding {
+        if nqp::isconcrete($!initializer) && $!initializer.is-binding {
             $decl
         }
         else {
@@ -361,31 +361,39 @@ class RakuAST::VarDeclaration::Simple
     method IMPL-BIND-TARGETED() { $!bind-targeted }
 
     method IMPL-OF-TYPE() {
-        $!type
-            ?? (nqp::istype($!type, RakuAST::Lookup)
-                ?? ($!type.is-resolved
+        nqp::isconcrete($!type)
+          ?? (nqp::istype($!type, RakuAST::Lookup)
+               ?? ($!type.is-resolved
                     ?? $!type
-                    !! self.get-implicit-lookups[0]
-                ).resolution
-                !! $!type
+                    !! nqp::atpos(self.get-implicit-lookups,0)
+                  ).resolution
+               !! $!type
              ).compile-time-value
-          !! Mu;
+          !! Mu
     }
 
     # Yields NQPMu for check time to report unless the shape is one or more
     # expression statements without modifiers whose values are type objects
     # known at compile time.
     method IMPL-CONTAINER-KEY-TYPES() {
-        return NQPMu unless $!shape && self.sigil eq '%';
-        my @statements := $!shape.code-statements;
-        return NQPMu unless nqp::elems(@statements);
-        my @key-types;
-        for @statements {
-            my $key-type := self.IMPL-SHAPE-KEY-TYPE($_);
-            return NQPMu if $key-type =:= NQPMu;
-            nqp::push(@key-types, $key-type);
+        if nqp::isconcrete($!shape) && self.sigil eq '%' {
+            my @statements := $!shape.code-statements;
+            if nqp::elems(@statements) {
+                my @key-types;
+                for @statements {
+                    my $key-type := self.IMPL-SHAPE-KEY-TYPE($_);
+                    return NQPMu if $key-type =:= NQPMu;
+                    nqp::push(@key-types, $key-type);
+                }
+                @key-types;
+            }
+            else {
+                NQPMu
+            }
         }
-        @key-types
+        else {
+            NQPMu
+        }
     }
 
     method IMPL-SHAPE-KEY-TYPE(RakuAST::Statement $statement) {
@@ -427,8 +435,11 @@ class RakuAST::VarDeclaration::Simple
                     && nqp::istype($expression.resolution, RakuAST::Declaration::External)) {
             $key-type := $expression.resolution.maybe-compile-time-value;
         }
+
         # A container holding a type object is not a type object.
-        nqp::isnull($key-type) || nqp::isconcrete_nd($key-type) ?? NQPMu !! $key-type
+        nqp::isnull($key-type) || nqp::isconcrete_nd($key-type)
+          ?? NQPMu
+          !! $key-type
     }
 
     # Runs before we parse the initializer, so we can setup a proper environment for resolving
@@ -467,7 +478,7 @@ class RakuAST::VarDeclaration::Simple
                 :parameters([
                   RakuAST::Parameter.new(
                     :type($topic-type),
-                    target => RakuAST::ParameterTarget::Var.new(:name<$_>)
+                    target => RakuAST::ParameterTarget::Var.new(:name('$_'))
                   )
                 ])
               )),
@@ -475,7 +486,10 @@ class RakuAST::VarDeclaration::Simple
                 RakuAST::StatementList.new().to-parse-time($resolver, $context)
               ))
             ).to-parse-time($resolver, $context);
-            nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer-method', $method);
+
+            nqp::bindattr(self, RakuAST::VarDeclaration::Simple,
+              '$!initializer-method', $method
+            );
         }
     }
 
@@ -486,10 +500,14 @@ class RakuAST::VarDeclaration::Simple
         if self.is-attribute || self.twigil eq '.' {
             my $attribute-package := $resolver.find-attach-target('package');
             if $attribute-package {
-                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
-                    $attribute-package);
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple,
+                  '$!attribute-package', $attribute-package
+                );
                 if self.is-attribute && !$!attribute-package.can-have-attributes {
-                    if nqp::istype($!attribute-package, RakuAST::Declaration::External::Package) {
+                    if nqp::istype(
+                         $!attribute-package,
+                         RakuAST::Declaration::External::Package
+                    ) {
                         # The external package's compile time is over. When
                         # its kind takes attributes (class, role), spec tests
                         # require silently ignoring the declaration; when it
@@ -666,17 +684,22 @@ class RakuAST::VarDeclaration::Simple
                 else {
                     my $method := $!initializer-method;
                     $method.body.statement-list.add-statement(
-                        RakuAST::Statement::Expression.new(
-                            :expression(
-                                nqp::istype($initializer, RakuAST::Initializer::CallAssign)
-                                ?? RakuAST::ApplyPostfix.new(
-                                    operand => $!type.IMPL-VALUE-TYPE,
-                                    postfix => $initializer.postfixish
-                                )
-                                !! RakuAST::Call::Name.new(
-                                    :name(RakuAST::Name.from-identifier('return')),
-                                    :args(RakuAST::ArgList.new($initializer.expression))
-                                )
+                      RakuAST::Statement::Expression.new(
+                        :expression(
+                          nqp::istype(
+                            $initializer,
+                            RakuAST::Initializer::CallAssign
+                          ) ?? RakuAST::ApplyPostfix.new(
+                                 operand => $!type.IMPL-VALUE-TYPE,
+                                 postfix => $initializer.postfixish
+                               )
+                            !! RakuAST::Call::Name.new(
+                                 :name(RakuAST::Name.from-identifier('return')),
+                                 :args(RakuAST::ArgList.new(
+                                        $initializer.expression
+                                      )
+                                 )
+                               )
                             )
                         )
                     );
@@ -736,19 +759,27 @@ class RakuAST::VarDeclaration::Simple
                 my $variable-access := RakuAST::Var::Lexical.new(self.name);
                 $variable-access.set-resolution(self);
                 my $accessor := RakuAST::Method::ClassAccessor.new(
-                    :scope<has>,
-                    :name(RakuAST::Name.from-identifier(self.desigilname.canonicalize)),
-                    :body(RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(:expression($variable-access)),
-                        ),
-                    )),
+                  :scope<has>,
+                  :name(RakuAST::Name.from-identifier(
+                         self.desigilname.canonicalize
+                       )
+                  ),
+                  :body(RakuAST::Blockoid.new(
+                          RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                              :expression($variable-access)
+                            )
+                          ),
+                        )
+                  )
                 );
-                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!accessor', $accessor);
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple,
+                  '$!accessor', $accessor
+                );
                 $resolver.push-scope($accessor);
                 # Check time reaches the accessor through visit-children.
                 $accessor.to-begin-time($resolver, $context);
-                $resolver.pop-scope();
+                $resolver.pop-scope;
             }
 
             self.apply-traits($resolver, $context, $target);
@@ -766,192 +797,236 @@ class RakuAST::VarDeclaration::Simple
         self.check-scope($resolver, 'variable');
 
         # A variable a signature declares is checked by its parameter.
-        self.IMPL-CHECK-FOR-DOUBLE-CLOSURE($!where, $resolver, $context, :tested)
-          if $!where && !$!is-parameter;
+        self.IMPL-CHECK-FOR-DOUBLE-CLOSURE(
+          $!where, $resolver, $context, :tested
+        ) if nqp::isconcrete($!where) && !$!is-parameter;
 
+        my str $twigil  := $!twigil;
+        my $desigilname := $!desigilname;
         self.add-sorry(
-          $resolver.build-exception: 'X::Adhoc',
+          $resolver.build-exception('X::Adhoc',
             :message('Cannot declare an anonymous variable with a twigil')
-        ) if self.twigil && self.desigilname.is-empty;
+          )
+        ) if $twigil && $desigilname.is-empty;
+
+        my str $name := self.name;
+        self.add-sorry(
+          $resolver.build-exception('X::Dynamic::Package', :symbol($name))
+        ) if $twigil eq '*' && $desigilname.is-multi-part;
+
+        my str $scope := self.scope;
+        self.add-sorry(
+          $resolver.build-exception('X::Syntax::Variable::Twigil',
+            :$name, :$twigil, :$scope
+          )
+        ) if $twigil eq '!' && self.is-lexical;
 
         self.add-sorry(
-          $resolver.build-exception: 'X::Dynamic::Package',
-            :symbol(self.name)
-        ) if self.twigil eq '*' && self.desigilname.is-multi-part;
+          $resolver.build-exception('X::Syntax::Variable::Twigil',
+            :$twigil, :$scope, :$name, :additional(' because it is reserved')
+          )
+        ) if $twigil eq '?' && !$*COMPILING_CORE_SETTING;
 
         self.add-sorry(
-          $resolver.build-exception: 'X::Syntax::Variable::Twigil',
-            :twigil(self.twigil), :scope(self.scope), :name(self.name)
-        ) if self.twigil eq '!' && (self.scope eq 'my' || self.scope eq 'our' || self.scope eq 'state');
+          $resolver.build-exception('X::Syntax::Variable::IndirectDeclaration')
+        ) if $desigilname.is-indirect-lookup;
 
         self.add-sorry(
-          $resolver.build-exception: 'X::Syntax::Variable::Twigil',
-            :twigil(self.twigil), :scope(self.scope), :name(self.name), :additional(' because it is reserved')
-        ) if self.twigil eq '?' && !$*COMPILING_CORE_SETTING;
+          $resolver.build-exception('X::Syntax::Variable::ConflictingTypes',
+            :outer($!conflicting-type.compile-time-value),
+            :inner($!type.compile-time-value)
+          )
+        ) if nqp::isconcrete($!conflicting-type);
 
         self.add-sorry(
-          $resolver.build-exception: 'X::Syntax::Variable::IndirectDeclaration'
-        ) if self.desigilname.is-indirect-lookup;
-
-        self.add-sorry(
-          $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
-            :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
-        ) if $!conflicting-type;
-
-        self.add-sorry(
-          $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
-            outer => self.IMPL-CONFLICTING-BASE-TYPE,
-            inner => self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE,
+          $resolver.build-exception('X::Syntax::Variable::ConflictingTypes',
+            :outer(self.IMPL-CONFLICTING-BASE-TYPE),
+            :inner(self.IMPL-EXPLICIT-CONTAINER-BASE-TYPE)
+          )
         ) if self.IMPL-HAS-CONFLICTING-BASE-TYPE;
 
         # A bind replaces the declared container, which would discard an
         # array's shape, so a shaped array declaration cannot take a binding
         # initializer. A keyed hash also sets the shape, but its keys live
         # on the container type the bind checks, so it binds fine.
+        my str $sigil   := $!sigil;
+        my $shape       := $!shape;
+        my $initializer := $!initializer;
         self.add-sorry(
-          $resolver.build-exception: 'X::Bind'
-        ) if $!shape && self.sigil eq '@'
-          && $!initializer && $!initializer.is-binding;
+          $resolver.build-exception('X::Bind')
+        ) if $shape
+          && $sigil eq '@'
+          && nqp::isconcrete($initializer)
+          && $initializer.is-binding;
 
         self.add-sorry(
-          $resolver.build-exception: 'X::Comp::AdHoc',
+          $resolver.build-exception('X::Comp::AdHoc',
             :payload('Invalid hash shape; type expected')
-        ) if $!shape && self.sigil eq '%'
-          && nqp::eqaddr(self.IMPL-CONTAINER-KEY-TYPES, NQPMu);
+          )
+        ) if $shape
+          && $sigil eq '%'
+          && nqp::eqaddr(self.IMPL-CONTAINER-KEY-TYPES,NQPMu);
 
+        my $of := self.IMPL-OF-TYPE;
         self.add-sorry(
-          $resolver.build-exception: 'X::Comp::NYI',
+          $resolver.build-exception('X::Comp::NYI',
             :feature('native value types for hashes')
-        ) if self.sigil eq '%' && (!$!is-parameter || $!list-declared)
-          && nqp::objprimspec(self.IMPL-OF-TYPE);
+          )
+        ) if $sigil eq '%'
+          && (!$!is-parameter || nqp::isconcrete($!list-declared))
+          && nqp::objprimspec($of);
 
-        if (self.initializer) {
+        if nqp::isconcrete($initializer) {
             my @found := self.IMPL-UNWRAP-LIST(self.find-nodes(
-                RakuAST::Var::Lexical,
-                :condition(-> $node {
-                    $node.is-resolved && $node.resolution =:= self
-                }),
-                :stopper(-> $node {
-                    nqp::istype($node, RakuAST::Block) || nqp::istype($node, RakuAST::Routine)
-                })));
-            if @found {
-                self.add-sorry(
-                    $resolver.build-exception: 'X::Syntax::Variable::Initializer', :name(self.name)
-                );
-            }
+              RakuAST::Var::Lexical,
+              :condition(-> $node {
+                  $node.is-resolved && $node.resolution =:= self
+              }),
+              :stopper(-> $node {
+                  nqp::istype($node, RakuAST::Block) || nqp::istype($node, RakuAST::Routine)
+              })
+            ));
+            self.add-sorry(
+              $resolver.build-exception('X::Syntax::Variable::Initializer',                     :$name
+              )
+            ) if @found;
         }
 
         my $type := self.type;
-        # Subset type checking can have side effects, so don't do that at compile time.
-        if nqp::istype($type, RakuAST::Type::Simple) && !nqp::istype($type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
-            my $initializer := self.initializer;
+        # Subset type checking can have side effects, so don't do that
+        # at compile time.
+        if nqp::istype($type,RakuAST::Type::Simple)
+          && !nqp::istype($type.meta-object.HOW,Perl6::Metamodel::SubsetHOW) {
             if nqp::istype($initializer,RakuAST::Initializer::Assign)
                  || nqp::istype($initializer,RakuAST::Initializer::Bind) {
 
-                my $of := self.IMPL-OF-TYPE;
-                if self.sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) && $initializer.is-binding {
-                    self.add-sorry:
-                      $resolver.build-exception: 'X::Bind::NativeType',
-                            :name(self.name);
-                }
+                self.add-sorry(
+                  $resolver.build-exception('X::Bind::NativeType', :$name)
+                ) if $sigil eq '$'
+                  && nqp::objprimspec($of)
+                  && $initializer.is-binding;
 
                 my $expression := $initializer.expression;
                 if nqp::istype($expression, RakuAST::Literal) {
                     my $vartype := $type.meta-object;
                     my int $primspec := nqp::objprimspec($vartype);
-                    if $primspec {
-                        $vartype := $vartype.HOW.mro($vartype)[1];
-                    }
+
+                    # Fetch HLL type for native
+                    $vartype := $vartype.HOW.mro($vartype)[1] if $primspec;
 
                     my $value := $expression.compile-time-value;
-                    if !nqp::istype($value, $vartype)
+                    self.add-sorry(
+                      $resolver.build-exception(
+                        'X::Syntax::Number::LiteralType',
+                        :varname($name), :$vartype, :$value, :native($primspec)
+                      )
+                    ) if !nqp::istype($value, $vartype)
                       && nqp::istype(
                            $vartype,
                            $resolver.type-from-setting('Numeric')
-                         ) {
-                        self.add-sorry:
-                          $resolver.build-exception: 'X::Syntax::Number::LiteralType',
-                            :varname(self.name), :$vartype, :$value,
-                            :native($primspec);
-                    }
+                         );
                 }
             }
         }
 
-        if $type && self.is-attribute && self.sigil eq '$' {
-            my $of := self.IMPL-OF-TYPE;
-            # Subset type checking can have side effects, so don't do that at compile time.
+        if $type && self.is-attribute && $sigil eq '$' {
+            # Subset type checking can have side effects, so don't do
+            # that at compile time.
             unless nqp::istype($type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
-                my $initializer := self.initializer;
                 if nqp::istype($initializer, RakuAST::Initializer::Assign)
-                     || nqp::istype($initializer, RakuAST::Initializer::Bind)
-                {
-                    my $expression := $initializer.expression;
+                     || nqp::istype($initializer, RakuAST::Initializer::Bind) {
+                    my $expression      := $initializer.expression;
                     my $expression-type := $expression.return-type;
-                    unless $expression-type =:= Mu || $expression-type =:= Nil
-                        || nqp::objprimspec($of) || $of.HOW.archetypes.generic
-                        || nqp::objprimspec($expression-type)
-                        || $expression-type.HOW.archetypes.generic {
+                    unless $expression-type =:= Mu
+                      || $expression-type =:= Nil
+                      || nqp::objprimspec($of)
+                      || $of.HOW.archetypes.generic
+                      || nqp::objprimspec($expression-type)
+                      || $expression-type.HOW.archetypes.generic {
+
                         # a return type says nothing about definedness, and
                         # a coercion type decides at runtime what it takes
                         my $base := $of.HOW.archetypes.definite
                           && nqp::eqaddr($of.HOW.wrappee($of, :definite), $of)
                           ?? $of.HOW.base_type($of)
                           !! $of;
+
                         # a return type only bounds the value, so the value
                         # may still be of a narrower type
-                        unless $expression.has-compile-time-value
-                            ?? nqp::istype($expression.maybe-compile-time-value, $of) # can check actual value
+                        self.add-sorry(
+                          $resolver.build-exception(
+                            'X::TypeCheck::Attribute::Default',
+                            :name(self.lexical-name),
+                            :operation($initializer.is-binding
+                                         ?? 'bind'
+                                         !! 'assign'
+                                      ),
+                            :got($expression-type.HOW.name($expression-type)),
+                            :expected($of.HOW.name($of))
+                          )
+                        ) unless $expression.has-compile-time-value
+                            # can check actual value?
+                            ?? nqp::istype($expression.maybe-compile-time-value, $of)
                             !! $of.HOW.archetypes.coercive
                                  || nqp::istype($expression-type, $base)
                                  || nqp::istype($base, $expression-type)
-                        {
-                            self.add-sorry:
-                                $resolver.build-exception: 'X::TypeCheck::Attribute::Default',
-                                    :name(self.lexical-name), :operation($initializer.is-binding ?? 'bind' !! 'assign'),
-                                    :got($expression-type.HOW.name($expression-type)), :expected($of.HOW.name($of));
-                        }
                     }
                 }
             }
         }
 
-        if self.sigil eq '$' && !(self.initializer || $!initializer-method) && !$!is-parameter && (!self.is-attribute || !self.meta-object.required) {
+        if $sigil eq '$'
+          && !($initializer || $!initializer-method)
+          && !$!is-parameter
+          && (!self.is-attribute || !self.meta-object.required) {
             my $ddefault        := self.container-descriptor.default;
             my $bind-constraint := self.bind-constraint;
 
-            unless $ddefault.HOW.archetypes.generic || $bind-constraint.HOW.archetypes.generic {
+            unless $ddefault.HOW.archetypes.generic
+              || $bind-constraint.HOW.archetypes.generic {
                 self.add-sorry(
-                  $resolver.build-exception: 'X::Syntax::Variable::MissingInitializer',
-                    what => self.is-attribute ?? 'attribute' !! 'variable',
-                    type => nqp::how($bind-constraint).name($bind-constraint),
-                    implicit => nqp::istype($type, RakuAST::Type::Definedness)
-                      ?? $type.IMPL-IMPLICIT
-                      !! '',
+                  $resolver.build-exception(
+                    'X::Syntax::Variable::MissingInitializer',
+                    :what(self.is-attribute ?? 'attribute' !! 'variable'),
+                    :type($bind-constraint.HOW.name($bind-constraint)),
+                    :implicit(nqp::istype($type, RakuAST::Type::Definedness)
+                               ?? $type.IMPL-IMPLICIT
+                               !! ''
+                             )
+                  )
                 ) unless try nqp::istype($ddefault, $bind-constraint);
             }
         }
 
-        if self.twigil eq '.' && !self.is-attribute && !$!attribute-package {
+        if $twigil eq '.'
+          && !self.is-attribute
+          && !$!attribute-package {
             my $package := nqp::getlexdyn('$?PACKAGE');
-            self.add-worry:
-                $resolver.build-exception('X::AdHoc', payload => "Useless generation of accessor method in " ~
-                (nqp::istype($package.HOW, Perl6::Metamodel::AttributeContainer)
-                    ?? $package.HOW.name($package)
-                    !! "mainline"));
+            self.add-worry(
+              $resolver.build-exception('X::AdHoc',
+                :payload("Useless generation of accessor method in "
+                          ~ (nqp::istype(
+                               $package.HOW,
+                               Perl6::Metamodel::AttributeContainer
+                            ) ?? $package.HOW.name($package)
+                              !! "mainline"
+                            )
+                        )
+              )
+            );
         }
 
         if $type && !$!is-parameter { # Parameter checks this already
             my $archetypes := $type.compile-time-value.HOW.archetypes;
-            unless $archetypes.nominal
-                || $archetypes.nominalizable
-                || $archetypes.generic
-                || $archetypes.definite
-                || $archetypes.coercive
-            {
-                self.add-sorry:
-                    $resolver.build-exception: 'X::Syntax::Variable::BadType', type => $type.compile-time-value;
-            }
+            self.add-sorry(
+              $resolver.build-exception('X::Syntax::Variable::BadType',
+                :type($type.compile-time-value)
+              )
+            ) unless $archetypes.nominal
+              || $archetypes.nominalizable
+              || $archetypes.generic
+              || $archetypes.definite
+              || $archetypes.coercive;
         }
     }
 

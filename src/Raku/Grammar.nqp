@@ -418,8 +418,11 @@ role Raku::Common {
                     my int $body-to := $stop.pos;
                     --$body-to if $body-to > $doc.from && nqp::iscclass(
                       nqp::const::CCLASS_NEWLINE, self.orig, $body-to - 1);
-                    $heredoc.set-body-origin(self.Nodify('Origin').new(
-                      :from($doc.from), :to($body-to)));
+                    $heredoc.set-body-origin(
+                      self.Nodify('Origin').new(
+                        $doc.from, $body-to, $*ORIGIN-SOURCE
+                      )
+                    );
                     my str $ws := $stop.MATCH<ws>.Str;
                     my int $actualchars := nqp::chars($ws);
                     my int $indent := $actualchars;

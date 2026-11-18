@@ -362,7 +362,7 @@ class RakuAST::Regex::Sequence
                 }
             }
             nqp::isconcrete($from)
-              ?? RakuAST::Origin.new(:from($from.from), :to($to.to), :source($from.source))
+              ?? RakuAST::Origin.new($from.from, $to.to, $from.source)
               !! Mu
         }
 

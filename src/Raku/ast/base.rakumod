@@ -290,6 +290,9 @@ class RakuAST::Node {
     # looking at. The replacement pass for a node's children runs in the scope
     # the node lives in, not the scope it defines.
     method IMPL-OPTIMIZE(RakuAST::Resolver $resolver) {
+
+        my $debug := nqp::getenvhash<RAKUDO_OPTIMIZE_DEBUG>;
+
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
@@ -302,9 +305,23 @@ class RakuAST::Node {
         self.visit-children(-> $child { nqp::push(@children, $child) });
         for @children -> $child {
             my $result := self.IMPL-OPTIMIZE-EXPRESSION($resolver, $child);
-            self.IMPL-REPLACE-CHILD($child, $result) unless $result =:= $child;
+            unless nqp::eqaddr($result,$child) {
+                self.IMPL-REPLACE-CHILD($child, $result);
+                $child.IMPL-DEBUG-OPTIMIZE($result, $debug) if $debug;
+            }
         }
         Nil
+    }
+
+    # Notify the result of an optimization, with the invocant being the
+    # original node, and the positional argument the optimized AST
+    method IMPL-DEBUG-OPTIMIZE($result, $method) {
+        if (my $from := try self."$method"()) {
+            if (my $to := try $result."$method"()) {
+                self.note("<<<<<<<<<\n$from\n>>>>>>>>\n$to\n")
+                  if $to ne $from;
+            }
+        }
     }
 
     # A rewrite takes the thunks over, unless its value can stand in for them

@@ -290,9 +290,6 @@ class RakuAST::Node {
     # looking at. The replacement pass for a node's children runs in the scope
     # the node lives in, not the scope it defines.
     method IMPL-OPTIMIZE(RakuAST::Resolver $resolver) {
-
-        my $debug := nqp::getenvhash<RAKUDO_OPTIMIZE_DEBUG>;
-
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
@@ -305,10 +302,8 @@ class RakuAST::Node {
         self.visit-children(-> $child { nqp::push(@children, $child) });
         for @children -> $child {
             my $result := self.IMPL-OPTIMIZE-EXPRESSION($resolver, $child);
-            unless nqp::eqaddr($result,$child) {
-                self.IMPL-REPLACE-CHILD($child, $result);
-                $child.IMPL-DEBUG-OPTIMIZE($result, $debug) if $debug;
-            }
+            self.IMPL-REPLACE-CHILD($child, $result)
+              unless nqp::eqaddr($result,$child);
         }
         Nil
     }
@@ -396,6 +391,9 @@ class RakuAST::Node {
     # visit reaches through a computed value) has no slot to find, and the
     # replacement is then quietly skipped, which only costs the rewrite.
     method IMPL-REPLACE-CHILD(Mu $old, Mu $new) {
+        my $debug := nqp::getenvhash<RAKUDO_OPTIMIZE_DEBUG>;
+        $old.IMPL-DEBUG-OPTIMIZE($new, $debug) if $debug;
+
         # The scan introspects every node class the walk meets, so a surprise
         # from an unusual meta-object must not break compilation. Skipping the
         # replacement only costs the rewrite.

@@ -2010,7 +2010,6 @@ my class UninitializedAttributeChecker {
             }
             elsif nqp::istype_nd($attr, Hash) {
                 $desc := nqp::getattr($attr,Hash,'$!descriptor');
-                  unless nqp::elems(nqp::getattr($attr,Map,'$!storage'));
             }
             else {
                 try {

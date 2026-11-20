@@ -507,8 +507,7 @@ class RakuAST::Call::Name
                         # well as the literal nodes, so a string passed to an
                         # `int` parameter is refused here rather than failing
                         # to unbox at run time.
-                        my $rev := @args[0].IMPL-NATIVE-LITERAL-KIND;
-                        @flags[0] := $rev +| $ARG_IS_LITERAL if nqp::defined($rev);
+                        @flags[0] := @args[0].IMPL-PRIMSPEC +| $ARG_IS_LITERAL;
                     }
                     elsif nqp::elems(@types) == 2 {
                         # A native-paired literal is passed in its native
@@ -516,9 +515,9 @@ class RakuAST::Call::Name
                         # which also rules out a candidate that takes a
                         # native `is rw` parameter.
                         my $paired := self.args.IMPL-NATIVE-PAIRED-LITERAL;
-                        if !nqp::isnull($paired) && nqp::defined($paired.IMPL-NATIVE-LITERAL-KIND) {
+                        if !nqp::isnull($paired) && $paired.IMPL-PRIMSPEC {
                             my int $idx := nqp::eqaddr(@args[0], $paired) ?? 0 !! 1;
-                            @flags[$idx] := $paired.IMPL-NATIVE-LITERAL-KIND +| $ARG_IS_LITERAL;
+                            @flags[$idx] := $paired.IMPL-PRIMSPEC +| $ARG_IS_LITERAL;
                         }
                     }
                     my $ct_result := nqp::p6trialbind($sig, @types, @flags);

@@ -302,9 +302,21 @@ class RakuAST::Node {
         self.visit-children(-> $child { nqp::push(@children, $child) });
         for @children -> $child {
             my $result := self.IMPL-OPTIMIZE-EXPRESSION($resolver, $child);
-            self.IMPL-REPLACE-CHILD($child, $result) unless $result =:= $child;
+            self.IMPL-REPLACE-CHILD($child, $result)
+              unless nqp::eqaddr($result,$child);
         }
         Nil
+    }
+
+    # Notify the result of an optimization, with the invocant being the
+    # original node, and the positional argument the optimized AST
+    method IMPL-DEBUG-OPTIMIZE($result, $method) {
+        if (my $from := try self."$method"()) {
+            if (my $to := try $result."$method"()) {
+                self.note("<<<<<<<<<\n$from\n>>>>>>>>\n$to\n")
+                  if $to ne $from;
+            }
+        }
     }
 
     # A rewrite takes the thunks over, unless its value can stand in for them
@@ -379,6 +391,9 @@ class RakuAST::Node {
     # visit reaches through a computed value) has no slot to find, and the
     # replacement is then quietly skipped, which only costs the rewrite.
     method IMPL-REPLACE-CHILD(Mu $old, Mu $new) {
+        my $debug := nqp::getenvhash<RAKUDO_OPTIMIZE_DEBUG>;
+        $old.IMPL-DEBUG-OPTIMIZE($new, $debug) if $debug;
+
         # The scan introspects every node class the walk meets, so a surprise
         # from an unusual meta-object must not break compilation. Skipping the
         # replacement only costs the rewrite.

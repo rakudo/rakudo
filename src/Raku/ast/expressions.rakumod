@@ -7,6 +7,7 @@ class RakuAST::Expression
   does RakuAST::Sinkable
   does RakuAST::CheckTime
   does RakuAST::MayCreateBlock
+  does RakuAST::IMPL::Optimizable
 {
     has int $!okifnil;
 

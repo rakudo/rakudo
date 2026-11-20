@@ -21,16 +21,16 @@ class RakuAST::Origin {
     # widened to start before it. Stored one higher, so 0 means unset.
     has int $!locus;
 
-    method new(int :$from, int :$to, Mu :$nestings, RakuAST::Origin::Source :$source) {
+    method new(           int $from,
+                          int $to,
+      RakuAST::Origin::Source $source
+    ) {
+
         my $obj := nqp::create(self);
-        nqp::bindattr_i($obj, RakuAST::Origin, '$!from', $from);
-        nqp::bindattr_i($obj, RakuAST::Origin, '$!to', $to);
-        if nqp::isconcrete($nestings) {
-            nqp::bindattr($obj, RakuAST::Origin, '$!nestings', $nestings);
-        }
-        if nqp::isconcrete($source) || nqp::isconcrete($*ORIGIN-SOURCE) {
-            nqp::bindattr($obj, RakuAST::Origin, '$!source', ($source // $*ORIGIN-SOURCE))
-        }
+        nqp::bindattr_i($obj,RakuAST::Origin,'$!from',$from);
+        nqp::bindattr_i($obj,RakuAST::Origin,'$!to',  $to);
+        nqp::bindattr($obj,RakuAST::Origin,'$!source',$source)
+          if nqp::isconcrete($source);
         $obj
     }
 
@@ -51,7 +51,7 @@ class RakuAST::Origin {
     # A match at the start of the span, where the code it covers begins,
     # rather than at the locus.
     method as-start-match() {
-        $!source.match-from(RakuAST::Origin.new(:from($!from), :to($!to), :source($!source)))
+        $!source.match-from(RakuAST::Origin.new($!from, $!to, $!source))
     }
 
     method Str() {

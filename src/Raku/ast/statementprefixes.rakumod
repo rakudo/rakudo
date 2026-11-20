@@ -1055,8 +1055,9 @@ class RakuAST::StatementPrefix::Phaser::First
         # origin spares their statement lists a search for the key node.
         my $origin := $blorst.origin;
         if nqp::isconcrete($origin) && !$origin.is-key {
-            $origin := RakuAST::Origin.new(:from($origin.from), :to($origin.to),
-                :nestings([]), :source($origin.source));
+            $origin := RakuAST::Origin.new(
+              $origin.from, $origin.to, $origin.source
+            );
         }
         my $as-block := -> $statement {
             my $block := $statement.as-block;

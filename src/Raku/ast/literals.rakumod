@@ -327,8 +327,6 @@ class RakuAST::QuotedString
     }
 
     method IMPL-PROCESS-PART($result, $part, :$protected) {
-        return Nil if $part =:= Nil;
-
         for $!processors {
             if $_ eq 'words' || $_ eq 'quotewords' {
                 # A part that came from a quoted atom is protected: quote
@@ -378,24 +376,30 @@ class RakuAST::QuotedString
     method literal-value(:$force, :$stringify) {
         my @parts;
         for $!segments {
-            if nqp::istype($_, RakuAST::StrLiteral) {
+            if nqp::istype($_,RakuAST::StrLiteral) {
                 self.IMPL-PROCESS-PART(@parts, $_.value) || return Nil;
             }
             elsif nqp::istype($_, RakuAST::QuoteWordsAtom)
-                && nqp::istype($_.atom, RakuAST::QuotedString)
-                && my $nested-str := $_.atom.literal-value
-            {
-                return Nil if $nested-str =:= Nil;
-                self.IMPL-PROCESS-PART(@parts, $nested-str, :protected) || return Nil;
+              && nqp::istype($_.atom, RakuAST::QuotedString)
+              && my $nested-str := $_.atom.literal-value {
+                return Nil unless self.IMPL-PROCESS-PART(
+                  @parts, $nested-str, :protected
+                );
             }
-            elsif nqp::istype($_, RakuAST::Var::Lexical)
-                && $_.is-resolved
-                && ($force || nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant))
-            {
-                self.IMPL-PROCESS-PART(@parts, $_.resolution.compile-time-value.Str) || return Nil;
+            elsif nqp::istype($_,RakuAST::Var::Lexical)
+              && $_.is-resolved
+              && ($force || nqp::istype($_.resolution,RakuAST::VarDeclaration::Constant)) {
+                return Nil unless self.IMPL-PROCESS-PART(
+                  @parts, $_.resolution.compile-time-value.Str
+                );
             }
-            elsif $force && nqp::istype($_, RakuAST::Block) && $_.body.IMPL-CAN-INTERPRET {
-                nqp::push(@parts, ~$_.body.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new));
+            elsif $force
+              && nqp::istype($_,RakuAST::Block)
+              && $_.body.IMPL-CAN-INTERPRET {
+                nqp::push(
+                  @parts,
+                  ~$_.body.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
+                );
             }
             else {
                 return Nil;

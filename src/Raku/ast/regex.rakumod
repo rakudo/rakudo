@@ -1889,7 +1889,7 @@ class RakuAST::Regex::Assertion::Callable
 
     method visit-children(Code $visitor) {
         $visitor($!callee);
-        $visitor($!args) if $!args;
+        $visitor($!args) if nqp::isconcrete($!args);
     }
 }
 
@@ -2075,7 +2075,7 @@ class RakuAST::Regex::CharClassElement::Property
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!predicate) if $!predicate;
+        $visitor($!predicate) if nqp::isconcrete($!predicate);
     }
 }
 
@@ -2414,7 +2414,7 @@ class RakuAST::Regex::QuantifiedAtom
     method visit-children(Code $visitor) {
         $visitor($!atom);
         $visitor($!quantifier);
-        $visitor($!separator) if $!separator;
+        $visitor($!separator) if nqp::isconcrete($!separator);
     }
 }
 
@@ -2434,7 +2434,7 @@ class RakuAST::Regex::Quantifier
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!backtrack) if $!backtrack;
+        $visitor($!backtrack) if nqp::isconcrete($!backtrack);
     }
 }
 
@@ -2549,7 +2549,7 @@ class RakuAST::Regex::Quantifier::BlockRange
     }
 
     method visit-children(Code $visitor) {
-        $visitor(self.backtrack) if self.backtrack;
+        $visitor(self.backtrack) if nqp::isconcrete(self.backtrack);
         $visitor($!block);
     }
 }

@@ -415,13 +415,14 @@ class RakuAST::Signature
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!implicit-invocant) if $!implicit-invocant;
+        $visitor($!implicit-invocant) if nqp::isconcrete($!implicit-invocant);
         if $!parameters {
             for $!parameters {
                 $visitor($_);
             }
         }
-        $visitor($!implicit-slurpy-hash) if $!implicit-slurpy-hash;
+        $visitor($!implicit-slurpy-hash)
+          if nqp::isconcrete($!implicit-slurpy-hash);
         $visitor($!returns) if $!returns;
     }
 
@@ -983,14 +984,16 @@ class RakuAST::Parameter
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!type)          if $!type;
-        $visitor($!target)        if $!target;
-        $visitor($!default)       if $!default;
-        $visitor($!where)         if $!where && !self.IMPL-WHERE-IN-TARGET-TYPE;
-        $visitor($!array-shape)   if $!array-shape;
-        $visitor($!sub-signature) if $!sub-signature;
-        $visitor(self.WHY)        if self.WHY;
-        $visitor($!signature-constraint) if $!signature-constraint;
+        $visitor($!type)          if nqp::isconcrete($!type);
+        $visitor($!target)        if nqp::isconcrete($!target);
+        $visitor($!default)       if nqp::isconcrete($!default);
+        $visitor($!where) 
+          if nqp::isconcrete($!where) && !self.IMPL-WHERE-IN-TARGET-TYPE;
+        $visitor($!array-shape)   if nqp::isconcrete($!array-shape);
+        $visitor($!sub-signature) if nqp::isconcrete($!sub-signature);
+        $visitor(self.WHY)        if nqp::isconcrete(self.WHY);
+        $visitor($!signature-constraint)
+          if nqp::isconcrete($!signature-constraint);
         self.visit-traits($visitor);
     }
 
@@ -2521,8 +2524,8 @@ class RakuAST::ParameterTarget::Var
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our', 'has', 'HAS']) }
 
     method visit-children(Code $visitor) {
-        $visitor($!attribute) if $!attribute;
-        $visitor($!declaration) if $!declaration;
+        $visitor($!attribute)   if nqp::isconcrete($!attribute);
+        $visitor($!declaration) if nqp::isconcrete($!declaration);
     }
 }
 
@@ -2672,8 +2675,8 @@ class RakuAST::ParameterTarget::Term
 
     method visit-children(Code $visitor) {
         $visitor($!name);
-        $visitor($!type) if $!type;
-        $visitor($!where) if $!where;
+        $visitor($!type)  if nqp::isconcrete($!type);
+        $visitor($!where) if nqp::isconcrete($!where);
     }
 }
 

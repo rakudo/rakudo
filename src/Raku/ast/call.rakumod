@@ -91,7 +91,7 @@ class RakuAST::ArgList
 
     method visit-children(Code $visitor) {
         my @args := $!args;
-        $visitor($!invocant) if $!invocant;
+        $visitor($!invocant) if nqp::isconcrete($!invocant);
         for @args {
             $visitor($_);
         }
@@ -1730,7 +1730,7 @@ class RakuAST::Stub
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!args) if $!args;
+        $visitor($!args) if nqp::isconcrete($!args);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

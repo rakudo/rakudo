@@ -2880,7 +2880,7 @@ class RakuAST::Block
     method visit-children(Code $visitor) {
         self.IMPL-VISIT-HEADER($visitor);
         $visitor($!body);
-        $visitor(self.WHY) if self.WHY;
+        $visitor(self.WHY) if nqp::isconcrete(self.WHY);
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -2966,9 +2966,10 @@ class RakuAST::PointyBlock
     method visit-children(Code $visitor) {
         $visitor($!signature);
         my $placeholder-signature := self.placeholder-signature;
-        $visitor($placeholder-signature) if $placeholder-signature;
+        $visitor($placeholder-signature)
+          if nqp::isconcrete($placeholder-signature);
         $visitor(self.body);
-        $visitor(self.WHY) if self.WHY;
+        $visitor(self.WHY) if nqp::isconcrete(self.WHY);
     }
 
     method IMPL-HAS-PARAMETER(Str $name) {
@@ -4077,9 +4078,10 @@ class RakuAST::Routine
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!name) if $!name;
-        $visitor(self.WHY) if self.WHY;  # needs to be before signature
-        $visitor($!signature) if $!signature;
+        $visitor($!name)      if nqp::isconcrete($!name);
+        # must be before signature
+        $visitor(self.WHY)    if nqp::isconcrete(self.WHY);
+        $visitor($!signature) if nqp::isconcrete($!signature);
         self.visit-traits($visitor);
         self.IMPL-VISIT-HEADER($visitor);
         $visitor(self.body);
@@ -5970,7 +5972,7 @@ class RakuAST::Substitution
     method visit-children(Code $visitor) {
         self.IMPL-VISIT-ADVERBS($visitor);
         $visitor($!pattern);
-        $visitor($!infix) if $!infix;
+        $visitor($!infix) if nqp::isconcrete($!infix);
         $visitor($!replacement);
     }
 }
@@ -6085,7 +6087,7 @@ class RakuAST::SubstitutionReplacementThunk
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!infix) if $!infix;
+        $visitor($!infix) if nqp::isconcrete($!infix);
     }
 }
 

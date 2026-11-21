@@ -2010,7 +2010,6 @@ my class UninitializedAttributeChecker {
             }
             elsif nqp::istype_nd($attr, Hash) {
                 $desc := nqp::getattr($attr,Hash,'$!descriptor');
-                  unless nqp::elems(nqp::getattr($attr,Map,'$!storage'));
             }
             else {
                 try {
@@ -5234,11 +5233,11 @@ BEGIN {
 
         method !from-capnames(%capnames) {
             # Initialize.
-            @!pos-capture-counts   := nqp::list_i;
-            @!named-capture-names  := nqp::list_s;
-            @!named-capture-counts := nqp::list_i;
+            @!pos-capture-counts   := my @pos-counts   := nqp::list_i;
+            @!named-capture-names  := my @named-names  := nqp::list_s;
+            @!named-capture-counts := my @named-counts := nqp::list_i;
 
-            my &sorted_keys := sub ($hash) {
+            my sub sorted_keys($hash) {
                 my @keys := nqp::list_s();
                 my $iter := nqp::iterator($hash);
                 nqp::while(
@@ -5294,20 +5293,20 @@ BEGIN {
 
 
             # Go over the captures and build up the data structure.
-            for &sorted_keys(%capnames) -> str $name {
-                if $name ne '' {
+            for sorted_keys(%capnames) -> str $name {
+                if $name {
                     # my int $count := nqp::iterval($_);
                     my int $count := %capnames{$name};
 
                     # Positional
                     if nqp::ord($name) != 36 && nqp::ord($name) < 58 {
-                        nqp::bindpos_i(@!pos-capture-counts, +$name, $count);
+                        nqp::bindpos_i(@pos-counts, +$name, $count);
                     }
 
                     # Named
                     else {
-                        nqp::push_s(@!named-capture-names, $name);
-                        nqp::push_i(@!named-capture-counts, $count);
+                        nqp::push_s(@named-names, $name);
+                        nqp::push_i(@named-counts, $count);
                     }
                 }
             }
@@ -5324,12 +5323,19 @@ BEGIN {
         # Are there any capture markers?  '<(' and ')>' compile into
         # named captures called '$!from' and '$!to'.
         method has-capture-markers() {
-            my int $i := nqp::elems(@!named-capture-names);
-            my int $found := 0;
-            while --$i >= 0 {
-                my str $name := nqp::atpos_s(@!named-capture-names, $i);
-                $found := 1 if $name eq '$!from' || $name eq '$!to';
-            }
+            my @named-capture-names := @!named-capture-names;
+            my int $found;
+            nqp::if(
+              (my int $i := nqp::elems(@named-capture-names)),
+              nqp::until(
+                nqp::islt_i(--$i,0)
+                  || ($found := nqp::iseq_s(
+                       (my str $name := nqp::atpos_s(@named-capture-names,$i)),
+                       '$!from'
+                     ) || nqp::iseq_s($name,'$!to')),
+                nqp::null
+              )
+            );
             $found
         }
 
@@ -5341,44 +5347,50 @@ BEGIN {
         my @EMPTY-LIST;
         my %EMPTY-HASH;
         method prepare-raku-list() {
-
-            my int $n := nqp::elems(@!pos-capture-counts);
-            if $n > 0 {
-                my $result := nqp::list;
-                my int $i;
-                while $i < $n {
-                    nqp::bindpos($result, $i, nqp::create(Array))
-                      if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
-                    ++$i;
-                }
+            my @pos-capture-counts := @!pos-capture-counts;
+            nqp::if(
+              (my int $n := nqp::elems(@pos-capture-counts)),
+              nqp::stmts(
+                (my $result := nqp::list),
+                (my int $i  := -1),
+                nqp::while(
+                  nqp::islt_i(++$i,$n),
+                  nqp::if(
+                    nqp::isge_i(nqp::atpos_i(@pos-capture-counts, $i),2),
+                    nqp::bindpos($result,$i,nqp::create(Array))
+                  )
+                ),
                 $result
-            }
-            else {
-                @EMPTY-LIST
-            }
+              ),
+              @EMPTY-LIST
+            )
         }
 
         # Build a hash of named captures, or return a shared empty hash if there
         # are none. This only populates the slots that need an array.
         method prepare-raku-hash() {
-
-            my int $n := nqp::elems(@!named-capture-counts);
-            if $n > 0 {
-                my $result := nqp::hash;
-                my int $i;
-                while $i < $n {
+            my @named-capture-counts := @!named-capture-counts;
+            my @named-capture-names  := @!named-capture-names;
+            nqp::if(
+              (my int $n := nqp::elems(@named-capture-counts)),
+              nqp::stmts(
+                (my $result := nqp::hash),
+                (my int $i  := -1),
+                nqp::while(
+                  nqp::islt_i(++$i,$n),
+                  nqp::if(
+                    nqp::isge_i(nqp::atpos_i(@named-capture-counts,$i),2),
                     nqp::bindkey(
                       $result,
-                      nqp::atpos_s(@!named-capture-names, $i),
+                      nqp::atpos_s(@named-capture-names,$i),
                       nqp::create(Array)
-                    ) if nqp::atpos_i(@!named-capture-counts, $i) >= 2;
-                    ++$i;
-                }
+                    )
+                  )
+                ),
                 $result
-            }
-            else {
-                %EMPTY-HASH
-            }
+              ),
+              %EMPTY-HASH
+            )
         }
 
         ## NQP Match object building
@@ -6313,7 +6325,9 @@ nqp::sethllconfig('Raku', nqp::hash(
 ));
 
 #?if moar
-my @types_for_hll_role := nqp::list(Mu, Int, Num, Str, List, Hash, ForeignCode);
+my constant TYPES_FOR_HLL_ROLE := nqp::list(
+  Mu, Int, Num, Str, List, Hash, ForeignCode
+);
 my @transform_type := nqp::list(
     Mu,
     -> $int { nqp::box_i($int, Int) },
@@ -6391,7 +6405,7 @@ nqp::register('raku-hllize', -> $capture {
                       nqp::syscall('dispatcher-insert-arg-literal-obj',
                         nqp::syscall('dispatcher-drop-arg', $capture, 0),
                         0,
-                        nqp::atpos(@types_for_hll_role, $role)
+                        nqp::atpos(TYPES_FOR_HLL_ROLE, $role)
                       )
                     );
                 }

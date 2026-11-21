@@ -1411,41 +1411,28 @@ my class Array { # declared in BOOTSTRAP
     method !splice-offset-size-new(Array:D:
       int $offset,int $size,@new
     --> Array:D) {
+        my $descriptor := $!descriptor;
         nqp::if(
-          nqp::eqaddr(@new.iterator.push-until-lazy(
-            (my $new := nqp::create(IterationBuffer))),IterationEnd),
-          nqp::if(      # reified all values to splice in
-            (nqp::isnull($!descriptor) || nqp::eqaddr(self.of,Mu)),
-            nqp::stmts( # no typecheck needed
-              (my $result := self!splice-save($offset,$size,my int $removed)),
-              nqp::splice(
-                nqp::getattr(self,List,'$!reified'),$new,$offset,$removed),
-              $result
+          nqp::eqaddr(
+            @new.iterator.push-until-lazy(
+              (my $new := nqp::create(IterationBuffer))
             ),
-            nqp::stmts( # typecheck the values first
-              (my $expected := self.of),
-              (my int $elems = nqp::elems($new)),
-              (my int $i = -1),
-              nqp::while(
-                (nqp::islt_i(++$i,$elems)
-                  && nqp::istype(nqp::atpos($new,$i),$expected)),
-                nqp::null
-              ),
-              nqp::if(
-                nqp::islt_i($i,$elems),   # exited loop because of wrong type
-                X::TypeCheck::Splice.new(
-                  :action<splice>,
-                  :got(nqp::atpos($new,$i).WHAT),
-                  :$expected
-                ).throw,
-                nqp::stmts(
-                  ($result := self!splice-save($offset,$size,$removed)),
-                  nqp::splice(
-                    nqp::getattr(self,List,'$!reified'),$new,$offset,$removed),
-                  $result
-                )
-              )
-            )
+            IterationEnd
+          ),
+          nqp::stmts(
+            (my $result := self!splice-save($offset,$size,my int $removed)),
+            (my int $elems = nqp::elems($new)),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(++$i,$elems),
+              nqp::bindpos($new,$i,nqp::p6scalarwithvalue(
+                $descriptor,nqp::atpos($new,$i)
+              ))
+            ),
+            nqp::splice(
+              nqp::getattr(self,List,'$!reified'),$new,$offset,$removed
+            ),
+            $result
           ),
           self.throw-iterator-cannot-be-lazy('splice in')
         )

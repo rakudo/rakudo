@@ -108,24 +108,24 @@ class CompUnit::RepositoryRegistry {
                  for parse-include-specS($specs);
             }
 
-            my $rakudo-lib := nqp::atkey($ENV,'RAKUDOLIB');
-            my $raku-lib := nqp::atkey($ENV,'RAKULIB');
+            my $rakudo-lib := nqp::existskey($ENV,'RAKUDOLIB');
+            my $raku-lib := nqp::existskey($ENV,'RAKULIB');
 
             if $rakudo-lib {
                 nqp::push($raw-specs,$_)
-                  for parse-include-specS($rakudolib);
+                  for parse-include-specS(nqp::atkey($ENV,'RAKUDOLIB'));
             }
             if $raku-lib {
                 nqp::push($raw-specs,$_)
-                  for parse-include-specS($rakulib);
+                  for parse-include-specS(nqp::atkey($ENV,'RAKULIB'));
             }
-            if nqp::atkey($ENV,'PERL6LIB') -> $perl6lib {
+            if nqp::existskey($ENV,'PERL6LIB') {
                 DEPRECATED(
                   "RAKULIB", "", "6.e", :what<PERL6LIB>,
                   :file<environment variable>
                 ) unless $rakudo-lib || $raku-lib;
                 nqp::push($raw-specs,$_)
-                  for parse-include-specS($perl6lib);
+                  for parse-include-specS(nqp::atkey($ENV,'PERL6LIB'));
             }
 
             # your basic repo chain

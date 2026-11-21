@@ -604,6 +604,7 @@ class RakuAST::Parameter
   does RakuAST::ParseTime
   does RakuAST::BeginTime
   does RakuAST::CheckTime
+  does RakuAST::IMPL::Optimizable
 {
     has RakuAST::Type              $.type;
     has RakuAST::Type              $!conflicting-type;

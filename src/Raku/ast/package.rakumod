@@ -750,9 +750,9 @@ class RakuAST::Package
 
     # The body visits the traits, as it holds what they declare.
     method visit-children(Code $visitor) {
-        $visitor($!name) if $!name;
+        $visitor($!name)   if nqp::isconcrete($!name);
         $visitor($!body);
-        $visitor(self.WHY) if self.WHY;
+        $visitor(self.WHY) if nqp::isconcrete(self.WHY);
     }
 
     method needs-sink-call() { False }

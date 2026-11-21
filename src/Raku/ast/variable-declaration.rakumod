@@ -558,10 +558,10 @@ class RakuAST::VarDeclaration::Constant
     method podifiable() { False }
 
     method visit-children(Code $visitor) {
-        $visitor($!type) if $!type;
-        $visitor($!initializer) if $!initializer;
+        $visitor($!type)        if nqp::isconcrete($!type);
+        $visitor($!initializer) if nqp::isconcrete($!initializer);
         self.visit-traits($visitor);
-        $visitor(self.WHY) if self.WHY;
+        $visitor(self.WHY)      if nqp::isconcrete(self.WHY);
     }
 
     method sigil {
@@ -3381,10 +3381,10 @@ class RakuAST::VarDeclaration::Term
     method podifiable() { False }
 
     method visit-children(Code $visitor) {
-        $visitor($!type) if $!type;
+        $visitor($!type)        if nqp::isconcrete($!type);
         $visitor($!name);
-        $visitor($!initializer) if $!initializer;
-        $visitor(self.WHY) if self.WHY;
+        $visitor($!initializer) if nqp::isconcrete($!initializer);
+        $visitor(self.WHY)      if nqp::isconcrete(self.WHY);
     }
 }
 

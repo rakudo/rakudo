@@ -975,8 +975,8 @@ class RakuAST::Type::Enum
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor($!term);
-        $visitor($!of)     if $!of;
-        $visitor(self.WHY) if self.WHY;
+        $visitor($!of)     if nqp::isconcrete($!of);
+        $visitor(self.WHY) if nqp::isconcrete(self.WHY);
         self.visit-traits($visitor);
     }
 
@@ -1347,9 +1347,9 @@ class RakuAST::Type::Subset
         # Adding a sensible IMPL-QAST-DECL results in lexical declarations
         # for things like Int, which will break if added more than once.
         $visitor($!of)
-          if $!of
+          if nqp::isconcrete($!of)
           && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
-        $visitor(self.WHY) if self.WHY;
+        $visitor(self.WHY) if nqp::isconcrete(self.WHY);
         self.visit-traits($visitor);
     }
 

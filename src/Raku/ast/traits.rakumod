@@ -240,9 +240,9 @@ class RakuAST::Trait::Is
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!name) if $!name;
-        $visitor($!argument) if $!argument;
-        $visitor($!type) if $!type;
+        $visitor($!name)     if nqp::isconcrete($!name);
+        $visitor($!argument) if nqp::isconcrete($!argument);
+        $visitor($!type)     if nqp::isconcrete($!type);
     }
 }
 
@@ -388,6 +388,6 @@ class RakuAST::Trait::Trusts
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!type) if $!type;
+        $visitor($!type) if nqp::isconcrete($!type);
     }
 }

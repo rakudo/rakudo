@@ -1327,8 +1327,8 @@ class RakuAST::Statement::Expression
 
     method visit-children(Code $visitor) {
         $visitor($!expression);
-        $visitor($!condition-modifier) if $!condition-modifier;
-        $visitor($!loop-modifier) if $!loop-modifier;
+        $visitor($!condition-modifier) if nqp::isconcrete($!condition-modifier);
+        $visitor($!loop-modifier)      if nqp::isconcrete($!loop-modifier);
         self.visit-labels($visitor);
     }
 
@@ -2075,9 +2075,9 @@ class RakuAST::Statement::Loop
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!setup) if $!setup;
-        $visitor($!condition) if $!condition;
-        $visitor($!increment) if $!increment;
+        $visitor($!setup)     if nqp::isconcrete($!setup);
+        $visitor($!condition) if nqp::isconcrete($!condition);
+        $visitor($!increment) if nqp::isconcrete($!increment);
         $visitor($!body);
         self.visit-labels($visitor);
     }
@@ -2835,7 +2835,7 @@ class RakuAST::Statement::Use
 
     method visit-children(Code $visitor) {
         $visitor($!module-name);
-        $visitor($!argument) if $!argument;
+        $visitor($!argument) if nqp::isconcrete($!argument);
         self.visit-labels($visitor);
     }
 }
@@ -2971,7 +2971,7 @@ class RakuAST::Statement::Import
 
     method visit-children(Code $visitor) {
         $visitor($!module-name);
-        $visitor($!argument) if $!argument;
+        $visitor($!argument) if nqp::isconcrete($!argument);
         self.visit-labels($visitor);
     }
 }
@@ -3203,9 +3203,9 @@ class RakuAST::Statement::Require
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!module-name) if $!module-name;
-        $visitor($!file) if $!file;
-        $visitor($!argument) if $!argument;
-        $visitor($!module) if $!module;
+        $visitor($!module-name) if nqp::isconcrete($!module-name);
+        $visitor($!file)        if nqp::isconcrete($!file);
+        $visitor($!argument)    if nqp::isconcrete($!argument);
+        $visitor($!module)      if nqp::isconcrete($!module);
     }
 }

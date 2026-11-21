@@ -1371,7 +1371,7 @@ my class Array { # declared in BOOTSTRAP
 
         # Containerize if given a List
         return self.splice($offset, $size, [@new])
-          if nqp::eqaddr(@new.WHAT,List);
+          if nqp::eqaddr(@new.WHAT,List) || nqp::eqaddr(@new.WHAT,Slip);
 
         nqp::if(
           nqp::islt_i(nqp::unbox_i($offset),0),

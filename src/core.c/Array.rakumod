@@ -1368,6 +1368,11 @@ my class Array { # declared in BOOTSTRAP
     multi method splice(Array:D:
       Int:D $offset, Int:D $size, @new
     --> Array:D) {
+
+        # Containerize if given a List
+        return self.splice($offset, $size, [@new])
+          unless nqp::istype(@new.WHAT,Array);
+
         nqp::if(
           nqp::islt_i(nqp::unbox_i($offset),0),
           self!splice-offset-fail($offset),

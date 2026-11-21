@@ -1521,7 +1521,7 @@ class RakuAST::Node {
             && nqp::istype($statements[0], RakuAST::Statement::Expression);
         my $index := $statements[0].expression;
         if nqp::istype($index, RakuAST::IntLiteral) {
-            return $index.IMPL-FITS-NATIVE-INT
+            return $index.IMPL-PRIMSPEC
                 && !nqp::islt_I($index.compile-time-value, nqp::box_i(0, Int))
                 ?? $spec
                 !! 0;
@@ -1548,7 +1548,7 @@ class RakuAST::Node {
             return Nil unless nqp::istype($expr, RakuAST::Sinkable) && $expr.sunk;
             if $spec == 1 {
                 return Nil unless nqp::istype($value, RakuAST::IntLiteral)
-                    && $value.IMPL-FITS-NATIVE-INT
+                    && $value.IMPL-PRIMSPEC
                     || self.IMPL-NATIVE-LEXICAL-PRIMSPEC($value) == 1;
             }
             elsif $spec == 2 {
@@ -1589,7 +1589,7 @@ class RakuAST::Node {
             && !nqp::isconcrete($statements[0].loop-modifier);
         my $index := $statements[0].expression;
         if nqp::istype($index, RakuAST::IntLiteral) {
-            return Nil unless $index.IMPL-FITS-NATIVE-INT
+            return Nil unless $index.IMPL-PRIMSPEC
                 && !nqp::islt_I($index.compile-time-value, nqp::box_i(0, Int));
         }
         else {
@@ -2302,44 +2302,39 @@ class RakuAST::Node {
     # possibly parenthesized, offers its variable.
     method IMPL-STATIC-ARG-IS-VALUE() { !nqp::istype(self, RakuAST::Var) }
 
-    # The native kind this node's constant value compiles a native
-    # alternative for, or Nil. A node that answers a kind emits a QAST::Want
-    # whose native alternative IMPL-TO-QAST-ARG can select.
-    method IMPL-NATIVE-LITERAL-KIND() { Nil }
+    # The primspec of this node's constant value (0 for non-native value)
+    method IMPL-PRIMSPEC() { 0 }
 
     # The native-paired-literal rule: given two argument nodes, the literal
-    # that adopts the other argument's native representation, or null. A
-    # literal carries no declared type, so beside an argument whose static
-    # type is a native kind the literal can hold, it takes that kind. It
-    # stays the boxed value it literally is otherwise. This single predicate
-    # decides both the candidate analysis and the emitted representation, so
-    # the two cannot disagree.
+    # that adopts the other argument's native representation, or null.
     method IMPL-NATIVE-PAIRED-LITERAL-OF(Mu $a, Mu $b) {
-        # A synthesized call may carry raw values rather than nodes in its
-        # argument list, and those have no representation to decide.
-        return nqp::null() unless nqp::isconcrete($a) && nqp::istype($a, RakuAST::Node)
-            && nqp::isconcrete($b) && nqp::istype($b, RakuAST::Node);
-        my $a-kind := $a.IMPL-NATIVE-LITERAL-KIND;
-        my $b-kind := $b.IMPL-NATIVE-LITERAL-KIND;
-        my $literal;
-        my $other;
-        my int $kind;
-        if nqp::defined($a-kind) && !nqp::defined($b-kind) {
-            $literal := $a;
-            $other := $b;
-            $kind := $a-kind;
-        }
-        elsif nqp::defined($b-kind) && !nqp::defined($a-kind) {
-            $literal := $b;
-            $other := $a;
-            $kind := $b-kind;
+        if nqp::isconcrete($a)
+             && nqp::istype($a,RakuAST::Node)
+             && nqp::isconcrete($b)
+             && nqp::istype($b,RakuAST::Node) {
+            my int $a-primspec := $a.IMPL-PRIMSPEC;
+            my int $b-primspec := $b.IMPL-PRIMSPEC;
+
+            $a-primspec && nqp::not_i($b-primspec)
+              ?? nqp::iseq_i(
+                   nqp::objprimspec($b.IMPL-STATIC-ARG-TYPE),
+                   $a-primspec
+                 )
+                ?? $a
+                !! nqp::null
+              !! $b-primspec && nqp::not_i($a-primspec)
+                ?? nqp::iseq_i(
+                     nqp::objprimspec($a.IMPL-STATIC-ARG-TYPE),
+                     $b-primspec
+                   )
+                  ?? $b
+                  !! nqp::null
+            !! nqp::null
         }
         else {
-            return nqp::null();
+            nqp::null
         }
-        nqp::objprimspec($other.IMPL-STATIC-ARG-TYPE) == $kind
-            ?? $literal
-            !! nqp::null()
+
     }
 
     # The QAST for this node in argument position: the native alternative of
@@ -2347,7 +2342,7 @@ class RakuAST::Node {
     # pairing, and the ordinary QAST otherwise.
     method IMPL-TO-QAST-ARG(RakuAST::IMPL::QASTContext $context) {
         my $qast := self.IMPL-TO-QAST($context);
-        nqp::defined(self.IMPL-NATIVE-LITERAL-KIND)
+        self.IMPL-PRIMSPEC
           && nqp::istype($qast, QAST::Want)
           && nqp::elems($qast.list) >= 3
             ?? $qast.list[2]
@@ -2389,10 +2384,12 @@ class RakuAST::Node {
             # through its allomorphic Want, so the frontends rule out an
             # `is rw` candidate for the same arguments. A native result
             # of an operator or an assignment is a value the same way.
-            nqp::push(@flags, nqp::defined($_.IMPL-NATIVE-LITERAL-KIND)
-                    || $ps && $_.IMPL-STATIC-ARG-IS-VALUE
+            nqp::push(
+              @flags,
+              $_.IMPL-PRIMSPEC || $ps && $_.IMPL-STATIC-ARG-IS-VALUE
                 ?? $ps +| $ARG_IS_LITERAL
-                !! $ps);
+                !! $ps
+            );
         }
         if nqp::elems(@types) == 2 {
             my $literal := self.IMPL-NATIVE-PAIRED-LITERAL-OF(

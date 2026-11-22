@@ -1,3 +1,7 @@
+use QRegex;
+use NQPP6QRegex;
+use NQPP5QRegex;
+use Perl6::ModuleLoader;
 use Raku::Actions;
 
 sub p6ize_recursive($x) {

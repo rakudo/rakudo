@@ -1,4 +1,464 @@
 use NQPP6QRegex;
+use Perl6::Ops;
+
+#- custom nqp ops --------------------------------------------------------------
+register_op_desugar('p6box_i', -> $qast {
+    QAST::Op.new(:op<box_i>,
+      nqp::atpos($qast,0),
+      QAST::Op.new(:op<hllboxtype_i>)
+    )
+});
+
+register_op_desugar('p6box_n', -> $qast {
+    QAST::Op.new(:op<box_n>,
+      nqp::atpos($qast,0),
+      QAST::Op.new(:op<hllboxtype_n>)
+    )
+});
+
+register_op_desugar('p6box_s', -> $qast {
+    QAST::Op.new(:op<box_s>,
+      nqp::atpos($qast,0),
+      QAST::Op.new(:op<hllboxtype_s>)
+    )
+});
+
+register_op_desugar('p6box_u', -> $qast {
+    QAST::Op.new(:op<box_u>,
+      nqp::atpos($qast,0),
+      QAST::Op.new(:op<hllboxtype_i>)
+    )
+});
+
+register_op_desugar('p6reprname', -> $qast {
+    QAST::Op.new(:op<box_s>,
+      QAST::Op.new(:op<reprname>, nqp::atpos($qast,0)),
+      QAST::Op.new(:op<hllboxtype_s>)
+    )
+});
+
+register_op_desugar('p6callmethodhow', -> $qast {
+    $qast := QAST::Op.new(:op<callmethod>, :name($qast.name), |$qast.list);
+    my $invocant := $qast.shift;
+
+    my str $name := QAST::Node.unique('how_invocant');
+    $qast.unshift(
+      QAST::Var.new(:$name, :scope<local>)
+    );
+    $qast.unshift(
+      QAST::Op.new(:op<how>,
+        QAST::Var.new(:$name, :scope<local>)
+      )
+    );
+    QAST::Stmts.new(
+      QAST::Op.new(:op<bind>,
+        QAST::Var.new(:$name, :scope<local>, :decl<var>),
+        $invocant
+      ),
+      QAST::Op.new(:op<hllize>, $qast)
+    )
+});
+
+register_op_desugar('p6fatalize', -> $qast {
+    my str $name := QAST::Node.unique('fatalizee');
+    QAST::Stmts.new(:resultchild(0),
+      QAST::Op.new(:op<bind>,
+        QAST::Var.new(:$name, :scope<local>, :decl<var>),
+        nqp::atpos($qast,0)
+      ),
+      QAST::Op.new(:op<if>,
+        QAST::Op.new(:op<istype>,
+          QAST::Var.new(:$name, :scope<local>),
+          nqp::atpos($qast,1),
+        ),
+        QAST::Op.new(:op<callmethod>, :name<sink>,
+          QAST::Var.new(:$name, :scope<local>)
+        )
+      )
+    )
+});
+
+register_op_desugar('p6for', -> $qast {
+    # Figure out the execution mode.
+    my str $mode := $qast.ann('mode') || 'serial';
+    my str $after-mode;
+    if $mode eq 'lazy' {
+        $after-mode := 'lazy';
+        $mode       := 'serial';
+    }
+    else {
+        $after-mode := $qast.sunk ?? 'sink' !! 'eager';
+    }
+
+    my    $cond  := nqp::atpos($qast,0);
+    my    $block := nqp::atpos($qast,1);
+    my    $label := nqp::atpos($qast,2);
+    my str $name := QAST::Node.unique('for-list');
+
+    my $call := QAST::Op.new(:op<if>,
+      QAST::Op.new(:op<iscont>,
+        QAST::Var.new(:$name, :scope<local>)
+      ),
+      QAST::Op.new(:op<callmethod>, :name<map>,
+        :node($qast),
+        QAST::Var.new(:$name, :scope<local>),
+        $block,
+        QAST::IVal.new(named<item>, :value(1))
+      ),
+      QAST::Op.new(:op<callmethod>, :name<map>,
+        :node($qast),
+        QAST::Op.new(:op<callmethod>, :name($mode),
+          :node($qast),
+          QAST::Var.new(:$name, :scope<local>)
+        ),
+        $block
+      )
+    );
+
+    if $label {
+        nqp::atpos($call,1).push($label);
+        nqp::atpos($call,2).push($label);
+    }
+
+    QAST::Stmts.new(
+      QAST::Op.new(:op<bind>,
+        QAST::Var.new(:$name, :scope<local>, :decl<var>),
+        $cond
+      ),
+      QAST::Op.new(:op<callmethod>, :name($after-mode), $call)
+    )
+});
+
+register_op_desugar('p6forstmt', -> $qast {
+    my str $target-name   := QAST::Node.unique('for_target');
+    my str $iterator-name := QAST::Node.unique('for_iterator');
+    my str $end-name      := QAST::Node.unique('for_iterationend');
+    my str $block-name    := QAST::Node.unique('for_block');
+    my str $val-name      := QAST::Node.unique('for_iterval');
+
+    my $target := QAST::Op.new(:op<bind>,
+      QAST::Var.new(:name($target-name), :scope<local>, :decl<var>),
+      nqp::atpos($qast,0)
+    );
+
+    my $iterator := QAST::Op.new(:op<bind>,
+      QAST::Var.new(:name($iterator-name), :scope<local>, :decl<var>),
+      QAST::Op.new(:op<callmethod>, :name<iterator>,
+        QAST::Op.new(:op<if>,
+          QAST::Op.new(:op<iscont>,
+            QAST::Var.new(:name($target-name), :scope<local>)
+          ),
+          QAST::Op.new(:op<callstatic>, :name('&infix:<,>'),
+            QAST::Var.new(:name($target-name), :scope<local>)
+          ),
+          QAST::Var.new(:name($target-name), :scope<local>)
+        )
+      )
+    );
+
+    my $end := QAST::Op.new(:op<bind>,
+      QAST::Var.new(:name($end-name), :scope<local>, :decl<var>),
+      QAST::WVal.new(:value($qast.ann('IterationEnd')))
+    );
+
+    my $block := QAST::Op.new(:op<bind>,
+      QAST::Var.new(:name($block-name), :scope<local>, :decl<var>),
+      QAST::Op.new(:op<getattr>,
+        nqp::atpos($qast,1),
+        QAST::WVal.new(:value($qast.ann('Code'))),
+        QAST::SVal.new(:value('$!do'))
+      )
+    );
+
+    my $loop := QAST::Op.new(:op<until>,
+      QAST::Op.new(:op<eqaddr>,
+        QAST::Op.new(:op<decont>,
+          QAST::Op.new(:op<bind>,
+            QAST::Var.new(:name($val-name), :scope<local>, :decl<var>),
+            QAST::Op.new(:op<callmethod>, :name<pull-one>,
+              QAST::Var.new(:name($iterator-name), :scope<local>)
+            )
+          )
+        ),
+        QAST::Var.new(:name($end-name), :scope<local>)
+      ),
+      QAST::Op.new(:op<call>,
+        QAST::Var.new(:name($block-name), :scope<local>),
+        QAST::Var.new(:name($val-name), :scope<local>)
+      )
+    );
+
+    $loop.push($qast[2]) if $qast[2];
+
+    QAST::Stmts.new(
+      $target,
+      $iterator,
+      $end,
+      $block,
+      $loop,
+      QAST::WVal.new(:value($qast.ann('Nil')))
+    )
+});
+
+register_op_desugar('p6scalarfromdesc', -> $qast {
+    my str $name := QAST::Node.unique('descriptor');
+
+    my $Scalar := QAST::WVal.new(:value(nqp::gethllsym('Raku','Scalar')));
+    my $default_cont_spec := nqp::gethllsym('Raku','default_cont_spec');
+
+    QAST::Stmt.new(
+      QAST::Op.new(:op<bind>,
+        QAST::Var.new(:$name, :scope<local>, :decl<var>),
+        nqp::atpos($qast,0)
+      ),
+      QAST::Op.new(:op<unless>,
+        QAST::Op.new(:op<isconcrete>,
+          QAST::Var.new(:$name, :scope<local>),
+        ),
+        QAST::Op.new(:op<bind>,
+          QAST::Var.new(:$name, :scope<local>),
+          QAST::WVal.new(:value($default_cont_spec) )
+        )
+      ),
+      QAST::Op.new(:op<p6bindattrinvres>,
+        QAST::Op.new(:op<p6bindattrinvres>,
+          QAST::Op.new(:op<create>, $Scalar),
+          $Scalar,
+          QAST::SVal.new(:value('$!descriptor') ),
+          QAST::Var.new(:$name, :scope<local>)
+        ),
+        $Scalar,
+        QAST::SVal.new(:value('$!value') ),
+        QAST::Op.new(:op<callmethod>, :name<default>,
+          QAST::Var.new(:$name, :scope<local>)
+        )
+      )
+    )
+});
+
+# The "certain" variant is allowed to assume the container descriptor is
+# reliably provided, so need not map it to the default one. Ideally, we'll
+# eventually have everything using this version of the op.
+register_op_desugar('p6scalarfromcertaindesc', -> $qast {
+    my $name   := QAST::Node.unique('descriptor');
+    my $Scalar := QAST::WVal.new(:value(nqp::gethllsym('Raku','Scalar')));
+
+    QAST::Stmt.new(
+      QAST::Op.new(:op<bind>,
+        QAST::Var.new(:$name, :scope<local>, :decl<var>),
+        nqp::atpos($qast,0)
+      ),
+      QAST::Op.new(:op<p6bindattrinvres>,
+        QAST::Op.new(:op<p6bindattrinvres>,
+          QAST::Op.new(:op<create>, $Scalar),
+          $Scalar,
+          QAST::SVal.new(:value('$!descriptor')),
+          QAST::Var.new(:$name, :scope<local>)
+        ),
+        $Scalar,
+        QAST::SVal.new(:value('$!value')),
+        QAST::Op.new(:op<callmethod>, :name<default>,
+          QAST::Var.new(:$name, :scope<local>)
+        )
+      )
+    )
+});
+
+register_op_desugar('p6scalarwithvalue', -> $qast {
+    my $Scalar := QAST::WVal.new(:value(nqp::gethllsym('Raku','Scalar')));
+
+    QAST::Op.new(:op<p6assign>,
+      QAST::Op.new(:op<p6bindattrinvres>,
+        QAST::Op.new(:op('create'), $Scalar),
+        $Scalar,
+        QAST::SVal.new(:value('$!descriptor')),
+        nqp::atpos($qast,0)
+      ),
+      nqp::atpos($qast,1)
+    )
+});
+
+register_op_desugar('p6recont_ro', -> $qast {
+    my str $name := QAST::Node.unique('result');
+
+    my $Scalar := QAST::WVal.new(:value(nqp::gethllsym('Raku','Scalar')));
+    QAST::Stmt.new(
+      QAST::Op.new(:op<bind>,
+        QAST::Var.new(:$name, :scope<local>, :decl<var>),
+        nqp::atpos($qast,0)
+      ),
+      QAST::Op.new(:op<if>,
+        QAST::Op.new(:op<if>,
+          QAST::Op.new(:op<isconcrete_nd>,
+            QAST::Var.new(:$name, :scope<local>)
+          ),
+          QAST::Op.new(:op<isrwcont>,
+            QAST::Var.new(:$name, :scope<local>)
+          )
+        ),
+        QAST::Op.new(:op<p6bindattrinvres>,
+          QAST::Op.new(:op<create>, $Scalar),
+          $Scalar,
+          QAST::SVal.new(:value('$!value')),
+          QAST::Op.new(:op<decont>,
+            QAST::Var.new(:$name, :scope<local>)
+          )
+        ),
+        QAST::Var.new(:$name, :scope<local>)
+      )
+    )
+});
+
+register_op_desugar('p6var', -> $qast {
+    my str $name := QAST::Node.unique('result');
+
+    my $Scalar    := QAST::WVal.new(:value(nqp::gethllsym('Raku','Scalar')));
+    my $ScalarVAR := QAST::WVal.new(:value(nqp::gethllsym('Raku','ScalarVAR')));
+    QAST::Stmt.new(
+      QAST::Op.new(:op<bind>,
+        QAST::Var.new(:$name, :scope<local>, :decl<var>),
+        nqp::atpos($qast,0)
+      ),
+      QAST::Op.new(:op<if>,
+        QAST::Op.new(:op<if>,
+          QAST::Op.new(:op<isconcrete_nd>,
+            QAST::Var.new(:$name, :scope<local>)
+          ),
+          QAST::Op.new(:op<iscont>,
+            QAST::Var.new(:$name, :scope<local>)
+          )
+        ),
+        QAST::Op.new(:op<p6bindattrinvres>,
+          QAST::Op.new(:op<create>, $ScalarVAR),
+          $Scalar,
+          QAST::SVal.new(:value('$!value')),
+          QAST::Var.new(:$name, :scope<local>)
+        ),
+        QAST::Var.new(:$name, :scope<local>)
+      )
+    )
+});
+
+register_op_desugar('time_i', -> $qast {
+    QAST::Op.new(:op<div_i>,
+      QAST::Op.new(:op<time>),
+      QAST::IVal.new(:value(1000000000))
+    )
+});
+
+register_op_desugar('time_n', -> $qast {
+    QAST::Op.new(:op<div_n>,
+      QAST::Op.new(:op<time>),
+      QAST::NVal.new(:value(1000000000e0))
+    )
+});
+
+register_op_desugar('p6decontrv_internal', -> $qast {
+#?if moar
+    QAST::Op.new(:op<dispatch>,
+      QAST::SVal.new(
+        :value(nqp::atpos($qast,1) eq '6c'
+                ?? 'raku-rv-decont-6c'
+                !! 'raku-rv-decont'
+              )
+      ),
+      QAST::Op.new(:op<p6box>,
+        QAST::Op.new(:op<wantdecont>, nqp::atpos($qast,0))
+      )
+    )
+#?endif
+#?if !moar
+    my str $name := QAST::Node.unique('result');
+    my $Scalar   := QAST::WVal.new(:value(nqp::gethllsym('Raku','Scalar')));
+    my $Iterable := QAST::WVal.new(:value(nqp::gethllsym('Raku','Iterable')));
+
+    QAST::Stmt.new(
+      QAST::Op.new(:op<bind>,
+        QAST::Var.new(:$name, :scope<local>, :decl<var>),
+        QAST::Op.new(:op<wantdecont>, $qast[0])
+      ),
+      QAST::Op.new(:op<if>,
+        # If it's a container...
+        QAST::Op.new(:op<if>,
+          QAST::Op.new(:op<isconcrete_nd>,
+            QAST::Var.new(:$name, :scope<local>)
+          ),
+          QAST::Op.new(:op<iscont>,
+            QAST::Var.new(:$name, :scope<local>)
+          )
+        ),
+        # It's a container; is it an rw one?
+        QAST::Op.new(:op<if>,
+          QAST::Op.new(:op<isrwcont>,
+            QAST::Var.new(:$name, :scope<local>)
+          ),
+          # Yes; does it contain an Iterable? If so, rewrap it. If
+          # not, strip it.
+          QAST::Op.new(:op<if>,
+            QAST::Op.new(:op<istype>,
+              QAST::Var.new(:$name, :scope<local>),
+              $Iterable
+            ),
+            QAST::Op.new(:op<p6bindattrinvres>,
+              QAST::Op.new(:op<create>, $Scalar),
+              $Scalar,
+              QAST::SVal.new(:value('$!value')),
+              QAST::Op.new(:op<decont>,
+                QAST::Var.new(:$name, :scope<local>)
+              )
+            ),
+            QAST::Op.new(:op<decont>,
+              QAST::Var.new(:$name, :scope<local>)
+            )
+          ),
+          # Not rw, so leave container in place.
+          QAST::Var.new(:$name), :scope<local>)
+        ),
+        # Not a container, so just hand back value
+        QAST::Var.new(:$name, :scope<local>)
+      )
+    )
+#?endif
+});
+
+register_op_desugar('p6assign', -> $qast {
+#?if moar
+    my str $name := QAST::Node.unique('assign_cont');
+
+    QAST::Stmts.new(
+      QAST::Op.new(:op<bind>,
+        QAST::Var.new(:$name, :scope<local>, :decl<var>),
+        nqp::atpos($qast,0)
+      ),
+      QAST::Op.new(:op<dispatch>,
+        QAST::SVal.new(:value<raku-assign>),
+        QAST::Var.new(:$name, :scope<local>),
+        QAST::Op.new(:op<decont>, $qast[1])
+      ),
+      QAST::Var.new(:$name, :scope<local>)
+    )
+#?endif
+#?if !moar
+    QAST::Op.new(:op<assign>, nqp::atpos($qast,0), nqp::atpos($qast,1))
+#?endif
+});
+
+register_op_desugar('p6attrinited', -> $qast {
+#?if moar
+    QAST::Op.new(:op<dispatch>, :returns(int),
+      QAST::SVal.new(:value<raku-is-attr-inited>),
+      nqp::atpos($qast,0)
+    )
+#?endif
+#?if !moar
+    QAST::Op.new(:op<callmethod>, :name<check>,
+      QAST::WVal.new(
+        :value(nqp::gethllsym('Raku','UninitializedAttributeChecker'))
+      ),
+      nqp::atpos($qast,0)
+    )
+#?endif
+});
 
 #-------------------------------------------------------------------------------
 # The classes of the AST nodes come from the Raku setting bootstrap, so

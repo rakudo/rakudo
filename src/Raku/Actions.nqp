@@ -1,4 +1,4 @@
-use NQPP6QRegex;
+use Perl6::ModuleLoader;
 use Perl6::Ops;
 
 #- custom nqp ops --------------------------------------------------------------

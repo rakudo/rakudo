@@ -178,7 +178,7 @@
 # gen-cat sources into gen/<backend>
 @gencat(@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@:   		@bsm(RAKUDO_A_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/RakuActions.nqp)@:	@bsm(RAKUDO_A_R_SRC)@)@
-@gencat(@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@:   	@nfp(src/Perl6/Compiler.nqp)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@:   	@nfp(src/Raku/Compiler.nqp)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/SysConfig.nqp)@:   	@nfp(src/Perl6/SysConfig.nqp)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@:   		@bsm(RAKUDO_G_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/RakuGrammar.nqp)@:	@bsm(RAKUDO_G_R_SRC)@)@

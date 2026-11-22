@@ -166,6 +166,7 @@ my class Array { # declared in BOOTSTRAP
         }
 
         method push-until-lazy(\target) {
+            my $reified := $!reified;
             nqp::if(
               nqp::isconcrete($!todo),
               nqp::stmts(
@@ -173,7 +174,7 @@ my class Array { # declared in BOOTSTRAP
                 (my int $i = $!i),   # lexicals faster than attributes
                 nqp::while(   # doesn't sink
                   nqp::islt_i(++$i,$elems),
-                  target.push(nqp::atpos($!reified,$i))
+                  target.push(nqp::atpos($reified,$i))
                 ),
                 nqp::if(
                   $!todo.fully-reified,
@@ -188,12 +189,12 @@ my class Array { # declared in BOOTSTRAP
                 )
               ),
               nqp::stmts(
-                ($elems = nqp::elems($!reified)),
+                ($elems = nqp::elems($reified)),
                 ($i = $!i),
                 nqp::while(   # doesn't sink
                   nqp::islt_i(++$i,$elems),
                   target.push(
-                    nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
+                    nqp::ifnull(nqp::atpos($reified,$i),self!hole($i))
                   )
                 ),
                 ($!i = $i),

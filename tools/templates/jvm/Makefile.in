@@ -36,7 +36,7 @@ RUNTIME_JAR = rakudo-runtime.jar
   perl6-j \
   perl6-debug-j
 
-@bpv(ML_EXTRA)@ = @nfp(src/vm/jvm/Perl6/JavaModuleLoader.nqp)@
+@bpv(ML_EXTRA)@ = @nfp(src/vm/jvm/Raku/JavaModuleLoader.nqp)@
 @bpv(RAKUDO_DEPS_EXTRA)@ = $(RUNTIME_JAR)
 
 @bpv(NQP_FLAGS_EXTRA)@ = --javaclass=perl6

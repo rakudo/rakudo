@@ -269,14 +269,17 @@ role RakuAST::OperatorProperties {
     # Obtain operator properties from config or from actual object
     method properties() {
         my $properties;
-        if nqp::can(self, 'is-resolved') && self.is-resolved {
+        if nqp::can(self,'is-resolved') && self.is-resolved {
             my $resolution := self.resolution;
-            if nqp::istype($resolution, RakuAST::CompileTimeValue) && nqp::can($resolution.compile-time-value, 'op_props') {
+            if nqp::istype($resolution,RakuAST::CompileTimeValue)
+              && nqp::can($resolution.compile-time-value,'op_props') {
                 $properties := try $resolution.compile-time-value.op_props;
             }
-            elsif nqp::istype($resolution, RakuAST::Declaration::External) {
+            elsif nqp::istype($resolution,RakuAST::Declaration::External) {
                 my $value := $resolution.maybe-compile-time-value;
-                $properties := $value.op_props if nqp::isconcrete($value) && nqp::can($value, 'op_props');
+                $properties := $value.op_props
+                  if nqp::isconcrete($value)
+                  && nqp::can($value,'op_props');
             }
         }
 
@@ -285,9 +288,7 @@ role RakuAST::OperatorProperties {
           !! self.default-operator-properties
     }
 
-    method reducer-name() {
-        self.properties.reducer-name
-    }
+    method reducer-name() { self.properties.reducer-name }
 }
 
 #-------------------------------------------------------------------------------
@@ -298,7 +299,13 @@ class RakuAST::Infixish
   is RakuAST::Node
   does RakuAST::ImplicitLookups
 {
-    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+    method is-pure()       { True  }
+    method short-circuit() { False }
+
+    method IMPL-LIST-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $operands
+    ) {
         nqp::die('Cannot compile ' ~ self.HOW.name(self) ~ ' as a list infix');
     }
 
@@ -307,24 +314,34 @@ class RakuAST::Infixish
 
     # The literal operand of an application that is passed in its native
     # form, or null when none is.
-    method IMPL-NATIVE-PAIRED-OPERAND(RakuAST::Expression $left, RakuAST::Expression $right, Mu :$adverb) {
+    method IMPL-NATIVE-PAIRED-OPERAND(
+      RakuAST::Expression  $left,
+      RakuAST::Expression  $right,
+                       Mu :$adverb
+    ) {
         nqp::null()
     }
 
     # A node can implement this if it wishes to have full control of the
     # compilation of nodes. Most implement IMPL-INFIX-QAST, which gets the
     # QAST of the operands.
-    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
-        my $native-literal := self.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb);
-        my $qast := self.IMPL-INFIX-QAST:
-            $context,
-            nqp::eqaddr($left, $native-literal)
-                ?? $left.IMPL-TO-QAST-ARG($context)
-                !! $left.IMPL-TO-QAST($context),
-            nqp::eqaddr($right, $native-literal)
-                ?? $right.IMPL-TO-QAST-ARG($context)
-                !! $right.IMPL-TO-QAST($context);
+    method IMPL-INFIX-COMPILE(
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression  $left,
+             RakuAST::Expression  $right,
+           RakuAST::ColonPairish :$adverb
+    ) {
+        my $native-literal :=
+          self.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb);
+        my $qast := self.IMPL-INFIX-QAST(
+          $context,
+          nqp::eqaddr($left,$native-literal)
+            ?? $left.IMPL-TO-QAST-ARG($context)
+            !! $left.IMPL-TO-QAST($context),
+          nqp::eqaddr($right,$native-literal)
+            ?? $right.IMPL-TO-QAST-ARG($context)
+            !! $right.IMPL-TO-QAST($context)
+        );
         if $adverb {
             my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
             $val-ast.named($adverb.named-arg-name);
@@ -333,8 +350,8 @@ class RakuAST::Infixish
         $qast
     }
 
-    # Just produce QAST without shortcuts like direct mapping to special QAST nodes.
-    # Needed for correct handling of thunks with meta ops.
+    # Just produce QAST without shortcuts like direct mapping to special
+    # QAST nodes.  Needed for correct handling of thunks with meta ops.
     method IMPL-INFIX-FOR-META-QAST(
       RakuAST::IMPL::QASTContext $context,
                               Mu $left-qast,
@@ -343,9 +360,12 @@ class RakuAST::Infixish
         self.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
     }
 
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
-    }
+    method IMPL-THUNK-ARGUMENTS(
+               RakuAST::Resolver  $resolver,
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression *@operands,
+                            Bool :$meta
+    ) { }
 
     # Whether an operator with a `b` thunk calls the operand with the left
     # side, as it does a block, routine, or WhateverCode, parenthesized or not.
@@ -355,51 +375,68 @@ class RakuAST::Infixish
         nqp::istype($expr, RakuAST::Block)
           || nqp::istype($expr, RakuAST::Routine)
             && !nqp::istype($expr, RakuAST::RegexDeclaration)
-          || $expr.IMPL-PRIMED ?? True !! False
+          || $expr.IMPL-PRIMED
     }
 
     # Whether an operand goes to the operator as it is. A value that can stand
     # in for its thunk does, and so do a list literal and the parenthesized
     # statements of such operands.
-    method IMPL-OPERAND-NEEDS-NO-THUNK(RakuAST::Resolver $resolver, Mu $operand) {
-        return 1 if self.IMPL-VALUE-STANDS-FOR-THUNK($resolver, $operand);
-        my $operands;
-        if nqp::istype($operand, RakuAST::Circumfix::Parentheses) {
-            $operands := $operand.IMPL-PLAIN-EXPRESSIONS;
-            return 0 if nqp::isnull($operands);
-        }
-        elsif nqp::istype($operand, RakuAST::ApplyListInfix) && $operand.IMPL-IS-LIST-LITERAL {
-            $operands := self.IMPL-UNWRAP-LIST($operand.operands);
+    method IMPL-OPERAND-NEEDS-NO-THUNK(
+      RakuAST::Resolver $resolver,
+                     Mu $operand
+    ) {
+        if self.IMPL-VALUE-STANDS-FOR-THUNK($resolver, $operand) {
+            1
         }
         else {
-            return 0;
+            my $operands :=
+              nqp::istype($operand,RakuAST::Circumfix::Parentheses)
+              ?? $operand.IMPL-PLAIN-EXPRESSIONS
+              !! nqp::istype($operand,RakuAST::ApplyListInfix)
+                   && $operand.IMPL-IS-LIST-LITERAL
+                ?? self.IMPL-UNWRAP-LIST($operand.operands)
+                !! nqp::null;
+
+            if nqp::isconcrete($operands) {
+                for $operands {
+                    return 0
+                      unless self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver,$_);
+                }
+                1
+            }
+            else {
+                0
+            }
         }
-        for $operands {
-            return 0 unless self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $_);
-        }
-        1
     }
 
-    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                               RakuAST::Expression $expression, str $type) {
+    method IMPL-THUNK-ARGUMENT(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context,
+             RakuAST::Expression $expression,
+                             str $type
+    ) {
         $expression.IMPL-SET-PRIME-CALLED
           if $type eq 'b'
           && nqp::istype($expression, RakuAST::WhateverApplicable)
           && $expression.IMPL-PRIMED;
-        return Nil if self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $expression);
-        # 'b', 't' and the no-thunk '.' the caller skips are the entire
-        # thunky vocabulary of OperatorProperties.
-        my $thunk;
-        if $type eq 'b' && !self.IMPL-CALLS-OPERAND($expression) {
-            $thunk := RakuAST::BlockThunk.new;
+
+        unless self.IMPL-OPERAND-NEEDS-NO-THUNK($resolver, $expression) {
+            # 'b', 't' and the no-thunk '.' the caller skips are the entire
+            # thunky vocabulary of OperatorProperties.
+            my $thunk := $type eq 'b'
+              && !self.IMPL-CALLS-OPERAND($expression)
+              ?? RakuAST::BlockThunk.new
+              !! $type eq 't'
+                ?? RakuAST::ExpressionThunk.new
+                !! nqp::null;
+
+            if nqp::isconcrete($thunk) {
+                $thunk.IMPL-SET-USER-TAKES-VALUE;
+                $thunk.to-begin-time($resolver, $context);
+                $expression.wrap-with-thunk($thunk);
+            }
         }
-        elsif $type eq 't' {
-            $thunk := RakuAST::ExpressionThunk.new;
-        }
-        return Nil unless $thunk;
-        $thunk.IMPL-SET-USER-TAKES-VALUE;
-        $thunk.to-begin-time($resolver, $context);
-        $expression.wrap-with-thunk($thunk);
     }
 
     # %primed == 0 means do not prime
@@ -417,12 +454,17 @@ class RakuAST::Infixish
     method IMPL-FIRST-TESTED-OPERAND(int $elems, Bool :$called) { -1 }
 
     method IMPL-CAN-INTERPRET-OPERANDS(@operands) {
-        return False unless self.IMPL-CAN-INTERPRET;
-        my int $compile := self.IMPL-COMPILES-OPERANDS;
-        for @operands {
-            return False unless self.IMPL-CAN-INTERPRET-OPERAND($_, :$compile);
+        if self.IMPL-CAN-INTERPRET {
+            my int $compile := self.IMPL-COMPILES-OPERANDS;
+            for @operands {
+                return False
+                  unless self.IMPL-CAN-INTERPRET-OPERAND($_, :$compile);
+            }
+            True
         }
-        True
+        else {
+            False
+        }
     }
 
     # Whether a BEGIN time evaluation of the operator may compile an operand
@@ -434,9 +476,7 @@ class RakuAST::Infixish
         nqp::die('IMPL-OPERATOR not implemented on ' ~ self.HOW.name(self));
     }
 
-    method IMPL-HOP-INFIX() {
-        self.IMPL-OPERATOR
-    }
+    method IMPL-HOP-INFIX() { self.IMPL-OPERATOR }
 
     # The infix with any brackets around it removed, for the checks that
     # identify an operator by its node type and name.
@@ -452,12 +492,18 @@ class RakuAST::Infixish
     # compiling a CORE setting itself, where closures the compiler
     # forms must not be serialized into the bootstrap. Mirrors the
     # constant reducer in Term::Reduce.
-    method IMPL-CONSTANT-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $infix) {
+    method IMPL-CONSTANT-HOP-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $infix
+    ) {
         if nqp::istype($infix, RakuAST::Infix)
-            && $infix.is-resolved
-            && nqp::istype($infix.resolution, RakuAST::Declaration::External::Setting)
-            && $infix.IMPL-HOP-CONSTANT
-            && !($*COMPILING_CORE_SETTING // 0) {
+          && $infix.is-resolved
+          && nqp::istype(
+               $infix.resolution,
+               RakuAST::Declaration::External::Setting
+             )
+          && $infix.IMPL-HOP-CONSTANT
+          && !$*COMPILING_CORE_SETTING {
             my $meta-op := self.IMPL-HOP-INFIX;
             $context.ensure-sc($meta-op);
             QAST::WVal.new( :value($meta-op) )
@@ -471,14 +517,6 @@ class RakuAST::Infixish
         for $operands {
             $_.apply-sink($is-sunk);
         }
-    }
-
-    method is-pure() {
-        True
-    }
-
-    method short-circuit() {
-        False
     }
 }
 

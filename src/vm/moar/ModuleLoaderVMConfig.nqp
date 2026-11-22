@@ -1,4 +1,4 @@
-role Perl6::ModuleLoaderVMConfig {
+role Raku::ModuleLoaderVMConfig {
     my @search_paths;
 
     method vm_search_paths() { @search_paths }

@@ -9,7 +9,7 @@ sub DEBUG(*@strs) {
     1;
 }
 
-class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
+class Perl6::ModuleLoader does Raku::ModuleLoaderVMConfig {
     my %modules_loaded;
     my %settings_loaded;
 

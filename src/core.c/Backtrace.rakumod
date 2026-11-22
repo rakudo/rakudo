@@ -152,7 +152,7 @@ my class Backtrace {
 
             next if $file.ends-with('BOOTSTRAP.nqp')
                  || $file.ends-with('QRegex.nqp')
-                 || $file.ends-with('Perl6/Ops.nqp');
+                 || $file.ends-with('Raku/Ops.nqp');
 
             my $name := nqp::p6box_s(nqp::getcodename($do));
 

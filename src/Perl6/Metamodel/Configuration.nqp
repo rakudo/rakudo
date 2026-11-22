@@ -104,7 +104,7 @@ class Perl6::Metamodel::Configuration {
     }
 
     # Register HLL symbol for code which doesn't have direct access to this
-    # class. For example, moar/Perl6/Ops.nqp relies on this symbol.
+    # class. For example, moar/Raku/Ops.nqp relies on this symbol.
     nqp::bindhllsym(
       'Raku',
       'METAMODEL_CONFIGURATION',

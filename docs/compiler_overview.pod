@@ -36,7 +36,7 @@ Action methods build a Parrot Abstract Syntax Tree (F<Perl6/Actions.nqp>)
 
 =item 5.
 
-Parrot extensions provide Raku run time behavior (F<Perl6/Ops.nqp>,
+Extensions provide Raku run time behavior (F<Raku/Ops.nqp>,
 F<pmc/*.pmc>, F<binder/*>)
 
 =item 6.
@@ -221,7 +221,7 @@ machine code instructions, and 9 dynamic PMCs ("dynpmcs") (PolyMorphic
 Container, remember?) which are are Parrot's equivalent of class
 definitions.
 
-The dynops source is in F<Perl6/Ops.nqp>, which looks like C, apart from
+The dynops source is in F<Raku/Ops.nqp>, which looks like C, apart from
 some Perlish syntactic sugar.
 A F<../parrot_install/bin/ops2c> desugars
 that to F<build/perl6.c> which your C compiler turns into a library.

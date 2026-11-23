@@ -3648,39 +3648,56 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Initializer::CallAssign').new($<dottyop>.ast);
     }
 
+    # Return a RakuAST::Type::Setting node for the given name
+    method type-from-setting(str $name) {
+        Nodify('Type::Setting').new(
+          Nodify('Name').from-identifier($name)
+        ).to-begin-time($*R, $*CU.context)
+    }
+
     method stub-variable($stub) {
         my $/ := $*VARIABLE-MATCH;
 
-        my str $scope := $*SCOPE;
-        my     $type  := $*OFTYPE.ast if $*OFTYPE;
-        my str $sigil := $<variable><sigil>;
-        my     $where := $*WHERE;
+        my str $scope  := $*SCOPE;
+        my     $OFTYPE := $*OFTYPE;
+        my     $type   := $OFTYPE.ast if $OFTYPE;
+        my str $sigil  := $<variable><sigil>;
+        my     $where  := $*WHERE;
 
         # No type or type is not a native type
         if !$type || !$type.is-native {
-            my str $pragma  := $scope eq 'has' || $scope eq 'HAS'
-              ?? 'attributes'
-              !! $scope eq 'my' || $scope eq 'our' || $scope eq 'state'
-                ?? 'variables'
-                !! '';
+            my constant PRAGMAS := nqp::hash(
+              'my',    'variables',
+              'our',   'variables',
+              'state', 'variables',
+              'has',   'attributes',
+              'HAS',   'attributes'
+            );
 
-            # Need to check pragma setting *and* there is a setting
-            if $pragma && $*LANG.pragma($pragma) -> $value {
-                my $definedness := Nodify('Type::Definedness');
-                my $is-base := 0;
-                for $*OFTYPE<longname><colonpair> {
-                    $is-base := 1 if $_.ast.key eq '_';
-                }
-                if !nqp::eqaddr($type.WHAT,$definedness)  # not already :D or :U
-                  && !$is-base                            # not :_
-                  && ($value eq 'D' || $value eq 'U') {   # want :D or :U
-                    $type := $definedness.new(            # wrap existing or new
-                      :base-type(
-                        $type // Nodify('Type::Simple').from-identifier('Any')
-                      ),
-                      :definite($value eq 'D'),
-                      :through-pragma
-                    );
+            # There's a pragma to check
+            if nqp::atkey(PRAGMAS,$scope) -> str $pragma {
+
+                # Need to check pragma setting *and* there is a setting
+                if $*LANG.pragma($pragma) -> str $value {
+
+                    # Reset value if overridden by variable definition
+                    if $type && $OFTYPE<longname><colonpair> -> $pairs {
+                        for $pairs {
+                            $value := "" if $_.ast.key eq '_';
+                        }
+                    }
+
+                    my $definedness := Nodify('Type::Definedness');
+                    if nqp::not_i(                      # not already :D or :U
+                         nqp::eqaddr($type.WHAT,$definedness)
+                       )
+                      && ($value eq 'D' || $value eq 'U') { # want :D or :U
+                        $type := $definedness.new(      # wrap existing or new
+                          :base-type($type // self.type-from-setting('Any')),
+                          :definite($value eq 'D'),
+                          :through-pragma
+                        );
+                    }
                 }
             }
         }
@@ -4657,9 +4674,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         my $signature := Nodify('Signature').new(:@parameters, :$returns, :is-array(?$*ARRAY));
         if $*ON-ROUTINE {
-            $signature.set-default-type(
-                Nodify('Type::Setting').new(Nodify('Name').from-identifier('Any')).to-begin-time($*R, $*CU.context)
-            );
+            $signature.set-default-type(self.type-from-setting('Any'));
         }
         if $*ON-VARDECLARATION {
             self.SET-NODE-ORIGIN($/, $signature);

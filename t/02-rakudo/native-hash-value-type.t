@@ -19,7 +19,8 @@ throws-like { EVAL q[my %h of int] }, X::Comp::NYI,
 throws-like { EVAL q[my (int %h)] }, X::Comp::NYI,
     feature => 'native value types for hashes',
     'a hash declared in a signature declarator refuses a native value type';
-is EVAL(q[my class NativeValues does Associative[int] { method AT-KEY($) { 42 } }; sub f(int %h) { %h<a> }; f(NativeValues.new)]), 42,
-    'a hash parameter takes a native value type';
+throws-like { EVAL q[sub a(int %h) { }] }, X::Comp::NYI,
+    feature => 'native value types for hashes',
+    'a hash declared with a native value type as a parameter';
 
 # vim: expandtab shiftwidth=4

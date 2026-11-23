@@ -17,7 +17,9 @@ is-deeply EVAL("\n\n" ~ q[constant C = (callframe(0).line, { 1 })[0]; C == $?LIN
 lives-ok {
     my $ast := Q[constant C = (callframe(0).line, 1)[0]; sub f() { C }; f()].AST;
     my sub strip($node) {
-        $node.set-origin(RakuAST::Origin.new(:from(0), :to(1))) if $node.can('set-origin');
+        $node.set-origin(
+          RakuAST::Origin.new(0, 1, RakuAST::Origin::Source)
+        ) if $node.can('set-origin');
         $node.visit-children(&strip);
     }
     strip($ast);

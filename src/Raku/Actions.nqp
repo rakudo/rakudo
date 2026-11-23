@@ -694,7 +694,8 @@ role Raku::CommonActions {
                       nqp::const::CCLASS_WHITESPACE, $orig, $from, $to - $from);
                 }
                 $node.set-origin(
-                    Nodify('Origin').new(:$from, :$to, :source($*ORIGIN-SOURCE)));
+                  Nodify('Origin').new($from, $to, $*ORIGIN-SOURCE)
+                );
             }
             if $as-key-origin {
                 my $nestings := @*ORIGIN-NESTINGS;
@@ -728,23 +729,24 @@ role Raku::CommonActions {
     # Widens a node's origin to cover the given range. The origin object
     # is kept, so key origin nestings survive.
     method WIDEN-NODE-ORIGIN($node, int $from, int $to) {
+        my $class  := Nodify('Origin');
         my $origin := $node.origin;
+
         if nqp::isconcrete($origin) && $origin.from == $origin.to {
             # an empty span only marks where the node sits
-            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $from);
-            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $to);
+            nqp::bindattr_i($origin,$class,'$!from',$from);
+            nqp::bindattr_i($origin,$class,'$!to',  $to);
         }
         elsif nqp::isconcrete($origin) {
             if $from < $origin.from {
                 $origin.set-locus($origin.locus);
-                nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $from);
+                nqp::bindattr_i($origin,$class,'$!from',$from);
             }
-            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $to)
+            nqp::bindattr_i($origin,$class,'$!to',$to)
               if $to > $origin.to;
         }
         else {
-            $node.set-origin(
-                Nodify('Origin').new(:$from, :$to, :source($*ORIGIN-SOURCE)));
+            $node.set-origin($class.new($from, $to, $*ORIGIN-SOURCE));
         }
     }
 
@@ -766,9 +768,11 @@ role Raku::CommonActions {
                 $last := $child-origin.to if $child-origin.to > $last;
             }
         });
+
+        my $class := Nodify('Origin');
         if $first >= 0 {
-            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $first);
-            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $last)
+            nqp::bindattr_i($origin,$class,'$!from',$first);
+            nqp::bindattr_i($origin,$class,'$!to',  $last)
               if $last > $origin.to;
         }
         elsif !$children {
@@ -777,8 +781,8 @@ role Raku::CommonActions {
             $pos := $pos - 1
               while $pos > 0
                 && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $orig, $pos - 1);
-            nqp::bindattr_i($origin, Nodify('Origin'), '$!from', $pos);
-            nqp::bindattr_i($origin, Nodify('Origin'), '$!to', $pos);
+            nqp::bindattr_i($origin,$class,'$!from',$pos);
+            nqp::bindattr_i($origin,$class,'$!to',  $pos);
         }
     }
 
@@ -1183,12 +1187,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # The statement takes its place in the statement list once that
         # has been parsed, see comp-unit.
-        if $<version> {
+        if $<version> -> $version {
             my $statement := Nodify('Statement::LanguageVersion').new(
-              $<version>.ast.value
+              $version.ast.value
             );
-            $statement.set-origin(Nodify('Origin').new(
-              :from($<use>.from), :to($<version>.to), :source($*ORIGIN-SOURCE)));
+            $statement.set-origin(
+              Nodify('Origin').new($<use>.from, $version.to, $*ORIGIN-SOURCE)
+            );
             $statement.to-begin-time($*R, $*CU.context);
             make $statement;
         }
@@ -2802,7 +2807,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # A method call without arguments has an empty list after its name
         unless $<args> {
             my int $end := $ast.origin.to;
-            $args.set-origin(Nodify('Origin').new(:from($end), :to($end)));
+            $args.set-origin(
+              Nodify('Origin').new($end, $end, $*ORIGIN-SOURCE)
+            );
         }
     }
 
@@ -3037,9 +3044,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         if $<infix-postfix-meta-operator> -> $meta {
             # the operator an assignment meta operator wraps ends before the =
-            $ast.set-origin(Nodify('Origin').new(
-              :from($/.from), :to($meta.from), :source($*ORIGIN-SOURCE)
-            )) unless nqp::isconcrete($ast.origin);
+            $ast.set-origin(
+              Nodify('Origin').new($/.from, $meta.from, $*ORIGIN-SOURCE)
+            ) unless nqp::isconcrete($ast.origin);
             self.meta-infix-base($/, $ast, 'assign', 'too fiddly or diffy');
             $ast := $meta.ast.new($ast.to-begin-time($*R, $*CU.context));
         }
@@ -5952,8 +5959,9 @@ Please use $worry.";
         # the string collected so far, spanning its source text
         sub literal() {
             my $literal := $StrLiteral.new($LITERALS.intern-Str($sofar));
-            $literal.set-origin($Origin.new(
-              :from($sofar ?? $sofar-from !! $pos), :to($pos), :$source));
+            $literal.set-origin(
+              $Origin.new(($sofar ?? $sofar-from !! $pos), $pos, $source)
+            );
             $sofar := '';
             $literal
         }
@@ -6168,9 +6176,10 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         # A quantified atom ends with its quantifier or backtrack modifier, or
         # with its separator, whose sigspace wrapper covers what follows it.
         my $last := $separator || $quantifier || $<backmod>;
-        $ast.set-origin(Nodify('Origin').new(
-          :from($<atom>.from), :to($last.to), :source($*ORIGIN-SOURCE)
-        )) if $last && !nqp::isconcrete($ast.origin);
+        $ast.set-origin(
+          Nodify('Origin').new($<atom>.from, $last.to, $*ORIGIN-SOURCE)
+        ) if $last
+          && !nqp::isconcrete($ast.origin);
         self.attach: $/, self.wrap-whitespace($<sigfinal>, $ast);
     }
 

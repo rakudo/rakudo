@@ -203,7 +203,7 @@ General Options:
     --nqp-home=dir     Directory to install NQP files to
     --perl6-home=dir, --rakudo-home=dir
                        Directory to install Rakudo files to
-    --relocatable      Dynamically locate NQP and Perl6 home dirs instead of
+    --relocatable      Dynamically locate NQP and Rakudo home dirs instead of
                        statically compiling them in. (On AIX and OpenBSD Rakudo
                        is always built non-relocatable, since both OSes miss a
                        necessary mechanism.)

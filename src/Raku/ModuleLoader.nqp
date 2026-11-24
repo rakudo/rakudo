@@ -9,7 +9,7 @@ sub DEBUG(*@strs) {
     1;
 }
 
-class Perl6::ModuleLoader does Raku::ModuleLoaderVMConfig {
+class Raku::ModuleLoader does Raku::ModuleLoaderVMConfig {
     my %modules_loaded;
     my %settings_loaded;
 
@@ -406,6 +406,6 @@ class Perl6::ModuleLoader does Raku::ModuleLoaderVMConfig {
 
 # We stash this in the raku HLL namespace, just so it's easy to
 # locate. Note this makes it invisible inside Raku itself.
-nqp::bindhllsym('Raku', 'ModuleLoader', Perl6::ModuleLoader);
+nqp::bindhllsym('Raku', 'ModuleLoader', Raku::ModuleLoader);
 
 # vim: expandtab sw=4

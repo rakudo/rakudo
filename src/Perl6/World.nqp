@@ -1,6 +1,6 @@
 use NQPHLL;
 use QAST;
-use Perl6::ModuleLoader;
+use Raku::ModuleLoader;
 use Perl6::Ops;
 
 sub p6ize_recursive($x) {
@@ -921,12 +921,12 @@ class Perl6::World is HLL::World {
         }
         # Do nothing for the NULL.c setting.
         elsif $setting_name ne 'NULL.c' {
-            $setting_name := Perl6::ModuleLoader.previous_setting_name($setting_name);
+            $setting_name := Raku::ModuleLoader.previous_setting_name($setting_name);
             # Load it immediately, so the compile time info is available.
             # Once it's loaded, set it as the outer context of the code
             # being compiled unless being loaded as another core dependency.
             my $setting := %*COMPILING<%?OPTIONS><outer_ctx> :=
-                            Perl6::ModuleLoader.load_setting($setting_name);
+                            Raku::ModuleLoader.load_setting($setting_name);
 
             # Add a fixup and deserialization task also.
             $!setting_fixup_task := QAST::Stmt.new(
@@ -1509,7 +1509,7 @@ class Perl6::World is HLL::World {
         $comp_unit
     }
 
-    # Uses the NQP module loader to load Perl6::ModuleLoader, which
+    # Uses the NQP module loader to load Raku::ModuleLoader, which
     # is a normal NQP module.
     method raku_module_loader_code() {
         QAST::Stmt.new(
@@ -1526,7 +1526,7 @@ class Perl6::World is HLL::World {
                     QAST::SVal.new( :value('nqp') ),
                     QAST::SVal.new( :value('ModuleLoader') )
                 ),
-                QAST::SVal.new( :value('Perl6::ModuleLoader') )
+                QAST::SVal.new( :value('Raku::ModuleLoader') )
             ))
     }
 
@@ -5166,7 +5166,7 @@ class Perl6::World is HLL::World {
         unless nqp::isnull(my $symbol := nqp::atkey(%!setting_symbols, $name)) {
             return $symbol;
         }
-        my $ctx := Perl6::ModuleLoader.load_setting($!setting_name);
+        my $ctx := Raku::ModuleLoader.load_setting($!setting_name);
 
         while $ctx {
             my $pad := nqp::ctxlexpad($ctx);
@@ -5203,7 +5203,7 @@ class Perl6::World is HLL::World {
             }
         }
 
-        my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
+        my $ctx := Raku::ModuleLoader.load_setting($setting_name);
 
         my $components := +@name;
 

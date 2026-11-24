@@ -758,7 +758,7 @@ class RakuAST::CompUnit
     }
 
     # Emit a QAST::Stmt that, at runtime, ensures the Raku ModuleLoader is
-    # available: load Perl6/ModuleLoader's bytecode via NQP's ModuleLoader,
+    # available: load Raku/ModuleLoader's bytecode via NQP's ModuleLoader,
     # then register it under the Raku HLL. Mirrors
     # World.raku_module_loader_code in src/Perl6/World.nqp.
     method IMPL-RAKU-MODULE-LOADER-CODE-QAST() {
@@ -776,7 +776,7 @@ class RakuAST::CompUnit
                     QAST::SVal.new( :value('nqp') ),
                     QAST::SVal.new( :value('ModuleLoader') )
                 ),
-                QAST::SVal.new( :value('Perl6::ModuleLoader') )
+                QAST::SVal.new( :value('Raku::ModuleLoader') )
             ))
     }
 

@@ -1,4 +1,4 @@
-use Perl6::ModuleLoader;
+use Raku::ModuleLoader;
 use Perl6::Ops;
 
 #- custom nqp ops --------------------------------------------------------------

@@ -1,6 +1,5 @@
 use NQPP6QRegex;
 use QRegex;
-use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
     has @!language_version;  # Default language revision, 1 stands for v6.c

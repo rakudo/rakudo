@@ -1,7 +1,7 @@
 use Perl6::Grammar;
 use Perl6::Actions;
 use Perl6::Compiler;
-use Perl6::SysConfig;
+use Raku::SysConfig;
 
 class Perl6::DebugHooks {
     has %!hooks;
@@ -456,7 +456,7 @@ sub MAIN(*@ARGS) {
 
     my %rakudo-build-config := nqp::hash();
     hll-config(%rakudo-build-config);
-    nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-config));
+    nqp::bindhllsym('default', 'SysConfig', Raku::SysConfig.new(%rakudo-build-config));
 
     # Create and configure compiler object.
     my $comp := Perl6::Debugger.new();

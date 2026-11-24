@@ -1,4 +1,4 @@
-class Perl6::SysConfig is HLL::SysConfig {
+class Raku::SysConfig is HLL::SysConfig {
     has %!rakudo-build-config;
     has $!rakudo-home;
 

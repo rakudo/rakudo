@@ -36,7 +36,7 @@
 @bsv(RAKUDO_O)@   = @nfp(@bpm(BLIB_RAKUDO)@/Optimizer.@bext@)@
 @bsv(RAKUDO_P)@   = @nfp(@bpm(BLIB_RAKUDO)@/Pod.@bext@)@
 @bsv(RAKUDO_C)@   = @nfp(@bpm(BLIB_RAKUDO)@/Compiler.@bext@)@
-@bsv(RAKUDO_S)@   = @nfp(@bpm(BLIB_RAKUDO)@/SysConfig.@bext@)@
+@bsv(RAKUDO_S)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/SysConfig.@bext@)@
 @bsv(RAKUDO_M)@   = @nfp(@bpm(BLIB_RAKUDO)@/Metamodel.@bext@)@
 
 @bsv(RAKUDO_ML_SRC)@ =	@nfp(src/vm/@backend@/ModuleLoaderVMConfig.nqp src/Perl6/ModuleLoader.nqp)@ @bpm(ML_EXTRA)@
@@ -80,10 +80,10 @@
 @bpv(RAKUDO_PRECOMPS_P)@ = \
     @bsm(RAKUDO_ML)@ @bsm(RAKUDO_W)@ @bsm(RAKUDO_G)@ @bsm(RAKUDO_OPS)@ \
     @bsm(RAKUDO_A)@ @bsm(RAKUDO_O)@ @bsm(RAKUDO_P)@ @bsm(RAKUDO_C)@ \
-    @bsm(RAKUDO_S)@ @bsm(RAKUDO_M)@
+    @bsm(RAKUDO_M)@
 
 @bpv(RAKUDO_PRECOMPS_R)@ = \
-    @bsm(RAKUDO_G_R)@ @bsm(RAKUDO_A_R)@
+    @bsm(RAKUDO_G_R)@ @bsm(RAKUDO_A_R)@ @bsm(RAKUDO_S)@
 
 @bpv(RAKUDO_PRECOMPS)@ = \
 	@bpm(RAKUDO_PRECOMPS_P)@ @bpm(RAKUDO_PRECOMPS_R)@
@@ -179,7 +179,7 @@
 @gencat(@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@:   		@bsm(RAKUDO_A_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/RakuActions.nqp)@:	@bsm(RAKUDO_A_R_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@:   	@nfp(src/Raku/Compiler.nqp)@)@
-@gencat(@nfp(@bpm(BUILD_DIR)@/SysConfig.nqp)@:   	@nfp(src/Perl6/SysConfig.nqp)@)@
+@gencat(@nfp(@bpm(BUILD_DIR)@/SysConfig.nqp)@:   	@nfp(src/Raku/SysConfig.nqp)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@:   		@bsm(RAKUDO_G_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/RakuGrammar.nqp)@:	@bsm(RAKUDO_G_R_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@: 		@bsm(METAMODEL_ALL_SOURCES)@)@

@@ -1,7 +1,6 @@
 use NQPHLL;
 use QAST;
 use Perl6::ModuleLoader;
-use Perl6::Pod;
 use Perl6::Ops;
 
 sub p6ize_recursive($x) {

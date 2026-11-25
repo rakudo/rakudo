@@ -77,7 +77,7 @@
 
 @bpv(RAKUDO_PRECOMPS_P)@ = \
     @bsm(RAKUDO_W)@ @bsm(RAKUDO_G)@ \
-    @bsm(RAKUDO_A)@ @bsm(RAKUDO_P)@ \
+    @bsm(RAKUDO_A)@ \
     @bsm(RAKUDO_M)@
 
 @bpv(RAKUDO_PRECOMPS_R)@ = \

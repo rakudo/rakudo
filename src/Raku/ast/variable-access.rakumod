@@ -1228,22 +1228,29 @@ class RakuAST::Var::Slang
   does RakuAST::BeginTime
 {
     has str $.name;
-    has Mu  $!grammar;
-    has Mu  $!actions;
+    has Mu  $.grammar;
+    has Mu  $.actions;
 
     method new(str :$name!, Mu :$grammar, Mu :$actions) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Var::Slang, '$!name', $name);
-        # a grammar is a type object, so only an absent one is NQPMu
-        nqp::bindattr($obj, RakuAST::Var::Slang, '$!grammar',
-          $grammar =:= NQPMu ?? nqp::null !! $grammar);
-        nqp::bindattr($obj, RakuAST::Var::Slang, '$!actions',
-          $actions =:= NQPMu ?? nqp::null !! $actions);
+        $obj.set-grammar($grammar);
+        $obj.set-actions($actions);
         $obj
     }
 
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        [ RakuAST::Type::Setting.from-identifier('Slang') ]
+    method set-grammar($grammar) {
+        # a grammar can be a type object, so only an absent one is NQPMu
+        nqp::bindattr(self,RakuAST::Var::Slang,'$!grammar',
+          $grammar =:= NQPMu ?? nqp::null !! $grammar
+        );
+    }
+
+    method set-actions($actions) {
+        # actions class can be a type object, so only an absent one is NQPMu
+        nqp::bindattr(self,RakuAST::Var::Slang,'$!actions',
+          $actions =:= NQPMu ?? nqp::null !! $actions
+        );
     }
 
     method sigil()  { '$' }
@@ -1252,62 +1259,69 @@ class RakuAST::Var::Slang
     # A slang variable built without a grammar takes it from the parse in
     # progress, or from the compiler's grammar, which is MAIN and names
     # its standard slangs.
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
         if nqp::isnull($!grammar) {
-            my $lang := nqp::getlexdyn('$*LANG');
-            if !nqp::isnull($lang) && nqp::can($lang, 'slang_grammar') {
-                my $grammar := $lang.slang_grammar($!name);
+            my     $lang := nqp::getlexdyn('$*LANG');
+            my str $name := $!name;
+
+            if !nqp::isnull($lang) && nqp::can($lang,'slang_grammar') {
+                my $grammar := $lang.slang_grammar($name);
                 unless nqp::isnull($grammar) {
-                    nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
-                      $grammar);
-                    nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
-                      $lang.slang_actions($!name));
+                    self.set-grammar($grammar);
+                    self.set-actions($lang.slang_actions($name));
                 }
             }
             if nqp::isnull($!grammar) {
                 my $comp    := nqp::getcomp('Raku');
                 my $grammar := $comp.parsegrammar;
-                if $!name eq 'MAIN' {
-                    nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
-                      $grammar);
-                    nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
-                      $comp.parseactions);
+                if $name eq 'MAIN' {
+                    self.set-grammar($grammar);
+                    self.set-actions($comp.parseactions);
                 }
-                elsif nqp::can($grammar, 'standard-slangs') {
+                elsif nqp::can($grammar,'standard-slangs') {
                     my %slangs := $grammar.standard-slangs;
-                    if nqp::existskey(%slangs, $!name) {
-                        my @slang := nqp::atkey(%slangs, $!name);
-                        nqp::bindattr(self, RakuAST::Var::Slang, '$!grammar',
-                          @slang[0]);
-                        nqp::bindattr(self, RakuAST::Var::Slang, '$!actions',
-                          @slang[1]);
+                    if nqp::existskey(%slangs, $name) {
+                        my @slang := nqp::atkey(%slangs, $name);
+                        self.set-grammar(nqp::atpos(@slang,0));
+                        self.set-actions(nqp::atpos(@slang,1));
                     }
                 }
             }
             self.add-sorry(
               $resolver.build-exception: 'X::AdHoc',
-                payload => "No grammar is known for slang '" ~ $!name ~ "'"
+                payload => "No grammar is known for slang '$name'"
             ) if nqp::isnull($!grammar);
         }
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        [ RakuAST::Type::Setting.from-identifier('Slang') ]
+    }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $contexti
+    ) {
         True
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $qast := QAST::Op.new(
-            :op<callmethod>, :name<new>, :returns(self.get-implicit-lookups[0].resolution.compile-time-value),
-            QAST::Var.new( :name<Slang>, :scope<lexical> ));
-        my $g := $!grammar;
-        my $a := $!actions;
-        unless nqp::isnull($g) {
-            $context.ensure-sc($g);
-            my $wval := QAST::WVal.new( :value($g) );
-            $wval.named('grammar');
+        my $qast := QAST::Op.new(:op<callmethod>, :name<new>,
+          :returns(self.get-implicit-lookups[0].resolution.compile-time-value),
+          QAST::Var.new(:name<Slang>, :scope<lexical>)
+        );
+        my $grammar := $!grammar;
+        unless nqp::isnull($grammar) {
+            $context.ensure-sc($grammar);
+            my $wval := QAST::WVal.new(:value($grammar), :named<grammar>);
             $qast.push($wval);
-            $wval := QAST::WVal.new( :value($a) );
-            $wval.named('actions');
+
+            my $actions := $!actions;
+            $context.ensure-sc($actions);
+            $wval := QAST::WVal.new(:value($actions), :named<actions>);
             $qast.push($wval);
         }
         $qast

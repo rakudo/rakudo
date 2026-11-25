@@ -2,7 +2,7 @@
 
 use nqp;
 
-use Perl6::Compiler:from<NQP>;
+use Raku::Compiler:from<NQP>;
 
 # the place where the default snaps are stored
 my $snaps := nqp::create(IterationBuffer);
@@ -724,7 +724,7 @@ multi sub snap(Str $message = "taking heap snapshot...", :$heap!) {
     my \T1 := Telemetry.new;
     T1.message = $message with $message;
     $snaps.push(T1);
-    Perl6::Compiler.profiler-snapshot(kind => "heap", filename => $filename<>);
+    Raku::Compiler.profiler-snapshot(kind => "heap", filename => $filename<>);
     my \T2 := Telemetry.new;
     T2.message = $filename;
     $snaps.push(T2);

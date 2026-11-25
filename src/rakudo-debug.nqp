@@ -1,6 +1,6 @@
 use Perl6::Grammar;
 use Perl6::Actions;
-use Perl6::Compiler;
+use Raku::Compiler;
 use Raku::SysConfig;
 
 class Perl6::DebugHooks {
@@ -434,14 +434,14 @@ class Perl6::HookGrammar is Perl6::Grammar {
     }
 }
 
-class Perl6::Debugger is Perl6::Compiler {
+class Perl6::Debugger is Raku::Compiler {
     my $repl_code := 1;
     method eval(*@pos, *%named) {
         my $*ANON_CODE_NAME := "<REPL {$repl_code++}>";
         if $*DEBUG_HOOKS.has_hook('reset') {
             $*DEBUG_HOOKS.get_hook('reset')();
         }
-        nqp::findmethod(Perl6::Compiler, 'eval')(self, |@pos, |%named)
+        nqp::findmethod(Raku::Compiler, 'eval')(self, |@pos, |%named)
     }
 }
 

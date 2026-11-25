@@ -33,7 +33,7 @@
 @bsv(RAKUDO_OPS)@ = @nfp(@bpm(BLIB_RAKUDO_R)@/Ops.@bext@)@
 @bsv(RAKUDO_A)@   = @nfp(@bpm(BLIB_RAKUDO)@/Actions.@bext@)@
 @bsv(RAKUDO_A_R)@ = @nfp(@bpm(BLIB_RAKUDO_R)@/Actions.@bext@)@
-@bsv(RAKUDO_C)@   = @nfp(@bpm(BLIB_RAKUDO)@/Compiler.@bext@)@
+@bsv(RAKUDO_C)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/Compiler.@bext@)@
 @bsv(RAKUDO_S)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/SysConfig.@bext@)@
 @bsv(RAKUDO_M)@   = @nfp(@bpm(BLIB_RAKUDO)@/Metamodel.@bext@)@
 
@@ -77,11 +77,11 @@
 
 @bpv(RAKUDO_PRECOMPS_P)@ = \
     @bsm(RAKUDO_W)@ @bsm(RAKUDO_G)@ \
-    @bsm(RAKUDO_A)@ @bsm(RAKUDO_P)@ @bsm(RAKUDO_C)@ \
+    @bsm(RAKUDO_A)@ @bsm(RAKUDO_P)@ \
     @bsm(RAKUDO_M)@
 
 @bpv(RAKUDO_PRECOMPS_R)@ = \
-    @bsm(RAKUDO_ML)@  @bsm(RAKUDO_OPS)@ \
+    @bsm(RAKUDO_ML)@  @bsm(RAKUDO_OPS)@ @bsm(RAKUDO_C)@ \
     @bsm(RAKUDO_G_R)@ @bsm(RAKUDO_A_R)@ @bsm(RAKUDO_S)@
 
 @bpv(RAKUDO_PRECOMPS)@ = \

@@ -1,7 +1,7 @@
 use NQPP6QRegex;
 use QRegex;
 
-class Perl6::Compiler is HLL::Compiler {
+class Raku::Compiler is HLL::Compiler {
     has @!language_version;  # Default language revision, 1 stands for v6.c
     has $!language_revisions; # Hash of language revision properties. See gen/<vm>/main-version.nqp
     has $!can_language_versions; # List of valid language versions

@@ -1,4 +1,4 @@
-use Perl6::Metamodel;
+use Raku::Metamodel;
 use QRegex;
 use QAST;
 

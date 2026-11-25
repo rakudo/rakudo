@@ -32,7 +32,7 @@
 @bsv(RAKUDO_A_R)@ = @nfp(@bpm(BLIB_RAKUDO_R)@/Actions.@bext@)@
 @bsv(RAKUDO_C)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/Compiler.@bext@)@
 @bsv(RAKUDO_S)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/SysConfig.@bext@)@
-@bsv(RAKUDO_M)@   = @nfp(@bpm(BLIB_RAKUDO)@/Metamodel.@bext@)@
+@bsv(RAKUDO_M)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/Metamodel.@bext@)@
 
 @bsv(RAKUDO_ML_SRC)@ =	@nfp(src/vm/@backend@/ModuleLoaderVMConfig.nqp src/Raku/ModuleLoader.nqp)@ @bpm(ML_EXTRA)@
 @bsv(RAKUDO_OPS_SRC)@ =	@nfp(src/vm/@backend@/Raku/Ops.nqp)@
@@ -70,14 +70,11 @@
     @insert_filelist(core_sources)@
 )@
 
-@bpv(RAKUDO_PRECOMPS_P)@ = @bsm(RAKUDO_M)@
-
 @bpv(RAKUDO_PRECOMPS_R)@ = \
     @bsm(RAKUDO_ML)@  @bsm(RAKUDO_OPS)@ @bsm(RAKUDO_C)@ \
-    @bsm(RAKUDO_G_R)@ @bsm(RAKUDO_A_R)@ @bsm(RAKUDO_S)@
+    @bsm(RAKUDO_G_R)@ @bsm(RAKUDO_A_R)@ @bsm(RAKUDO_S)@ @bsm(RAKUDO_M)@
 
-@bpv(RAKUDO_PRECOMPS)@ = \
-	@bpm(RAKUDO_PRECOMPS_P)@ @bpm(RAKUDO_PRECOMPS_R)@
+@bpv(RAKUDO_PRECOMPS)@ = @bpm(RAKUDO_PRECOMPS_R)@
 
 @bpv(RAKUDO_BOOTSTRAP_PRECOMPS)@ =@for_specs( @bsm(RAKUDO_BOOTSTRAP_@ucspec@)@)@
 
@@ -226,7 +223,6 @@
 
 @backend_prefix@-install-main::@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RAKUDO_PRECOMPS)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @@bsm(RAKUDO)@@ @backend_prefix@-install-pre
 	@echo(+++ Installing files)@
-	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS_P)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS_R)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Raku)@
 	$(NOECHO)$(CP)   @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
 	$(NOECHO)$(CP)   @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@

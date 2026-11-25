@@ -8,7 +8,7 @@
 @bpv(BLIB)@ = blib
 @make_pp_pfx@endif
 @make_pp_pfx@ifndef @bpv(BLIB_RAKUDO)@
-@bpv(BLIB_RAKUDO_R)@ = @nfp(blib/Raku)@
+@bpv(BLIB_RAKUDO)@ = @nfp(blib/Raku)@
 @make_pp_pfx@endif
 @bpv(NQP_LIBDIR)@ = @nqp::libdir@
 @make_pp_pfx@ifndef @bpv(NQP_RR)@
@@ -25,13 +25,13 @@
 # files we create
 @bsv(RAKUDO)@ = rakudo.@bext@
 @bsv(PERL6)@ = perl6.@bext@
-@bsv(RAKUDO_ML)@  = @nfp(@bpm(BLIB_RAKUDO_R)@/ModuleLoader.@bext@)@
-@bsv(RAKUDO_G)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/Grammar.@bext@)@
-@bsv(RAKUDO_OPS)@ = @nfp(@bpm(BLIB_RAKUDO_R)@/Ops.@bext@)@
-@bsv(RAKUDO_A)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/Actions.@bext@)@
-@bsv(RAKUDO_C)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/Compiler.@bext@)@
-@bsv(RAKUDO_S)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/SysConfig.@bext@)@
-@bsv(RAKUDO_M)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/Metamodel.@bext@)@
+@bsv(RAKUDO_ML)@  = @nfp(@bpm(BLIB_RAKUDO)@/ModuleLoader.@bext@)@
+@bsv(RAKUDO_G)@   = @nfp(@bpm(BLIB_RAKUDO)@/Grammar.@bext@)@
+@bsv(RAKUDO_OPS)@ = @nfp(@bpm(BLIB_RAKUDO)@/Ops.@bext@)@
+@bsv(RAKUDO_A)@   = @nfp(@bpm(BLIB_RAKUDO)@/Actions.@bext@)@
+@bsv(RAKUDO_C)@   = @nfp(@bpm(BLIB_RAKUDO)@/Compiler.@bext@)@
+@bsv(RAKUDO_S)@   = @nfp(@bpm(BLIB_RAKUDO)@/SysConfig.@bext@)@
+@bsv(RAKUDO_M)@   = @nfp(@bpm(BLIB_RAKUDO)@/Metamodel.@bext@)@
 
 @bsv(RAKUDO_ML_SRC)@ =	@nfp(src/vm/@backend@/ModuleLoaderVMConfig.nqp src/Raku/ModuleLoader.nqp)@ @bpm(ML_EXTRA)@
 @bsv(RAKUDO_OPS_SRC)@ =	@nfp(src/vm/@backend@/Raku/Ops.nqp)@
@@ -46,7 +46,7 @@
 
 @bpv(RAKU_AST_SOURCES)@ = \
     @insert_filelist(raku_ast_sources)@
-@for_specs(@bsv(RAKUDO_BOOTSTRAP_@ucspec@)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/BOOTSTRAP/v6@lcspec@.@bext@)@
+@for_specs(@bsv(RAKUDO_BOOTSTRAP_@ucspec@)@   = @nfp(@bpm(BLIB_RAKUDO)@/BOOTSTRAP/v6@lcspec@.@bext@)@
 @bsv(SETTING_@ucspec@)@ = @nfp(@bpm(BLIB)@/CORE.@lcspec@.setting.@bext@)@
 )@
 
@@ -86,9 +86,9 @@
 
 @bpv(CLEANUPS_ALL)@ = \
   *.manifest \
-  @nfp(@bpm(BLIB_RAKUDO_R)@/*.@bext@)@ \
-  @nfp(@bpm(BLIB_RAKUDO_R)@/*.@bext@)@ \
-  @nfp(@bpm(BLIB_RAKUDO_R)@/BOOTSTRAP/*.@bext@)@ \\@for_specs(
+  @nfp(@bpm(BLIB_RAKUDO)@/*.@bext@)@ \
+  @nfp(@bpm(BLIB_RAKUDO)@/*.@bext@)@ \
+  @nfp(@bpm(BLIB_RAKUDO)@/BOOTSTRAP/*.@bext@)@ \\@for_specs(
   @bsm(SETTING_@ucspec@)@ \
   CORE.@lcspec@.setting.@bext@ \)@
   @bsm(PERL6)@ \

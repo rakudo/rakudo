@@ -169,7 +169,6 @@
 @gencat(@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@: 		@bsm(METAMODEL_ALL_SOURCES)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@: 	@bsm(RAKUDO_ML_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/Ops.nqp)@:   			@bsm(RAKUDO_OPS_SRC)@)@
-@gencat(@nfp(@bpm(BUILD_DIR)@/World.nqp)@: 			@nfp(src/Perl6/World.nqp)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/rakudo.nqp)@:			@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@ @nfp(src/main.nqp)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/rakudo-debug.nqp)@:	@nfp(src/rakudo-debug.nqp)@ @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@)@
 

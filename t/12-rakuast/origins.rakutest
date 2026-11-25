@@ -2,7 +2,7 @@ use v6.e.PREVIEW;
 use nqp;
 use NQPP6QRegex:from<NQP>;
 use NQPHLL:from<NQP>;
-use Perl6::Compiler:from<NQP>;
+use Raku::Compiler:from<NQP>;
 use Raku::Grammar:from<NQP>;
 use Raku::Actions:from<NQP>;
 use lib $*PROGRAM.parent(2).add('packages/Test-Helpers');
@@ -54,7 +54,7 @@ for ^10 {
 exit(0);
 ORIG
 
-    my $comp := Perl6::Compiler.new();
+    my $comp := Raku::Compiler.new();
     $comp.language('Raku');
     $comp.parsegrammar(Raku::Grammar);
     $comp.parseactions(Raku::Actions);
@@ -199,7 +199,7 @@ subtest "Spans" => {
     sub hh(&c:(Int)) { }
     SOURCE
 
-    my $comp := Perl6::Compiler.new();
+    my $comp := Raku::Compiler.new();
     $comp.language('Raku');
     $comp.parsegrammar(Raku::Grammar);
     $comp.parseactions(Raku::Actions);

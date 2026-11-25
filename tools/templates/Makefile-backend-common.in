@@ -27,11 +27,8 @@
 @bsv(RAKUDO)@ = rakudo.@bext@
 @bsv(PERL6)@ = perl6.@bext@
 @bsv(RAKUDO_ML)@  = @nfp(@bpm(BLIB_RAKUDO_R)@/ModuleLoader.@bext@)@
-@bsv(RAKUDO_W)@   = @nfp(@bpm(BLIB_RAKUDO)@/World.@bext@)@
-@bsv(RAKUDO_G)@   = @nfp(@bpm(BLIB_RAKUDO)@/Grammar.@bext@)@
 @bsv(RAKUDO_G_R)@ = @nfp(@bpm(BLIB_RAKUDO_R)@/Grammar.@bext@)@
 @bsv(RAKUDO_OPS)@ = @nfp(@bpm(BLIB_RAKUDO_R)@/Ops.@bext@)@
-@bsv(RAKUDO_A)@   = @nfp(@bpm(BLIB_RAKUDO)@/Actions.@bext@)@
 @bsv(RAKUDO_A_R)@ = @nfp(@bpm(BLIB_RAKUDO_R)@/Actions.@bext@)@
 @bsv(RAKUDO_C)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/Compiler.@bext@)@
 @bsv(RAKUDO_S)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/SysConfig.@bext@)@
@@ -39,9 +36,7 @@
 
 @bsv(RAKUDO_ML_SRC)@ =	@nfp(src/vm/@backend@/ModuleLoaderVMConfig.nqp src/Raku/ModuleLoader.nqp)@ @bpm(ML_EXTRA)@
 @bsv(RAKUDO_OPS_SRC)@ =	@nfp(src/vm/@backend@/Raku/Ops.nqp)@
-@bsv(RAKUDO_A_SRC)@ = 	@nfpl(src/Perl6/Actions.nqp)@
 @bsv(RAKUDO_A_R_SRC)@ = @nfpl(src/Raku/Actions.nqp)@
-@bsv(RAKUDO_G_SRC)@ =	@nfpl(src/Perl6/Grammar.nqp)@
 @bsv(RAKUDO_G_R_SRC)@ =	@nfpl(src/Raku/Grammar.nqp)@
 @bsv(RAKUDO_RAKU_AST_SRC)@ = @nfp(gen/@backend@/ast.nqp)@
 
@@ -75,10 +70,7 @@
     @insert_filelist(core_sources)@
 )@
 
-@bpv(RAKUDO_PRECOMPS_P)@ = \
-    @bsm(RAKUDO_W)@ @bsm(RAKUDO_G)@ \
-    @bsm(RAKUDO_A)@ \
-    @bsm(RAKUDO_M)@
+@bpv(RAKUDO_PRECOMPS_P)@ = @bsm(RAKUDO_M)@
 
 @bpv(RAKUDO_PRECOMPS_R)@ = \
     @bsm(RAKUDO_ML)@  @bsm(RAKUDO_OPS)@ @bsm(RAKUDO_C)@ \
@@ -91,9 +83,6 @@
 
 @bpv(RUNNER)@       = rakudo-@backend_abbr@@bpm(RUNNER_SUFFIX)@
 @bpv(RUNNER_OPTS)@	= --ll-exception
-
-@bsv(PERL6_DEBUG)@ = perl6-debug.@bext@
-@bsv(RAKUDO_DEBUG)@ = rakudo-debug.@bext@
 
 @bpv(SOURCE_DIGEST_FILES)@ = \
     @bpm(NQP_VERSION_FILE)@ \
@@ -113,8 +102,6 @@
   @nfp(@bpm(BUILD_DIR)@/*.setting)@ \
   @nfp(@bpm(BUILD_DIR)@/core_sources.*)@ \
   @nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/*.nqp)@ \
-  @bsm(PERL6_DEBUG)@ \
-  @bsm(RAKUDO_DEBUG)@ \
   @bpm(DEBUG_RUNNER)@ \
   @bpm(RUNNER)@ \
   @bpm(NQP_VERSION_FILE)@ \
@@ -128,7 +115,7 @@
 
 # --- Utility targets ---
 
-@backend_prefix@-all:: @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bsm(RAKUDO_DEBUG)@ @bpm(ALL_TARGETS)@ @if(platform==windows win-runner.exe-tmpl)@
+@backend_prefix@-all:: @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RUNNER)@ @bpm(DEBUG_RUNNER)@ @bpm(ALL_TARGETS)@ @if(platform==windows win-runner.exe-tmpl)@
 	$(NOECHO)$(MKPATH) @nfpq(@base_dir@/gen/build_rakudo_home/templates/)@
 @if(platform==windows 	$(NOECHO)$(CP) win-runner.exe-tmpl @nfpq(@base_dir@/gen/build_rakudo_home/templates/)@)@@if(platform!=windows 	$(NOECHO)$(CP) @nfp(src/runner/posix-runner-tmpl)@ @nfpq(@base_dir@/gen/build_rakudo_home/templates/)@)@
 
@@ -175,11 +162,9 @@
 	$(NOECHO)$(PERL5) @shquot(@script(check-nqp-version.pl)@)@ @bpm(NQP_VERSION_FILE)@ @bpm(NQP)@
 
 # gen-cat sources into gen/<backend>
-@gencat(@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@:   		@bsm(RAKUDO_A_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/RakuActions.nqp)@:	@bsm(RAKUDO_A_R_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@:   	@nfp(src/Raku/Compiler.nqp)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/SysConfig.nqp)@:   	@nfp(src/Raku/SysConfig.nqp)@)@
-@gencat(@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@:   		@bsm(RAKUDO_G_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/RakuGrammar.nqp)@:	@bsm(RAKUDO_G_R_SRC)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@: 		@bsm(METAMODEL_ALL_SOURCES)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@: 	@bsm(RAKUDO_ML_SRC)@)@
@@ -194,16 +179,13 @@
 	$(NOECHO)@bpm(NQP)@ @nfp(tools/build/raku-ast-compiler.nqp)@ @bpm(RAKU_AST_SOURCES)@ >@bsm(RAKUDO_RAKU_AST_SRC)@
 
 # Generate precompilations
-@comp(@bsm(RAKUDO_A)@:   @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@)@ @bsm(RAKUDO_OPS)@)@
-@comp(@bsm(RAKUDO_A_R)@: @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/RakuActions.nqp)@)@ @bsm(RAKUDO_OPS)@)@
+@comp(@bsm(RAKUDO_A_R)@: @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/RakuActions.nqp)@)@ @bsm(RAKUDO_ML)@ @bsm(RAKUDO_OPS)@)@
 @comp(@bsm(RAKUDO_C)@:   @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@)@)@
 @comp(@bsm(RAKUDO_S)@:   @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/SysConfig.nqp)@)@)@
-@comp(@bsm(RAKUDO_G)@:   @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@)@ @bsm(RAKUDO_W)@ @bsm(RAKUDO_A)@)@
 @comp(@bsm(RAKUDO_G_R)@: @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/RakuGrammar.nqp)@)@ @bsm(RAKUDO_A_R)@)@
 @comp(@bsm(RAKUDO_M)@:   @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@)@ @bsm(RAKUDO_OPS)@)@
 @comp(@bsm(RAKUDO_ML)@:  @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@)@)@
 @comp(@bsm(RAKUDO_OPS)@: @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/Ops.nqp)@)@ @bpm(RAKUDO_OPS_EXTRA)@)@
-@comp(@bsm(RAKUDO_W)@:   @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/World.nqp)@)@ @bsm(RAKUDO_ML)@ @bsm(RAKUDO_OPS)@)@
 
 @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ @@template(main-version-common)@@ $(CONFIGURE_SOURCES) @bpm(SOURCE_DIGEST_FILES)@
 	@echo(+++ Expanding	$@)@
@@ -211,11 +193,7 @@
 	          --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@ \
 			  --set-var=static_nqp_home=@static_nqp_home@
 
-@comp_rr(@bsm(RAKUDO)@: @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/rakudo.nqp)@)@ @bsm(RAKUDO_G)@ @bsm(RAKUDO_A)@ @bsm(RAKUDO_G_R)@ @bsm(RAKUDO_A_R)@ @bsm(RAKUDO_C)@ @bsm(RAKUDO_S)@ @bpm(RAKUDO_DEPS_EXTRA)@)@
-
-@comp_rr(@bsm(PERL6_DEBUG)@: @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/rakudo-debug.nqp)@)@ @bsm(PERL6)@)@
-
-@comp_rr(@bsm(RAKUDO_DEBUG)@: @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/rakudo-debug.nqp)@)@ @bsm(RAKUDO)@)@
+@comp_rr(@bsm(RAKUDO)@: @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/rakudo.nqp)@)@ @bsm(RAKUDO_G_R)@ @bsm(RAKUDO_A_R)@ @bsm(RAKUDO_C)@ @bsm(RAKUDO_S)@ @bpm(RAKUDO_DEPS_EXTRA)@)@
 
 @for_specs(@gencat(@nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@: @bpm(BOOTSTRAP_@ucspec@_SOURCES)@)@
 
@@ -247,15 +225,14 @@
 
 @backend_prefix@-install-pre:: @bpm(RUNNER)@ @backend_prefix@-install-dirs
 
-@backend_prefix@-install-main::@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RAKUDO_PRECOMPS)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @@bsm(RAKUDO)@@ @@bsm(RAKUDO_DEBUG)@@ @backend_prefix@-install-pre
+@backend_prefix@-install-main::@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RAKUDO_PRECOMPS)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @@bsm(RAKUDO)@@ @backend_prefix@-install-pre
 	@echo(+++ Installing files)@
 	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS_P)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS_R)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Raku)@
 	$(NOECHO)$(CP)   @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
 	$(NOECHO)$(CP)   @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
-	$(NOECHO)$(CP)   @bsm(RAKUDO)@ @bsm(RAKUDO_DEBUG)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
+	$(NOECHO)$(CP)   @bsm(RAKUDO)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 	$(NOECHO)$(CP)   @bsm(RAKUDO)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/@bsm(PERL6)@)@
-	$(NOECHO)$(CP)   @bsm(RAKUDO_DEBUG)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/@bsm(PERL6_DEBUG)@)@
 
 @backend_prefix@-install-post:: @@script(install-core-dist.raku)@@ @bpm(RUNNER)@
 	@echo(+++ Preparing installation)@

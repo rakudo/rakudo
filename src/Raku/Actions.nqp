@@ -1,5 +1,5 @@
 use Raku::ModuleLoader;
-use Perl6::Ops;
+use Raku::Ops;
 
 #- custom nqp ops --------------------------------------------------------------
 register_op_desugar('p6box_i', -> $qast {

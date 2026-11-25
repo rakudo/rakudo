@@ -1,7 +1,7 @@
 use NQPHLL;
 use QAST;
 use Raku::ModuleLoader;
-use Perl6::Ops;
+use Raku::Ops;
 
 sub p6ize_recursive($x) {
     if nqp::islist($x) {

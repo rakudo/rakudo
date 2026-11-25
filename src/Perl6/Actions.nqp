@@ -1,6 +1,6 @@
 use NQPP6QRegex;
 use NQPP5QRegex;
-use Perl6::Ops;
+use Raku::Ops;
 use QRegex;
 use QAST;
 

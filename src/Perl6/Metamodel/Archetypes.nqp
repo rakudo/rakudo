@@ -1,4 +1,4 @@
-use Perl6::Ops;
+use Raku::Ops;
 
 #- Metamodel::Archetypes -------------------------------------------------------
 # Provides various properties of the type of type a given meta-object

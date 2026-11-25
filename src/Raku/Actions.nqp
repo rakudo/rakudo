@@ -471,7 +471,7 @@ my $OperatorProperties;  # OperatorProperties class
 sub setup-RakuAST-WHO() {
     unless nqp::isconcrete($RakuAST-WHO) {
         my $loader := nqp::gethllsym('Raku','ModuleLoader');
-        my $unit   := $loader.load_module('Perl6::BOOTSTRAP::v6c',{},GLOBALish);
+        my $unit   := $loader.load_module('Raku::BOOTSTRAP::v6c',{},GLOBALish);
         my $export := $unit<EXPORT>.WHO<DEFAULT>.WHO;
         $RakuAST-WHO := nqp::existskey($export,'RakuAST')
           ?? nqp::atkey($export,'RakuAST').WHO
@@ -1415,7 +1415,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # Only needed for compiling CORE.setting
     method load-bootstrap($/) {
         unless $*R.setting {
-            my $name := "Perl6::BOOTSTRAP::v6c";
+            my $name := "Raku::BOOTSTRAP::v6c";
             my $module := nqp::gethllsym('Raku', 'ModuleLoader').load_module($name, {},
                 $*R.get-global);
             my $EXPORT := $module<EXPORT>.WHO;

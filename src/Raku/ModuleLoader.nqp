@@ -42,7 +42,7 @@ class Raku::ModuleLoader does Raku::ModuleLoaderVMConfig {
     ) {
         DEBUG("going to load $module_name") if $DEBUG;
 
-        if nqp::eqat($module_name, 'Perl6::BOOTSTRAP::v6', 0) {
+        if nqp::eqat($module_name, 'Raku::BOOTSTRAP::v6', 0) {
             my str $file := nqp::join('/', nqp::split('::', $module_name))
               ~ self.file-extension;
 

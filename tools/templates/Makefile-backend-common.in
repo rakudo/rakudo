@@ -47,7 +47,7 @@
 
 @bpv(RAKU_AST_SOURCES)@ = \
     @insert_filelist(raku_ast_sources)@
-@for_specs(@bsv(RAKUDO_BOOTSTRAP_@ucspec@)@   = @nfp(@bpm(BLIB_RAKUDO)@/BOOTSTRAP/v6@lcspec@.@bext@)@
+@for_specs(@bsv(RAKUDO_BOOTSTRAP_@ucspec@)@   = @nfp(@bpm(BLIB_RAKUDO_R)@/BOOTSTRAP/v6@lcspec@.@bext@)@
 @bsv(SETTING_@ucspec@)@ = @nfp(@bpm(BLIB)@/CORE.@lcspec@.setting.@bext@)@
 )@
 
@@ -61,7 +61,7 @@
 # * traits almost certainly have to come first
 # * stubs have to come after traits since they use them
 # * Attribute needs to come before anything that uses an attribute
-# We break various other circularities in Perl6::Metamodel::BOOTSTRAP.
+# We break various other circularities in Raku::Metamodel::BOOTSTRAP.
 # Note that you only really have to worry especially about things that
 # the compiler will instantiate/call methods on while compiling the
 # setting - basically anything that feels MOP-ish.
@@ -87,9 +87,9 @@
 
 @bpv(CLEANUPS_ALL)@ = \
   *.manifest \
-  @nfp(@bpm(BLIB_RAKUDO)@/*.@bext@)@ \
   @nfp(@bpm(BLIB_RAKUDO_R)@/*.@bext@)@ \
-  @nfp(@bpm(BLIB_RAKUDO)@/BOOTSTRAP/*.@bext@)@ \\@for_specs(
+  @nfp(@bpm(BLIB_RAKUDO_R)@/*.@bext@)@ \
+  @nfp(@bpm(BLIB_RAKUDO_R)@/BOOTSTRAP/*.@bext@)@ \\@for_specs(
   @bsm(SETTING_@ucspec@)@ \
   CORE.@lcspec@.setting.@bext@ \)@
   @bsm(PERL6)@ \
@@ -213,7 +213,7 @@
 	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@)@
 	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
 	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Raku)@
-	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
+	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Raku/BOOTSTRAP)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
@@ -224,7 +224,7 @@
 @backend_prefix@-install-main::@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RAKUDO_PRECOMPS)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @@bsm(RAKUDO)@@ @backend_prefix@-install-pre
 	@echo(+++ Installing files)@
 	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS_R)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Raku)@
-	$(NOECHO)$(CP)   @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
+	$(NOECHO)$(CP)   @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Raku/BOOTSTRAP)@
 	$(NOECHO)$(CP)   @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 	$(NOECHO)$(CP)   @bsm(RAKUDO)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 	$(NOECHO)$(CP)   @bsm(RAKUDO)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/@bsm(PERL6)@)@

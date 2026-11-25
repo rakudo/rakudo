@@ -41,8 +41,8 @@ RAKUDO_HOME = @nfp(@rakudo_home@)@
 BASE_DIR    = @base_dir@
 
 BOOTSTRAP_SOURCES = \
-  @nfp(src/Perl6/Metamodel/BOOTSTRAP.nqp)@ \
-  @nfp(src/Perl6/Metamodel/EXPORTHOW.nqp)@ \
+  @nfp(src/Raku/Metamodel/BOOTSTRAP.nqp)@ \
+  @nfp(src/Raku/Metamodel/EXPORTHOW.nqp)@ \
 
 COMMON_METAMODEL_SOURCES = \
     @insert_filelist(common_metamodel_sources)@

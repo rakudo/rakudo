@@ -631,7 +631,7 @@ class RakuAST::CompUnit
         my @pre-deserialize;
         # When compiling a CORE.<spec>.setting (setting-name shaped like
         # 'NULL.<spec>'), emit a pre-deserialize task that calls
-        # ModuleLoader.load_module('Perl6::BOOTSTRAP::v6<spec>') so the
+        # ModuleLoader.load_module('Raku::BOOTSTRAP::v6<spec>') so the
         # runtime registers BOOTSTRAP's SC before our SC tries to deserialize
         # references to BOOTSTRAP types. The traditional grammar emits this
         # via World.load_module_early. Pushed before the setting-loading task
@@ -643,7 +643,7 @@ class RakuAST::CompUnit
         {
             nqp::push(@pre-deserialize,
                 self.IMPL-BOOTSTRAP-LOADING-QAST(
-                    "Perl6::BOOTSTRAP::v6" ~ nqp::substr($!setting-name, 5, 1)));
+                    "Raku::BOOTSTRAP::v6" ~ nqp::substr($!setting-name, 5, 1)));
         }
         nqp::push(@pre-deserialize, self.IMPL-SETTING-LOADING-QAST($top-level, $!setting-name))
             if $!setting-name && $!setting-name ne 'NULL.c';

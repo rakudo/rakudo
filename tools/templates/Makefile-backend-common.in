@@ -37,7 +37,7 @@
 @bsv(RAKUDO_OPS_SRC)@ =	@nfp(src/vm/@backend@/Raku/Ops.nqp)@
 @bsv(RAKUDO_A_SRC)@   = @nfpl(src/Raku/Actions.nqp)@
 @bsv(RAKUDO_G_SRC)@   =	@nfpl(src/Raku/Grammar.nqp)@
-@bsv(RAKUDO_RAKU_AST_SRC)@ = @nfp(gen/@backend@/ast.nqp)@
+@bsv(RAKUDO_AST_SRC)@ = @nfp(gen/@backend@/ast.nqp)@
 
 @bpv(NQP_VERSION_FILE)@ = @nfp(@bpm(BUILD_DIR)@/nqp-version)@
 
@@ -169,9 +169,9 @@
 @gencat(@nfp(@bpm(BUILD_DIR)@/rakudo-debug.nqp)@:	@nfp(src/rakudo-debug.nqp)@ @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@)@
 
 # compile Raku AST specs into NQP
-@bsm(RAKUDO_RAKU_AST_SRC)@: @bpm(RAKU_AST_SOURCES)@ @nfpl(tools/build/raku-ast-compiler.nqp src/Raku/ast/rakuast-prologue.nqp src/Raku/ast/rakuast-epilogue.nqp)@
+@bsm(RAKUDO_AST_SRC)@: @bpm(RAKU_AST_SOURCES)@ @nfpl(tools/build/raku-ast-compiler.nqp src/Raku/ast/rakuast-prologue.nqp src/Raku/ast/rakuast-epilogue.nqp)@
 	@echo(+++ Generating	$@)@
-	$(NOECHO)@bpm(NQP)@ @nfp(tools/build/raku-ast-compiler.nqp)@ @bpm(RAKU_AST_SOURCES)@ >@bsm(RAKUDO_RAKU_AST_SRC)@
+	$(NOECHO)@bpm(NQP)@ @nfp(tools/build/raku-ast-compiler.nqp)@ @bpm(RAKU_AST_SOURCES)@ >@bsm(RAKUDO_AST_SRC)@
 
 # Generate precompilations
 @comp(@bsm(RAKUDO_A)@: @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@)@ @bsm(RAKUDO_ML)@ @bsm(RAKUDO_OPS)@)@

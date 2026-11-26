@@ -69,11 +69,9 @@
     @insert_filelist(core_sources)@
 )@
 
-@bpv(RAKUDO_PRECOMPS_R)@ = \
+@bpv(RAKUDO_PRECOMPS)@ = \
     @bsm(RAKUDO_ML)@ @bsm(RAKUDO_OPS)@ @bsm(RAKUDO_C)@ \
     @bsm(RAKUDO_G)@  @bsm(RAKUDO_A)@   @bsm(RAKUDO_S)@ @bsm(RAKUDO_M)@
-
-@bpv(RAKUDO_PRECOMPS)@ = @bpm(RAKUDO_PRECOMPS_R)@
 
 @bpv(RAKUDO_BOOTSTRAP_PRECOMPS)@ =@for_specs( @bsm(RAKUDO_BOOTSTRAP_@ucspec@)@)@
 
@@ -222,7 +220,7 @@
 
 @backend_prefix@-install-main::@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RAKUDO_PRECOMPS)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @@bsm(RAKUDO)@@ @backend_prefix@-install-pre
 	@echo(+++ Installing files)@
-	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS_R)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Raku)@
+	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Raku)@
 	$(NOECHO)$(CP)   @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Raku/BOOTSTRAP)@
 	$(NOECHO)$(CP)   @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 	$(NOECHO)$(CP)   @bsm(RAKUDO)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@

@@ -2307,11 +2307,11 @@ class RakuAST::Node {
             my int $stripped := 1;
             while $stripped {
                 $stripped := 0;
-                if nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW) {
+                if nqp::istype($type.HOW, Metamodel::DefiniteHOW) {
                     $type := $type.HOW.base_type($type);
                     $stripped := 1;
                 }
-                elsif nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW) {
+                elsif nqp::istype($type.HOW, Metamodel::SubsetHOW) {
                     $type := $type.HOW.refinee($type);
                     $stripped := 1;
                 }
@@ -2396,7 +2396,7 @@ class RakuAST::Node {
             my int $ok;
             try $ok := $type.HOW.archetypes.nominal && !$type.HOW.archetypes.generic;
             return [] unless $ok;
-            return [] if nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW);
+            return [] if nqp::istype($type.HOW, Metamodel::SubsetHOW);
             my int $ps := nqp::objprimspec($type);
             if $ps == 1 || $ps == 2 || $ps == 3 {
                 $type := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver,
@@ -4348,7 +4348,7 @@ class RakuAST::Node {
         my $what := $value.WHAT;
         return 1 if self.IMPL-CORE-VALUE-TYPE($resolver, $what);
         my $how := $what.HOW;
-        if nqp::istype($how, Perl6::Metamodel::EnumHOW) {
+        if nqp::istype($how, Metamodel::EnumHOW) {
             my $core := self.IMPL-OPTIMIZE-SETTING-TYPE($resolver, $how.name($what));
             return !nqp::isnull($core) && nqp::eqaddr($core, $what) ?? 1 !! 0;
         }

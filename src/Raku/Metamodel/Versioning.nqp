@@ -1,5 +1,5 @@
 #- Metamodel::Versioning -------------------------------------------------------
-role Perl6::Metamodel::Versioning {
+role Metamodel::Versioning {
     has     $!ver;
     has str $!auth;
     has str $!api;

@@ -1,23 +1,23 @@
 #- Metamodel::ParametricRoleHOW ------------------------------------------------
 # All the logic to handle a single parametric role
-class Perl6::Metamodel::ParametricRoleHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Composing
-    does Perl6::Metamodel::LanguageRevision
-    does Perl6::Metamodel::MethodContainer
-    does Perl6::Metamodel::PrivateMethodContainer
-    does Perl6::Metamodel::MultiMethodContainer
-    does Perl6::Metamodel::AttributeContainer
-    does Perl6::Metamodel::RoleContainer
-    does Perl6::Metamodel::MultipleInheritance
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::TypePretense
-    does Perl6::Metamodel::RolePunning
-    does Perl6::Metamodel::ArrayType
+class Metamodel::ParametricRoleHOW
+    does Metamodel::Naming
+    does Metamodel::BUILDALL
+    does Metamodel::Documenting
+    does Metamodel::Composing
+    does Metamodel::LanguageRevision
+    does Metamodel::MethodContainer
+    does Metamodel::PrivateMethodContainer
+    does Metamodel::MultiMethodContainer
+    does Metamodel::AttributeContainer
+    does Metamodel::RoleContainer
+    does Metamodel::MultipleInheritance
+    does Metamodel::Stashing
+    does Metamodel::TypePretense
+    does Metamodel::RolePunning
+    does Metamodel::ArrayType
 #?if !moar
-    does Perl6::Metamodel::InvocationProtocol
+    does Metamodel::InvocationProtocol
 #?endif
 {
     has     $!body_block;
@@ -26,7 +26,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     has     $!signatured;
     has     @!role_typecheck_list;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new(
+    my $archetypes := Metamodel::Archetypes.new(
       :nominal, :composable, :inheritalizable, :parametric
     );
     method archetypes($XXX?) { $archetypes }
@@ -46,7 +46,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method parameterize($target, *@_, *%_) {
-        Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@_, |%_)
+        Metamodel::CurriedRoleHOW.new_type($target, |@_, |%_)
     }
 
     method set_body_block($XXX, $block) {
@@ -145,7 +145,7 @@ class Perl6::Metamodel::ParametricRoleHOW
                 # $?CONCRETIZATION by role's body block.
                 my $*MOP-ROLE-CONCRETIZATION :=
                                        $conc :=
-                  Perl6::Metamodel::ConcreteRoleHOW.new_type(
+                  Metamodel::ConcreteRoleHOW.new_type(
                     :roles(nqp::list($target)),
                     :name(self.name($target))
                   );
@@ -167,7 +167,7 @@ class Perl6::Metamodel::ParametricRoleHOW
                         $type_env :=
                           nqp::islist($result) && nqp::elems($result) == 2
                             ?? nqp::ifnull(
-                                 Perl6::Metamodel::Configuration.type_env_from(
+                                 Metamodel::Configuration.type_env_from(
                                    nqp::atpos($result, 1)
                                  ),
                                  nqp::atpos($result, 1)
@@ -184,7 +184,7 @@ class Perl6::Metamodel::ParametricRoleHOW
                         # early stages of the CORE.c compilation, – we can
                         # safely skip the check for nullness. Can't we?
                         $type_env :=
-                          Perl6::Metamodel::Configuration.type_env_type.new;
+                          Metamodel::Configuration.type_env_type.new;
                     }
                     CATCH {
                         $error := $!;
@@ -324,7 +324,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     # Instantiate all generics bound to special lexicals in role's body.
     # Must be invoked by role code before any of these lexicals is referenced.
     method resolve_instantiations($XXX, $ctx, @ins_list) {
-        my $type_env := Perl6::Metamodel::Configuration.type_env_from(
+        my $type_env := Metamodel::Configuration.type_env_from(
           $ctx, :boundary-by('::?ROLE')
         );
 
@@ -366,7 +366,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     method wrong_body_result($target, $got) {
         my str $got_name := $got.HOW.name($got);
 
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::BodyReturn',
           "Role '"
             ~ self.name($target)
@@ -386,7 +386,7 @@ class Perl6::Metamodel::ParametricRoleHOW
 
     method could_not_instantiate($target, $error) {
         my $exception := nqp::getpayload($error);
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::Instantiation',
           "Could not instantiate role '"
             ~ self.name($target)
@@ -400,7 +400,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     method not_composable($target, $composer) {
         my str $target-name := self.name($target);
         my str $role-name   := $composer.HOW.name($composer);
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Composition::NotComposable',
           "$role-name is not composable, so $target-name cannot compose it",
           :$target-name,

@@ -1,33 +1,33 @@
-class Perl6::Metamodel::ClassHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Composing
-    does Perl6::Metamodel::LanguageRevision
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::AttributeContainer
-    does Perl6::Metamodel::MethodContainer
-    does Perl6::Metamodel::PrivateMethodContainer
-    does Perl6::Metamodel::MultiMethodContainer
-    does Perl6::Metamodel::MetaMethodContainer
-    does Perl6::Metamodel::RoleContainer
-    does Perl6::Metamodel::MultipleInheritance
-    does Perl6::Metamodel::DefaultParent
-    does Perl6::Metamodel::C3MRO
-    does Perl6::Metamodel::MROBasedMethodDispatch
-    does Perl6::Metamodel::MROBasedTypeChecking
-    does Perl6::Metamodel::Trusting
-    does Perl6::Metamodel::BUILDPLAN
-    does Perl6::Metamodel::Mixins
-    does Perl6::Metamodel::ArrayType
-    does Perl6::Metamodel::BoolificationProtocol
-    does Perl6::Metamodel::REPRComposeProtocol
-    does Perl6::Metamodel::ContainerSpecProtocol
-    does Perl6::Metamodel::Finalization
-    does Perl6::Metamodel::Concretization
-    does Perl6::Metamodel::ConcretizationCache
+class Metamodel::ClassHOW
+    does Metamodel::Naming
+    does Metamodel::BUILDALL
+    does Metamodel::Documenting
+    does Metamodel::Composing
+    does Metamodel::LanguageRevision
+    does Metamodel::Stashing
+    does Metamodel::AttributeContainer
+    does Metamodel::MethodContainer
+    does Metamodel::PrivateMethodContainer
+    does Metamodel::MultiMethodContainer
+    does Metamodel::MetaMethodContainer
+    does Metamodel::RoleContainer
+    does Metamodel::MultipleInheritance
+    does Metamodel::DefaultParent
+    does Metamodel::C3MRO
+    does Metamodel::MROBasedMethodDispatch
+    does Metamodel::MROBasedTypeChecking
+    does Metamodel::Trusting
+    does Metamodel::BUILDPLAN
+    does Metamodel::Mixins
+    does Metamodel::ArrayType
+    does Metamodel::BoolificationProtocol
+    does Metamodel::REPRComposeProtocol
+    does Metamodel::ContainerSpecProtocol
+    does Metamodel::Finalization
+    does Metamodel::Concretization
+    does Metamodel::ConcretizationCache
 #?if !moar
-    does Perl6::Metamodel::InvocationProtocol
+    does Metamodel::InvocationProtocol
 #?endif
 {
     has @!roles;
@@ -39,10 +39,10 @@ class Perl6::Metamodel::ClassHOW
 
     has $!archetypes;
 
-    my $archetypes-ng := Perl6::Metamodel::Archetypes.new(
+    my $archetypes-ng := Metamodel::Archetypes.new(
       :nominal, :inheritable, :augmentable
     );
-    my $archetypes-g  := Perl6::Metamodel::Archetypes.new(
+    my $archetypes-g  := Metamodel::Archetypes.new(
       :nominal, :inheritable, :augmentable, :generic
     );
 
@@ -186,7 +186,7 @@ class Perl6::Metamodel::ClassHOW
             # Because the role applier needs to have it
             self.compute_mro($target);
             $applier :=
-              Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
+              Metamodel::Configuration.role_to_class_applier_type.new;
             $applier.prepare($target, @ins_roles);
 
             self.wipe_conc_cache;
@@ -442,7 +442,7 @@ class Perl6::Metamodel::ClassHOW
 
     method instantiate_generic($target, $type_environment) {
         my $type-env :=
-          Perl6::Metamodel::Configuration.type_env_from($type_environment);
+          Metamodel::Configuration.type_env_from($type_environment);
 
         nqp::isnull($type-env)
           ?? $target
@@ -506,13 +506,13 @@ class Perl6::Metamodel::ClassHOW
         }
         else {
             nqp::guard('literal', nqp::track('attr',
-              $Thow, Perl6::Metamodel::ClassHOW, '$!archetypes'
+              $Thow, Metamodel::ClassHOW, '$!archetypes'
             ));
 
             nqp::delegate('boot-constant',
               nqp::syscall('dispatcher-insert-arg-literal-obj',
                 $capture, 0,
-                nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes')
+                nqp::getattr($how, Metamodel::ClassHOW, '$!archetypes')
                   // $archetypes-ng
               )
             );

@@ -1,21 +1,21 @@
 #- Metamodel::NativeRefHOW -----------------------------------------------------
-class Perl6::Metamodel::NativeRefHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Composing
-    does Perl6::Metamodel::Versioning
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::MultipleInheritance
-    does Perl6::Metamodel::C3MRO
-    does Perl6::Metamodel::MROBasedMethodDispatch
-    does Perl6::Metamodel::MROBasedTypeChecking
+class Metamodel::NativeRefHOW
+    does Metamodel::Naming
+    does Metamodel::BUILDALL
+    does Metamodel::Documenting
+    does Metamodel::Composing
+    does Metamodel::Versioning
+    does Metamodel::Stashing
+    does Metamodel::MultipleInheritance
+    does Metamodel::C3MRO
+    does Metamodel::MROBasedMethodDispatch
+    does Metamodel::MROBasedTypeChecking
 {
     has     $!type;
     has     $!refkind;
     has int $!repr_composed;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new(:nominal, :inheritable);
+    my $archetypes := Metamodel::Archetypes.new(:nominal, :inheritable);
     method archetypes($XXX?) { $archetypes }
 
     method new_type(*%_) {

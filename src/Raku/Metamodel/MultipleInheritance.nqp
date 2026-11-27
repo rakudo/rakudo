@@ -1,6 +1,6 @@
 #- Metamodel::MultipleInheritance ----------------------------------------------
 # The logic to handle classes that inherit from more than one class
-role Perl6::Metamodel::MultipleInheritance {
+role Metamodel::MultipleInheritance {
     # Array of parents.
     has @!parents;
 
@@ -57,7 +57,7 @@ role Perl6::Metamodel::MultipleInheritance {
         nqp::die("Class $child-name cannot inherit from itself")
           if nqp::eqaddr($parent, $target);
 
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Inheritance::NotComposed',
           "Class $child-name cannot inherit from $parent-name because the parent is not composed yet",
           :$child-name,
@@ -82,10 +82,10 @@ role Perl6::Metamodel::MultipleInheritance {
 
             # Creating full method list needs a computed MRO.
             self.invalidate_mro_cache($target)
-              if nqp::istype(self, Perl6::Metamodel::C3MRO);
+              if nqp::istype(self, Metamodel::C3MRO);
             # With a new parent full method list would have to be refreshed.
             self.invalidate_method_caches($target)
-              if nqp::istype(self, Perl6::Metamodel::MROBasedMethodDispatch);
+              if nqp::istype(self, Metamodel::MROBasedMethodDispatch);
 
             if $hides {
                 my @hides := nqp::clone(@!hides);

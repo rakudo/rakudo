@@ -1,4 +1,4 @@
-role Perl6::Metamodel::C3MRO {
+role Metamodel::C3MRO {
     # Storage of the MRO.
     has $!mro;
 
@@ -33,7 +33,7 @@ role Perl6::Metamodel::C3MRO {
               && nqp::elems(@immediate_roles) == 0 {
                 my $parent := nqp::atpos(@immediate_parents,0);
                 @all_conc := nqp::clone(
-                  nqp::istype($parent.HOW, Perl6::Metamodel::C3MRO)
+                  nqp::istype($parent.HOW, Metamodel::C3MRO)
                     ?? $parent.HOW.mro($parent, :concretizations)
                     !! $parent.HOW.mro($parent)
                 );
@@ -49,7 +49,7 @@ role Perl6::Metamodel::C3MRO {
                     my $parent := nqp::atpos(@immediate_parents, $i);
                     my $how := $parent.HOW;
                     @merge_list.push(
-                      nqp::istype($how, Perl6::Metamodel::C3MRO)
+                      nqp::istype($how, Metamodel::C3MRO)
                         ?? $how.mro($parent, :concretizations)
                         !! $how.mro($parent)
                     );
@@ -70,13 +70,13 @@ role Perl6::Metamodel::C3MRO {
             my $how := $c.HOW;
             if $how.archetypes.inheritable
               # I.e. classes or natives
-              || nqp::istype($how, Perl6::Metamodel::NativeHOW) {
+              || nqp::istype($how, Metamodel::NativeHOW) {
                 nqp::push(@no_roles, $c);
                 nqp::push(@all, $c);
             }
 
             # For concretizations fetch their respective parametric groups
-            elsif nqp::istype($how, Perl6::Metamodel::ConcreteRoleHOW) {
+            elsif nqp::istype($how, Metamodel::ConcreteRoleHOW) {
                 my $parametric := $how.roles($c, :!transitive)[0];
                 nqp::push(@all, $parametric.HOW.group($parametric));
             }
@@ -116,7 +116,7 @@ role Perl6::Metamodel::C3MRO {
                 nqp::push(@unhidden_all, nqp::atpos(@all, $i));
                 nqp::push(@unhidden_no_roles, $c)
                   if $is_inheritable
-                  || nqp::istype($how, Perl6::Metamodel::NativeHOW);
+                  || nqp::istype($how, Metamodel::NativeHOW);
             }
 
             if nqp::can($how, 'hides') {

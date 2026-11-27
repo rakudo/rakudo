@@ -721,10 +721,10 @@ CODE
           !! $type eq 'Str'
             ?? EVAL($deparsed)
             !! EVAL(EVAL $raku);
-        is $module.HOW.^name, 'Perl6::Metamodel::ModuleHOW',
+        is $module.HOW.^name, 'Metamodel::ModuleHOW',
           "$type: enclosing module is not overwritten";
         my $class := $module.WHO{$mod}.WHO<Outer>;
-        is $class.HOW.^name, 'Perl6::Metamodel::ClassHOW',
+        is $class.HOW.^name, 'Metamodel::ClassHOW',
           "$type: inner class is installed with full nested name";
         is $class.x, 42,
           "$type: inner class method is callable";
@@ -1984,7 +1984,7 @@ CODE
       'AST', EVAL($ast),
       'Raku', EVAL(EVAL $raku)
     -> $type, $class {
-        is $class.HOW.^name, 'Perl6::Metamodel::ClassHOW',
+        is $class.HOW.^name, 'Metamodel::ClassHOW',
           "$type: the class is made with the how given by hand";
         is $class.^attributes.head.^name, 'SupersededAttribute',
           "$type: the attribute type is resolved apart from the how";

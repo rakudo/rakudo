@@ -1,5 +1,5 @@
 #- Metamodel::MetaMethodContainer ----------------------------------------------
-role Perl6::Metamodel::MetaMethodContainer {
+role Metamodel::MetaMethodContainer {
     has @!meta_methods;
     has %!meta_method_table;
 

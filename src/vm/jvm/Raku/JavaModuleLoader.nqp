@@ -1,4 +1,4 @@
-class Perl6::JavaModuleLoader {
+class JavaModuleLoader {
     my $interop;
     my $interop_loader;
 
@@ -33,7 +33,7 @@ class Perl6::JavaModuleLoader {
     }
 }
 
-Perl6::ModuleLoader.register_language_module_loader('Java', Perl6::JavaModuleLoader);
-nqp::bindhllsym('Raku', 'JavaModuleLoader', Perl6::JavaModuleLoader);
+ModuleLoader.register_language_module_loader('Java', JavaModuleLoader);
+nqp::bindhllsym('Raku', 'JavaModuleLoader', JavaModuleLoader);
 
 # vim: expandtab sw=4

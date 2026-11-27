@@ -1,4 +1,4 @@
-role Perl6::Metamodel::Naming {
+role Metamodel::Naming {
     has $!name;
     has $!shortname;
 

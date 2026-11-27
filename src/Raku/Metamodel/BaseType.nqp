@@ -3,7 +3,7 @@
 # but want to base themselves on another type and mostly behave
 # like they support it.
 
-role Perl6::Metamodel::BaseType {
+role Metamodel::BaseType {
     has $!base_type;
     has @!mro;
 

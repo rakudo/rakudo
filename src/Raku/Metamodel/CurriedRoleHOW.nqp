@@ -17,15 +17,15 @@
 # as both a way to curry on your way to a full specialization, but also
 # as a way to do type-checking or punning.
 
-class Perl6::Metamodel::CurriedRoleHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::RolePunning
-    does Perl6::Metamodel::TypePretense
-    does Perl6::Metamodel::RoleContainer
-    does Perl6::Metamodel::LanguageRevision
+class Metamodel::CurriedRoleHOW
+    does Metamodel::Naming
+    does Metamodel::BUILDALL
+    does Metamodel::RolePunning
+    does Metamodel::TypePretense
+    does Metamodel::RoleContainer
+    does Metamodel::LanguageRevision
 #?if !moar
-    does Perl6::Metamodel::InvocationProtocol
+    does Metamodel::InvocationProtocol
 #?endif
 {
     has $!curried_role;
@@ -38,10 +38,10 @@ class Perl6::Metamodel::CurriedRoleHOW
     has @!parent_typecheck_list;  # Only for parents instantiated from generics
     has $!is_complete;
 
-    my $archetypes_generic := Perl6::Metamodel::Archetypes.new(
+    my $archetypes_generic := Metamodel::Archetypes.new(
                 :composable, :inheritalizable, :parametric, :generic
     );
-    my $archetypes_not_generic := Perl6::Metamodel::Archetypes.new(
+    my $archetypes_not_generic := Metamodel::Archetypes.new(
       :nominal, :composable, :inheritalizable, :parametric
     );
     method archetypes($XXX?) { $!archetypes }
@@ -103,7 +103,7 @@ class Perl6::Metamodel::CurriedRoleHOW
 
             if nqp::istype(
               $!curried_role.HOW,
-              Perl6::Metamodel::ParametricRoleGroupHOW
+              Metamodel::ParametricRoleGroupHOW
             ) {
 
                 # Make sure positional arguments carry the invocant
@@ -131,7 +131,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                       1
                     );
                     if $!archetypes.generic {
-                        my $env := Perl6::Metamodel::Configuration.type_env_from(
+                        my $env := Metamodel::Configuration.type_env_from(
                           $type_env
                         );
                         $type_env := $env unless nqp::isnull($env);

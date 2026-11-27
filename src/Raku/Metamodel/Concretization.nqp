@@ -1,6 +1,6 @@
 #- Metamodel::Concretization ---------------------------------------------------
 # Support for mapping of non-specialized roles into their concretized state.
-role Perl6::Metamodel::Concretization {
+role Metamodel::Concretization {
     has @!concretizations;
     has %!conc_table;
 

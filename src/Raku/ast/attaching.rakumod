@@ -21,13 +21,13 @@ class RakuAST::Declaration::External::Package
 
     method declarator() {
         my $how := self.compile-time-value.HOW;
-        nqp::istype($how, Perl6::Metamodel::PackageHOW)
+        nqp::istype($how, Metamodel::PackageHOW)
             ?? 'package'
-            !! nqp::istype($how, Perl6::Metamodel::ModuleHOW)
+            !! nqp::istype($how, Metamodel::ModuleHOW)
                 ?? 'module'
-                !! nqp::istype($how, Perl6::Metamodel::RoleHOW)
+                !! nqp::istype($how, Metamodel::RoleHOW)
                     ?? 'role'
-                    !! nqp::istype($how, Perl6::Metamodel::ClassHOW)
+                    !! nqp::istype($how, Metamodel::ClassHOW)
                         ?? 'class'
                         !! nqp::die("Unexpected HOW: " ~ $how.HOW.name($how));
     }
@@ -43,7 +43,7 @@ class RakuAST::Declaration::External::Package
     }
 
     method can-have-methods(--> Bool) {
-        nqp::istype(self.compile-time-value.HOW, Perl6::Metamodel::MethodContainer)
+        nqp::istype(self.compile-time-value.HOW, Metamodel::MethodContainer)
     }
 
     method can-have-attributes() {

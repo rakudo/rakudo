@@ -1,5 +1,5 @@
 #- Metamodel::MROBasedTypeChecking ---------------------------------------------
-role Perl6::Metamodel::MROBasedTypeChecking {
+role Metamodel::MROBasedTypeChecking {
     method isa($target, $type) {
         $type   := nqp::decont($type);
         my $mro := self.mro($target);

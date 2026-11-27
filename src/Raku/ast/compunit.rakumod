@@ -82,7 +82,7 @@ class RakuAST::CompUnit
           $eval ?? $outer-cu ?? 2 !! 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
           $global-package-how =:= NQPMu
-            ?? Perl6::Metamodel::PackageHOW
+            ?? Metamodel::PackageHOW
             !! $global-package-how
         );
         nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
@@ -99,18 +99,18 @@ class RakuAST::CompUnit
         nqp::bindattr($obj, RakuAST::CompUnit, '$!resolver', $resolver);
 
         if $*COMPILING_CORE_SETTING == 1 {
-            Perl6::Metamodel::Configuration.set_language_revision_type(BOOTLanguageRevision);
+            Metamodel::Configuration.set_language_revision_type(BOOTLanguageRevision);
         }
 
         # If CompUnit's language revision is not set explicitly then guess it
         my $revision := $language-revision
-            ?? Perl6::Metamodel::Configuration.language_revision_object($language-revision)
+            ?? Metamodel::Configuration.language_revision_object($language-revision)
             !! nqp::isconcrete(
                  my $setting-rev := nqp::getlexrelcaller(
                    nqp::ctxcallerskipthunks(nqp::ctx()), 'CORE-SETTING-REV'
                  )
                ) ?? $setting-rev
-                 !! Perl6::Metamodel::Configuration.language_revision_object(
+                 !! Metamodel::Configuration.language_revision_object(
                       nqp::getcomp("Raku").language_revision);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision', $revision);
 

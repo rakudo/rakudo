@@ -1,5 +1,5 @@
 #- Metamodel::REPRComposeProtocol ----------------------------------------------
-role Perl6::Metamodel::REPRComposeProtocol {
+role Metamodel::REPRComposeProtocol {
     has $!composed_repr;
 
     method compose_repr($target) {

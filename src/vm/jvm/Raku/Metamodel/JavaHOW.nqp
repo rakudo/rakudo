@@ -1,11 +1,11 @@
-class Perl6::Metamodel::JavaHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::AttributeContainer
-    does Perl6::Metamodel::TypePretense
-    does Perl6::Metamodel::MethodContainer
+class Metamodel::JavaHOW
+    does Metamodel::Naming
+    does Metamodel::Stashing
+    does Metamodel::AttributeContainer
+    does Metamodel::TypePretense
+    does Metamodel::MethodContainer
 {
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal );
+    my $archetypes := Metamodel::Archetypes.new( :nominal );
     method archetypes($obj?) {
         $archetypes
     }

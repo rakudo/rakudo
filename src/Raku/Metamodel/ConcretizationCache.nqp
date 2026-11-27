@@ -3,10 +3,10 @@
 # concretization already exists for the target type object and matches
 # same arguments.
 #
-# This is different from Perl6::Metamodel::Concretization in the way that it
+# This is different from Metamodel::Concretization in the way that it
 # provides interface for role specialization to find out if identical
 # specialization has been done already
-role Perl6::Metamodel::ConcretizationCache {
+role Metamodel::ConcretizationCache {
     has %!conc_cache;
 
     my $Capture := nqp::null;

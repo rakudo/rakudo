@@ -1,5 +1,5 @@
 #- Metamodel::MROBasedMethodDispatch -------------------------------------------
-role Perl6::Metamodel::MROBasedMethodDispatch {
+role Metamodel::MROBasedMethodDispatch {
 
     # If needed, a cached flattened method table accounting for all methods in
     # this class and its parents. This is only needed in the situation that a
@@ -118,7 +118,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
 
     method all_method_table($target) {
         my $table := $!cached_all_method_table;
-        my $epoch := Perl6::Metamodel::Configuration.method_table_epoch;
+        my $epoch := Metamodel::Configuration.method_table_epoch;
         unless nqp::isconcrete($table)
           && nqp::eqaddr($!cached_all_method_table_epoch, $epoch) {
             $table  := nqp::hash;

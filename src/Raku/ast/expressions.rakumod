@@ -3070,7 +3070,7 @@ class RakuAST::ApplyInfix
             if nqp::istype($infix, RakuAST::Assignment) {
                 if !nqp::istype(self.left, RakuAST::Literal) && !nqp::eqaddr($type, Mu)
                     # Subset type checking can have side effects, so don't do that at compile time.
-                    && !nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW)
+                    && !nqp::istype($type.HOW, Metamodel::SubsetHOW)
                     # An attribute read answers its declared type for the
                     # optimize pass, while an assignment to one keeps its
                     # run time check.

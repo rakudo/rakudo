@@ -4,10 +4,10 @@
 # type family, and the target and constraint types are stored as parameters.
 # This means we get cross-compilation-unit interning "for free", as well as
 # avoiding a meta-object instance per coercion type created.
-class Perl6::Metamodel::CoercionHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::LanguageRevision
-    does Perl6::Metamodel::Nominalizable
+class Metamodel::CoercionHOW
+    does Metamodel::Naming
+    does Metamodel::LanguageRevision
+    does Metamodel::Nominalizable
 {
     has     $!target_type;
     has     $!constraint_type;
@@ -26,22 +26,22 @@ class Perl6::Metamodel::CoercionHOW
         my str $name := $target_type.HOW.name($target_type)
           ~ '(' ~ $constraint_type.HOW.name($constraint_type) ~ ')';
 
-        nqp::bindattr($obj, Perl6::Metamodel::CoercionHOW, '$!target_type',
+        nqp::bindattr($obj, Metamodel::CoercionHOW, '$!target_type',
           $target_type);
-        nqp::bindattr($obj, Perl6::Metamodel::CoercionHOW, '$!constraint_type',
+        nqp::bindattr($obj, Metamodel::CoercionHOW, '$!constraint_type',
           $constraint_type);
-        nqp::bindattr($obj, Perl6::Metamodel::CoercionHOW, '$!nominal_target',
+        nqp::bindattr($obj, Metamodel::CoercionHOW, '$!nominal_target',
           $target_type.HOW.archetypes($target_type).nominalizable
             ?? $target_type.HOW.nominalize($target_type)
             !! $target_type);
-        nqp::bindattr_i($obj, Perl6::Metamodel::CoercionHOW,
+        nqp::bindattr_i($obj, Metamodel::CoercionHOW,
           '$!target_type_generic', $target_type_generic
         );
-        nqp::bindattr_i($obj, Perl6::Metamodel::CoercionHOW,
+        nqp::bindattr_i($obj, Metamodel::CoercionHOW,
           '$!constraint_type_generic', $constraint_type_generic
         );
-        nqp::bindattr($obj, Perl6::Metamodel::CoercionHOW, '$!archetypes',
-          Perl6::Metamodel::Archetypes.new(
+        nqp::bindattr($obj, Metamodel::CoercionHOW, '$!archetypes',
+          Metamodel::Archetypes.new(
             :coercive,
             :nominalizable,
             :generic($target_type_generic || $constraint_type_generic),
@@ -65,7 +65,7 @@ class Perl6::Metamodel::CoercionHOW
 
     method new_type($target, $constraint) {
         nqp::parameterizetype(
-          nqp::atkey(Perl6::Metamodel::CoercionHOW.WHO, 'root'),
+          nqp::atkey(Metamodel::CoercionHOW.WHO, 'root'),
           nqp::list($target, $constraint)
         )
     }
@@ -163,7 +163,7 @@ class Perl6::Metamodel::CoercionHOW
     # Handle errors
     method !invalid($value, $hint) {
         my $from-type := nqp::what($value);
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Coerce::Impossible',
           "Impossible coercion from "
             ~ $from-type.HOW.name($from-type)
@@ -265,13 +265,13 @@ class Perl6::Metamodel::CoercionHOW
         self."!invalid"($value, "no acceptable coercion method found")
     }
 
-    # Methods needed by Perl6::Metamodel::Nominalizable
+    # Methods needed by Metamodel::Nominalizable
     method nominalizable_kind() { 'coercion' }
     method !wrappee($XXX?) { $!target_type }
 }
 
 BEGIN {
-    my $root := nqp::newtype(Perl6::Metamodel::CoercionHOW, 'Uninstantiable');
+    my $root := nqp::newtype(Metamodel::CoercionHOW, 'Uninstantiable');
     nqp::settypehll($root, 'Raku');
     nqp::setdebugtypename($root, 'CoercionHOW root');
     nqp::setparameterizer(
@@ -290,7 +290,7 @@ BEGIN {
           );
           $coercion
     });
-    nqp::bindkey(Perl6::Metamodel::CoercionHOW.WHO, 'root',  $root);
+    nqp::bindkey(Metamodel::CoercionHOW.WHO, 'root',  $root);
 }
 
 # vim: expandtab sw=4

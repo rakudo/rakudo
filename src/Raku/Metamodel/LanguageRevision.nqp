@@ -1,7 +1,7 @@
 #- Metamodel::LanguageRevision -------------------------------------------------
 # This role is for metaclasses with language-revision dependent behavior.
-role Perl6::Metamodel::LanguageRevision
-    does Perl6::Metamodel::Versioning
+role Metamodel::LanguageRevision
+    does Metamodel::Versioning
 {
     # Internal representation, where 1 stands for 'c'
     has int $!lang_rev;
@@ -89,7 +89,7 @@ role Perl6::Metamodel::LanguageRevision
     # language revisions.
     method language-revision($XXX?) {
         my $lang-rev-type :=
-          Perl6::Metamodel::Configuration.language_revision_type;
+          Metamodel::Configuration.language_revision_type;
         nqp::isnull($lang-rev-type)
             ?? $!lang_rev
             !! nqp::box_i($!lang_rev, $lang-rev-type)
@@ -106,7 +106,7 @@ role Perl6::Metamodel::LanguageRevision
     # Helper methods
     method throw_incompat_revisions($type-a, $type-b) {
         my $comp := nqp::getcomp('Raku');
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Language::IncompatRevisions',
           "Type object "
             ~ self.name($type-a)

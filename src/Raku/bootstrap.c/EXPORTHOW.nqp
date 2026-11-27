@@ -2,21 +2,21 @@
 # names.
 my module EXPORTHOW {
     my %who := $?PACKAGE.WHO;
-    %who<package>      := Perl6::Metamodel::PackageHOW;
-    %who<module>       := Perl6::Metamodel::ModuleHOW;
-    %who<generic>      := Perl6::Metamodel::GenericHOW;
-    %who<class>        := Perl6::Metamodel::ClassHOW;
+    %who<package>      := Metamodel::PackageHOW;
+    %who<module>       := Metamodel::ModuleHOW;
+    %who<generic>      := Metamodel::GenericHOW;
+    %who<class>        := Metamodel::ClassHOW;
     %who<class-attr>   := Attribute;
-    %who<role>         := Perl6::Metamodel::ParametricRoleHOW;
+    %who<role>         := Metamodel::ParametricRoleHOW;
     %who<role-attr>    := Attribute;
-    %who<role-group>   := Perl6::Metamodel::ParametricRoleGroupHOW;
-    %who<grammar>      := Perl6::Metamodel::GrammarHOW;
+    %who<role-group>   := Metamodel::ParametricRoleGroupHOW;
+    %who<grammar>      := Metamodel::GrammarHOW;
     %who<grammar-attr> := Attribute;
-    %who<native>       := Perl6::Metamodel::NativeHOW;
-    %who<subset>       := Perl6::Metamodel::SubsetHOW;
-    %who<enum>         := Perl6::Metamodel::EnumHOW;
-    %who<coercion>     := Perl6::Metamodel::CoercionHOW;
-    %who<definite>     := Perl6::Metamodel::DefiniteHOW;
+    %who<native>       := Metamodel::NativeHOW;
+    %who<subset>       := Metamodel::SubsetHOW;
+    %who<enum>         := Metamodel::EnumHOW;
+    %who<coercion>     := Metamodel::CoercionHOW;
+    %who<definite>     := Metamodel::DefiniteHOW;
 };
 
 # vim: expandtab sw=4

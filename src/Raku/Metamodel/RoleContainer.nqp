@@ -1,6 +1,6 @@
 #- Metamodel::RoleContainer ----------------------------------------------------
 # Logic for meta roles and classes that may contain role information
-role Perl6::Metamodel::RoleContainer {
+role Metamodel::RoleContainer {
     has @!roles_to_compose;
 
     method add_role($XXX, $role) {

@@ -1340,7 +1340,7 @@ class RakuAST::Resolver {
             # only care about type objects
             my $first := nqp::substr($name, 0, 1);
             unless $first eq '$' || $first eq '%' || $first eq '@' || $first eq '&' || $first eq ':' {
-                #unless !$has_object || (nqp::isconcrete($object) && !nqp::istype($object.HOW, Perl6::Metamodel::EnumHOW)) {
+                #unless !$has_object || (nqp::isconcrete($object) && !nqp::istype($object.HOW, Metamodel::EnumHOW)) {
                 &inner-evaluator($name);
             }
         }

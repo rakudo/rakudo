@@ -1,4 +1,4 @@
-role Perl6::Metamodel::BUILDPLAN {
+role Metamodel::BUILDPLAN {
     has @!BUILDALLPLAN;
     has @!BUILDPLAN;
 

@@ -911,7 +911,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                :setting-name(%OPTIONS<setting> // 'CORE.d')
              );
         my $package := nqp::getlexdyn('$?PACKAGE');
-        if nqp::istype($package.HOW, Perl6::Metamodel::Stashing) && $package.HOW.name($package) ne 'GLOBAL' {
+        if nqp::istype($package.HOW, Metamodel::Stashing) && $package.HOW.name($package) ne 'GLOBAL' {
             $RESOLVER.push-attach-target(
                 Nodify('Declaration::External::Package').new(
                     lexical-name => '$?PACKAGE',

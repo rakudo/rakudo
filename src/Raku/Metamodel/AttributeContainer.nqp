@@ -1,6 +1,6 @@
-#- Perl6::Metamodel::AttributeContainer ----------------------------------------
+#- Metamodel::AttributeContainer ----------------------------------------------
 # To be consumed by classes that can have attributes
-role Perl6::Metamodel::AttributeContainer {
+role Metamodel::AttributeContainer {
     # Attributes list.
     has @!attributes;
     has %!attribute_lookup;

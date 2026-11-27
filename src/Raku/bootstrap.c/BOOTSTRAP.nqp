@@ -1,4 +1,5 @@
 use Raku::Metamodel;
+
 use QRegex;
 use QAST;
 
@@ -49,64 +50,63 @@ my class BOOTSTRAPATTR {
 }
 
 # Stub all types.
-my stub Mu metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Any metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub ScalarVAR metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Proxy metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Operator metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Submethod metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Regex metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Str metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Mu metaclass Metamodel::ClassHOW { ... };
+my stub Any metaclass Metamodel::ClassHOW { ... };
+my stub Nil metaclass Metamodel::ClassHOW { ... };
+my stub Cool metaclass Metamodel::ClassHOW { ... };
+my stub Attribute metaclass Metamodel::ClassHOW { ... };
+my stub Scalar metaclass Metamodel::ClassHOW { ... };
+my stub ScalarVAR metaclass Metamodel::ClassHOW { ... };
+my stub Proxy metaclass Metamodel::ClassHOW { ... };
+my stub Signature metaclass Metamodel::ClassHOW { ... };
+my stub Parameter metaclass Metamodel::ClassHOW { ... };
+my stub Code metaclass Metamodel::ClassHOW { ... };
+my stub Block metaclass Metamodel::ClassHOW { ... };
+my stub Routine metaclass Metamodel::ClassHOW { ... };
+my stub Sub metaclass Metamodel::ClassHOW { ... };
+my stub Operator metaclass Metamodel::ClassHOW { ... };
+my stub Method metaclass Metamodel::ClassHOW { ... };
+my stub Submethod metaclass Metamodel::ClassHOW { ... };
+my stub Regex metaclass Metamodel::ClassHOW { ... };
+my stub Str metaclass Metamodel::ClassHOW { ... };
 my knowhow bigint is repr('P6bigint') { }
-my stub Int metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Num metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Slip metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub array metaclass Perl6::Metamodel::ClassHOW is repr('VMArray') { ... };
-my stub IterationBuffer metaclass Perl6::Metamodel::ClassHOW is repr('VMArray') { ... };
-my stub Map metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub TypeEnv metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Bool metaclass Perl6::Metamodel::EnumHOW { ... };
-my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub ValueObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Stash metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub PROCESS metaclass Perl6::Metamodel::ModuleHOW { ... };
-my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
-my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub Version metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub IntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub UIntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub NumLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub StrLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub IntAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub UIntAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub NumAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub StrAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub UIntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub UIntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
-my stub BOOTLanguageRevision metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Int metaclass Metamodel::ClassHOW { ... };
+my stub Num metaclass Metamodel::ClassHOW { ... };
+my stub List metaclass Metamodel::ClassHOW { ... };
+my stub Slip metaclass Metamodel::ClassHOW { ... };
+my stub Array metaclass Metamodel::ClassHOW { ... };
+my stub array metaclass Metamodel::ClassHOW is repr('VMArray') { ... };
+my stub IterationBuffer metaclass Metamodel::ClassHOW is repr('VMArray') { ... };
+my stub Map metaclass Metamodel::ClassHOW { ... };
+my stub Hash metaclass Metamodel::ClassHOW { ... };
+my stub TypeEnv metaclass Metamodel::ClassHOW { ... };
+my stub Capture metaclass Metamodel::ClassHOW { ... };
+my stub Bool metaclass Metamodel::EnumHOW { ... };
+my stub ObjAt metaclass Metamodel::ClassHOW { ... };
+my stub ValueObjAt metaclass Metamodel::ClassHOW { ... };
+my stub Stash metaclass Metamodel::ClassHOW { ... };
+my stub PROCESS metaclass Metamodel::ModuleHOW { ... };
+my stub Grammar metaclass Metamodel::ClassHOW { ... };
+my stub Junction metaclass Metamodel::ClassHOW { ... };
+my stub ForeignCode metaclass Metamodel::ClassHOW { ... };
+my stub Version metaclass Metamodel::ClassHOW { ... };
+my stub IntLexRef metaclass Metamodel::NativeRefHOW { ... };
+my stub UIntLexRef metaclass Metamodel::NativeRefHOW { ... };
+my stub NumLexRef metaclass Metamodel::NativeRefHOW { ... };
+my stub StrLexRef metaclass Metamodel::NativeRefHOW { ... };
+my stub IntAttrRef metaclass Metamodel::NativeRefHOW { ... };
+my stub UIntAttrRef metaclass Metamodel::NativeRefHOW { ... };
+my stub NumAttrRef metaclass Metamodel::NativeRefHOW { ... };
+my stub StrAttrRef metaclass Metamodel::NativeRefHOW { ... };
+my stub IntPosRef metaclass Metamodel::NativeRefHOW { ... };
+my stub UIntPosRef metaclass Metamodel::NativeRefHOW { ... };
+my stub NumPosRef metaclass Metamodel::NativeRefHOW { ... };
+my stub StrPosRef metaclass Metamodel::NativeRefHOW { ... };
+my stub IntMultidimRef metaclass Metamodel::NativeRefHOW { ... };
+my stub UIntMultidimRef metaclass Metamodel::NativeRefHOW { ... };
+my stub NumMultidimRef metaclass Metamodel::NativeRefHOW { ... };
+my stub StrMultidimRef metaclass Metamodel::NativeRefHOW { ... };
+my stub BOOTLanguageRevision metaclass Metamodel::ClassHOW { ... };
 
 #- NativeInstantiation ---------------------------------------------------------
 # Role bodies compile against generic types with object access ops and boxed
@@ -141,7 +141,7 @@ my class NativeInstantiation {
             );
 
             $definite && $primspec
-              ?? Perl6::Metamodel::DefiniteHOW.new_type(    # box with :D
+              ?? Metamodel::DefiniteHOW.new_type(    # box with :D
                   :base_type(nqp::atpos(BOXTYPES,$primspec)),
                   :definite($how.definite($type))
                 )
@@ -242,7 +242,7 @@ my class Binder {
             !! "Parameter '$varname' of routine '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?";
 
         -> {
-          Perl6::Metamodel::Configuration.throw_or_die(
+          Metamodel::Configuration.throw_or_die(
             'X::Parameter::InvalidConcreteness',
             $msg,
             :expected($class),
@@ -303,7 +303,7 @@ my class Binder {
         }
 
         -> {
-            Perl6::Metamodel::Configuration.throw_or_die(
+            Metamodel::Configuration.throw_or_die(
               'X::TypeCheck::Binding::Parameter',
               $msg,
               :got($oval),
@@ -396,7 +396,7 @@ my class Binder {
                         ?? "str"
                         !! 0 -> $expected {
                     nqp::bindpos($error, 0, {
-                        Perl6::Metamodel::Configuration.throw_or_die(
+                        Metamodel::Configuration.throw_or_die(
                           'X::Parameter::RW',
                           "Expected a modifiable native $expected argument for '$varname'",
                           :got($got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
@@ -590,7 +590,7 @@ my class Binder {
                 # No rw container founnd, error out
                 else {
                     nqp::bindpos($error, 0, {
-                        Perl6::Metamodel::Configuration.throw_or_die(
+                        Metamodel::Configuration.throw_or_die(
                           'X::Parameter::RW',
                           "Parameter '$varname' expected a writable container, but got an " ~
                             ~ $oval.HOW.name($oval) ~ " value",
@@ -685,7 +685,7 @@ my class Binder {
                      ).ACCEPTS($oval.signature) {
 
                     nqp::bindpos($error, 0, {
-                        Perl6::Metamodel::Configuration.throw_or_die(
+                        Metamodel::Configuration.throw_or_die(
                           'X::TypeCheck::Binding::Parameter',
                           "Signature check failed for parameter '$varname'",
                           :got($can_signature ?? $oval.signature !! Nil),
@@ -724,7 +724,7 @@ my class Binder {
                 # Alas, no luck
                 unless $cons_type.ACCEPTS($got) {
                     nqp::bindpos($error, 0, {
-                        Perl6::Metamodel::Configuration.throw_or_die(
+                        Metamodel::Configuration.throw_or_die(
                           'X::TypeCheck::Binding::Parameter',
                           "Constraint type check failed for parameter '$varname'",
                           :$got,
@@ -1536,7 +1536,7 @@ nqp::p6setbinder(Binder);           # The load-time case.
 # Container descriptors come here so that they can refer to Raku types.
 
 #- ContainerDescriptor ---------------------------------------------------------
-class ContainerDescriptor does Perl6::Metamodel::Explaining {
+class ContainerDescriptor does Metamodel::Explaining {
     has     $!of;
     has str $!name;
     has     $!default;
@@ -1933,7 +1933,7 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
     # The element is stored before the hash is, so a refused key or value
     # leaves no hash
     method vivify($target, $scalar) {
-        Perl6::Metamodel::Configuration.throw_or_die('X::Assignment::RO',
+        Metamodel::Configuration.throw_or_die('X::Assignment::RO',
           'Cannot modify an immutable value', :value($target)
         ) unless nqp::iscont($target);
         my $Failure := nqp::gethllsym('Raku', 'Failure');
@@ -2618,7 +2618,7 @@ BEGIN {
                         }
                     }
                     else {
-                        Perl6::Metamodel::Configuration.throw_or_die(
+                        Metamodel::Configuration.throw_or_die(
                             'X::TypeCheck::Assignment',
                             "Type check failed in assignment",
                             :symbol($desc.name),
@@ -2653,7 +2653,7 @@ BEGIN {
                         nqp::casattr($cont, Scalar, '$!value', $expected, $val);
                     }
                     else {
-                        Perl6::Metamodel::Configuration.throw_or_die(
+                        Metamodel::Configuration.throw_or_die(
                             'X::TypeCheck::Assignment',
                             "Type check failed in assignment",
                             :symbol($desc.name),
@@ -2676,7 +2676,7 @@ BEGIN {
                         nqp::atomicbindattr($cont, Scalar, '$!value', $val);
                     }
                     else {
-                        Perl6::Metamodel::Configuration.throw_or_die(
+                        Metamodel::Configuration.throw_or_die(
                             'X::TypeCheck::Assignment',
                             "Type check failed in assignment",
                             :symbol($desc.name),
@@ -3116,7 +3116,7 @@ BEGIN {
         my int $flags := nqp::getattr_i($self, Parameter, '$!flags');
         if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
             $name := '' if nqp::isnull_s($name);
-            Perl6::Metamodel::Configuration.throw_or_die(
+            Metamodel::Configuration.throw_or_die(
               'X::Trait::Invalid',
               "Cannot use 'is rw' on optional parameter '$name'",
               :type<is>,
@@ -4871,14 +4871,14 @@ BEGIN {
 #?endif
 
             nqp::elems(@possibles)
-              ?? Perl6::Metamodel::Configuration.throw_or_die(
+              ?? Metamodel::Configuration.throw_or_die(
                    'X::Multi::Ambiguous',
                    "Ambiguous call to $name",
                    :dispatcher($self),
                    :@ambiguous,
                    :capture($raku_capture)
                  )
-              !! Perl6::Metamodel::Configuration.throw_or_die(
+              !! Metamodel::Configuration.throw_or_die(
                    'X::Multi::NoMatch',
                    "Cannot call $name; no signatures match",
                    :dispatcher($self),
@@ -5844,64 +5844,71 @@ BEGIN {
 
 #- (epilogue) ------------------------------------------------------------------
 
-    # Configure the stash type.
-    Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
+    # Save old Metamodel .WHO (a BOOThash)
+    my $who := nqp::who(Metamodel);
 
-    # Give everything we've set up so far a Stash.
-    Perl6::Metamodel::ClassHOW.add_stash(Mu);
-    Perl6::Metamodel::ClassHOW.add_stash(Any);
-    Perl6::Metamodel::ClassHOW.add_stash(Nil);
-    Perl6::Metamodel::ClassHOW.add_stash(Cool);
-    Perl6::Metamodel::ClassHOW.add_stash(Attribute);
-    Perl6::Metamodel::ClassHOW.add_stash(Scalar);
-    Perl6::Metamodel::ClassHOW.add_stash(ScalarVAR);
-    Perl6::Metamodel::ClassHOW.add_stash(Proxy);
-    Perl6::Metamodel::ClassHOW.add_stash(Signature);
-    Perl6::Metamodel::ClassHOW.add_stash(Parameter);
-    Perl6::Metamodel::ClassHOW.add_stash(Code);
-    Perl6::Metamodel::ClassHOW.add_stash(Block);
-    Perl6::Metamodel::ClassHOW.add_stash(Routine);
-    Perl6::Metamodel::ClassHOW.add_stash(Sub);
-    Perl6::Metamodel::ClassHOW.add_stash(Operator);
-    Perl6::Metamodel::ClassHOW.add_stash(Method);
-    Perl6::Metamodel::ClassHOW.add_stash(Submethod);
-    Perl6::Metamodel::ClassHOW.add_stash(Regex);
-    Perl6::Metamodel::ClassHOW.add_stash(Str);
-    Perl6::Metamodel::ClassHOW.add_stash(Int);
-    Perl6::Metamodel::ClassHOW.add_stash(Num);
-    Perl6::Metamodel::NativeRefHOW.add_stash(IntLexRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(UIntLexRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(NumLexRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(StrLexRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(IntAttrRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(UIntAttrRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(NumAttrRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(StrAttrRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(UIntPosRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(UIntMultidimRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
-    Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
-    Perl6::Metamodel::ClassHOW.add_stash(List);
-    Perl6::Metamodel::ClassHOW.add_stash(Slip);
-    Perl6::Metamodel::ClassHOW.add_stash(Array);
-    Perl6::Metamodel::ClassHOW.add_stash(array);
-    Perl6::Metamodel::ClassHOW.add_stash(IterationBuffer);
-    Perl6::Metamodel::ClassHOW.add_stash(Map);
-    Perl6::Metamodel::ClassHOW.add_stash(Hash);
-    Perl6::Metamodel::ClassHOW.add_stash(TypeEnv);
-    Perl6::Metamodel::ClassHOW.add_stash(Capture);
-    Perl6::Metamodel::EnumHOW.add_stash(Bool);
-    Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
-    Perl6::Metamodel::ClassHOW.add_stash(ValueObjAt);
-    Perl6::Metamodel::ClassHOW.add_stash(Stash);
-    Perl6::Metamodel::ClassHOW.add_stash(Grammar);
-    Perl6::Metamodel::ClassHOW.add_stash(Junction);
-    Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
-    Perl6::Metamodel::ClassHOW.add_stash(Version);
+    # Configure the stash type.
+    Metamodel::Configuration.set_stash_type(Stash, Map);
+
+    # Add HLL stash, and make sure it has the old .WHO
+    Metamodel::ClassHOW.add_stash(Metamodel);
+    nqp::bindattr(nqp::who(Metamodel),Map,'$!storage',$who);
+
+    # Give everything else we've set up so far a Stash
+    Metamodel::ClassHOW.add_stash(Mu);
+    Metamodel::ClassHOW.add_stash(Any);
+    Metamodel::ClassHOW.add_stash(Nil);
+    Metamodel::ClassHOW.add_stash(Cool);
+    Metamodel::ClassHOW.add_stash(Attribute);
+    Metamodel::ClassHOW.add_stash(Scalar);
+    Metamodel::ClassHOW.add_stash(ScalarVAR);
+    Metamodel::ClassHOW.add_stash(Proxy);
+    Metamodel::ClassHOW.add_stash(Signature);
+    Metamodel::ClassHOW.add_stash(Parameter);
+    Metamodel::ClassHOW.add_stash(Code);
+    Metamodel::ClassHOW.add_stash(Block);
+    Metamodel::ClassHOW.add_stash(Routine);
+    Metamodel::ClassHOW.add_stash(Sub);
+    Metamodel::ClassHOW.add_stash(Operator);
+    Metamodel::ClassHOW.add_stash(Method);
+    Metamodel::ClassHOW.add_stash(Submethod);
+    Metamodel::ClassHOW.add_stash(Regex);
+    Metamodel::ClassHOW.add_stash(Str);
+    Metamodel::ClassHOW.add_stash(Int);
+    Metamodel::ClassHOW.add_stash(Num);
+    Metamodel::NativeRefHOW.add_stash(IntLexRef);
+    Metamodel::NativeRefHOW.add_stash(UIntLexRef);
+    Metamodel::NativeRefHOW.add_stash(NumLexRef);
+    Metamodel::NativeRefHOW.add_stash(StrLexRef);
+    Metamodel::NativeRefHOW.add_stash(IntAttrRef);
+    Metamodel::NativeRefHOW.add_stash(UIntAttrRef);
+    Metamodel::NativeRefHOW.add_stash(NumAttrRef);
+    Metamodel::NativeRefHOW.add_stash(StrAttrRef);
+    Metamodel::NativeRefHOW.add_stash(IntPosRef);
+    Metamodel::NativeRefHOW.add_stash(UIntPosRef);
+    Metamodel::NativeRefHOW.add_stash(NumPosRef);
+    Metamodel::NativeRefHOW.add_stash(StrPosRef);
+    Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
+    Metamodel::NativeRefHOW.add_stash(UIntMultidimRef);
+    Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
+    Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
+    Metamodel::ClassHOW.add_stash(List);
+    Metamodel::ClassHOW.add_stash(Slip);
+    Metamodel::ClassHOW.add_stash(Array);
+    Metamodel::ClassHOW.add_stash(array);
+    Metamodel::ClassHOW.add_stash(IterationBuffer);
+    Metamodel::ClassHOW.add_stash(Map);
+    Metamodel::ClassHOW.add_stash(Hash);
+    Metamodel::ClassHOW.add_stash(TypeEnv);
+    Metamodel::ClassHOW.add_stash(Capture);
+    Metamodel::EnumHOW.add_stash(Bool);
+    Metamodel::ClassHOW.add_stash(ObjAt);
+    Metamodel::ClassHOW.add_stash(ValueObjAt);
+    Metamodel::ClassHOW.add_stash(Stash);
+    Metamodel::ClassHOW.add_stash(Grammar);
+    Metamodel::ClassHOW.add_stash(Junction);
+    Metamodel::ClassHOW.add_stash(ForeignCode);
+    Metamodel::ClassHOW.add_stash(Version);
 
 #?if !moar
     # Default invocation behavior delegates off to invoke.
@@ -5921,21 +5928,21 @@ BEGIN {
                         $val := nqp::create(List);
                         nqp::bindattr($val, List, '$!reified', @pos);
                     }
-                    Perl6::Metamodel::Configuration.throw_or_die(
+                    Metamodel::Configuration.throw_or_die(
                         'X::Coerce::Impossible',
                         "Cannot coerce to $self_name with named arguments",
                         :target-type($self.WHAT), :from-type($val.WHAT), :hint("named arguments passed")
                     ) if +%named;
                     my $how := $self.HOW;
-                    my $coercion_type := Perl6::Metamodel::CoercionHOW.new_type(
-                        (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($self)
+                    my $coercion_type := Metamodel::CoercionHOW.new_type(
+                        (nqp::istype($how, Metamodel::ClassHOW) && $how.is_pun($self)
                             ?? $self.HOW.pun_source($self)
                             !! $self.WHAT),
                         $val.WHAT);
                     nqp::hllizefor($coercion_type.HOW.coerce($coercion_type, $val), "Raku");
                 }
                 else {
-                    Perl6::Metamodel::Configuration.throw_or_die(
+                    Metamodel::Configuration.throw_or_die(
                         'X::Method::NotFound',
                         "No such method 'CALL-ME' for invocant of type '$self_name'",
                         :invocant($self), :method(nqp::hllizefor('CALL-ME', "Raku")),
@@ -5952,7 +5959,7 @@ BEGIN {
     my $PROCESS := nqp::gethllsym('Raku', 'PROCESS');
     if nqp::isnull($PROCESS) {
         PROCESS.HOW.compose(PROCESS);
-        Perl6::Metamodel::ModuleHOW.add_stash(PROCESS);
+        Metamodel::ModuleHOW.add_stash(PROCESS);
         $PROCESS := PROCESS;
         nqp::bindhllsym('Raku', 'PROCESS', $PROCESS);
     }
@@ -5972,15 +5979,8 @@ BEGIN {
     (Bool.WHO)<True> := $true;
 
     # Setup some regexy/grammary bits.
-    Perl6::Metamodel::ClassHOW.add_stash(Grammar);
+    Metamodel::ClassHOW.add_stash(Grammar);
     Grammar.HOW.compose_repr(Grammar);
-
-    # Export the metamodel bits to a Metamodel namespace so it's available
-    # from user land.
-    Perl6::Metamodel::PackageHOW.add_stash(Metamodel);
-    for Perl6::Metamodel.WHO {
-        nqp::bindkey(Metamodel.WHO, $_.key, $_.value);
-    }
 
     # Fill out EXPORT namespace.
     EXPORT::DEFAULT.WHO<Mu>         := Mu;
@@ -6035,9 +6035,9 @@ BEGIN {
     EXPORT::DEFAULT.WHO<False>      := $false;
     EXPORT::DEFAULT.WHO<True>       := $true;
     EXPORT::DEFAULT.WHO<ContainerDescriptor> := ContainerDescriptor;
-    EXPORT::DEFAULT.WHO<MethodDispatcher>    := Perl6::Metamodel::MethodDispatcher;
-    EXPORT::DEFAULT.WHO<MultiDispatcher>     := Perl6::Metamodel::MultiDispatcher;
-    EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
+    EXPORT::DEFAULT.WHO<MethodDispatcher>    := Metamodel::MethodDispatcher;
+    EXPORT::DEFAULT.WHO<MultiDispatcher>     := Metamodel::MultiDispatcher;
+    EXPORT::DEFAULT.WHO<WrapDispatcher>      := Metamodel::WrapDispatcher;
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
     EXPORT::DEFAULT.WHO<Version>             := Version;
@@ -6155,7 +6155,7 @@ nqp::sethllconfig('Raku', nqp::hash(
 
                 if nqp::elems(@exceptions) -> $nr_exceptions {
                     $nr_exceptions > 1
-                      ?? Perl6::Metamodel::Configuration.throw_or_die(
+                      ?? Metamodel::Configuration.throw_or_die(
                            'X::PhaserExceptions',
                            "Multiple exceptions were thrown by LEAVE phasers",
                            :@exceptions
@@ -6237,10 +6237,10 @@ nqp::sethllconfig('Raku', nqp::hash(
           "Method '$name' not found for invocant of class '$typename'";
 
         $name eq 'STORE'
-          ?? Perl6::Metamodel::Configuration.throw_or_die(
+          ?? Metamodel::Configuration.throw_or_die(
                'X::Assignment::RO', $message, :value($obj)
              )
-          !! Perl6::Metamodel::Configuration.throw_or_die(
+          !! Metamodel::Configuration.throw_or_die(
                'X::Method::NotFound',
                $message,
                :invocant($obj),
@@ -6256,7 +6256,7 @@ nqp::sethllconfig('Raku', nqp::hash(
 
     'lexical_handler_not_found_error', -> $cat, $out_of_dyn_scope {
         if $cat == nqp::const::CONTROL_RETURN {
-            Perl6::Metamodel::Configuration.throw_or_die(
+            Metamodel::Configuration.throw_or_die(
               'X::ControlFlow::Return',
               'Attempt to return outside of any Routine',
               :out-of-dynamic-scope(nqp::hllboolfor($out_of_dyn_scope, 'Raku'))
@@ -6274,7 +6274,7 @@ nqp::sethllconfig('Raku', nqp::hash(
         # Preserve the current stack ID otherwise.
         my $*STACK-ID := nqp::ifnull(
           nqp::getlexreldyn(nqp::ctxcaller(nqp::ctx), '$*STACK-ID'),
-          Perl6::Metamodel::Configuration.next_id
+          Metamodel::Configuration.next_id
         );
 
         my int $m := nqp::elems(@objs);
@@ -6419,7 +6419,7 @@ nqp::register('raku-hllize', -> $capture {
 #?endif
 
 # Tell parametric role groups how to create a dispatcher.
-Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
+Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     my $sel := nqp::create(Sub);
 #?if moar
     my $onlystar := sub (*@pos, *%named) {
@@ -6474,61 +6474,61 @@ my %excluded := nqp::hash(
   'WHY',            Mu,
 );
 
-Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be(
+Metamodel::ParametricRoleGroupHOW.pretend_to_be(
   nqp::list(Cool,Any,Mu)
 );
-Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
-   Perl6::Metamodel::ClassHOW, %excluded
+Metamodel::ParametricRoleGroupHOW.configure_punning(
+   Metamodel::ClassHOW, %excluded
 );
 
-Perl6::Metamodel::ParametricRoleHOW.pretend_to_be(
+Metamodel::ParametricRoleHOW.pretend_to_be(
   nqp::list(Cool, Any, Mu)
 );
-Perl6::Metamodel::ParametricRoleHOW.configure_punning(
-  Perl6::Metamodel::ClassHOW, %excluded
+Metamodel::ParametricRoleHOW.configure_punning(
+  Metamodel::ClassHOW, %excluded
 );
 
-Perl6::Metamodel::CurriedRoleHOW.pretend_to_be(
+Metamodel::CurriedRoleHOW.pretend_to_be(
   nqp::list(Cool, Any, Mu)
 );
-Perl6::Metamodel::CurriedRoleHOW.configure_punning(
-  Perl6::Metamodel::ClassHOW, %excluded
+Metamodel::CurriedRoleHOW.configure_punning(
+  Metamodel::ClassHOW, %excluded
 );
 
 # Similar for packages and modules, but just has methods from Any.
-Perl6::Metamodel::PackageHOW.pretend_to_be(
+Metamodel::PackageHOW.pretend_to_be(
   nqp::list(Any, Mu)
 );
-Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
+Metamodel::PackageHOW.delegate_methods_to(Any);
 
-Perl6::Metamodel::ModuleHOW.pretend_to_be(
+Metamodel::ModuleHOW.pretend_to_be(
   nqp::list(Any, Mu)
 );
-Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
+Metamodel::ModuleHOW.delegate_methods_to(Any);
 
 #?if !moar
 # Make roles handle invocations.
 my $role_invoke_handler := nqp::getstaticcode(sub ($self, *@pos, *%named) {
     $self.HOW.pun($self)(|@pos, |%named)
 });
-Perl6::Metamodel::ParametricRoleGroupHOW.set_default_invoke_handler($role_invoke_handler);
-Perl6::Metamodel::ParametricRoleHOW.set_default_invoke_handler($role_invoke_handler);
-Perl6::Metamodel::CurriedRoleHOW.set_default_invoke_handler($role_invoke_handler);
+Metamodel::ParametricRoleGroupHOW.set_default_invoke_handler($role_invoke_handler);
+Metamodel::ParametricRoleHOW.set_default_invoke_handler($role_invoke_handler);
+Metamodel::CurriedRoleHOW.set_default_invoke_handler($role_invoke_handler);
 
 # Let ClassHOW and EnumHOW know about the invocation handler.
-Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
+Metamodel::ClassHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
-Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
+Metamodel::EnumHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
 #?endif
 
 # Configure the MOP (not persisted as it ends up in a lexical...)
-Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
-Perl6::Metamodel::Configuration.set_submethod_type(Submethod);
+Metamodel::Configuration.set_stash_type(Stash, Map);
+Metamodel::Configuration.set_submethod_type(Submethod);
 
 # Register default parent types.
-Perl6::Metamodel::ClassHOW.set_default_parent_type(Any);
-Perl6::Metamodel::GrammarHOW.set_default_parent_type(Grammar);
+Metamodel::ClassHOW.set_default_parent_type(Any);
+Metamodel::GrammarHOW.set_default_parent_type(Grammar);
 
 # Put PROCESS in place, and ensure it's never repossessed.
 nqp::neverrepossess(PROCESS.WHO);
@@ -6548,7 +6548,7 @@ nqp::bindhllsym('Raku', 'Version', Version);
 nqp::gethllsym('Raku', 'JavaModuleLoader').set_interop_loader(-> {
     nqp::jvmrakudointerop()
 });
-Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
+Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
 #?endif
 
 # Make QAST::Regex and QRegex available to early setting where module loading
@@ -6563,7 +6563,7 @@ nqp::bindhllsym('Raku', 'QRegex', QRegex);
 # exist yet.
 nqp::bindhllsym('nqp', 'parameter-type-check-failure', sub ($value, $type, $name, $code, $definedness?) {
     my str $got-name := nqp::isnull($value) ?? 'null' !! $value.HOW.name($value);
-    Perl6::Metamodel::Configuration.throw_or_die(
+    Metamodel::Configuration.throw_or_die(
         'X::TypeCheck::Binding::Parameter',
         "Type check failed in binding to parameter '" ~ $name ~ "' of '"
           ~ nqp::getcodename($code) ~ "'; expected " ~ $type.HOW.name($type)

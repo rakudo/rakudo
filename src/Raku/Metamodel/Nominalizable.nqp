@@ -1,8 +1,8 @@
 #- Metamodel::Nominalizable ----------------------------------------------------
-role Perl6::Metamodel::Nominalizable {
+role Metamodel::Nominalizable {
 
     method nominalizable_kind($XXX?) {
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Nominalizable::NoKind',
           self.HOW.name(self) ~ " doesn't declare method 'nominalizable_kind'",
           :nominalizable(self)
@@ -32,7 +32,7 @@ role Perl6::Metamodel::Nominalizable {
     method wrappee($target, *%_) {
         nqp::ifnull(
           self."!find_wrappee"($target, %_),
-          Perl6::Metamodel::Configuration.throw_or_die(
+          Metamodel::Configuration.throw_or_die(
             'X::Nominalizable::NoWrappee',
             "Can't find requested wrappee on $target: reached a nominal type "
                ~ self."!wrappee"($target).HOW.name(self),

@@ -1,19 +1,19 @@
-class Perl6::Metamodel::NativeHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Composing
-    does Perl6::Metamodel::Versioning
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::MultipleInheritance
-    does Perl6::Metamodel::C3MRO
-    does Perl6::Metamodel::MROBasedMethodDispatch
-    does Perl6::Metamodel::MROBasedTypeChecking
+class Metamodel::NativeHOW
+    does Metamodel::Naming
+    does Metamodel::BUILDALL
+    does Metamodel::Documenting
+    does Metamodel::Composing
+    does Metamodel::Versioning
+    does Metamodel::Stashing
+    does Metamodel::MultipleInheritance
+    does Metamodel::C3MRO
+    does Metamodel::MROBasedMethodDispatch
+    does Metamodel::MROBasedTypeChecking
 {
     has     $!nativesize;   # XXX should probably be an int
     has int $!unsigned;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new(:nominal);
+    my $archetypes := Metamodel::Archetypes.new(:nominal);
     method archetypes($XXX?) { $archetypes }
 
     method new_type(:$repr = 'P6opaque', *%_) {

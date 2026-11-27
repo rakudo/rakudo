@@ -2330,7 +2330,7 @@ class RakuAST::Block
                 ),
                 QAST::Op.new(
                     :op('callmethod'), :name('throw_or_die'),
-                    QAST::WVal.new( :value(Perl6::Metamodel::Configuration) ),
+                    QAST::WVal.new( :value(Metamodel::Configuration) ),
                     QAST::SVal.new( :value('X::TypeCheck::Binding::Parameter') ),
                     QAST::SVal.new( :value(
                         "Nominal type check failed for parameter '" ~ $var-name ~ "'"

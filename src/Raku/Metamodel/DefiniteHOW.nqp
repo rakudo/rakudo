@@ -1,26 +1,26 @@
-class Perl6::Metamodel::DefiniteHOW
-    does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Nominalizable
+class Metamodel::DefiniteHOW
+    does Metamodel::Documenting
+    does Metamodel::Nominalizable
 {
     # ATypeN are used as parameterization arguments to have a
     # definite report correct archetypes.
     my class ArchetypeDefinite {
-        my $type := Perl6::Metamodel::Archetypes.new(
+        my $type := Metamodel::Archetypes.new(
           :definite, :nominalizable);
         method archetype() { $type }
     }
     my class ArchetypeDefiniteGeneric {
-        my $type := Perl6::Metamodel::Archetypes.new(
+        my $type := Metamodel::Archetypes.new(
           :definite, :nominalizable, :generic);
         method archetype() { $type }
     }
     my class ArchetypeDefiniteCoercive {
-        my $type := Perl6::Metamodel::Archetypes.new(
+        my $type := Metamodel::Archetypes.new(
           :definite, :nominalizable, :coercive);
         method archetype() { $type }
     }
     my class ArchetypeDefiniteCoerciveGeneric {
-        my $type := Perl6::Metamodel::Archetypes.new(
+        my $type := Metamodel::Archetypes.new(
           :definite, :nominalizable, :coercive, :generic);
         method archetype() { $type }
     }
@@ -50,7 +50,7 @@ class Perl6::Metamodel::DefiniteHOW
             $base_archetypes.generic)
         );
 
-        my $root := nqp::parameterizetype((Perl6::Metamodel::DefiniteHOW.WHO)<root>,
+        my $root := nqp::parameterizetype((Metamodel::DefiniteHOW.WHO)<root>,
             [$base_type, $definite ?? Definite !! NotDefinite, $atype]);
         nqp::setdebugtypename($root, self.name($root));
     }
@@ -136,13 +136,13 @@ class Perl6::Metamodel::DefiniteHOW
         )
     }
 
-    # Methods needed by Perl6::Metamodel::Nominalizable
+    # Methods needed by Metamodel::Nominalizable
     method nominalizable_kind() { 'definite' }
     method !wrappee($target) { self.base_type($target) }
 }
 
 BEGIN {
-    my $root := nqp::newtype(Perl6::Metamodel::DefiniteHOW, 'Uninstantiable');
+    my $root := nqp::newtype(Metamodel::DefiniteHOW, 'Uninstantiable');
     nqp::setdebugtypename(nqp::settypehll($root, 'Raku'), 'DefiniteHOW root');
 
     nqp::setparameterizer($root, sub ($type, $params) {
@@ -150,7 +150,7 @@ BEGIN {
         my $thing := nqp::settypehll(nqp::newtype($type.HOW, 'Uninstantiable'), 'Raku');
         nqp::settypecheckmode($thing, nqp::const::TYPE_CHECK_NEEDS_ACCEPTS)
     });
-    (Perl6::Metamodel::DefiniteHOW.WHO)<root> := $root;
+    (Metamodel::DefiniteHOW.WHO)<root> := $root;
 }
 
 # vim: expandtab sw=4

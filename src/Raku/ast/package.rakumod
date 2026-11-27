@@ -253,7 +253,7 @@ class RakuAST::Package
             if $resolved {
                 my $meta := $resolved.compile-time-value;
                 my $how  := $meta.HOW;
-                if $how.HOW.name($how) ne 'Perl6::Metamodel::PackageHOW' {
+                if $how.HOW.name($how) ne 'Metamodel::PackageHOW' {
                     self.defuse-stub;
                     $resolved.package.defuse-stub if nqp::istype($resolved, RakuAST::Declaration::LexicalPackage);
                     # Note: this won't find role groups as they are not Composing. That's ok as
@@ -981,10 +981,10 @@ class RakuAST::Role
                 $resolver.build-exception('X::Redeclaration', :symbol(self.name.canonicalize))
             ) if $found
               && !$from-setting
-              && !nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW);
+              && !nqp::istype($existing.HOW, Metamodel::PackageHOW);
 
             my $group-name := $full-name.canonicalize(:colonpairs(0));
-            $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
+            $group := Metamodel::ParametricRoleGroupHOW.new_type(
               :name($group-name), :repr(self.repr)
             );
             $resolver.register-compunit-role-group($group);
@@ -1326,7 +1326,7 @@ class RakuAST::CompilerServices
         }
         else {
             my $sig := nqp::getattr($code, Code, '$!signature');
-            my $definite := Perl6::Metamodel::DefiniteHOW.new_type(
+            my $definite := Metamodel::DefiniteHOW.new_type(
                 :base_type($package_type), :definite(True));
             $!context.ensure-sc($definite);
             nqp::bindattr(
@@ -1462,7 +1462,7 @@ class RakuAST::CompilerServices
         # The block binds the invocant raw, so the definite type on
         # the signature informs introspection and derivation, not a
         # run time check. Mirrors what the legacy frontend installs.
-        my $definite := Perl6::Metamodel::DefiniteHOW.new_type(
+        my $definite := Metamodel::DefiniteHOW.new_type(
             :base_type($invocant-base), :definite(True));
         $!context.ensure-sc($definite);
         nqp::bindattr(

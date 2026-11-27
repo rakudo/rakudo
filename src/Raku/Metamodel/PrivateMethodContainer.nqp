@@ -1,6 +1,6 @@
 #- Metamodel::PrivateMethodContainer -------------------------------------------
 # Handle the aspects of a HOW that can contain private methods
-role Perl6::Metamodel::PrivateMethodContainer {
+role Metamodel::PrivateMethodContainer {
     has %!private_methods;
     has @!private_methods;
     has @!private_method_names;

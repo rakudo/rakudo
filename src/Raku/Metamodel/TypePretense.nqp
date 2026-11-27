@@ -1,7 +1,7 @@
 #- Metamodel::TypePretense -----------------------------------------------------
 # Handle those classes that pretend to be some type without actually
 # inheriting from them
-role Perl6::Metamodel::TypePretense {
+role Metamodel::TypePretense {
     my @pretending;
 
     method pretending_to_be()    { @pretending           }

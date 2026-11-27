@@ -289,7 +289,7 @@ class Raku::Compiler is HLL::Compiler {
         # Apply optimizations.
         my $result := %adverbs<optimize> eq 'off'
             ?? $past
-            !! Perl6::Optimizer.new.optimize($past, |%adverbs);
+            !! Optimizer.new.optimize($past, |%adverbs);
 
         # Apply world clean-up tasks, we will not trigger any more dynamic
         # compilation beyond this point.

@@ -1,6 +1,6 @@
 #- Metamodel::Trusting ---------------------------------------------------------
 # Implements managing trust relationships between types.
-role Perl6::Metamodel::Trusting {
+role Metamodel::Trusting {
     # Who do we trust?
     has @!trustees;
 

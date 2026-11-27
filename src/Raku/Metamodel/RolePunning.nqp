@@ -1,6 +1,6 @@
 #- Metamodel::RolePunning ------------------------------------------------------
 # Contains all the logic to pun a role into a class
-role Perl6::Metamodel::RolePunning {
+role Metamodel::RolePunning {
     # Meta-object we use to make a pun.
     my $punHOW;
 

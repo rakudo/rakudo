@@ -1,5 +1,5 @@
 #- Metamodel::Documenting ------------------------------------------------------
-role Perl6::Metamodel::Documenting {
+role Metamodel::Documenting {
     has $!why;
 
     method WHY() { nqp::eqaddr($!why, NQPMu) ?? Nil !! $!why }

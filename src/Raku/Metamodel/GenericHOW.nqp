@@ -2,10 +2,10 @@
 # A HOW that represents a generic type. It's something of a placeholder for
 # a type that we don't actually know yet.  It sits anywhere that a type could,
 # and possession of one of these confers genericity on the holder.
-class Perl6::Metamodel::GenericHOW
-    does Perl6::Metamodel::Naming
+class Metamodel::GenericHOW
+    does Metamodel::Naming
 {
-    my $archetypes := Perl6::Metamodel::Archetypes.new(:generic);
+    my $archetypes := Metamodel::Archetypes.new(:generic);
     method archetypes($XXX?) { $archetypes }
 
     # The name we're created with is both the name we'll claim

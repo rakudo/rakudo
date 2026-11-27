@@ -1,15 +1,15 @@
 #- Metamodel::ModuleHOW --------------------------------------------------------
-class Perl6::Metamodel::ModuleHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Composing
-    does Perl6::Metamodel::Versioning
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::TypePretense
-    does Perl6::Metamodel::MethodDelegation
+class Metamodel::ModuleHOW
+    does Metamodel::Naming
+    does Metamodel::Documenting
+    does Metamodel::Composing
+    does Metamodel::Versioning
+    does Metamodel::Stashing
+    does Metamodel::TypePretense
+    does Metamodel::MethodDelegation
 {
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new;
+    my $archetypes := Metamodel::Archetypes.new;
     method archetypes($XXX?) { $archetypes }
 
     method new_type(:$repr, *%_) {

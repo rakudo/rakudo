@@ -2,7 +2,7 @@
 # Handle the aspects of a HOW that can contain methods and submethods, and
 # their regexy counterparts.
 
-role Perl6::Metamodel::MethodContainer {
+role Metamodel::MethodContainer {
     # Lookup table of the methods.
     has %!methods;
     has %!submethods;
@@ -25,9 +25,9 @@ role Perl6::Metamodel::MethodContainer {
 
         my str $attr_name :=
 #?if jvm
-          !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type) &&
+          !nqp::isnull(Metamodel::Configuration.submethod_type) &&
 #?endif
-          nqp::istype($code, Perl6::Metamodel::Configuration.submethod_type)
+          nqp::istype($code, Metamodel::Configuration.submethod_type)
             ?? '%!submethods'
             !! '%!methods';
 
@@ -217,7 +217,7 @@ role Perl6::Metamodel::MethodContainer {
         my str $typename  := self.name($target);
         my   $method-type := try { nqp::lc($code.HOW.name($code)) } // 'method';
 
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Method::Duplicate',
           "Package '"
             ~ $typename

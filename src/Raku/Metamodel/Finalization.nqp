@@ -1,5 +1,5 @@
 #- Metamodel::Finalization -----------------------------------------------------
-role Perl6::Metamodel::Finalization {
+role Metamodel::Finalization {
     has @!destroyers;
 
     method setup_finalization($target) {

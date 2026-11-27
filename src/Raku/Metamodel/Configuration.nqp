@@ -2,7 +2,7 @@
 # Keeps track of various special types or other things that the MOP may be
 # configured with.  Not intended to be instantiated: only provides class
 # "attribute" value setters, getters and some logic appliers.
-class Perl6::Metamodel::Configuration {
+class Metamodel::Configuration {
 
     # Keepers of information
     my $stash_type                 :=
@@ -108,7 +108,7 @@ class Perl6::Metamodel::Configuration {
     nqp::bindhllsym(
       'Raku',
       'METAMODEL_CONFIGURATION',
-      Perl6::Metamodel::Configuration
+      Metamodel::Configuration
     );
 
     method set_type_env_type($type) {

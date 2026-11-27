@@ -1,6 +1,6 @@
 #- Metamodel::MultiMethodContainer ---------------------------------------------
 # All the logic related to multi methods
-role Perl6::Metamodel::MultiMethodContainer {
+role Metamodel::MultiMethodContainer {
     # Set of multi-methods to incorporate. Not just the method handles;
     # each is a hash containing keys name and body.
     has @!multi_methods_to_incorporate;
@@ -84,7 +84,7 @@ role Perl6::Metamodel::MultiMethodContainer {
     # implement proto incorporation yet.
     method incorporate_multi_candidates($target) {
         my $submethod_type :=
-          Perl6::Metamodel::Configuration.submethod_type;
+          Metamodel::Configuration.submethod_type;
 
         my @method_table := nqp::list(
           self.method_table(   $target),

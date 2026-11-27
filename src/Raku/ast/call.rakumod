@@ -493,12 +493,12 @@ class RakuAST::Call::Name
                     # and a nominal one, Mu:D and Any included, so the
                     # trial bind would call any such pairing impossible.
                     $type := $type.HOW.base_type($type)
-                        if nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW);
+                        if nqp::istype($type.HOW, Metamodel::DefiniteHOW);
                     nqp::push(@types, $type);
                     $ok := 0 if $type =:= Mu; # Don't know the type
                     last unless $ok;
-                    $ok := 0 if nqp::istype($type.HOW, Perl6::Metamodel::SubsetHOW); # Avoid side-effects of comparing subset
-                    $ok := 0 if nqp::istype($type.HOW, Perl6::Metamodel::GenericHOW); # These bind at instantiation time
+                    $ok := 0 if nqp::istype($type.HOW, Metamodel::SubsetHOW); # Avoid side-effects of comparing subset
+                    $ok := 0 if nqp::istype($type.HOW, Metamodel::GenericHOW); # These bind at instantiation time
                     nqp::push(@flags, nqp::objprimspec($type));
                 }
                 if $ok {

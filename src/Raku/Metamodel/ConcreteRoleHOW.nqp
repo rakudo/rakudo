@@ -1,18 +1,18 @@
 #- Metamodel::ConcreteRoleHOW --------------------------------------------------
-class Perl6::Metamodel::ConcreteRoleHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::Composing
-    does Perl6::Metamodel::LanguageRevision
-    does Perl6::Metamodel::PrivateMethodContainer
-    does Perl6::Metamodel::MethodContainer
-    does Perl6::Metamodel::MultiMethodContainer
-    does Perl6::Metamodel::AttributeContainer
-    does Perl6::Metamodel::RoleContainer
-    does Perl6::Metamodel::MultipleInheritance
-    does Perl6::Metamodel::ArrayType
-    does Perl6::Metamodel::Concretization
-    does Perl6::Metamodel::C3MRO
+class Metamodel::ConcreteRoleHOW
+    does Metamodel::Naming
+    does Metamodel::BUILDALL
+    does Metamodel::Composing
+    does Metamodel::LanguageRevision
+    does Metamodel::PrivateMethodContainer
+    does Metamodel::MethodContainer
+    does Metamodel::MultiMethodContainer
+    does Metamodel::AttributeContainer
+    does Metamodel::RoleContainer
+    does Metamodel::MultipleInheritance
+    does Metamodel::ArrayType
+    does Metamodel::Concretization
+    does Metamodel::C3MRO
 {
     # Any collisions to resolve.
     has @!collisions;
@@ -24,7 +24,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     # Full flat list of done roles.
     has @!role_typecheck_list;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new(
+    my $archetypes := Metamodel::Archetypes.new(
       :nominal, :composable
     );
     method archetypes($XXX?) { $archetypes }
@@ -75,7 +75,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
             $target := nqp::decont($target);
             my @roles_to_compose := self.roles_to_compose;
 
-            Perl6::Metamodel::Configuration.role_to_role_applier_type.apply(
+            Metamodel::Configuration.role_to_role_applier_type.apply(
               $target, @roles_to_compose
             ) if nqp::elems(@roles_to_compose);
 

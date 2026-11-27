@@ -47,7 +47,7 @@ class RakuAST::Type
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
         self.IMPL-LANGUAGE-REVISION >= 2
-            && nqp::eqaddr($v.HOW, Perl6::Metamodel::DefiniteHOW)
+            && nqp::eqaddr($v.HOW, Metamodel::DefiniteHOW)
             ?? $v.HOW.base_type: $v
             !! $v
     }
@@ -137,7 +137,7 @@ class RakuAST::Type::Simple
             # (could be replaced later).
             if $!name.is-multi-part
               && (RakuAST::IMPL::Archetypes.generic($value)
-                  || nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW)) {
+                  || nqp::istype($value.HOW, Metamodel::PackageHOW)) {
                 my $first-part := $resolver.resolve-lexical-constant($!name.IMPL-UNWRAP-LIST($!name.parts)[0].name);
                 if $first-part {
                     nqp::bindattr(self, RakuAST::Type::Simple, '$!lexical', $first-part);
@@ -224,7 +224,7 @@ class RakuAST::Type::Simple
                     QAST::Var.new(:name($name.canonicalize), :scope<lexical>)
                 }
             }
-            elsif $name.is-multi-part && nqp::istype($value.HOW, Perl6::Metamodel::PackageHOW) {
+            elsif $name.is-multi-part && nqp::istype($value.HOW, Metamodel::PackageHOW) {
                 # Package stub could be replaced later, thus we need to look it up at runtime.
                 $name.IMPL-QAST-PACKAGE-LOOKUP(
                   $context, $!package, :lexical($!lexical), :global-fallback
@@ -337,7 +337,7 @@ class RakuAST::Type::Coercion
     method is-coercive() { True }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
-        Perl6::Metamodel::CoercionHOW.new_type(
+        Metamodel::CoercionHOW.new_type(
             self.base-type.compile-time-value,
             $!constraint.meta-object,
         );
@@ -352,10 +352,10 @@ class RakuAST::Type::Coercion
         if RakuAST::IMPL::Archetypes.generic($base-type.compile-time-value)
          || RakuAST::IMPL::Archetypes.generic($!constraint.compile-time-value)
         {
-            $context.ensure-sc(Perl6::Metamodel::CoercionHOW);
+            $context.ensure-sc(Metamodel::CoercionHOW);
             QAST::Op.new(
                 :op('callmethod'), :name('new_type'),
-                QAST::WVal.new(:value(Perl6::Metamodel::CoercionHOW)),
+                QAST::WVal.new(:value(Metamodel::CoercionHOW)),
                 $base-type.IMPL-EXPR-QAST($context),
                 $!constraint.IMPL-EXPR-QAST($context),
             )
@@ -433,7 +433,7 @@ class RakuAST::Type::Definedness
     }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
-        Perl6::Metamodel::DefiniteHOW.new_type(
+        Metamodel::DefiniteHOW.new_type(
             :base_type(self.base-type.compile-time-value),
             :definite($!definite),
         );
@@ -446,14 +446,14 @@ class RakuAST::Type::Definedness
         # lexical lookup so role specialization sees the concrete base.
         my $base-type := self.base-type;
         if RakuAST::IMPL::Archetypes.generic($base-type.compile-time-value) {
-            $context.ensure-sc(Perl6::Metamodel::DefiniteHOW);
+            $context.ensure-sc(Metamodel::DefiniteHOW);
             my $base-qast := $base-type.IMPL-EXPR-QAST($context);
             $base-qast.named('base_type');
             my $definite-qast := QAST::WVal.new(:value($!definite ?? True !! False));
             $definite-qast.named('definite');
             QAST::Op.new(
                 :op('callmethod'), :name('new_type'),
-                QAST::WVal.new(:value(Perl6::Metamodel::DefiniteHOW)),
+                QAST::WVal.new(:value(Metamodel::DefiniteHOW)),
                 $base-qast,
                 $definite-qast,
             )
@@ -587,7 +587,7 @@ class RakuAST::Type::Capture
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
 
     method PRODUCE-META-OBJECT(:$resolver, :$context) {
-        Perl6::Metamodel::GenericHOW.new_type(
+        Metamodel::GenericHOW.new_type(
             :name($!name.canonicalize),
         );
     }
@@ -953,7 +953,7 @@ class RakuAST::Type::Enum
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!term', $term);
-        nqp::bindattr($obj, RakuAST::Type::Enum, '$!how', Perl6::Metamodel::EnumHOW);
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!how', Metamodel::EnumHOW);
         $obj.set-WHY($WHY);
         $obj
     }
@@ -1304,7 +1304,7 @@ class RakuAST::Type::Subset
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!block', $where);
         }
-        nqp::bindattr($obj, RakuAST::Type::Subset, '$!how', Perl6::Metamodel::SubsetHOW);
+        nqp::bindattr($obj, RakuAST::Type::Subset, '$!how', Metamodel::SubsetHOW);
         $obj.set-traits($traits) if $traits;
         $obj.set-WHY($WHY);
         $obj.set-resolution($obj);

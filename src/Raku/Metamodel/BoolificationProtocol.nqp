@@ -1,5 +1,5 @@
 #- Metamodel::BoolificationProtocol --------------------------------------------
-role Perl6::Metamodel::BoolificationProtocol {
+role Metamodel::BoolificationProtocol {
     has int $!boolification_mode;
 
     method get_boolification_mode($XXX?) {

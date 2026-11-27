@@ -1091,7 +1091,7 @@ role RakuAST::Declaration::Mergeable {
         return True if nqp::istype(self, RakuAST::Declaration::LexicalPackage) && self.package-is-stub;
         my $how  := self.return-type.HOW;
         my $name := $how.HOW.name($how);
-        ($name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW') ?? True !! False
+        ($name eq 'Metamodel::PackageHOW' || $name eq 'KnowHOW') ?? True !! False
     }
 
     method merge(RakuAST::Declaration $other, RakuAST::Resolver :$resolver!) {
@@ -1266,7 +1266,7 @@ class RakuAST::Declaration::LexicalPackage
     }
 
     method set-value(Mu $compile-time-value is raw) {
-        if !$!package.is-stub && !nqp::istype($compile-time-value.HOW, Perl6::Metamodel::PackageHOW) {
+        if !$!package.is-stub && !nqp::istype($compile-time-value.HOW, Metamodel::PackageHOW) {
             $!package.defuse-stub;
         }
         nqp::bindattr(self, RakuAST::Declaration::LexicalPackage,
@@ -2183,13 +2183,13 @@ role RakuAST::PackageInstaller {
             $lexical-stub := $generated.compile-time-value
                 if $generated
                 && nqp::istype($generated, RakuAST::CompileTimeValue)
-                && nqp::istype($generated.compile-time-value.HOW, Perl6::Metamodel::PackageHOW);
+                && nqp::istype($generated.compile-time-value.HOW, Metamodel::PackageHOW);
             # `my package EXPORT` names a package the compunit already declares
             # implicitly. Reuse that lexical, pointing it at the new package,
             # rather than declaring a second of the same name and colliding.
             if $scope eq 'my'
               && nqp::istype($lexical, RakuAST::VarDeclaration::Implicit::Constant)
-              && nqp::istype($lexical.compile-time-value.HOW, Perl6::Metamodel::PackageHOW) {
+              && nqp::istype($lexical.compile-time-value.HOW, Metamodel::PackageHOW) {
                 $lexical.set-value($type-object);
             }
             else {
@@ -2210,7 +2210,7 @@ role RakuAST::PackageInstaller {
                     $resolver.add-sorry: $resolver.build-exception:
                         'X::Redeclaration', :symbol($final)
                       unless $existing =:= $type-object
-                          || nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
+                          || nqp::istype($existing.HOW, Metamodel::PackageHOW)
                           || (nqp::can($existing.HOW, 'is_composed')
                               && !$existing.HOW.is_composed($existing));
                 }
@@ -2330,7 +2330,7 @@ role RakuAST::PackageInstaller {
 
                     for @parts {
                         $longname := $longname ~ '::' ~ $_.name;
-                        my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
+                        my $package := Metamodel::PackageHOW.new_type(name => $longname);
                         $package.HOW.compose($package);
                         self.IMPL-STASH-BIND($target, $_.name, $package);
                         $target := $package;
@@ -2339,7 +2339,7 @@ role RakuAST::PackageInstaller {
             }
             else {
                 my $first-read := nqp::shift(@parts).name;
-                $target := Perl6::Metamodel::PackageHOW.new_type(name => $first-read);
+                $target := Metamodel::PackageHOW.new_type(name => $first-read);
                 $target.HOW.compose($target);
                 $resolver.current-scope.merge-generated-lexical-declaration:
                     :$resolver,
@@ -2358,7 +2358,7 @@ role RakuAST::PackageInstaller {
                 my $longname := $first-read;
                 for @parts {
                     $longname := $longname ~ '::' ~ $_.name;
-                    my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
+                    my $package := Metamodel::PackageHOW.new_type(name => $longname);
                     $package.HOW.compose($package);
                     self.IMPL-STASH-BIND($target, $_.name, $package);
                     $target := $package;
@@ -2420,9 +2420,9 @@ role RakuAST::PackageInstaller {
     # elsewhere); and cross-compunit reload (target resolved through
     # the setting), matching legacy `install_package`.
     method IMPL-SHOULD-SILENT-REPLACE(Mu $existing, Mu $current-package, RakuAST::Name $name, str $orig-scope, int $target-from-setting) {
-        nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW)
+        nqp::istype($existing.HOW, Metamodel::PackageHOW)
         || (self.IMPL-LANGUAGE-REVISION < 3
-            && nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)
+            && nqp::istype($existing.HOW, Metamodel::ModuleHOW)
             && $existing =:= $current-package)
         || $name.is-identifier
         || $orig-scope eq 'my'
@@ -2438,11 +2438,11 @@ role RakuAST::PackageInstaller {
           && !$name.is-identifier
           && $existing =:= $current-package {
             my $enclosing-kind :=
-                nqp::istype($existing.HOW, Perl6::Metamodel::ModuleHOW)  ?? 'module'  !!
-                nqp::istype($existing.HOW, Perl6::Metamodel::PackageHOW) ?? 'package' !! '';
+                nqp::istype($existing.HOW, Metamodel::ModuleHOW)  ?? 'module'  !!
+                nqp::istype($existing.HOW, Metamodel::PackageHOW) ?? 'package' !! '';
             my $inner-is-containerlike :=
-                nqp::istype($type-object.HOW, Perl6::Metamodel::ModuleHOW)
-                || nqp::istype($type-object.HOW, Perl6::Metamodel::PackageHOW);
+                nqp::istype($type-object.HOW, Metamodel::ModuleHOW)
+                || nqp::istype($type-object.HOW, Metamodel::PackageHOW);
             if $enclosing-kind ne '' && !$inner-is-containerlike {
                 nqp::bindattr(self, RakuAST::PackageInstaller, '$!install-worries', [])
                   unless nqp::isconcrete($!install-worries);

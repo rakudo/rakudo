@@ -1,6 +1,6 @@
 # MoarVM uses new-disp instead of these
 #?if !moar
-class Perl6::Metamodel::BaseDispatcher {
+class Metamodel::BaseDispatcher {
     has @!candidates;
     has $!idx;
     has $!next_dispatcher; # The dispatcher we must pass control to when own queue exhausts
@@ -27,7 +27,7 @@ class Perl6::Metamodel::BaseDispatcher {
         try {
             # XXX Are there any better way to determine a invocation handler with own dispatcher in $!dispatcher?
             $disp := nqp::getattr($call, nqp::what($call), '$!dispatcher'); # If $call is a handler. But there must be better way to deal with this.
-            $disp := nqp::null() unless nqp::istype($disp, Perl6::Metamodel::BaseDispatcher); # Protect from multi-Routine dispatcher attribute
+            $disp := nqp::null() unless nqp::istype($disp, Metamodel::BaseDispatcher); # Protect from multi-Routine dispatcher attribute
         }
         if nqp::isconcrete($disp) {
             return [$disp, 1];
@@ -74,14 +74,14 @@ class Perl6::Metamodel::BaseDispatcher {
     }
 }
 
-class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
+class Metamodel::MethodDispatcher is Metamodel::BaseDispatcher {
     has $!obj;
 
     method new(:@candidates, :$idx, :$obj) {
         my $disp := nqp::create(self);
-        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '@!candidates', @candidates);
-        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '$!idx', $idx);
-        nqp::bindattr($disp, Perl6::Metamodel::MethodDispatcher, '$!obj', $obj);
+        nqp::bindattr($disp, Metamodel::BaseDispatcher, '@!candidates', @candidates);
+        nqp::bindattr($disp, Metamodel::BaseDispatcher, '$!idx', $idx);
+        nqp::bindattr($disp, Metamodel::MethodDispatcher, '$!obj', $obj);
         $disp
     }
 
@@ -105,16 +105,16 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
     method invocant()     { $!obj }
 }
 
-class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
+class Metamodel::MultiDispatcher is Metamodel::BaseDispatcher {
     has $!has_invocant;
     has $!invocant;
 
     method new(:@candidates, :$idx, :$invocant, :$has_invocant) {
         my $disp := nqp::create(self);
-        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '@!candidates', @candidates);
-        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '$!idx', $idx);
-        nqp::bindattr($disp, Perl6::Metamodel::MultiDispatcher, '$!invocant', $invocant);
-        nqp::bindattr($disp, Perl6::Metamodel::MultiDispatcher, '$!has_invocant', $has_invocant);
+        nqp::bindattr($disp, Metamodel::BaseDispatcher, '@!candidates', @candidates);
+        nqp::bindattr($disp, Metamodel::BaseDispatcher, '$!idx', $idx);
+        nqp::bindattr($disp, Metamodel::MultiDispatcher, '$!invocant', $invocant);
+        nqp::bindattr($disp, Metamodel::MultiDispatcher, '$!has_invocant', $has_invocant);
         $disp
     }
 
@@ -131,11 +131,11 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
     method invocant() { $!invocant }
 }
 
-class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
+class Metamodel::WrapDispatcher is Metamodel::BaseDispatcher {
     method new(:@candidates, :$idx, :$invocant, :$has_invocant) {
         my $disp := nqp::create(self);
-        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '@!candidates', @candidates);
-        nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '$!idx', 1);
+        nqp::bindattr($disp, Metamodel::BaseDispatcher, '@!candidates', @candidates);
+        nqp::bindattr($disp, Metamodel::BaseDispatcher, '$!idx', 1);
         $disp
     }
 

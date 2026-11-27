@@ -38,7 +38,7 @@ my class RoleToClassApplier {
         while $i < $m {
             my $maybe := nqp::atpos(@maybes, $i);
             $name eq $maybe.name
-              && Perl6::Metamodel::Configuration.compare_multi_sigs(
+              && Metamodel::Configuration.compare_multi_sigs(
                    $multi, $maybe.code
                  )
               ?? (return)
@@ -67,7 +67,7 @@ my class RoleToClassApplier {
         my int $m := nqp::elems(@candidates);
         my int $i;
         while $i < $m {
-            Perl6::Metamodel::Configuration.compare_multi_sigs(
+            Metamodel::Configuration.compare_multi_sigs(
               nqp::atpos(@candidates, $i), $code
             ) ?? (return 1)
               !! ++$i;
@@ -87,7 +87,7 @@ my class RoleToClassApplier {
             $to_composeHOW := $to_compose.HOW;
         }
         else {
-            $to_compose := Perl6::Metamodel::ConcreteRoleHOW.new_type;
+            $to_compose := Metamodel::ConcreteRoleHOW.new_type;
             $to_composeHOW := $to_compose.HOW;
             $to_composeHOW.set_language_revision(
               $to_compose, $targetHOW.language_revision
@@ -135,7 +135,7 @@ my class RoleToClassApplier {
         # Only transfer submethods from pre-6.e roles into pre-6.e classes.
         my $with_submethods := $targetHOW.language_revision < 3
           && (nqp::not_i(nqp::istype(
-               $to_composeHOW, Perl6::Metamodel::LanguageRevision
+               $to_composeHOW, Metamodel::LanguageRevision
              )) || $to_composeHOW.language_revision < 3);
 
         my @stubs;
@@ -180,7 +180,7 @@ my class RoleToClassApplier {
             elsif nqp::not_i(has_local_method($target, $name))
               && ($with_submethods
                    || nqp::not_i(nqp::istype(
-                        $method, Perl6::Metamodel::Configuration.submethod_type
+                        $method, Metamodel::Configuration.submethod_type
                       ))
                  ) {
                 $targetHOW.add_method($target, $name, $method);
@@ -328,7 +328,7 @@ my class RoleToClassApplier {
 
     # Helper error subs to reduce bytecode for the fast paths
     sub unresolved_private_method($target, $method) {
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::Unresolved::Private',
           "Private method '"
             ~ $method.name
@@ -343,7 +343,7 @@ my class RoleToClassApplier {
     }
 
     sub unresolved_multi_method($target, $method) {
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::Unresolved::Multi',
           "Multi method '"
             ~ $method.name ~ "' with signature "
@@ -358,7 +358,7 @@ my class RoleToClassApplier {
     }
 
     sub unresolved_method($target, $method) {
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::Unresolved::Method',
           "Method '"
           ~ $method.name
@@ -373,7 +373,7 @@ my class RoleToClassApplier {
     }
 
     sub unimplemented_multi_method($target, $method) {
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::Unimplemented::Multi',
           "Multi method '"
             ~ $method.name
@@ -388,7 +388,7 @@ my class RoleToClassApplier {
     }
 
     sub attribute_exists($target, $attribute) {
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::Attribute::Exists',
           "Attribute '"
           ~ $attribute.name
@@ -400,7 +400,7 @@ my class RoleToClassApplier {
         );
     }
 
-    Perl6::Metamodel::Configuration.set_role_to_class_applier_type(
+    Metamodel::Configuration.set_role_to_class_applier_type(
       RoleToClassApplier
     );
 }

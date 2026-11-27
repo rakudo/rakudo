@@ -1,5 +1,5 @@
 #- Metamodel::ContainerSpecProtocol --------------------------------------------
-role Perl6::Metamodel::ContainerSpecProtocol {
+role Metamodel::ContainerSpecProtocol {
     has $!code_pair;
 
     method get_container_spec($XXX?) { $!code_pair }

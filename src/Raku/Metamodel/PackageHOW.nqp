@@ -1,14 +1,14 @@
 #- Metamodel::PackageHOW -------------------------------------------------------
-class Perl6::Metamodel::PackageHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Composing
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::TypePretense
-    does Perl6::Metamodel::MethodDelegation
+class Metamodel::PackageHOW
+    does Metamodel::Naming
+    does Metamodel::Documenting
+    does Metamodel::Composing
+    does Metamodel::Stashing
+    does Metamodel::TypePretense
+    does Metamodel::MethodDelegation
 {
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new;
+    my $archetypes := Metamodel::Archetypes.new;
     method archetypes($XXX?) { $archetypes }
 
     method new_type(:$name = '<anon>', :$repr, *%_) {

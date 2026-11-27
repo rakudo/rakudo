@@ -1,6 +1,6 @@
-class Perl6::Metamodel::GrammarHOW
-    is Perl6::Metamodel::ClassHOW
-    does Perl6::Metamodel::DefaultParent
+class Metamodel::GrammarHOW
+    is Metamodel::ClassHOW
+    does Metamodel::DefaultParent
 {
 }
 

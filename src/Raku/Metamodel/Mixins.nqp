@@ -1,5 +1,5 @@
 #- Metamodel::Mixins -----------------------------------------------------------
-role Perl6::Metamodel::Mixins {
+role Metamodel::Mixins {
     has     $!mixin_cache;
     has int $!is_mixin;
     has     $!mixin_attribute;
@@ -155,7 +155,7 @@ role Perl6::Metamodel::Mixins {
     }
 
     method no_single_attribute($role) {
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::Initialization',
           "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '"
             ~ $role.HOW.name($role)

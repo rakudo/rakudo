@@ -534,11 +534,11 @@ sub order-packages(@compunits) {
 # Code-gen.
 
 sub emit-stubs(@compunits) {
-    say('stub RakuAST metaclass Perl6::Metamodel::PackageHOW { ... };');
-    say('BEGIN { Perl6::Metamodel::PackageHOW.add_stash(RakuAST); }');
+    say('stub RakuAST metaclass Metamodel::PackageHOW { ... };');
+    say('BEGIN { Metamodel::PackageHOW.add_stash(RakuAST); }');
     for @compunits -> $cu {
         for $cu.packages -> $package {
-            say('stub ' ~ $package.name ~ ' metaclass Perl6::Metamodel::'
+            say('stub ' ~ $package.name ~ ' metaclass Metamodel::'
                 ~ ($package.is-role ?? 'ParametricRoleHOW' !! 'ClassHOW') ~ ' { ... };');
         }
     }

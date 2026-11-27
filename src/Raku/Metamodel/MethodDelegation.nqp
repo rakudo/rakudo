@@ -1,5 +1,5 @@
 #- Metamodel::MethodDelegation -------------------------------------------------
-role Perl6::Metamodel::MethodDelegation {
+role Metamodel::MethodDelegation {
     my $delegate_type;
 
     method delegating_methods_to()    { $delegate_type          }

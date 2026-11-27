@@ -5,7 +5,7 @@ use Raku::Ops;
 # implements. This are used in various ways by the compiler and meta-model
 # to do correct code generation or to detect illegal use of types in
 # contexts with certain requirements.
-class Perl6::Metamodel::Archetypes {
+class Metamodel::Archetypes {
     # Can this serve as a nominal type? Implies memoizability
     # amongst other things.
     has int $!nominal;

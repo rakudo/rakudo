@@ -1,7 +1,7 @@
 #- Metamodel::ArrayType --------------------------------------------------------
 # Handles type declarations that really map down to array types of some kind,
 # and thus should be composed as an array-ish representation.
-role Perl6::Metamodel::ArrayType {
+role Metamodel::ArrayType {
     has $!array_type;
 
     method TWEAK(*%_) {

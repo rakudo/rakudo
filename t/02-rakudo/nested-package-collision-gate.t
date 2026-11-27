@@ -80,13 +80,13 @@ my $deprecation-package-rx = rx/
 
 {
     (temp %*ENV)<RAKUDO_RAKUAST> = '0';
-    is-run $code_6d, :out('Perl6::Metamodel::ClassHOW;42'), :err($deprecation-rx),
+    is-run $code_6d, :out('Metamodel::ClassHOW;42'), :err($deprecation-rx),
       '6.d traditional: silent-replace + deprecation worry';
-    is-run $code_6e, :out('Perl6::Metamodel::ModuleHOW;42'), :err(''),
+    is-run $code_6e, :out('Metamodel::ModuleHOW;42'), :err(''),
       '6.e traditional: nested Foo::Bar::Foo::Bar, no warning';
     is-run $code_6d_no_collision, :out('99'), :err(''),
       '6.d traditional: stub-package upgrade does not warn';
-    is-run $code_6d_single, :out('Perl6::Metamodel::ModuleHOW;7'), :err(''),
+    is-run $code_6d_single, :out('Metamodel::ModuleHOW;7'), :err(''),
       '6.d traditional: single-identifier natural nesting, no warning';
     is-run $code_broader, :err(/'Redeclaration of symbol' .* 'Alpha::Beta::Mod'/),
       :exitcode(1), :out(''),
@@ -97,13 +97,13 @@ my $deprecation-package-rx = rx/
 
 {
     (temp %*ENV)<RAKUDO_RAKUAST> = '1';
-    is-run $code_6d, :out('Perl6::Metamodel::ClassHOW;42'), :err($deprecation-rx),
+    is-run $code_6d, :out('Metamodel::ClassHOW;42'), :err($deprecation-rx),
       '6.d RakuAST: silent-replace + deprecation worry';
-    is-run $code_6e, :out('Perl6::Metamodel::ModuleHOW;42'), :err(''),
+    is-run $code_6e, :out('Metamodel::ModuleHOW;42'), :err(''),
       '6.e RakuAST: nested Foo::Bar::Foo::Bar, no warning';
     is-run $code_6d_no_collision, :out('99'), :err(''),
       '6.d RakuAST: stub-package upgrade does not warn';
-    is-run $code_6d_single, :out('Perl6::Metamodel::ModuleHOW;7'), :err(''),
+    is-run $code_6d_single, :out('Metamodel::ModuleHOW;7'), :err(''),
       '6.d RakuAST: single-identifier natural nesting, no warning';
     is-run $code_broader, :err(/'Redeclaration of symbol' .* 'Alpha::Beta::Mod'/),
       :exitcode(1), :out(''),

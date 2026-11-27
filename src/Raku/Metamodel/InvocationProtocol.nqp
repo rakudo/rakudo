@@ -1,5 +1,5 @@
 #?if !moar
-role Perl6::Metamodel::InvocationProtocol {
+role Metamodel::InvocationProtocol {
     has int $!has_invocation_attr;
     has $!invocation_attr_class;
     has str $!invocation_attr_name;

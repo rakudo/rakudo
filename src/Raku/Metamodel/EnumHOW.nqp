@@ -3,27 +3,27 @@
 # It keeps hold of the enumeration values in an Map, which is
 # created at composition time. It supports having roles composed in,
 # one or two of which presumably provide the core enum-ish methods.
-class Perl6::Metamodel::EnumHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Composing
-    does Perl6::Metamodel::LanguageRevision
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::AttributeContainer
-    does Perl6::Metamodel::MethodContainer
-    does Perl6::Metamodel::PrivateMethodContainer
-    does Perl6::Metamodel::MultiMethodContainer
-    does Perl6::Metamodel::RoleContainer
-    does Perl6::Metamodel::BaseType
-    does Perl6::Metamodel::MROBasedMethodDispatch
-    does Perl6::Metamodel::MROBasedTypeChecking
-    does Perl6::Metamodel::BUILDPLAN
-    does Perl6::Metamodel::BoolificationProtocol
-    does Perl6::Metamodel::REPRComposeProtocol
-    does Perl6::Metamodel::Mixins
+class Metamodel::EnumHOW
+    does Metamodel::Naming
+    does Metamodel::BUILDALL
+    does Metamodel::Documenting
+    does Metamodel::Composing
+    does Metamodel::LanguageRevision
+    does Metamodel::Stashing
+    does Metamodel::AttributeContainer
+    does Metamodel::MethodContainer
+    does Metamodel::PrivateMethodContainer
+    does Metamodel::MultiMethodContainer
+    does Metamodel::RoleContainer
+    does Metamodel::BaseType
+    does Metamodel::MROBasedMethodDispatch
+    does Metamodel::MROBasedTypeChecking
+    does Metamodel::BUILDPLAN
+    does Metamodel::BoolificationProtocol
+    does Metamodel::REPRComposeProtocol
+    does Metamodel::Mixins
 #?if !moar
-    does Perl6::Metamodel::InvocationProtocol
+    does Metamodel::InvocationProtocol
 #?endif
 {
     # Hash representing enumeration keys to values.
@@ -49,7 +49,7 @@ class Perl6::Metamodel::EnumHOW
         $!role := $!export_callback := nqp::null;
     }
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new(
+    my $archetypes := Metamodel::Archetypes.new(
       :nominal, :composalizable, :augmentable
     );
 
@@ -146,7 +146,7 @@ class Perl6::Metamodel::EnumHOW
                     self.check-type-compat($target, $ins, nqp::list(3))
                       if nqp::istype(
                            $ins.HOW,
-                           Perl6::Metamodel::LanguageRevision
+                           Metamodel::LanguageRevision
                          );
                     @ins_roles.push($ins);
 
@@ -154,7 +154,7 @@ class Perl6::Metamodel::EnumHOW
                     $role := self.pop_role_to_compose;
                 }
                 $applier :=
-                  Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
+                  Metamodel::Configuration.role_to_class_applier_type.new;
                 $applier.prepare($target, @ins_roles);
 
                 # Add them to the typecheck list, and pull in their

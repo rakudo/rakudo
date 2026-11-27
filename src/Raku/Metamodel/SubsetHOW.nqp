@@ -1,12 +1,12 @@
 #- Metamodel::SubsetHOW --------------------------------------------------------
 # All the logic pertaining to the creation of subsets
-class Perl6::Metamodel::SubsetHOW
-  does Perl6::Metamodel::Naming
-  does Perl6::Metamodel::BUILDALL
-  does Perl6::Metamodel::Documenting
-  does Perl6::Metamodel::Stashing
-  does Perl6::Metamodel::LanguageRevision
-  does Perl6::Metamodel::Nominalizable
+class Metamodel::SubsetHOW
+  does Metamodel::Naming
+  does Metamodel::BUILDALL
+  does Metamodel::Documenting
+  does Metamodel::Stashing
+  does Metamodel::LanguageRevision
+  does Metamodel::Nominalizable
 {
     # The subset type or nominal type that we refine.
     has $!refinee;
@@ -26,7 +26,7 @@ class Perl6::Metamodel::SubsetHOW
                             || (nqp::defined($!refinement)
                                 && nqp::can($!refinement, 'is_generic')
                                 && $!refinement.is_generic);
-            $!archetypes := Perl6::Metamodel::Archetypes.new(
+            $!archetypes := Metamodel::Archetypes.new(
                 :nominalizable,
                 :$generic,
                 definite => $refinee_archetypes.definite,
@@ -70,7 +70,7 @@ class Perl6::Metamodel::SubsetHOW
           !! nqp::not_i($archetypes.nominal || $archetypes.nominalizable)
             ?? nqp::die("The 'of' type of a subset must either be a valid nominal type or a type that can provide one")
             !! nqp::objprimspec($refinee)
-              ?? Perl6::Metamodel::Configuration.throw_or_die(
+              ?? Metamodel::Configuration.throw_or_die(
                    'X::NYI',
                    "Subsets of native types NYI",
                    :feature('Subsets of native types')
@@ -156,7 +156,7 @@ class Perl6::Metamodel::SubsetHOW
         )
     }
 
-    # Methods needed by Perl6::Metamodel::Nominalizable
+    # Methods needed by Metamodel::Nominalizable
     method nominalizable_kind() { 'subset' }
     method !wrappee($XXX?) { $!refinee }
 }

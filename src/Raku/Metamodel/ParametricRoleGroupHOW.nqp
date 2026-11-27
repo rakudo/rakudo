@@ -7,20 +7,20 @@
 #   role Foo[::T1, ::T2] { }
 #
 # Each of them results in a type object that has a HOW of type
-# Perl6::Metamodel::ParametricRoleHOW. In here, we keep the whole
+# Metamodel::ParametricRoleHOW. In here, we keep the whole
 # group of those, and know how to specialize to a certain parameter
 # list by multi-dispatching over the set of candidates to pick
 # a particular candidate.
 
-class Perl6::Metamodel::ParametricRoleGroupHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::TypePretense
-    does Perl6::Metamodel::RolePunning
-    does Perl6::Metamodel::BoolificationProtocol
+class Metamodel::ParametricRoleGroupHOW
+    does Metamodel::Naming
+    does Metamodel::BUILDALL
+    does Metamodel::Stashing
+    does Metamodel::TypePretense
+    does Metamodel::RolePunning
+    does Metamodel::BoolificationProtocol
 #?if !moar
-    does Perl6::Metamodel::InvocationProtocol
+    does Metamodel::InvocationProtocol
 #?endif
 {
     has @!candidates;
@@ -28,7 +28,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     has @!role_typecheck_list;
     has @!nonsignatured;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new(
+    my $archetypes := Metamodel::Archetypes.new(
       :nominal, :composable, :inheritalizable, :parametric
     );
     method archetypes($XXX?) { $archetypes }
@@ -55,7 +55,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             my @_ := nqp::clone(@packed);
             my %_ := nqp::pop(@_) || nqp::hash;
             my $curried :=
-              Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@_, |%_);
+              Metamodel::CurriedRoleHOW.new_type($target, |@_, |%_);
             $curried.HOW.set_pun_repr($curried, $target.HOW.pun_repr($target));
             $curried
         });
@@ -207,7 +207,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
           !! $c.HOW.api($c)
     }
 
-    # See Perl6::Metamodel::LanguageRevision role comments about the
+    # See Metamodel::LanguageRevision role comments about the
     # difference between these two language revision methods.
     method language-revision($XXX?) {
         nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
@@ -236,7 +236,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method set_why($why) {
         my str $role-name := self.name;
 
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::Group::Documenting',
           "Parametric role group cannot be documented, use one of the candidates instead for '"
             ~ $role-name
@@ -264,7 +264,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         my $hint    := nqp::getmessage($error)
           || (nqp::defined($payload) ?? $payload.message !! "");
 
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::Role::Parametric::NoSuchCandidate',
           "Could not find an appropriate parametric role variant for '"
             ~ self.name($role)

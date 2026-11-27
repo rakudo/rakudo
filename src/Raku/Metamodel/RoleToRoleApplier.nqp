@@ -12,7 +12,7 @@ my class RoleToRoleApplier {
         my @private_method_names;
         my %private_method_providers;
         my int $target_pre6e := $targetHOW.language_revision < 3;
-        my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
+        my $submethod_type := Metamodel::Configuration.submethod_type;
 
         # Helper sub to return whether the given method exists in the given
         # list of methods
@@ -231,7 +231,7 @@ my class RoleToRoleApplier {
                         my $other := nqp::atpos(@candidates, $i);
 
                         nqp::not_i(nqp::eqaddr($code, $other.code))
-                          && Perl6::Metamodel::Configuration.compare_multi_sigs(
+                          && Metamodel::Configuration.compare_multi_sigs(
                                $code, $other.code
                              )
                           ?? (return nqp::list(self.name, $other.name))
@@ -398,7 +398,7 @@ my class RoleToRoleApplier {
                 ) && nqp::eqaddr(
                   nqp::decont($registered.type),
                   nqp::decont($attribute.type)
-                )) || Perl6::Metamodel::Configuration.throw_or_die(
+                )) || Metamodel::Configuration.throw_or_die(
                         'X::Role::Attribute::Conflicts',
                         "Attribute '"
                           ~ $registered.name
@@ -495,7 +495,7 @@ my class RoleToRoleApplier {
         }
     }
 
-    Perl6::Metamodel::Configuration.set_role_to_role_applier_type(
+    Metamodel::Configuration.set_role_to_role_applier_type(
       RoleToRoleApplier
     );
 }

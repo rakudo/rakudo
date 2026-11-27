@@ -2727,7 +2727,7 @@ role RakuAST::ModuleLoading {
     method IMPL-IS-STUB-PACKAGE(Mu $value) {
         my $how := $value.HOW;
         my str $name := $how.HOW.name($how);
-        $name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW'
+        $name eq 'Metamodel::PackageHOW' || $name eq 'KnowHOW'
     }
 
     method IMPL-IMPORT-EXPORTHOW(RakuAST::Resolver $resolver, Mu $handle) {

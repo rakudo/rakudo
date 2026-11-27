@@ -131,7 +131,7 @@ class Raku::ModuleLoader does Raku::ModuleLoaderVMConfig {
     # than this, but that would seem to involve copying too, and the
     # details of exactly what that entails are a bit hazy to me at the
     # moment. We'll see how far this takes us.
-    my str $raku_stub_how_name := 'Perl6::Metamodel::PackageHOW';
+    my str $raku_stub_how_name := 'Metamodel::PackageHOW';
     my str $nqp_stub_how_name  := 'KnowHOW';
     sub is_HOW_stub($target) {
          my $targetHOW := $target.HOW;

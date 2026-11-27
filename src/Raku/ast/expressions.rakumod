@@ -532,6 +532,77 @@ class RakuAST::Infix
 {
     has str $.operator;
 
+    # Set by the optimize pass when this smartmatch against a junction of
+    # types, in a position that only tests truth, reduces to a chain of
+    # type checks.
+    has int $!juncmatch;
+    has Mu $!juncmatch-data;
+    has Mu $!juncmatch-junction;
+
+    # Set by the optimize pass when the operator's name still resolves to
+    # the setting routine it resolved to, so a meta-op formed over it can
+    # be a compile-time constant.
+    has int $!hop-constant;
+
+    # Set by the optimize pass on a chaining operator whose application is
+    # a chain of one link, so it compiles as a plain call. The chain op
+    # serves the protocol between links, and boxes its operands for it,
+    # where a call passes a native operand as it is.
+    has int $!lone-link;
+
+    # Set by the optimize pass when the resolved operator's lexical is bound
+    # once, so a chaining operator's callee lookup can be compiled as a
+    # static one the VM resolves a single time. A lone link compiles as a
+    # call and takes its static lookup from this mark as well.
+    has int $!chainstatic;
+
+    # Set by the optimize pass when the resolved operator's lexical is bound
+    # once, so an operator call that does not chain compiles its callee
+    # lookup as a static one the VM resolves a single time.
+    has int $!callstatic;
+
+    # Set by the optimize pass when the operand types decide the dispatch at
+    # compile time: the routine, for a multi the chosen candidate, whose
+    # inline info, when it has any, is spliced in place of the operator call.
+    has Mu $!ct-inline-candidate;
+
+    # Set by the optimize pass when this smartmatch reduces to a literal
+    # comparison: the literal, the setting comparison, and the guard types.
+    has int $!litmatch;
+    has Mu $!litmatch-data;
+
+    # Set by the optimize pass when this smartmatch against a compile-time
+    # Pair reduces to asking the topic the method the key names.
+    has int $!pairmatch;
+    has Mu $!pairmatch-data;
+
+    # Set by the optimize pass when a junction operand of this comparison
+    # in boolean position unfolds to a short-circuit chain. Holds its side,
+    # the Junction type, the checks on the values, and whether it negates.
+    has int $!junction-fold;
+    has Mu $!junction-fold-junction;
+    has int $!junction-fold-guard;
+    has Mu $!junction-fold-type;
+    has int $!junction-fold-mask;
+    has Mu $!junction-fold-kinds;
+    has int $!junction-fold-negated;
+
+    # Set by the optimize pass when the smartmatch is decided outright in
+    # an argument position, where the node cannot be replaced.
+    has int $!smartmatch-folded;
+    has Mu $!smartmatch-fold-value;
+
+    # Set by the optimize pass on the assignment of a comma list to a plain
+    # array variable, for lowering to a direct build of the list internals.
+    has int $!lowered-array-init;
+
+    # Set by the optimize pass when this smartmatch reduces to a type check:
+    # the type matched against, and the Junction type for the runtime topic
+    # guard, or null when the matcher is Junction itself and needs no guard.
+    has int $!typematch;
+    has Mu $!typematch-type;
+    has Mu $!typematch-junction;
+
     method new(str $operator) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
@@ -550,28 +621,30 @@ class RakuAST::Infix
         @lookups
     }
 
-    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-PARSE(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
         my $resolved := $resolver.resolve-infix($!operator);
-        if $resolved {
-            self.set-resolution($resolved);
-        }
+        self.set-resolution($resolved) if $resolved;
         Nil
     }
 
     # Second chance to resolve operators in the setting
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
         unless self.is-resolved {
             my $resolved := $resolver.resolve-infix($!operator);
-            if $resolved {
-                self.set-resolution($resolved);
-            }
+            self.set-resolution($resolved) if $resolved;
         }
         True
     }
 
     method reducer-name() { self.properties.reducer-name }
 
-    # Returns True if this is a built-in short-circuit operator, and False if not.
+    # True if this is a built-in short-circuit operator, False if not.
     method short-circuit() {
         my str $kind := self.IMPL-SHORT-CIRCUIT-KIND;
         $kind && $kind ne 'xor' ?? True !! False
@@ -582,8 +655,15 @@ class RakuAST::Infix
     # IMPL-RESULT-NEEDS-ITERATION to keep being sunk.
     method is-pure(--> Bool) {
         my constant NP := nqp::hash(
-          ':=', 1, '≔', 1, '~~', 1, 'does', 1, '⚛=', 1,
-          '⚛+=', 1, '⚛-=', 1, '⚛−=', 1, 'xx', 1
+          ':=',   1,
+          '≔',    1,
+          '~~',   1,
+          'does', 1,
+          '⚛=',   1,
+          '⚛+=',  1,
+          '⚛-=',  1,
+          '⚛−=',  1,
+          'xx',   1
         );
         nqp::not_i(nqp::existskey(NP,$!operator))
     }
@@ -593,15 +673,21 @@ class RakuAST::Infix
     # sink, but the count is not always known at compile time.
     method IMPL-RESULT-NEEDS-ITERATION() { $!operator eq 'xx' }
 
-    method IMPL-OPERATOR() {
-        self.resolution.compile-time-value
-    }
+    method IMPL-OPERATOR() { self.resolution.compile-time-value }
 
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
+    method IMPL-THUNK-ARGUMENTS(
+               RakuAST::Resolver  $resolver,
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression *@operands,
+                            Bool :$meta
+    ) {
         my constant THUNKERS := nqp::hash(
-          'xx', 1, 'andthen', 1, 'orelse', 1, 'notandthen', 1,
-          'with', 1, 'without', 1
+          'xx',         1,
+          'andthen',    1,
+          'orelse',     1,
+          'notandthen', 1,
+          'with',       1,
+          'without',    1
         );
         if nqp::existskey(THUNKERS,$!operator) || $meta {
             my $thunky := self.properties.thunky;
@@ -624,26 +710,26 @@ class RakuAST::Infix
         #  2 = prime WhateverCode only
         #  3 = prime both Whatever and WhateverCode (default)
         my constant PRIMED := nqp::hash(
-            '...'        , 0,
-            '…'          , 0,
-            '...^'       , 0,
-            '…^'         , 0,
-            '^...'       , 0,
-            '^…'         , 0,
-            '^...^'      , 0,
-            '^…^'        , 0,
-            '='          , 0,
-            ':='         , 0,
-            '≔'          , 0,
-            ':'          , 0,
-            '~~'         , 1,
-            '∘'          , 1,
-            'o'          , 1,
-            '..'         , 2,
-            '..^'        , 2,
-            '^..'        , 2,
-            '^..^'       , 2,
-            'xx'         , 2,
+          '...',   0,
+          '…',     0,
+          '...^',  0,
+          '…^',    0,
+          '^...',  0,
+          '^…',    0,
+          '^...^', 0,
+          '^…^',   0,
+          '=',     0,
+          ':=',    0,
+          '≔',     0,
+          ':',     0,
+          '~~',    1,
+          '∘',     1,
+          'o',     1,
+          '..',    2,
+          '..^',   2,
+          '^..',   2,
+          '^..^',  2,
+          'xx',    2
         );
         # A short-circuit operator returns an operand as is or calls it with
         # the left side, so a Whatever or WhateverCode there is a value.
@@ -679,18 +765,17 @@ class RakuAST::Infix
     # where the operator compiles to a call of its routine.
     method IMPL-FIRST-TESTED-OPERAND(int $elems, Bool :$called) {
         my str $kind := self.IMPL-SHORT-CIRCUIT-KIND;
-        $kind && (!$called && $kind ne 'then'
-                   || self.is-resolved
-                        && nqp::istype(self.resolution, RakuAST::Declaration::External::Setting))
-          ?? 0 !! -1
+        $kind
+          && (!$called && $kind ne 'then'
+               || self.is-resolved
+                    && nqp::istype(
+                         self.resolution,
+                         RakuAST::Declaration::External::Setting
+                       )
+                 )
+          ??  0
+          !! -1
     }
-
-    # Set by the optimize pass when this smartmatch against a junction of
-    # types, in a position that only tests truth, reduces to a chain of
-    # type checks.
-    has int $!juncmatch;
-    has Mu $!juncmatch-data;
-    has Mu $!juncmatch-junction;
 
     method IMPL-SET-JUNCTION-TYPEMATCH(Mu $data, Mu $junction) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!juncmatch', 1);
@@ -703,27 +788,39 @@ class RakuAST::Infix
     # short-circuit operator yields an operand rather than dispatching
     # on the pair, and an adverb turns into a named argument the
     # analysis declines, so both keep the boxed form.
-    method IMPL-NATIVE-PAIRED-OPERAND(RakuAST::Expression $left, RakuAST::Expression $right, Mu :$adverb) {
+    method IMPL-NATIVE-PAIRED-OPERAND(
+      RakuAST::Expression  $left,
+      RakuAST::Expression  $right,
+                       Mu :$adverb
+    ) {
         $adverb || self.short-circuit
-            ?? nqp::null()
-            !! self.IMPL-NATIVE-PAIRED-LITERAL-OF($left, $right)
+          ?? nqp::null()
+          !! self.IMPL-NATIVE-PAIRED-LITERAL-OF($left, $right)
     }
 
-    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
+    method IMPL-INFIX-COMPILE(
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression  $left,
+             RakuAST::Expression  $right,
+           RakuAST::ColonPairish :$adverb
+    ) {
         # Hash value is negation flag
         my constant OP-SMARTMATCH := nqp::hash( '~~', 0, '!~~', 1 );
         my str $op := $!operator;
         if $op eq ':=' || $op eq '≔' {
             if $left.can-be-bound-to {
-                $left.IMPL-CHECKED-BIND-QAST($context, $right.IMPL-TO-QAST($context))
+                $left.IMPL-CHECKED-BIND-QAST(
+                  $context, $right.IMPL-TO-QAST($context)
+                )
             }
             else {
                 nqp::die('Cannot compile bind to ' ~ $left.HOW.name($left));
             }
         }
         elsif $op eq '=' {
-            my $left-qast := $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context));
+            my $left-qast := $left.IMPL-ADJUST-QAST-FOR-LVALUE(
+              $left.IMPL-TO-QAST($context)
+            );
             my $right-qast := $right.IMPL-TO-QAST($context);
             self.IMPL-ASSIGN-OP($left-qast, $right-qast);
         }
@@ -731,28 +828,34 @@ class RakuAST::Infix
             && !self.IMPL-REDUCED-SMARTMATCH
             && !nqp::istype($right, RakuAST::Var)
             && !$right.IMPL-IS-CONSTANT
-            && (!nqp::istype($left, RakuAST::ApplyInfix) || !nqp::istype($left.infix, RakuAST::OperatorProperties) || !$left.infix.properties.chain)
-        {
-            self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
+            && (!nqp::istype($left,RakuAST::ApplyInfix)
+                  || !nqp::istype($left.infix,RakuAST::OperatorProperties)
+                  || !$left.infix.properties.chain
+               ) {
+            self.IMPL-SMARTMATCH-QAST(
+              $context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op)
+            )
         }
         else {
-            my $native-literal := self.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb);
+            my $native-literal :=
+              self.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb);
             my $left-qast := $op eq '='
-                ?? $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context))
-                !! nqp::eqaddr($left, $native-literal)
-                    ?? $left.IMPL-TO-QAST-ARG($context)
-                    !! $left.IMPL-TO-QAST($context);
+              ?? $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context))
+              !! nqp::eqaddr($left, $native-literal)
+                ?? $left.IMPL-TO-QAST-ARG($context)
+                !! $left.IMPL-TO-QAST($context);
             # A reduced smartmatch never evaluates its matcher.
             my $right-qast := self.IMPL-REDUCED-SMARTMATCH
-                ?? nqp::null()
-                !! nqp::eqaddr($right, $native-literal)
-                    ?? $right.IMPL-TO-QAST-ARG($context)
-                    !! $right.IMPL-TO-QAST($context);
+              ?? nqp::null()
+              !! nqp::eqaddr($right, $native-literal)
+                ?? $right.IMPL-TO-QAST-ARG($context)
+                !! $right.IMPL-TO-QAST($context);
             my $qast := self.IMPL-INFIX-QAST($context, $left-qast, $right-qast);
             if $adverb {
                 my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
                 $val-ast.named($adverb.named-arg-name);
                 $qast.push($val-ast);
+
                 # The adverb is an argument of the call, evaluated after
                 # the positional ones, so the reference analysis runs
                 # again with it in place.
@@ -766,41 +869,19 @@ class RakuAST::Infix
         }
     }
 
-    # Set by the optimize pass when the operator's name still resolves to
-    # the setting routine it resolved to, so a meta-op formed over it can
-    # be a compile-time constant.
-    has int $!hop-constant;
-
     method IMPL-SET-HOP-CONSTANT(int $on) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!hop-constant', $on)
     }
 
     method IMPL-HOP-CONSTANT() { $!hop-constant }
 
-    # Set by the optimize pass on a chaining operator whose application is
-    # a chain of one link, so it compiles as a plain call. The chain op
-    # serves the protocol between links, and boxes its operands for it,
-    # where a call passes a native operand as it is.
-    has int $!lone-link;
-
     method IMPL-SET-LONE-LINK(int $on) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!lone-link', $on)
     }
 
-    # Set by the optimize pass when the resolved operator's lexical is bound
-    # once, so a chaining operator's callee lookup can be compiled as a
-    # static one the VM resolves a single time. A lone link compiles as a
-    # call and takes its static lookup from this mark as well.
-    has int $!chainstatic;
-
     method IMPL-SET-CHAINSTATIC(int $on) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!chainstatic', $on)
     }
-
-    # Set by the optimize pass when the resolved operator's lexical is bound
-    # once, so an operator call that does not chain compiles its callee
-    # lookup as a static one the VM resolves a single time.
-    has int $!callstatic;
 
     method IMPL-SET-CALLSTATIC(int $on) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!callstatic', $on)
@@ -811,11 +892,6 @@ class RakuAST::Infix
         $!callstatic || $!chainstatic ?? 'callstatic' !! 'call'
     }
 
-    # Set by the optimize pass when the operand types decide the dispatch at
-    # compile time: the routine, for a multi the chosen candidate, whose
-    # inline info, when it has any, is spliced in place of the operator call.
-    has Mu $!ct-inline-candidate;
-
     method IMPL-SET-CT-INLINE-CANDIDATE(Mu $routine) {
         nqp::bindattr(self, RakuAST::Infix, '$!ct-inline-candidate', $routine)
     }
@@ -824,36 +900,15 @@ class RakuAST::Infix
         nqp::bindattr(self, RakuAST::Infix, '$!ct-inline-candidate', nqp::null())
     }
 
-    # Set by the optimize pass when this smartmatch reduces to a literal
-    # comparison: the literal, the setting comparison, and the guard types.
-    has int $!litmatch;
-    has Mu $!litmatch-data;
-
     method IMPL-SET-LITMATCH(Mu $data) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!litmatch', 1);
         nqp::bindattr(self, RakuAST::Infix, '$!litmatch-data', $data);
     }
 
-    # Set by the optimize pass when this smartmatch against a compile-time
-    # Pair reduces to asking the topic the method the key names.
-    has int $!pairmatch;
-    has Mu $!pairmatch-data;
-
     method IMPL-SET-PAIRMATCH(Mu $data) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!pairmatch', 1);
         nqp::bindattr(self, RakuAST::Infix, '$!pairmatch-data', $data);
     }
-
-    # Set by the optimize pass when a junction operand of this comparison
-    # in boolean position unfolds to a short-circuit chain. Holds its side,
-    # the Junction type, the checks on the values, and whether it negates.
-    has int $!junction-fold;
-    has Mu $!junction-fold-junction;
-    has int $!junction-fold-guard;
-    has Mu $!junction-fold-type;
-    has int $!junction-fold-mask;
-    has Mu $!junction-fold-kinds;
-    has int $!junction-fold-negated;
 
     method IMPL-SET-JUNCTION-FOLD(int $side, Mu $junction, int $guard, Mu $type, int $mask, Mu $kinds, int $negated) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!junction-fold', $side);
@@ -876,31 +931,15 @@ class RakuAST::Infix
         nqp::bindattr_i(self, RakuAST::Infix, '$!juncmatch', 0);
     }
 
-    # Set by the optimize pass when the smartmatch is decided outright in
-    # an argument position, where the node cannot be replaced.
-    has int $!smartmatch-folded;
-    has Mu $!smartmatch-fold-value;
-
     method IMPL-SET-SMARTMATCH-FOLD(Mu $value) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!smartmatch-folded', 1);
         nqp::bindattr(self, RakuAST::Infix, '$!smartmatch-fold-value', $value);
     }
 
 
-    # Set by the optimize pass on the assignment of a comma list to a plain
-    # array variable, for lowering to a direct build of the list internals.
-    has int $!lowered-array-init;
-
     method IMPL-SET-LOWERED-ARRAY-INIT(int $on) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!lowered-array-init', $on)
     }
-
-    # Set by the optimize pass when this smartmatch reduces to a type check:
-    # the type matched against, and the Junction type for the runtime topic
-    # guard, or null when the matcher is Junction itself and needs no guard.
-    has int $!typematch;
-    has Mu $!typematch-type;
-    has Mu $!typematch-junction;
 
     method IMPL-SET-TYPEMATCH(Mu $type, Mu $junction) {
         nqp::bindattr_i(self, RakuAST::Infix, '$!typematch', 1);
@@ -911,8 +950,11 @@ class RakuAST::Infix
     # Whether the optimize pass reduced this smartmatch to a form that
     # never evaluates the matcher.
     method IMPL-REDUCED-SMARTMATCH() {
-        $!smartmatch-folded || $!typematch || $!litmatch || $!pairmatch
-            || $!juncmatch
+        $!smartmatch-folded
+          || $!typematch
+          || $!litmatch
+          || $!pairmatch
+          || $!juncmatch
     }
 
     # A smartmatch the optimize pass reduced to a type check. The topic is
@@ -920,38 +962,49 @@ class RakuAST::Infix
     # A concrete Junction topic autothreads over the matcher's ACCEPTS, so it
     # takes BOOLIFY-ACCEPTS, as the setting's smartmatch does for that case;
     # any other topic takes the plain type check.
-    method IMPL-TYPEMATCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast) {
+    method IMPL-TYPEMATCH-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast
+    ) {
         my int $negated := $!operator eq '!~~';
+        my str $name := QAST::Node.unique('typematch_topic');
+
         $context.ensure-sc($!typematch-type);
-        my str $tmp := QAST::Node.unique('typematch_topic');
-        my $topic := QAST::Var.new( :name($tmp), :scope<local> );
-        my $istype := QAST::Op.new( :op<istype>, $topic,
-            QAST::WVal.new( :value($!typematch-type) ) );
-        $istype := QAST::Op.new( :op<not_i>, $istype ) if $negated;
-        my $check := QAST::Op.new( :op<hllbool>, $istype );
+        my $topic  := QAST::Var.new(:$name, :scope<local> );
+        my $istype := QAST::Op.new(:op<istype>,
+          $topic,
+          QAST::WVal.new(:value($!typematch-type))
+        );
+        $istype := QAST::Op.new(:op<not_i>, $istype) if $negated;
+        my $check := QAST::Op.new(:op<hllbool>, $istype);
+
         unless nqp::isnull($!typematch-junction) {
             $context.ensure-sc($!typematch-junction);
             my $negate-value := nqp::hllboolfor($negated, 'Raku');
             $context.ensure-sc($negate-value);
-            $check := QAST::Op.new(
-                :op<if>,
-                QAST::Op.new(
-                    :op<if>,
-                    QAST::Op.new( :op<istype>, $topic,
-                        QAST::WVal.new( :value($!typematch-junction) ) ),
-                    QAST::Op.new( :op<isconcrete>, $topic )),
-                QAST::Op.new(
-                    :op<callmethod>, :name<BOOLIFY-ACCEPTS>,
-                    $topic,
-                    QAST::WVal.new( :value($!typematch-type) ),
-                    QAST::WVal.new( :value($negate-value) )),
-                $check);
+            $check := QAST::Op.new(:op<if>,
+              QAST::Op.new(:op<if>,
+                QAST::Op.new(:op<istype>,
+                  $topic,
+                  QAST::WVal.new(:value($!typematch-junction))
+                ),
+                QAST::Op.new(:op<isconcrete>, $topic)
+              ),
+              QAST::Op.new(:op<callmethod>, :name<BOOLIFY-ACCEPTS>,
+                $topic,
+                QAST::WVal.new(:value($!typematch-type)),
+                QAST::WVal.new(:value($negate-value))
+              ),
+              $check
+            );
         }
         QAST::Stmts.new(
-            QAST::Op.new( :op<bind>,
-                QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
-                $left-qast),
-            $check)
+          QAST::Op.new(:op<bind>,
+            QAST::Var.new(:$name, :scope<local>, :decl<var>),
+            $left-qast
+          ),
+          $check
+        )
     }
 
     method IMPL-INFIX-QAST(
@@ -980,16 +1033,8 @@ class RakuAST::Infix
           'defined-or', 'defor'
         );
 
-        my $name;
-        if self.is-resolved || !$*COMPILING_CORE_SETTING {
-            $name := self.resolution.lexical-name;
-        }
-        else {
-            $name := '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
-        }
-
         # Directly mapping
-        my str $op := QAST-OP{self.IMPL-SHORT-CIRCUIT-KIND};
+        my str $op := nqp::atkey(QAST-OP,self.IMPL-SHORT-CIRCUIT-KIND);
         if $op {
             return QAST::Op.new(:$op, $left-qast, $right-qast);
         }
@@ -1003,135 +1048,168 @@ class RakuAST::Infix
             return $inlined unless nqp::isnull($inlined);
         }
 
-        my str $call-op := self.properties.chain && !$!lone-link
-            ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
-            !! (($!callstatic || $!chainstatic) ?? 'callstatic' !! 'call');
+        my str $name := self.is-resolved || !$*COMPILING_CORE_SETTING
+          ?? self.resolution.lexical-name
+          !! '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
+        my str $call-op := self.properties.chain
+          && !$!lone-link
+          ?? (                $!chainstatic ?? 'chainstatic' !! 'chain')
+          !! ($!callstatic || $!chainstatic ?? 'callstatic'  !! 'call');
 
         # A comparison in boolean position with a junction operand
         # unfolds to short-circuit comparisons per eigenstate.
         if $!junction-fold {
-            my $folded := self.IMPL-JUNCTION-FOLD-QAST($context, $call-op,
-                $name, $left-qast, $right-qast,
-                $!junction-fold, $!junction-fold-junction, $!junction-fold-guard,
-                $!junction-fold-type, $!junction-fold-mask, $!junction-fold-kinds,
-                $!junction-fold-negated);
+            my $folded := self.IMPL-JUNCTION-FOLD-QAST(
+              $context,
+              $call-op,
+              $name,
+              $left-qast,
+              $right-qast,
+              $!junction-fold, $!junction-fold-junction, $!junction-fold-guard,
+              $!junction-fold-type, $!junction-fold-mask, $!junction-fold-kinds,
+              $!junction-fold-negated
+            );
             return $folded unless nqp::isnull($folded);
         }
 
         # Otherwise, it's called by finding the lexical sub to call, and
         # compiling it as chaining if required.
-        self.IMPL-SIMPLIFY-REF-ARGS(QAST::Op.new(
-            :op($call-op),
-            :$name,
+        self.IMPL-SIMPLIFY-REF-ARGS(
+          QAST::Op.new(:op($call-op), :$name,
             $left-qast,
             $right-qast
         ))
     }
 
-    method IMPL-ASSIGN-OP(QAST::Node $lhs_ast, QAST::Node $rhs_ast) {
+    method IMPL-ASSIGN-OP(QAST::Node $left-qast, QAST::Node $right-qast) {
         my int $initialize;
         # The _i64 and _u64 are only used on backends that emulate int64/uint64
-        my constant NATIVE-OPS := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i', 'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
-        my $past;
-        my $var_sigil;
-        if nqp::istype($lhs_ast, QAST::Var) {
-            $var_sigil := nqp::substr($lhs_ast.name, 0, 1);
-            if $var_sigil eq '%' {
-                if nqp::can($rhs_ast,'name') {
-                    my $name := $rhs_ast.name;
-                    if $name ~~ /^ '&circumfix:<' ':'? '{ }>' $/ {
-                        self.add-worry("Useless use of hash composer on right side of hash assignment; did you mean := instead?");
-                    }
+        my constant NATIVE-OPS := ['',
+          'assign_i', 'assign_n', 'assign_s',
+          'assign_i', 'assign_i', 'assign_i',
+          'assign_u', 'assign_u', 'assign_u', 'assign_u'
+        ];
+
+        my constant REFS := nqp::hash(
+          'lexicalref',   1,
+          'attributeref', 1
+        );
+
+        my constant CALLS := nqp::hash(
+          'call',       1,
+          'callstatic', 1
+        );
+
+        my constant CIRCUMFIXES := nqp::hash(
+          '&postcircumfix:<[ ]>',  1,
+          '&postcircumfix:<{ }>',  1,
+          '&postcircumfix:<[; ]>', 1, 
+          '&postcircumfix:<{; }>', 1
+        );
+
+        my $qast;
+        my str $sigil;
+        if nqp::istype($left-qast,QAST::Var) {
+            $sigil := nqp::substr($left-qast.name, 0, 1);
+            if $sigil eq '%' && nqp::can($right-qast,'name') {
+                my str $name := $right-qast.name;
+                if $name ~~ /^ '&circumfix:<' ':'? '{ }>' $/ {
+                    self.add-worry("Useless use of hash composer on right side of hash assignment; did you mean := instead?");
                 }
             }
         }
 
         # get the sigil out of the my %h is Set = case
-        elsif nqp::istype($lhs_ast,QAST::Op) && $lhs_ast.op eq 'bind'
-          && nqp::istype($lhs_ast[0], QAST::Var) {
-            $var_sigil := nqp::substr($lhs_ast[0].name, 0, 1);
+        elsif nqp::istype($left-qast,QAST::Op) && $left-qast.op eq 'bind'
+          && nqp::istype(nqp::atpos($left-qast,0),QAST::Var) {
+            $sigil := nqp::substr(nqp::atpos($left-qast,0).name, 0, 1);
         }
 
-        if nqp::istype($lhs_ast, QAST::Var)
-                && (my int $spec := nqp::objprimspec($lhs_ast.returns)) {
+        my $returns := $left-qast.returns;
+        if nqp::istype($left-qast,QAST::Var)
+          && (my int $primspec := nqp::objprimspec($returns)) {
+
             # Native assignment is only possible to a reference; complain now
             # rather than at runtime since we'll inevitably fail.
-            my $scope := $lhs_ast.scope;
-            if $scope ne 'lexicalref' && $scope ne 'attributeref' {
+            unless nqp::existskey(REFS,$left-qast.scope) {
                 nqp::die("RO assignment");
-                $lhs_ast.node.typed_sorry('X::Assignment::RO::Comp',
-                    variable => $lhs_ast.name);
+                $left-qast.node.typed_sorry('X::Assignment::RO::Comp',
+                  :variable($left-qast.name)
+                );
             }
-            $past := QAST::Op.new(
-                :op(nqp::atpos(NATIVE-OPS,$spec)), :returns($lhs_ast.returns),
-                $lhs_ast, $rhs_ast);
+            $qast := QAST::Op.new(:op(nqp::atpos(NATIVE-OPS,$primspec)),
+              :$returns,
+              $left-qast,
+              $right-qast
+            );
         }
-        elsif $var_sigil eq '@' || $var_sigil eq '%' {
-            my $lowered := nqp::null();
+
+        elsif $sigil eq '@' || $sigil eq '%' {
             if $!lowered-array-init {
-                my $store := QAST::Op.new(
-                    :op('callmethod'), :name('STORE'),
-                    $lhs_ast, $rhs_ast);
+                my $store := QAST::Op.new(:op<callmethod>, :name<STORE>,
+                  $left-qast,
+                  $right-qast
+                );
                 $store.nosink(1);
-                $lowered := self.IMPL-ARRAY-INIT-QAST($lhs_ast, $rhs_ast, $store);
+                my $lowered := self.IMPL-ARRAY-INIT-QAST(
+                  $left-qast, $right-qast, $store
+                );
+                return $lowered unless nqp::isnull($lowered);
             }
-            return $lowered unless nqp::isnull($lowered);
 
             # While the scalar container store op would end up calling .STORE,
             # it may do it in a nested runloop, which gets pricey. This is a
             # simple heuristic check to try and avoid that by calling .STORE.
-            $past := QAST::Op.new(
-                :op('callmethod'), :name('STORE'),
-                $lhs_ast, $rhs_ast);
+            $qast := QAST::Op.new(:op<callmethod>, :name<STORE>,
+              $left-qast,
+              $right-qast
+            );
 
             # let STORE know if this is the first time
-            if $initialize {
-                $past.push(QAST::WVal.new(
-                  :named('INITIALIZE'),
-                  :value(True),
-                ));
-            }
-            $past.nosink(1);
+            $qast.push(QAST::WVal.new(:value(True), :named<INITIALIZE>))
+              if $initialize;
+            $qast.nosink(1);
         }
-        elsif $var_sigil eq '$' {
+
+        elsif $sigil eq '$' {
             # If it's a $ scalar, we can assume it's some kind of scalar
             # container with a container spec, so can go directly for a
             # Scalar assign op (via. a level of indirection so that any
             # platform that wants to optimize this somewhat can).
-            $past := QAST::Op.new( :op('p6assign'), $lhs_ast, $rhs_ast );
+            $qast := QAST::Op.new(:op<p6assign>, $left-qast, $right-qast);
         }
-        elsif nqp::istype($lhs_ast, QAST::Op) && ($lhs_ast.op eq 'call' || $lhs_ast.op eq 'callstatic') &&
-              ((my $lhs_ast_name := $lhs_ast.name) eq '&postcircumfix:<[ ]>' ||
-               $lhs_ast_name eq '&postcircumfix:<{ }>' ||
-               $lhs_ast_name eq '&postcircumfix:<[; ]>' ||
-               $lhs_ast_name eq '&postcircumfix:<{; }>') &&
-                +@($lhs_ast) == 2 { # no adverbs
-            $lhs_ast.push($rhs_ast);
-            $past := $lhs_ast;
-            $past.nosink(1);
+
+        elsif nqp::istype($left-qast,QAST::Op) {
+            my $op := $left-qast.op;
+
+            if nqp::existskey(CALLS,$op)
+              && nqp::existskey(CIRCUMFIXES,$left-qast.name)
+              && nqp::elems($left-qast) == 2 { # no adverbs
+                $left-qast.push($right-qast);
+                $qast := $left-qast;
+                $qast.nosink(1);
+            }
+            elsif $op eq 'hllize' {
+                my $first := nqp::atpos($left-qast,0);
+                if nqp::istype($first,QAST::Op)
+                  && nqp::elems($first) == 2 { # no adverbs
+                    if nqp::existskey(CALLS,$first.op)
+                      && nqp::existskey(POSTCIRCUMFIXES,$first.name) {
+                        $first.push($right-qast);
+                        $qast := $left-qast;
+                        $qast.nosink(1);
+                    }
+                    elsif $first.ann('direct-pos') {
+                        $first.name('ASSIGN-POS');
+                        $first.push($right-qast);
+                        $qast := $left-qast;
+                        $qast.nosink(1);
+                    }
+                }
+            }
         }
-        elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'hllize' &&
-                nqp::istype($lhs_ast[0],QAST::Op) && ($lhs_ast[0].op eq 'call' || $lhs_ast[0].op eq 'callstatic') &&
-                ($lhs_ast[0].name eq '&postcircumfix:<[ ]>' || $lhs_ast[0].name eq '&postcircumfix:<{ }>') &&
-                +@($lhs_ast[0]) == 2 { # no adverbs
-            $lhs_ast[0].push($rhs_ast);
-            $past := $lhs_ast;
-            $past.nosink(1);
-        }
-        # A subscript compiled as its own AT-POS call takes the value the
-        # way the subscript's assignment candidate would, as ASSIGN-POS.
-        elsif nqp::istype($lhs_ast, QAST::Op) && $lhs_ast.op eq 'hllize' &&
-                nqp::istype($lhs_ast[0], QAST::Op) && $lhs_ast[0].ann('direct-pos') &&
-                +@($lhs_ast[0]) == 2 {
-            $lhs_ast[0].name('ASSIGN-POS');
-            $lhs_ast[0].push($rhs_ast);
-            $past := $lhs_ast;
-            $past.nosink(1);
-        }
-        else {
-            $past := QAST::Op.new(:op('p6store'), $lhs_ast, $rhs_ast);
-        }
-        $past
+
+        $qast // QAST::Op.new(:op<p6store>, $left-qast, $right-qast);
     }
 
     method IMPL-INFIX-FOR-META-QAST(

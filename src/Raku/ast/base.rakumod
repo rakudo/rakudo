@@ -322,7 +322,10 @@ class RakuAST::Node {
         }
 
         my @children;
-        self.visit-children(-> $child { nqp::push(@children, $child) });
+        self.visit-children(-> $child {
+            nqp::push(@children,$child)
+              if nqp::istype($child,RakuAST::IMPL::Optimizable);
+        });
         for @children -> $child {
             my $result := self.IMPL-OPTIMIZE-EXPRESSION($resolver, $child);
             self.IMPL-REPLACE-CHILD($child, $result)

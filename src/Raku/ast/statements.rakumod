@@ -1127,6 +1127,7 @@ class RakuAST::Statement::Expression
   does RakuAST::BlockStatementSensitive
   does RakuAST::BeginTime
   does RakuAST::CheckTime
+  does RakuAST::IMPL::Optimizable
 {
     has RakuAST::Expression $.expression;
     has RakuAST::StatementModifier::Condition $.condition-modifier;
@@ -1362,6 +1363,7 @@ class RakuAST::Statement::IfWith
   does RakuAST::SinkPropagator
   does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::IMPL::ImmediateBlockUser
+  does RakuAST::IMPL::Optimizable
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
@@ -1578,6 +1580,7 @@ class RakuAST::Statement::Unless
   does RakuAST::SinkPropagator
   does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::IMPL::ImmediateBlockUser
+  does RakuAST::IMPL::Optimizable
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -1702,6 +1705,7 @@ class RakuAST::Statement::Loop
   does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::BeginTime
   does RakuAST::IMPL::ImmediateBlockUser
+  does RakuAST::IMPL::Optimizable
 {
     # Set by the optimize pass, allowing a native-int condition to be
     # tested directly.
@@ -2194,6 +2198,7 @@ class RakuAST::Statement::When
   does RakuAST::ImplicitBlockSemanticsProvider
   does RakuAST::ImplicitLookups
   does RakuAST::BeginTime
+  does RakuAST::IMPL::Optimizable
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;

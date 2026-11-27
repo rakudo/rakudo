@@ -37,8 +37,6 @@ class RakuAST::Literal
 
     method expression() { self }
     method return-type() { $!value.WHAT }
-    method native-type-flag() { Nil }
-    method IMPL-NATIVE-LITERAL-KIND() { self.native-type-flag }
     method compile-time-value() { $!value }
     method IMPL-CAN-INTERPRET() { True }
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
@@ -48,8 +46,13 @@ class RakuAST::Literal
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        self.add-sunk-worry($resolver, 'constant ' ~ self.type-name ~ ' ' ~ (self.origin ?? self.origin.Str !! $!value.gist))
-            if self.sunk;
+        self.add-sunk-worry(
+          $resolver,
+          'constant '
+            ~ self.type-name
+            ~ ' '
+            ~ (self.origin ?? self.origin.Str !! $!value.gist)
+        ) if self.sunk;
     }
 
     method ast-type {
@@ -61,10 +64,11 @@ class RakuAST::Literal
             )
           )
         );
-        $type.set-resolution:
-            RakuAST::Declaration::ResolvedConstant.new(
-                compile-time-value => $!value.WHAT
-            );
+        $type.set-resolution(
+          RakuAST::Declaration::ResolvedConstant.new(
+            :compile-time-value($!value.WHAT)
+          )
+        );
         $type
     }
 
@@ -72,7 +76,7 @@ class RakuAST::Literal
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
-        QAST::WVal.new( :$value )
+        QAST::WVal.new(:$value)
     }
 }
 
@@ -86,33 +90,30 @@ class RakuAST::Constant
 class RakuAST::IntLiteral
   is RakuAST::Literal
 {
-    # Whether the value is exactly representable as a native int. Asking how
-    # the Int is stored answers a different question: the small-value slot is
-    # narrower than a native int, so a value that fits one may still be held
-    # as a bigint. The round trip through the native settles it, and declines
-    # rather than propagates should the unbox refuse a value it cannot hold.
-    method IMPL-FITS-NATIVE-INT() {
-        my $value := self.value;
-        my int $big;
-        try $big := nqp::isbig_I($value);
-        return 1 unless $big;
-        my int $fits;
-        try $fits := nqp::iseq_I(
-            nqp::box_i(nqp::unbox_i($value), nqp::what($value)), $value);
-        $fits
-    }
+    # The primspec value of the value (0 indicates non-native int)
+    method IMPL-PRIMSPEC() {
 
-    # A value that does not fit a native int cannot take part in a native
-    # dispatch.
-    method native-type-flag() { self.IMPL-FITS-NATIVE-INT ?? 1 !! Nil }
+        # Any failure indicates no fit in native int
+        CATCH { return 0 }
+
+        my $value := self.value;
+        # Big Int value may still fit in native, so check for reboxed equality
+        nqp::isbig_I($value)
+          ?? nqp::iseq_I(
+                nqp::box_i(nqp::unbox_i($value),nqp::what($value)),
+                $value
+             )
+          !! 1
+    }
 
     method type-name() { 'integer' }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.value;
         $context.ensure-sc($value);
-        my $wval := QAST::WVal.new( :$value );
-        self.IMPL-FITS-NATIVE-INT
+        my $wval := QAST::WVal.new(:$value);
+
+        self.IMPL-PRIMSPEC
           ?? QAST::Want.new(
                $wval,
                'Ii',
@@ -125,7 +126,7 @@ class RakuAST::IntLiteral
 class RakuAST::NumLiteral
   is RakuAST::Literal
 {
-    method native-type-flag() { 2 }
+    method IMPL-PRIMSPEC() { 2 }
 
     method type-name() { 'floating-point number' }
 
@@ -155,7 +156,7 @@ class RakuAST::VersionLiteral
 class RakuAST::StrLiteral
   is RakuAST::Literal
 {
-    method native-type-flag() { 3 }
+    method IMPL-PRIMSPEC() { 3 }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.value;
@@ -274,17 +275,16 @@ class RakuAST::QuotedString
         }
     }
 
-    # A constant quoted string compiles to the same Want shape a str literal
-    # does, so it takes part in native pairing the same way. A processor
-    # changes what the value compiles to, so any processor declines.
-    method IMPL-NATIVE-LITERAL-KIND() {
-        if $!processors {
-            Nil
-        }
-        else {
-            my $value := self.literal-value;
-            nqp::isconcrete($value) && nqp::istype($value, Str) ?? 3 !! Nil
-        }
+    # No processors implies a native string if literal value is a Str
+    method IMPL-PRIMSPEC() {
+        nqp::if(
+          $!processors,
+          0,
+          nqp::stmts(
+            (my $value := self.literal-value),
+            nqp::isconcrete($value) && nqp::istype($value,Str) && 3
+          )
+        )
     }
 
     method ast-type {

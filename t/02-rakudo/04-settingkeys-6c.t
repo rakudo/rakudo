@@ -497,7 +497,6 @@ my %allowed = (
     Q{&wordcase},
     Q{&words},
     Q{&zip},
-    Q{AST},
     Q{Allomorph},
     Q{Any},
     Q{Array},

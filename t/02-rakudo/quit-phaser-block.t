@@ -1,5 +1,4 @@
 use Test;
-use experimental :rakuast;
 
 plan 4;
 

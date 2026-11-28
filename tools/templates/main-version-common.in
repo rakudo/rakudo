@@ -7,7 +7,7 @@
 
     # Though language-revisions key provides more information
     # can-language-versions is used for speeding up and ordering
-    # Perl6::Compiler.can_langauge_versions method
+    # Raku::Compiler.can_langauge_versions method
     $config<can-language-versions>
         := nqp::list(@for_specmods('@lrev_with_mod@', )@);
     $config<language-revisions> := nqp::hash( 

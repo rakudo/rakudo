@@ -1,7 +1,7 @@
 use Test;
 
 # RakuAST's compile-time trial-bind in RakuAST::Call::Name::PERFORM-CHECK
-# must skip type-capture generics (Perl6::Metamodel::GenericHOW). They
+# must skip type-capture generics (Metamodel::GenericHOW). They
 # bind to a real type at role/sub instantiation time and match the
 # called sub's signature then. Without the skip, calling any sub from
 # a role body with a type-capture argument errored at parse time.

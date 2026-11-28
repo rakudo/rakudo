@@ -82,7 +82,7 @@ class RakuAST::CompUnit
           $eval ?? $outer-cu ?? 2 !! 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
           $global-package-how =:= NQPMu
-            ?? Perl6::Metamodel::PackageHOW
+            ?? Metamodel::PackageHOW
             !! $global-package-how
         );
         nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
@@ -99,18 +99,18 @@ class RakuAST::CompUnit
         nqp::bindattr($obj, RakuAST::CompUnit, '$!resolver', $resolver);
 
         if $*COMPILING_CORE_SETTING == 1 {
-            Perl6::Metamodel::Configuration.set_language_revision_type(BOOTLanguageRevision);
+            Metamodel::Configuration.set_language_revision_type(BOOTLanguageRevision);
         }
 
         # If CompUnit's language revision is not set explicitly then guess it
         my $revision := $language-revision
-            ?? Perl6::Metamodel::Configuration.language_revision_object($language-revision)
+            ?? Metamodel::Configuration.language_revision_object($language-revision)
             !! nqp::isconcrete(
                  my $setting-rev := nqp::getlexrelcaller(
                    nqp::ctxcallerskipthunks(nqp::ctx()), 'CORE-SETTING-REV'
                  )
                ) ?? $setting-rev
-                 !! Perl6::Metamodel::Configuration.language_revision_object(
+                 !! Metamodel::Configuration.language_revision_object(
                       nqp::getcomp("Raku").language_revision);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision', $revision);
 
@@ -631,7 +631,7 @@ class RakuAST::CompUnit
         my @pre-deserialize;
         # When compiling a CORE.<spec>.setting (setting-name shaped like
         # 'NULL.<spec>'), emit a pre-deserialize task that calls
-        # ModuleLoader.load_module('Perl6::BOOTSTRAP::v6<spec>') so the
+        # ModuleLoader.load_module('Raku::BOOTSTRAP::v6<spec>') so the
         # runtime registers BOOTSTRAP's SC before our SC tries to deserialize
         # references to BOOTSTRAP types. The traditional grammar emits this
         # via World.load_module_early. Pushed before the setting-loading task
@@ -643,7 +643,7 @@ class RakuAST::CompUnit
         {
             nqp::push(@pre-deserialize,
                 self.IMPL-BOOTSTRAP-LOADING-QAST(
-                    "Perl6::BOOTSTRAP::v6" ~ nqp::substr($!setting-name, 5, 1)));
+                    "Raku::BOOTSTRAP::v6" ~ nqp::substr($!setting-name, 5, 1)));
         }
         nqp::push(@pre-deserialize, self.IMPL-SETTING-LOADING-QAST($top-level, $!setting-name))
             if $!setting-name && $!setting-name ne 'NULL.c';
@@ -758,7 +758,7 @@ class RakuAST::CompUnit
     }
 
     # Emit a QAST::Stmt that, at runtime, ensures the Raku ModuleLoader is
-    # available: load Perl6/ModuleLoader's bytecode via NQP's ModuleLoader,
+    # available: load Raku/ModuleLoader's bytecode via NQP's ModuleLoader,
     # then register it under the Raku HLL. Mirrors
     # World.raku_module_loader_code in src/Perl6/World.nqp.
     method IMPL-RAKU-MODULE-LOADER-CODE-QAST() {
@@ -776,7 +776,7 @@ class RakuAST::CompUnit
                     QAST::SVal.new( :value('nqp') ),
                     QAST::SVal.new( :value('ModuleLoader') )
                 ),
-                QAST::SVal.new( :value('Perl6::ModuleLoader') )
+                QAST::SVal.new( :value('Raku::ModuleLoader') )
             ))
     }
 

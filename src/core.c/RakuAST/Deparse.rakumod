@@ -201,7 +201,6 @@ class RakuAST::Deparse {
     method slang(Str:D $slang) {
         my $basename := $slang.split(":").head;
         qq:to/CODE/.EVAL
-use experimental :rakuast;
 use RakuAST::Deparse::L10N::$slang;
 RakuAST::Deparse::L10N::$basename
 CODE

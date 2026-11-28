@@ -11,7 +11,7 @@ my $raku;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -833,7 +833,7 @@ my custom-role CustomParsedRole {
 CODE
     nok $parsed.raku.contains(/<< how >> \s* '=>'/),
       "parsed: the declarator's HOW is not written in the .raku";
-    my $role := EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku);
+    my $role := EVAL(EVAL $parsed.raku);
     is $role.HOW.^name, 'CustomRoleHOW',
       "parsed: the .raku makes the role with the declarator's HOW";
     is-deeply $role.new.m, 42, 'parsed: the role the .raku makes puns';

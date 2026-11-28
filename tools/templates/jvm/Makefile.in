@@ -21,7 +21,7 @@ RUNTIME_JAR = rakudo-runtime.jar
 @bpv(BAT)@    = @runner_suffix@
 
 # This is addition to J_ALL_METAMODEL_SOURCES
-@bsv(METAMODEL_SOURCES)@ = @nfp(src/vm/jvm/Perl6/Metamodel/JavaHOW.nqp)@
+@bsv(METAMODEL_SOURCES)@ = @nfp(src/vm/jvm/Raku/Metamodel/JavaHOW.nqp)@
 
 @bpv(ALL_TARGETS)@ = eval-client.pl @bpm(DEBUG_RUNNER)@
 
@@ -36,7 +36,7 @@ RUNTIME_JAR = rakudo-runtime.jar
   perl6-j \
   perl6-debug-j
 
-@bpv(ML_EXTRA)@ = @nfp(src/vm/jvm/Perl6/JavaModuleLoader.nqp)@
+@bpv(ML_EXTRA)@ = @nfp(src/vm/jvm/Raku/JavaModuleLoader.nqp)@
 @bpv(RAKUDO_DEPS_EXTRA)@ = $(RUNTIME_JAR)
 
 @bpv(NQP_FLAGS_EXTRA)@ = --javaclass=perl6

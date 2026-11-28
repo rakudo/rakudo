@@ -210,7 +210,7 @@ sub guard-type-concreteness($tracker) {
 {
     # Shortcut for throwing type errors on assignment
     sub assign-type-error($desc, $got) {
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
           'X::TypeCheck::Assignment', "Type check failed in assignment",
           :symbol($desc.name), :$desc, :$got, :expected($desc.of)
         );
@@ -832,7 +832,7 @@ sub guard-type-concreteness($tracker) {
 {
     # Helper sub to throw type check error
     sub bind-error($got, $expected) {
-        Perl6::Metamodel::Configuration.throw_or_die(
+        Metamodel::Configuration.throw_or_die(
             'X::TypeCheck::Binding',
             "Type check failed in binding; expected '"
               ~ nqp::how_nd($expected).name($expected)
@@ -997,7 +997,7 @@ nqp::register('raku-sink', -> $capture {
         if nqp::isconcrete($sink)
           && (
               !nqp::eqaddr($sink, Mu.HOW.find_method(Mu, 'sink'))
-              || nqp::istype(nqp::how_nd($sinkee), Perl6::Metamodel::NativeRefHOW)
+              || nqp::istype(nqp::how_nd($sinkee), Metamodel::NativeRefHOW)
           ) {
 
             # Need to actually do a call to the sink method. Since sink
@@ -1106,10 +1106,10 @@ sub report-method-not-found($obj, $name, $class, $how, $containerized) {
       ~ "'";
 
     $name eq 'STORE'
-      ?? Perl6::Metamodel::Configuration.throw_or_die(
+      ?? Metamodel::Configuration.throw_or_die(
            'X::Assignment::RO', $message, :value($obj)
          )
-      !! Perl6::Metamodel::Configuration.throw_or_die(
+      !! Metamodel::Configuration.throw_or_die(
            'X::Method::NotFound',
            $message,
            :invocant($obj),
@@ -1132,7 +1132,7 @@ nqp::register('raku-meth-call', -> $capture {
     my $obj := nqp::captureposarg($capture, 0);
     my $how := nqp::how_nd($obj);
     if nqp::syscall('dispatcher-inline-cache-size') >= $MEGA-METH-CALLSITE-SIZE
-      && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
+      && nqp::istype($how, Metamodel::ClassHOW) {
         nqp::delegate('raku-meth-call-mega', $capture);
     }
 
@@ -1142,7 +1142,7 @@ nqp::register('raku-meth-call', -> $capture {
         # See if we're making the method lookup on a pun; if so,
         # rewrite the args to do the call on the pun.
         my str $name := nqp::captureposarg_s($capture, 1);
-        if nqp::istype($how, Perl6::Metamodel::RolePunning) &&
+        if nqp::istype($how, Metamodel::RolePunning) &&
           $how.is_method_call_punned($obj, $name) {
             nqp::guard('type', nqp::track('arg', $capture, 0));
 
@@ -1198,7 +1198,7 @@ nqp::register('raku-meth-call-mega', -> $capture {
     nqp::syscall('dispatcher-do-not-install')
       unless nqp::isconcrete(nqp::getattr(
                $how,
-               Perl6::Metamodel::ClassHOW,
+               Metamodel::ClassHOW,
                '$!cached_all_method_table'
              ));
 
@@ -1216,9 +1216,9 @@ nqp::register('raku-meth-call-mega', -> $capture {
         # A table that came from deserialization carries the tag of the
         # process that built it, so it fails this guard and gets rebuilt
         nqp::guard('literal', nqp::track('attr',
-          $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table_epoch'));
+          $Thow, Metamodel::ClassHOW, '$!cached_all_method_table_epoch'));
         my $Ttable := nqp::track('attr',
-          $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
+          $Thow, Metamodel::ClassHOW, '$!cached_all_method_table');
         my $Tname := nqp::track('arg', $capture, 1);
         my $Tresolution := nqp::syscall(
           'dispatcher-index-tracked-lookup-table', $Ttable, $Tname
@@ -1316,7 +1316,7 @@ nqp::register('raku-meth-call-qualified', -> $capture {
            )
          )
       # Otherwise, exception
-      !! Perl6::Metamodel::Configuration.throw_or_die(
+      !! Metamodel::Configuration.throw_or_die(
            'X::Method::InvalidQualifier',
            "Cannot dispatch to method $name on "
              ~ nqp::how_nd($type).name($type)
@@ -2825,7 +2825,7 @@ sub multi-no-match-handler(
              ), 0, Junction.HOW.find_method(Junction, 'AUTOTHREAD')
            )
          )
-      !! Perl6::Metamodel::Configuration.throw_or_die(
+      !! Metamodel::Configuration.throw_or_die(
            'X::Multi::NoMatch',
             "Cannot call " ~ $target.name() ~ "; no signatures match",
            :dispatcher($target),
@@ -2841,7 +2841,7 @@ sub multi-ambiguous-handler($ambig-call, $target, $capture) {
         nqp::push(@ambiguous, $ambig-call.candidate);
     }
 
-    Perl6::Metamodel::Configuration.throw_or_die(
+    Metamodel::Configuration.throw_or_die(
       'X::Multi::Ambiguous',
       "Ambiguous call to " ~ $target.name(),
       :dispatcher($target),
@@ -3494,8 +3494,8 @@ nqp::register('raku-multi-remove-proxies',
 # wrappers) or something that hopefully has a CALL-ME.
 my $late-coerce := -> $target, $val {
     my $how := $target.HOW;
-    my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
-        (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($target)
+    my $coercion-type := Metamodel::CoercionHOW.new_type(
+        (nqp::istype($how, Metamodel::ClassHOW) && $how.is_pun($target)
             ?? $target.HOW.pun_source($target)
             !! $target.WHAT),
         $val.WHAT);
@@ -3667,7 +3667,7 @@ nqp::register('raku-invoke', -> $capture {
 
             # Ensure there's no nameds.
             if nqp::capturehasnameds($capture) {
-                Perl6::Metamodel::Configuration.throw_or_die(
+                Metamodel::Configuration.throw_or_die(
                     'X::Coerce::Impossible',
                     "Cannot coerce to " ~ nqp::how_nd($code).name($code) ~ " with named arguments",
                     :target-type($code.WHAT),
@@ -3689,8 +3689,8 @@ nqp::register('raku-invoke', -> $capture {
             else {
                 # Form the coercion type.
                 my $how := nqp::how_nd($code);
-                my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
-                    (nqp::istype($how, Perl6::Metamodel::ClassHOW)
+                my $coercion-type := Metamodel::CoercionHOW.new_type(
+                    (nqp::istype($how, Metamodel::ClassHOW)
                        && $how.is_pun($code)
                        ?? $how.pun_source($code)
                        !! $code.WHAT
@@ -3724,7 +3724,7 @@ nqp::register('raku-invoke', -> $capture {
             # list to be coerced, and then delegate to a code object to
             # do the rest of the work.
             if nqp::capturehasnameds($capture) {
-                Perl6::Metamodel::Configuration.throw_or_die(
+                Metamodel::Configuration.throw_or_die(
                     'X::Coerce::Impossible',
                     "Cannot coerce to " ~ nqp::how_nd($code).name($code) ~ " with named arguments",
                     :target-type($code.WHAT),
@@ -3732,8 +3732,8 @@ nqp::register('raku-invoke', -> $capture {
                 );
             }
             my $how := nqp::how_nd($code);
-            my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
-                (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($code)
+            my $coercion-type := Metamodel::CoercionHOW.new_type(
+                (nqp::istype($how, Metamodel::ClassHOW) && $how.is_pun($code)
                     ?? $how.pun_source($code)
                     !! $code.WHAT),
                 List);
@@ -4011,7 +4011,7 @@ nqp::register('raku-find-meth', -> $capture {
     # Looks like megamorphic
     if nqp::syscall('dispatcher-inline-cache-size') >= $MEGA-METH-CALLSITE-SIZE
       && !$throw
-      && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
+      && nqp::istype($how, Metamodel::ClassHOW) {
         nqp::delegate('raku-find-meth-mega', $capture);
     }
 
@@ -4060,7 +4060,7 @@ nqp::register('raku-find-meth-mega', -> $capture {
     # Don't install if we do't have a method table yet
     nqp::syscall('dispatcher-do-not-install')
       unless nqp::isconcrete(nqp::getattr(
-        $how, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table'
+        $how, Metamodel::ClassHOW, '$!cached_all_method_table'
       ));
 
     # Make sure there's a method table from now on
@@ -4070,7 +4070,7 @@ nqp::register('raku-find-meth-mega', -> $capture {
     # process that built it, so it fails this guard and gets rebuilt
     my $Thow := nqp::track('how', nqp::track('arg', $capture, 0));
     nqp::guard('literal', nqp::track('attr',
-      $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table_epoch'));
+      $Thow, Metamodel::ClassHOW, '$!cached_all_method_table_epoch'));
 
     # Track the HOW and then the attribute holding the table.  Do the
     # lookup of the method in the table we found in the meta-object.
@@ -4080,7 +4080,7 @@ nqp::register('raku-find-meth-mega', -> $capture {
       $capture,
       nqp::syscall('dispatcher-index-tracked-lookup-table',
         nqp::track('attr',
-          $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table'
+          $Thow, Metamodel::ClassHOW, '$!cached_all_method_table'
         ),
         nqp::track('arg', $capture, 1)
       )
@@ -4128,7 +4128,7 @@ nqp::register('raku-get-code-outer-ctx', -> $capture {
 # the name of the caller dispatcher.
 nqp::register('raku-resume-error', -> $capture {
     my str $redispatcher := nqp::getcodename(nqp::callercode());
-    Perl6::Metamodel::Configuration.throw_or_die(
+    Metamodel::Configuration.throw_or_die(
       'X::NoDispatcher',
       "$redispatcher is not in the dynamic scope of a dispatcher",
       :$redispatcher
@@ -4811,7 +4811,7 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
     # Pun a role in $nominal_target into a class
     my sub pun-nominal-target() {
         CATCH {
-            Perl6::Metamodel::Configuration.throw_or_die(
+            Metamodel::Configuration.throw_or_die(
               'X::Coerce::Role',
               "Coercion from " ~ $value.HOW.name($value)
                 ~ " into " ~ $nominal_target.HOW.name($nominal_target)
@@ -4908,7 +4908,7 @@ nqp::register('raku-coercion', -> $capture {
     # around a coercion, then pull out the actual coercion type we need.
     my $coercion    := nqp::captureposarg($capture, 0);
     my $coercionHOW := $coercion.HOW;
-    unless nqp::istype($coercionHOW, Perl6::Metamodel::CoercionHOW) {
+    unless nqp::istype($coercionHOW, Metamodel::CoercionHOW) {
         $coercion    := $coercionHOW.wrappee($coercion, :coercion);
         $coercionHOW := nqp::how_nd($coercion);
     }
@@ -5070,7 +5070,7 @@ nqp::register('raku-rv-typecheck-generic', -> $capture {
 
 # Helper sub to return a typecheck error
 sub return_error($got, $expected) {
-    Perl6::Metamodel::Configuration.throw_or_die(
+    Metamodel::Configuration.throw_or_die(
       'X::TypeCheck::Return',
       "Type check failed for return value; expected '"
         ~ $expected.HOW.name($expected)

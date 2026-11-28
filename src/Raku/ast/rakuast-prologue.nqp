@@ -92,7 +92,7 @@
     # sunk still inline.
     my class ReturnCheck {
         method failure($value, $type, str $name) {
-            Perl6::Metamodel::Configuration.throw_or_die('X::TypeCheck::Return',
+            Metamodel::Configuration.throw_or_die('X::TypeCheck::Return',
                 "Type check failed for return value of '$name'; expected "
                     ~ $type.HOW.name($type) ~ " but got "
                     ~ (nqp::isnull($value) ?? 'null' !! $value.HOW.name($value)),

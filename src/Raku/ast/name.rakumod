@@ -500,23 +500,35 @@ class RakuAST::Name::Part::Simple
     }
 
     # The final part's stash key carries its sigil and, for a variable like
-    # `our @.foo`, its twigil, plus any colonpair suffix as in `infix:<+>`. The
-    # container is bound into the stash under the full canonicalized name, so the
-    # key needs all of them. Earlier parts are keyed by bare name.
-    method IMPL-STASH-KEY(int $is-final, str $sigil, str $twigil?, str $suffix?) {
-        return $!name unless $is-final;
-        my str $key := $sigil ?? $sigil ~ $twigil ~ $!name !! $!name;
-        $key ~ $suffix
+    # `our @.foo`, its twigil, plus any colonpair suffix as in `infix:<+>`.
+    # The container is bound into the stash under the full canonicalized name,
+    # so the key needs all of them. Earlier parts are keyed by bare name.
+    method IMPL-STASH-KEY(
+      int $is-final, str $sigil, str $twigil?, str $suffix?
+    ) {
+        $is-final
+          ?? ($sigil ?? $sigil ~ $twigil ~ $!name !! $!name) ~ $suffix
+          !! $!name
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil, str :$twigil, Bool :$global-fallback, str :$suffix) {
-        my $op := QAST::Op.new(
-            :op('callmethod'),
-            :name($is-final ?? 'AT-KEY' !! 'package_at_key'),
-            $stash-qast,
-            QAST::SVal.new( :value(self.IMPL-STASH-KEY($is-final, $sigil, $twigil, $suffix)) )
+    method IMPL-QAST-PACKAGE-LOOKUP-PART(
+      RakuAST::IMPL::QASTContext  $context,
+                              Mu  $qast,
+                             Int  $is-final,
+                             str :$sigil,
+                             str :$twigil,
+                            Bool :$global-fallback,
+                             str :$suffix
+    ) {
+        my $op := QAST::Op.new(:op<callmethod>,
+          :name($is-final ?? 'AT-KEY' !! 'package_at_key'),
+          $qast,
+          QAST::SVal.new(:value(self.IMPL-STASH-KEY(
+            $is-final, $sigil, $twigil, $suffix)
+          ))
         );
-        $op.push(QAST::WVal.new(:value(True), :named<global_fallback>)) if $is-final && $global-fallback;
+        $op.push(QAST::WVal.new(:value(True), :named<global_fallback>))
+          if $is-final && $global-fallback;
         $op
     }
 

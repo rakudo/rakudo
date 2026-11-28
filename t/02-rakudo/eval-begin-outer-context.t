@@ -1,5 +1,4 @@
 use MONKEY-SEE-NO-EVAL;
-use experimental :rakuast;
 use Test;
 use nqp;
 

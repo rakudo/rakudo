@@ -1,5 +1,4 @@
 use v6.e.PREVIEW;
-use experimental :rakuast;
 use Test;
 
 plan 4;

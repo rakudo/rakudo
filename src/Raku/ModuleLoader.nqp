@@ -1,0 +1,411 @@
+my $rakudo-module-debug := nqp::atkey(nqp::getenvhash(), 'RAKUDO_MODULE_DEBUG');
+my $DEBUG := nqp::stmts((my $debug-radix := nqp::radix(10, $rakudo-module-debug, 0, 0)),($debug-radix[2] != -1))
+?? ?$debug-radix[0] !! ?nqp::chars($rakudo-module-debug);
+sub DEBUG(*@strs) {
+    my $err := stderr();
+    $err.print(" " ~ $rakudo-module-debug ~ nqp::x(" ", ($rakudo-module-debug - 1) * 4) ~ " RMD: ");
+    for @strs { $err.print($_) };
+    $err.print("\n");
+    1;
+}
+
+class Raku::ModuleLoader does Raku::ModuleLoaderVMConfig {
+    my %modules_loaded;
+    my %settings_loaded;
+
+    my %language_module_loaders := nqp::hash(
+        'NQP', nqp::gethllsym('nqp', 'ModuleLoader'),
+    );
+
+    method register_language_module_loader($lang, $loader, :$force) {
+        nqp::existskey(%language_module_loaders, $lang) && !$force
+          ?? nqp::die("Language loader already registered for $lang")
+          !! nqp::bindkey(%language_module_loaders, $lang, $loader);
+    }
+
+    method absolute_path($path) { $path }
+
+    method ctxsave() {
+        $*MAIN_CTX := nqp::ctxcaller(nqp::ctx);
+        $*CTXSAVE := 0;
+    }
+
+    method search_path() { self.vm_search_paths }
+
+    method load_module(
+      $module_name,
+      %opts,
+      *@GLOBALish,
+      :$line,
+      :$file,
+      :%chosen
+    ) {
+        DEBUG("going to load $module_name") if $DEBUG;
+
+        if nqp::eqat($module_name, 'Raku::BOOTSTRAP::v6', 0) {
+            my str $file := nqp::join('/', nqp::split('::', $module_name))
+              ~ self.file-extension;
+
+            my @prefixes := self.search_path;
+            if (my int $m := nqp::elems(@prefixes)) {
+                my int $i;
+                while $i < $m {
+                    my str $prefix := nqp::atpos(@prefixes, $i);
+                    if nqp::stat("$prefix/$file", 0) {
+                        $file := "$prefix/$file";
+                        $i := $m;  # last without control exception
+                    }
+                    else {
+                        ++$i;
+                    }
+                }
+            }
+            my $ctx := nqp::atkey(%modules_loaded, $file);
+
+            # Not loaded yet, need to load now
+            if nqp::isnull($ctx) {
+                my %*COMPILING := nqp::hash;
+                my $*CTXSAVE   := self;
+                my $*MAIN_CTX;
+
+                my $preserve_global := nqp::gethllsym('Raku', 'GLOBAL');
+                nqp::loadbytecode($file);
+                nqp::bindkey(
+                  %modules_loaded, $file, $ctx := $*MAIN_CTX
+                );
+                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
+
+                my $UNIT := nqp::ctxlexpad($ctx);
+                self.merge_globals(
+                  nqp::atpos(@GLOBALish, 0).WHO,
+                  nqp::atkey($UNIT, 'GLOBALish').WHO
+                ) if nqp::elems(@GLOBALish)
+                  && nqp::existskey($UNIT, 'GLOBALish');
+
+                $UNIT
+            }
+
+            # Already loaded
+            else {
+                nqp::ctxlexpad($ctx)
+            }
+        }
+
+        # Not a bootstrap file
+        else {
+            my str $from := nqp::ifnull(nqp::atkey(%opts, 'from'), 'NQP');
+            my $loader   := nqp::atkey(%language_module_loaders, $from);
+
+            if nqp::isnull($loader) {
+                nqp::die("Do not know how to load code from $from");
+            }
+
+            # A loader is available
+            else {
+                # We expect that custom module loaders will accept a Stash, only
+                # NQP expects a hash and therefor needs special handling.
+                if $from eq 'NQP' {
+                    if nqp::elems(@GLOBALish) {
+                        my $target := nqp::knowhow.new_type(:name('GLOBALish'));
+                        nqp::setwho(
+                          $target,
+                          nqp::atpos(@GLOBALish, 0).WHO.FLATTENABLE_HASH
+                        );
+                        $loader.load_module($module_name, $target);
+                    }
+                    else {
+                        $loader.load_module($module_name);
+                    }
+                }
+                else {
+                    $loader.load_module(
+                      $module_name, %opts, |@GLOBALish, :$line, :$file
+                    )
+                }
+            }
+        }
+    }
+
+    # This is a first cut of the globals merger. For another approach,
+    # see sorear++'s work in Niecza. That one is likely more "pure"
+    # than this, but that would seem to involve copying too, and the
+    # details of exactly what that entails are a bit hazy to me at the
+    # moment. We'll see how far this takes us.
+    my str $raku_stub_how_name := 'Metamodel::PackageHOW';
+    my str $nqp_stub_how_name  := 'KnowHOW';
+    sub is_HOW_stub($target) {
+         my $targetHOW := $target.HOW;
+         my str $name  := $targetHOW.HOW.name($targetHOW);
+         $name eq $raku_stub_how_name || $name eq $nqp_stub_how_name
+    }
+
+    my $stash_type := nqp::null;
+    method merge_globals($target, $source) {
+
+        # Try to get the type for HLL stashes, unless we have that already
+        if nqp::isnull($stash_type) {
+            my $config := nqp::gethllsym('Raku', 'METAMODEL_CONFIGURATION');
+            $stash_type := $config.stash_type unless nqp::isnull($config);
+        }
+
+#?if !moar
+        if !nqp::isnull($stash_type) && nqp::istype($target, $stash_type) {
+#?endif
+#?if moar
+        if nqp::istype($target, $stash_type) {
+#?endif
+            # merge-symbols will loop back on this method again, but would
+            # lock-protect itself first.
+            $target.merge-symbols($source);
+        }
+
+        # There's something to be merged with a hash
+        elsif stash_hash($source) -> %source {
+
+            # Create lookup of original target state, and create
+            # sorted list of symbols so that builds will be consistent
+            my %known_symbols := nqp::clone(stash_hash($target));
+            my @keys          := sorted_keys(%source);
+
+            # Start off merging top-level symbols. Easy when there's no
+            # overlap. Otherwise, we need to recurse.
+            my int $m := nqp::elems(@keys);
+            my int $i;
+            while $i < $m {
+                my str $symbol := nqp::atpos_s(@keys, $i);
+                my     $value  := nqp::atkey(%source, $symbol);
+
+                # A potential conflict
+                if nqp::existskey(%known_symbols, $symbol) {
+                    my $existing := nqp::atkey($target, $symbol);
+
+                    # Merging identity
+                    if nqp::eqaddr(
+                         nqp::decont($existing),
+                         nqp::decont($value)  # Stash entries are containerized
+                       ) {
+                        # No problemo; a symbol can't conflict with itself.
+                    }
+
+                    # Since the source is a stub, it doesn't matter whether
+                    # the target is also a stub or not.  In either case,
+                    # it is fine to merge source symbols into target.
+                    elsif is_HOW_stub($value) {
+                        self.merge_globals($existing.WHO, $value.WHO);
+                    }
+
+                    # The tricky case: here the interesting package is the
+                    # one in the module. So we merge the other way around
+                    # and install that as the result.
+                    elsif is_HOW_stub($existing) {
+                        self.merge_globals($value.WHO, $existing.WHO);
+                        nqp::bindkey($target, $symbol, $value);
+                    }
+
+                    # "Latest wins" semantics for subroutines
+                    elsif nqp::eqat($symbol, '&', 0) {
+                        nqp::bindkey($target, $symbol, $value);
+                    }
+
+                    # Potentially do other conflict resolution in the future
+                    else {
+                        nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $symbol");
+                    }
+                }
+
+                # Does not exist, so can be added
+                else {
+                    nqp::bindkey($target, $symbol, $value);
+                }
+
+                ++$i;
+            }
+        }
+    }
+
+    method merge_globals_lexically($world, $target, $source) {
+        my %source := stash_hash($source);
+
+        if (my int $m := nqp::elems(%source)) {
+
+            # Set up known symbols for this target
+            my %known_symbols;
+            my $iter := nqp::iterator(stash_hash($target.symtable));
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                %known_symbols,
+                nqp::iterkey_s(nqp::shift($iter)),
+                nqp::atkey(nqp::iterval($iter), 'value')
+              )
+            );
+
+            # Start off merging top-level symbols. Easy when there's no
+            # overlap. Otherwise, we need to recurse.
+            my @keys := sorted_keys(%source);
+            my int $i;
+            while $i < $m {
+                my str $symbol := nqp::atpos_s(@keys, $i);
+                my     $value  := nqp::atkey(%source, $symbol);
+                my int $outer;
+
+                unless nqp::existskey(%known_symbols, $symbol) {
+                    try {
+                        nqp::bindkey(
+                          %known_symbols,
+                          $symbol,
+                          $world.find_single_symbol($symbol)
+                        );
+                        $outer := 1;
+                    }
+                }
+
+                # We have a potential collision
+                if nqp::existskey(%known_symbols, $symbol) {
+                    my $existing := nqp::atkey(%known_symbols, $symbol);
+
+                    # No problemo; a symbol can't conflict with itself.
+                    if nqp::eqaddr(
+                         nqp::decont($existing),
+                         nqp::decont($value)
+                       ) {
+                    }
+
+                    # Since the source is a stub, it doesn't matter whether
+                    # the target is also a stub or not.  In either case,
+                    # it is fine to merge source symbols into target.
+                    elsif is_HOW_stub($value) {
+                        self.merge_globals($existing.WHO, $value.WHO);
+                    }
+
+                    # The tricky case: here the interesting package is the
+                    # one in the module. So we merge the other way around
+                    # and install that as the result.
+                    elsif is_HOW_stub($existing) {
+                        self.merge_globals($value.WHO, $existing.WHO);
+                        $target.symbol($symbol, :scope<lexical>, :$value);
+                    }
+
+                    # ok to overwrite non-stub symbols of outer lexical scopes
+                    # or "latest wins" semantics for functions
+                    elsif $outer || nqp::eqat($symbol, '&', 0) {
+                        $target.symbol($symbol, :scope<lexical>, :$value);
+                    }
+
+                    # Alas
+                    else {
+                        nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $symbol");
+                    }
+                }
+
+                # Not known yet, add it
+                else {
+                    $target.symbol($symbol, :scope<lexical>, :$value);
+                    nqp::push(
+                      nqp::atpos($target, 0),
+                      QAST::Var.new(:name($symbol),
+                        :scope<lexical>, :decl<static>, :$value
+                     )
+                    );
+                    $world.add_object_if_no_sc($value);
+                }
+
+                ++$i;
+            }
+        }
+    }
+
+    # Transforms NULL.<release> into CORE.<previous-release>,
+    # CORE.<release> into CORE.<previous-release>
+    method previous_setting_name ($setting_name, :$base = 'CORE') {
+        nqp::ifnull(
+          nqp::atkey(
+            nqp::atkey(
+              nqp::gethllsym('default', 'SysConfig').rakudo-build-config,
+              'prev-setting-name'
+            ),
+            $setting_name
+          ),
+          nqp::die("Don't know setting $setting_name")
+        )
+    }
+
+    method transform_setting_name ($setting_name) {
+        self.previous_setting_name($setting_name, base => 'NULL');
+    }
+
+    my $setting-lock := NQPLock.new;
+    method load_setting(str $setting_name) {
+        my $setting;
+
+        unless $setting_name eq 'NULL.c' {
+            CATCH {
+                nqp::unlock($setting-lock);
+                nqp::can($_, 'rethrow') ?? $_.rethrow !! nqp::rethrow($_);
+            }
+            nqp::lock($setting-lock);
+
+            DEBUG("Requested for settings $setting_name") if $DEBUG;
+            $setting_name := self.transform_setting_name($setting_name);
+
+            # First, pre-load previous setting.
+            my str $prev_setting_name :=
+              self.previous_setting_name($setting_name);
+            my $prev_setting;
+
+            # Don't do this for .c for which $setting_name doesn't change
+            $prev_setting := self.load_setting($prev_setting_name)
+              unless $prev_setting_name eq $setting_name;
+
+            # This setting not loaded yet
+            $setting := nqp::atkey(%settings_loaded, $setting_name);
+            if nqp::isnull($setting) {
+                DEBUG("Loading settings $setting_name") if $DEBUG;
+                # Find it.
+                my str $path := self.find_setting($setting_name);
+
+                # Load it.
+                my $*CTXSAVE := self;
+                my $*MAIN_CTX;
+                my $preserve_global := nqp::gethllsym('Raku','GLOBAL');
+
+                DEBUG("Loading bytecode from $path") if $DEBUG;
+                nqp::scwbdisable;
+                nqp::loadbytecode($path);
+                nqp::scwbenable;
+
+                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
+                $setting := $*MAIN_CTX;
+
+                nqp::die(
+                  "Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?"
+                ) unless nqp::defined($setting);
+
+                nqp::forceouterctx(nqp::ctxcode($setting), $prev_setting)
+                  if nqp::defined($prev_setting);
+                nqp::bindkey(%settings_loaded, $setting_name, $setting);
+
+                DEBUG("Settings $setting_name loaded") if $DEBUG;
+            }
+
+            # Already loaded
+            elsif $DEBUG {
+                DEBUG("Settings $setting_name already loaded");
+            }
+
+            nqp::unlock($setting-lock);
+        }
+
+        $setting
+    }
+
+    sub stash_hash($pkg) {
+        nqp::ishash($pkg) ?? $pkg !! $pkg.FLATTENABLE_HASH
+    }
+}
+
+# We stash this in the raku HLL namespace, just so it's easy to
+# locate. Note this makes it invisible inside Raku itself.
+nqp::bindhllsym('Raku', 'ModuleLoader', Raku::ModuleLoader);
+
+# vim: expandtab sw=4

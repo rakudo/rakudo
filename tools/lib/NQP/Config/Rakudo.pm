@@ -187,7 +187,7 @@ sub parse_lang_specs {
       or self->sorry("Can't open $tmpl: $!");
 
     my @revs;    # Array to preserve the order or specs
-    my @specs;   # Perl6 spec letters
+    my @specs;   # Raku spec letters
     my $ln        = 0;
     my %flag_name = ( '-' => 'deprecate', '!' => 'require', );
     my $fail      = sub {
@@ -533,7 +533,7 @@ sub clean_old_p6_libs {
         my $lib_dir    = File::Spec->rel2abs(
             File::Spec->catdir(
                 $nqp_config->{'nqp::prefix'},
-                'share', 'nqp', 'lib', 'Perl6'
+                'share', 'nqp', 'lib', 'Raku'
             )
         );
 

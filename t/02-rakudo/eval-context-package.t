@@ -1,5 +1,4 @@
 use MONKEY-SEE-NO-EVAL;
-use experimental :rakuast;
 use Test;
 
 # An EVAL takes $?PACKAGE from its context when that declares one. A

@@ -19,14 +19,14 @@ my constant @nr = "","== 0","== 0e0","nqp::isnull_s","","","","","","","== 0";
 
 # HOW name mapping to syntax
 my %HOW2syntax = (
-  "Perl6::Metamodel::ClassHOW"               => 'class',
-  "Perl6::Metamodel::EnumHOW"                => 'enum',
-  "Perl6::Metamodel::GrammarHOW"             => 'grammar',
-  "Perl6::Metamodel::ParametricRoleGroupHOW" => 'role',
+  "Metamodel::ClassHOW"               => 'class',
+  "Metamodel::EnumHOW"                => 'enum',
+  "Metamodel::GrammarHOW"             => 'grammar',
+  "Metamodel::ParametricRoleGroupHOW" => 'role',
 );
 sub HOW(\obj --> Str:D) {
     my $name := obj.HOW.^name;
-    %HOW2syntax{$name} // $name.subst("Perl6::Metamodel::")
+    %HOW2syntax{$name} // $name.subst("Metamodel::")
 }
 
 # text of BUILDPLAN of given object/type

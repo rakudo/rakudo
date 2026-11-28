@@ -1,7 +1,6 @@
 use nqp;
 use Test;
 use MONKEY-SEE-NO-EVAL;
-use experimental :rakuast;
 
 plan 33;
 

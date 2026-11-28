@@ -86,7 +86,7 @@ RakuAST::Name.new(
   )
 )
 CODE
-    is-deeply EVAL("use experimental :rakuast; " ~ .raku).colonpairs.elems, 1, 'round trips through .raku';
+    is-deeply EVAL(.raku).colonpairs.elems, 1, 'round trips through .raku';
     .add-colonpair(RakuAST::ColonPair::True.new('y'));
     is-deeply .colonpairs.elems, 2, 'a colonpair can still be added';
 }
@@ -134,7 +134,7 @@ RakuAST::Term::Name.new(
 CODE
     is-deeply EVAL($_), Int, 'AST: looks up the type';
     is-deeply EVAL(.DEPARSE), Int, 'Str: looks up the type';
-    is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE,
+    is-deeply EVAL(.raku).DEPARSE, .DEPARSE,
       'round trips through .raku';
 }
 
@@ -154,7 +154,7 @@ subtest "indirect name lookup as a term" => {
     else {
         skip 'the legacy frontend does not parse an indirect name term', 1;
     }
-    is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE,
+    is-deeply EVAL(.raku).DEPARSE, .DEPARSE,
       'round trips through .raku';
 }
 
@@ -170,7 +170,7 @@ subtest "name with a colonpair holding an expression" => {
       )
     );
     is-deeply .DEPARSE, 'Foo:ver($v)', 'deparses the value in parens';
-    is-deeply EVAL("use experimental :rakuast; " ~ .raku).DEPARSE, .DEPARSE,
+    is-deeply EVAL(.raku).DEPARSE, .DEPARSE,
       'round trips through .raku';
 }
 

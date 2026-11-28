@@ -49,7 +49,7 @@ role RakuAST::ContainerCreator {
         # so it is not version-gated.
         if self.IMPL-HAS-EXPLICIT-CONTAINER-BASE-TYPE {
             my $type := $!explicit-container-base-type-ast.meta-object;
-            nqp::eqaddr($type.HOW, Perl6::Metamodel::DefiniteHOW)
+            nqp::eqaddr($type.HOW, Metamodel::DefiniteHOW)
               ?? $type.HOW.base_type($type)
               !! $type
         }

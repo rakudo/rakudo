@@ -1,37 +1,24 @@
-use Perl6::Grammar;
-use Perl6::Actions;
 use Raku::Grammar;
 use Raku::Actions;
-use Perl6::Compiler;
-use Perl6::SysConfig;
+use Raku::Compiler;
+use Raku::SysConfig;
 
 # Initialize Rakudo runtime support.
 nqp::p6init();
 
 my %rakudo-build-config := nqp::hash();
 hll-config(%rakudo-build-config);
-nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-config));
+nqp::bindhllsym('default', 'SysConfig', Raku::SysConfig.new(%rakudo-build-config));
 
 # Create and configure compiler object.
-my $comp := Perl6::Compiler.new();
+my $comp := Raku::Compiler.new();
 $comp.language('Raku');
-# We want legacy
-if nqp::existskey(nqp::getenvhash,"RAKUDO_RAKUAST")
-  && nqp::iseq_i(nqp::atkey(nqp::getenvhash,"RAKUDO_RAKUAST"),0) {
-    nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'legacy');
-    $comp.parsegrammar(Perl6::Grammar);
-    $comp.parseactions(Perl6::Actions);
-    $comp.addstage('syntaxcheck', :before<ast>);
-    $comp.addstage('optimize', :after<ast>);
-}
-else {
-    nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'rakuast');
-    $comp.parsegrammar(Raku::Grammar);
-    $comp.parseactions(Raku::Actions);
-    $comp.addstage('syntaxcheck', :before<ast>);
-    $comp.addstage('qast', :after<ast>);
-    $comp.addstage('optimize', :before<qast>);
-}
+nqp::bindhllsym('Raku', 'COMPILER-FRONTEND', 'rakuast');
+$comp.parsegrammar(Raku::Grammar);
+$comp.parseactions(Raku::Actions);
+$comp.addstage('syntaxcheck', :before<ast>);
+$comp.addstage('qast', :after<ast>);
+$comp.addstage('optimize', :before<qast>);
 
 my $*OMIT-SOURCE := nqp::getenvhash()<RAKUDO_OMIT_SOURCE>;
 

@@ -10,7 +10,7 @@ my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -1059,7 +1059,7 @@ CODE
     is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     is-deeply $ast.DEPARSE, $deparsed, 'deparse after BEGIN time';
-    is-deeply EVAL('use experimental :rakuast; ' ~ $ast.raku).DEPARSE,
+    is-deeply EVAL($ast.raku).DEPARSE,
       $deparsed, 'deparse of the .raku after BEGIN time';
 }
 
@@ -1481,7 +1481,7 @@ CODE
       'an undefined only capture rejects an instance';
     throws-like { 'sub f (::T:X $x) { }'.AST }, X::InvalidTypeSmiley,
       'an unknown smiley on a capture is reported';
-    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $undefined.AST.raku), Int,
+    is-deeply EVAL(EVAL $undefined.AST.raku), Int,
       'Raku: an undefined only capture binds a type object';
 
     # sub f (::T:D) { T }; f(Int)
@@ -1500,7 +1500,7 @@ sub f (::T:_ $x) {
 }
 f(Int)
 CODE
-    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $any.AST.raku), Int,
+    is-deeply EVAL(EVAL $any.AST.raku), Int,
       'Raku: a capture with an any definedness smiley binds a type object';
     throws-like { 'sub f (::T:D:U $x) { }'.AST }, X::MultipleTypeSmiley,
       'two smileys on a capture are reported';

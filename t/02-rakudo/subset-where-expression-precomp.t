@@ -1,7 +1,6 @@
 use lib <t/02-rakudo/test-packages>;
 use Test;
 use nqp;
-use experimental :rakuast;
 use SubsetWhereExpression;
 use SubsetWhereExpressionThunks;
 

@@ -1,2 +1,2 @@
-src/Perl6/bootstrap.d/BOOTSTRAP.nqp
-src/Perl6/bootstrap.d/EXPORTHOW.nqp
+src/Raku/bootstrap.d/BOOTSTRAP.nqp
+src/Raku/bootstrap.d/EXPORTHOW.nqp

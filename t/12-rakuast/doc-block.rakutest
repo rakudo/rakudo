@@ -9,7 +9,7 @@ my $raku;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -820,7 +820,7 @@ CODE
 =for item :numbered :allow<B> :nested
 text
 CODE
-    is-deeply EVAL('use experimental :rakuast; ' ~ $mapped.raku).DEPARSE,
+    is-deeply EVAL($mapped.raku).DEPARSE,
       $mapped.DEPARSE, 'map: the .raku keeps the order';
     lives-ok { EVAL RakuAST::StatementList.new($mapped) },
       'map: the block compiles';
@@ -850,7 +850,7 @@ CODE
     SOURCE
     is-deeply $table.statements.head.config-keys, <caption allow header-row>,
       'parsed table: the keys written come first';
-    is-deeply EVAL('use experimental :rakuast; ' ~ $table.raku).DEPARSE,
+    is-deeply EVAL($table.raku).DEPARSE,
       $table.DEPARSE, 'parsed table: the .raku keeps the order';
     lives-ok { EVAL $table }, 'parsed table: the block compiles';
     is-deeply $table.DEPARSE, Q:to/CODE/, 'parsed table: deparse';

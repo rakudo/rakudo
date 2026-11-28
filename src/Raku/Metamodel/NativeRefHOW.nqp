@@ -1,0 +1,75 @@
+#- Metamodel::NativeRefHOW -----------------------------------------------------
+class Metamodel::NativeRefHOW
+    does Metamodel::Naming
+    does Metamodel::BUILDALL
+    does Metamodel::Documenting
+    does Metamodel::Composing
+    does Metamodel::Versioning
+    does Metamodel::Stashing
+    does Metamodel::MultipleInheritance
+    does Metamodel::C3MRO
+    does Metamodel::MROBasedMethodDispatch
+    does Metamodel::MROBasedTypeChecking
+{
+    has     $!type;
+    has     $!refkind;
+    has int $!repr_composed;
+
+    my $archetypes := Metamodel::Archetypes.new(:nominal, :inheritable);
+    method archetypes($XXX?) { $archetypes }
+
+    method new_type(*%_) {
+        my $HOW    := self.new;
+        my $target := nqp::settypehll(nqp::newtype($HOW, 'NativeRef'), 'Raku');
+
+        $HOW.set_identity($target, %_);
+        $HOW.add_stash($target);
+    }
+
+    method compose($target, *%_) {
+        $target := nqp::decont($target);
+
+        self.compose_repr($target);
+        self.compute_mro($target);
+        self.publish_method_cache($target);
+        self.publish_type_cache($target);
+        self.set_composed;
+        $target
+    }
+
+    method compose_repr($target) {
+        unless $!repr_composed {
+            nqp::composetype(nqp::decont($target), nqp::hash(
+              'nativeref', nqp::hash(
+                'type',    nqp::decont($!type),
+                'refkind', $!refkind // 'unknown'
+              )
+            ));
+            $!repr_composed := 1;
+        }
+    }
+
+    method set_native_type($XXX, $type   ) { $!type    := $type    }
+    method set_ref_kind(   $XXX, $refkind) { $!refkind := $refkind }
+
+    method native_type($XXX?) { $!type    }
+    method ref_kind($XXX?)    { $!refkind }
+
+    my constant METHOD_TABLE := nqp::hash('new',
+      nqp::getstaticcode(sub (*@_, *%_) {
+        nqp::die('Cannot instantiate a native reference type')
+      })
+    );
+    my constant SUBMETHOD_TABLE := nqp::hash;
+
+    method method_table(   $XXX?) { METHOD_TABLE    }
+    method submethod_table($XXX?) { SUBMETHOD_TABLE }
+    method declares_method($XXX, str $name) {
+        $name eq 'new'
+    }
+    method code_of_method( $XXX, str $name) {
+        nqp::atkey(METHOD_TABLE, $name)
+    }
+}
+
+# vim: expandtab sw=4

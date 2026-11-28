@@ -76,7 +76,7 @@ multi sub infix:<but>(Mu:D \obj, Mu:U \rolish, :$value! is raw) {
     my \attr = mixedin.^mixin_attribute;
     my $mixin-value := $value;
     unless nqp::istype($value, attr.type) {
-        if attr.type.HOW.^name eq 'Perl6::Metamodel::EnumHOW' {
+        if attr.type.HOW.^name eq 'Metamodel::EnumHOW' {
             $mixin-value := attr.type.($value);
         }
     }

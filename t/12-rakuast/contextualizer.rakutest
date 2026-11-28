@@ -10,7 +10,7 @@ my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $ast.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    $raku     := $ast.raku;
     diag $deparsed.chomp;
 }
 
@@ -363,7 +363,7 @@ CODE
         is-deeply $parsed.DEPARSE.lines.first(*.contains('$(')).trim,
           $source.substr($source.index('$(')).chop(2),
           "parsed: $source keeps its statement";
-        is-deeply EVAL('use experimental :rakuast; ' ~ $parsed.raku).DEPARSE,
+        is-deeply EVAL($parsed.raku).DEPARSE,
           $parsed.DEPARSE,
           "parsed: $source round trips through the .raku";
     }

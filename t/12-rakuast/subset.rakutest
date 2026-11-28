@@ -10,7 +10,7 @@ my $raku;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -374,7 +374,7 @@ subtest 'An of trait stays where it was written' => {
     my $parsed := 'subset OfParsed is export of Int'.AST;
     is-deeply $parsed.DEPARSE, "subset OfParsed is export of Int\n",
       'parsed: the trait is written where it was';
-    is-deeply EVAL('use experimental :rakuast; ' ~ $parsed.raku).DEPARSE,
+    is-deeply EVAL($parsed.raku).DEPARSE,
       $parsed.DEPARSE,
       'parsed: the trait keeps its place through the .raku';
 }
@@ -433,7 +433,7 @@ CODE
         for
           'AST', $parsed,
           'Str', $parsed.DEPARSE,
-          'Raku', EVAL('use experimental :rakuast; ' ~ $parsed.raku)
+          'Raku', EVAL($parsed.raku)
         -> $type, $it {
             is EVAL($it).HOW.^name, 'SupersededSubsetHOW',
               "$type: the where of $what makes its subset with the superseding HOW";

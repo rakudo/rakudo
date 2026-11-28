@@ -1,6 +1,5 @@
 use Test;
 use nqp;
-use experimental :rakuast;
 
 plan 6;
 

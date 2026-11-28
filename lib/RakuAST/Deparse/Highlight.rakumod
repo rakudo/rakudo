@@ -400,7 +400,7 @@ my multi sub highlight(
             my $class  := "RakuAST::Deparse::Highlight::$_";
             my $lookup := ::($class);
             $_ = $lookup ~~ Failure
-              ?? "use experimental :rakuast; use $class; $class".EVAL
+              ?? "use $class; $class".EVAL
               !! $lookup
         }
         $deparser.^mixin($_);

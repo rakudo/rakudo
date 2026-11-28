@@ -14,8 +14,6 @@
 #
 # my $ast = $filename.IO.slurp.AST;
 
-use experimental :rakuast;
-
 unit class RakuDoc::To::Text;
 
 method render($ast) { $ast.map(&rakudoc2text).join }

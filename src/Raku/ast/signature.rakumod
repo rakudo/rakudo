@@ -1658,7 +1658,7 @@ class RakuAST::Parameter
         elsif !$was-slurpy {
             # Type-check, unless it's Mu, in which case skip it.
             if $is-generic && !$is-coercive
-              && nqp::istype($param-type.HOW, Perl6::Metamodel::GenericHOW) {
+              && nqp::istype($param-type.HOW, Metamodel::GenericHOW) {
                 # True type capture (e.g. ::T in role R[::T]) resolves
                 # per-invocant-type at runtime. The implicit invocant is not
                 # checked. Its $?CLASS typevar names the caller's

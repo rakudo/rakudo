@@ -85,7 +85,6 @@ is (try EVAL(q[try { 42 andthen !!! "got $_" }; $!.message])), 'got 42',
 isa-ok (try EVAL(q[sub f { 42 andthen ... }; f().exception])), X::StubCode,
     'a fail stub right of andthen in a routine returns its Failure';
 {
-    use experimental :rakuast;
     my $ast := RakuAST::Circumfix::Parentheses.new(RakuAST::SemiList.new(
       RakuAST::Statement::Expression.new(
         expression    => RakuAST::Signature.new(parameters => (

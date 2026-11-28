@@ -12,7 +12,7 @@ sub ast(RakuAST::Node:D $node --> Nil) {
       RakuAST::Statement::Expression.new(:expression($node))
     );
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; use nqp; ' ~ $node.raku;
+    $raku     := "use nqp; $node.raku()";
     diag $deparsed.chomp;
 }
 

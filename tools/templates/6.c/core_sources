@@ -131,7 +131,6 @@ src/core.c/IO/Path.rakumod
 src/core.c/io_operators.rakumod
 src/core.c/IO/CatHandle.rakumod
 src/core.c/IO/ArgFiles.rakumod
-src/core.c/AST.rakumod
 src/core.c/CallFrame.rakumod
 src/core.c/Main.rakumod
 src/core.c/Instant.rakumod

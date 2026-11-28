@@ -1,3 +1,4 @@
+use QRegex;
 use Raku::Actions;
 
 sub p6ize_recursive($x) {

@@ -1,5 +1,4 @@
 use MONKEY-SEE-NO-EVAL;
-use experimental :rakuast;
 use Test;
 
 # A MAIN declared in EVALed code is not the program's entry point, so EVAL

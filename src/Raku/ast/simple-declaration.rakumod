@@ -515,7 +515,7 @@ class RakuAST::VarDeclaration::Simple
                         # frontend does.
                         unless nqp::istype(
                             $!attribute-package.compile-time-value.HOW,
-                            Perl6::Metamodel::AttributeContainer
+                            Metamodel::AttributeContainer
                         ) {
                             self.add-sorry: $resolver.build-exception:
                                 'X::Attribute::NoPackage', name => self.name;
@@ -900,7 +900,7 @@ class RakuAST::VarDeclaration::Simple
         # Subset type checking can have side effects, so don't do that
         # at compile time.
         if nqp::istype($type,RakuAST::Type::Simple)
-          && !nqp::istype($type.meta-object.HOW,Perl6::Metamodel::SubsetHOW) {
+          && !nqp::istype($type.meta-object.HOW,Metamodel::SubsetHOW) {
             if nqp::istype($initializer,RakuAST::Initializer::Assign)
                  || nqp::istype($initializer,RakuAST::Initializer::Bind) {
 
@@ -938,7 +938,7 @@ class RakuAST::VarDeclaration::Simple
             # that at compile time.
             unless nqp::istype(
               $type.meta-object.HOW,
-              Perl6::Metamodel::SubsetHOW
+              Metamodel::SubsetHOW
             ) {
                 if nqp::istype($initializer, RakuAST::Initializer::Assign)
                      || nqp::istype($initializer, RakuAST::Initializer::Bind) {
@@ -1014,7 +1014,7 @@ class RakuAST::VarDeclaration::Simple
                 :payload("Useless generation of accessor method in "
                           ~ (nqp::istype(
                                $package.HOW,
-                               Perl6::Metamodel::AttributeContainer
+                               Metamodel::AttributeContainer
                             ) ?? $package.HOW.name($package)
                               !! "mainline"
                             )

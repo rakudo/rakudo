@@ -1103,11 +1103,11 @@ class RakuAST::Infix
         my constant CIRCUMFIXES := nqp::hash(
           '&postcircumfix:<[ ]>',  1,
           '&postcircumfix:<{ }>',  1,
-          '&postcircumfix:<[; ]>', 1, 
+          '&postcircumfix:<[; ]>', 1,
           '&postcircumfix:<{; }>', 1
         );
 
-        my $qast;
+        my $qast := nqp::null;
         my str $sigil;
         if nqp::istype($left-qast,QAST::Var) {
             $sigil := nqp::substr($left-qast.name, 0, 1);
@@ -1209,7 +1209,10 @@ class RakuAST::Infix
             }
         }
 
-        $qast // QAST::Op.new(:op<p6store>, $left-qast, $right-qast);
+        nqp::ifnull(
+          $qast,
+          QAST::Op.new(:op<p6store>, $left-qast, $right-qast)
+        )
     }
 
     method IMPL-INFIX-FOR-META-QAST(
@@ -1218,12 +1221,12 @@ class RakuAST::Infix
                               Mu $right-qast
     ) {
         QAST::Op.new(
-            :op(self.properties.chain && !$!lone-link
-                ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
-                !! self.IMPL-CALL-OP),
-            :name(self.resolution.lexical-name),
-            $left-qast,
-            $right-qast
+          :op(self.properties.chain && !$!lone-link
+            ?? ($!chainstatic ?? 'chainstatic' !! 'chain')
+            !! self.IMPL-CALL-OP),
+          :name(self.resolution.lexical-name),
+          $left-qast,
+          $right-qast
         )
     }
 
@@ -1231,76 +1234,83 @@ class RakuAST::Infix
                                  RakuAST::Expression $left,
                                  RakuAST::Expression $right,
                                  int $negate ) {
-        # Handle cases of s/// or m// separately. For a non-negating smartmatch this case could've been reduced to
-        # plain topic localization except that we must ensure a False returned when there is no match.
-        if (nqp::istype($right, RakuAST::RegexThunk) || nqp::istype($right, RakuAST::Transliteration))
-            && (!nqp::can($right, 'match-immediately') || $right.match-immediately)
-        {
+        # Handle cases of s/// or m// separately. For a non-negating
+        # smartmatch this case could've been reduced to plain topic
+        # localization except that we must ensure a False returned
+        # when there is no match.
+        if (nqp::istype($right,RakuAST::RegexThunk)
+              || nqp::istype($right, RakuAST::Transliteration)
+           ) && (!nqp::can($right,'match-immediately')
+                   || $right.match-immediately) {
             my $match-type :=
               self.get-implicit-lookups[0].resolution.compile-time-value;
-            my $result-local := QAST::Node.unique('!sm-result');
-            my $rhs := $right.IMPL-EXPR-QAST($context);
+            my str $name := QAST::Node.unique('!sm-result');
+            my $rhs      := $right.IMPL-EXPR-QAST($context);
 
-            my $sm-call := QAST::Op.new(
-                :op<bind>,
-                QAST::Var.new( :name($result-local), :scope('local'), :decl('var') ),
-                QAST::Op.new(
-                    :op<dispatch>,
-                    QAST::SVal.new( :value<raku-smartmatch> ),
-                    QAST::Var.new( :name('$_'), :scope('lexical') ),
-                    $rhs,
-                    QAST::IVal.new( :value($negate ?? -1 !! 0) )
-                )
+            my $sm-call := QAST::Op.new(:op<bind>,
+              QAST::Var.new(:$name, :scope<local>, :decl<var>),
+              QAST::Op.new(:op<dispatch>,
+                QAST::SVal.new(:value<raku-smartmatch> ),
+                QAST::Var.new(:name('$_'), :scope<lexical>),
+                $rhs,
+                QAST::IVal.new(:value($negate ?? -1 !! 0))
+              )
             );
             $sm-call[1].annotate('smartmatch_accepts', 1);
             $sm-call[1].annotate('smartmatch_negated', $negate);
 
-            return self.IMPL-TEMPORARIZE-TOPIC(
-                $left.IMPL-TO-QAST($context),
-                $sm-call);
+            self.IMPL-TEMPORARIZE-TOPIC(
+              $left.IMPL-TO-QAST($context), $sm-call
+            )
         }
 
         # Only the RHS evaluation needs $_ bound to the topic; the match
         # itself is the plain infix operator, which keeps the smartmatch
         # semantics (Junction topics, Regex and custom ACCEPTS matchers) in
         # one place.
-        my $name;
-        if self.is-resolved || !$*COMPILING_CORE_SETTING {
-            $name := self.resolution.lexical-name;
-        }
         else {
-            $name := '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
-        }
-        self.IMPL-TEMPORARIZE-TOPIC(
-            $left.IMPL-TO-QAST($context),
-            QAST::Op.new(
-                :op(self.IMPL-CALL-OP), :$name,
+            my str $name := self.is-resolved || !$*COMPILING_CORE_SETTING
+              ?? self.resolution.lexical-name
+              !! '&infix'
+                   ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
+
+            self.IMPL-TEMPORARIZE-TOPIC(
+              $left.IMPL-TO-QAST($context),
+              QAST::Op.new(:op(self.IMPL-CALL-OP), :$name,
                 QAST::Var.new( :name<$_>, :scope<lexical> ),
-                $right.IMPL-TO-QAST($context)))
+                $right.IMPL-TO-QAST($context)
+              )
+            )
+        }
     }
 
-    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+    method IMPL-LIST-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $operands
+    ) {
         if self.IMPL-SHORT-CIRCUIT-KIND eq 'xor' {
             my $op := QAST::Op.new(:op<xor>);
             for $operands {
                 $op.push($_);
             }
             $op.push(QAST::WVal.new(
-                :named('false'),
-                :value(self.get-implicit-lookups[1].resolution.compile-time-value))
-            );
+              :value(
+                nqp::atpos(self.get-implicit-lookups,1).resolution.compile-time-value
+              ),
+              :named<false>
+            ));
             $op
         }
         else {
-            my $name;
-            if self.is-resolved || !$*COMPILING_CORE_SETTING {
-                $name := try self.resolution.lexical-name;
-                $name := '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator) unless nqp::defined($name);
-            }
-            else {
-                $name := '&infix' ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
-            }
-            my $op := QAST::Op.new( :op(self.IMPL-CALL-OP), :$name );
+            my str $name := self.is-resolved || !$*COMPILING_CORE_SETTING
+              ?? ((try self.resolution.lexical-name)
+                    // '&infix'
+                         ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator)
+                 )
+              !! '&infix'
+                   ~ RakuAST::Resolver.IMPL-CANONICALIZE-PAIR($!operator);
+
+            my $op := QAST::Op.new(:op(self.IMPL-CALL-OP), :$name);
             for $operands {
                 $op.push($_);
             }
@@ -1316,12 +1326,13 @@ class RakuAST::Infix
     }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
-        if self.short-circuit { # Only final part of short-circuiting operators can be sunk
-            my int $i;
+        # Only final part of short-circuiting operators can be sunk
+        if self.short-circuit {
+            my int $i    := -1;
             my int $last := nqp::elems($operands) - 1;
             nqp::while(
-              $i < $last,
-              nqp::atpos($operands,$i++).apply-sink(False)
+              ++$i < $last,
+              nqp::atpos($operands,$i).apply-sink(False)
             );
             nqp::atpos($operands,$i).apply-sink($is-sunk);
         }
@@ -1334,23 +1345,26 @@ class RakuAST::Infix
             );
         }
         else {
-            my $sink := self.operator eq ',' ?? $is-sunk !! False;
-            my int $i;
+            my $sink  := self.operator eq ',' ?? $is-sunk !! False;
+            my int $i := -1;
             nqp::while(
-              $i < nqp::elems($operands),
-              nqp::atpos($operands,$i++).apply-sink($sink)
+              ++$i < nqp::elems($operands),
+              nqp::atpos($operands,$i).apply-sink($sink)
             );
         }
     }
 
     method IMPL-CAN-INTERPRET() {
-        self.is-resolved && nqp::istype(self.resolution,RakuAST::CompileTimeValue)
+        self.is-resolved
+          && nqp::istype(self.resolution,RakuAST::CompileTimeValue)
           && (!self.properties.short-circuit || self.IMPL-SHORT-CIRCUIT-KIND)
           && !self.properties.chain
-        || $!operator eq ',' && $*COMPILING_CORE_SETTING
+          || $!operator eq ',' && $*COMPILING_CORE_SETTING
     }
 
-    method IMPL-COMPILES-OPERANDS() { self.IMPL-SHORT-CIRCUIT-KIND ?? True !! False }
+    method IMPL-COMPILES-OPERANDS() {
+        self.IMPL-SHORT-CIRCUIT-KIND ?? True !! False
+    }
 
     # The QAST op a short-circuit operator compiles to, run on the operands in
     # turn. An xor stops at a second true operand with the Nil it returns.
@@ -1361,11 +1375,15 @@ class RakuAST::Infix
     ) {
         my int $elems := nqp::elems(@operands);
         my int $i := 1;
-        my $value := self.IMPL-BOX-VM-VALUE(self.IMPL-INTERPRET-OPERAND($ctx, @operands[0]));
+        my $value := self.IMPL-BOX-VM-VALUE(
+          self.IMPL-INTERPRET-OPERAND($ctx, nqp::atpos(@operands,0))
+        );
         if $kind eq 'xor' {
-            my $true := nqp::istrue($value) ?? $value !! nqp::null();
+            my $true := nqp::istrue($value) ?? $value !! nqp::null;
             while $i < $elems {
-                $value := self.IMPL-BOX-VM-VALUE(self.IMPL-INTERPRET-OPERAND($ctx, @operands[$i++]));
+                $value := self.IMPL-BOX-VM-VALUE(
+                  self.IMPL-INTERPRET-OPERAND($ctx, @operands[$i++])
+                );
                 if nqp::istrue($value) {
                     return self.get-implicit-lookups[1].resolution.compile-time-value
                       unless nqp::isnull($true);
@@ -1381,7 +1399,9 @@ class RakuAST::Infix
               && ($defined-or
                     ?? !$value.defined
                     !! $and ?? nqp::istrue($value) !! !nqp::istrue($value)) {
-                $value := self.IMPL-BOX-VM-VALUE(self.IMPL-INTERPRET-OPERAND($ctx, @operands[$i++]));
+                $value := self.IMPL-BOX-VM-VALUE(
+                  self.IMPL-INTERPRET-OPERAND($ctx, @operands[$i++])
+                );
             }
             $value
         }
@@ -1389,34 +1409,41 @@ class RakuAST::Infix
 
     # A short-circuit operator that compiles to a QAST op is run here, and
     # the andthen family is called with the operands compiled code passes it.
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands, Bool :$list-infix) {
+    method IMPL-INTERPRET(
+      RakuAST::IMPL::InterpContext  $ctx,
+                              List  $operands,
+                              Bool :$list-infix
+    ) {
         my str $kind := self.IMPL-SHORT-CIRCUIT-KIND;
-        return self.IMPL-INTERPRET-SHORT-CIRCUIT($ctx, $kind, self.IMPL-UNWRAP-LIST($operands))
-          if $kind && $kind ne 'then';
-        return self.IMPL-INTERPRET-CALL(
-          $ctx,
-          self.resolution.compile-time-value,
-          self.IMPL-UNWRAP-LIST($operands),
-          :box
-        ) if $kind;
-        my @operands;
-        for self.IMPL-UNWRAP-LIST($operands) {
-            nqp::push(@operands, $_.IMPL-INTERPRET($ctx));
+        if $kind {
+            $kind eq 'then'
+              ?? self.IMPL-INTERPRET-CALL(
+                   $ctx,
+                   self.resolution.compile-time-value,
+                   self.IMPL-UNWRAP-LIST($operands),
+                   :box
+                 )
+              !! self.IMPL-INTERPRET-SHORT-CIRCUIT(
+                   $ctx, $kind, self.IMPL-UNWRAP-LIST($operands)
+                 )
         }
-        if self.is-resolved {
-            my $op := self.resolution.compile-time-value;
-            $op(|@operands)
-        }
-        elsif $!operator eq ',' && $*COMPILING_CORE_SETTING {
-            my $list := nqp::create(List);
-            nqp::bindattr($list, List, '$!reified', @operands);
-            $list
+        else {
+            my @operands;
+            for self.IMPL-UNWRAP-LIST($operands) {
+                nqp::push(@operands, $_.IMPL-INTERPRET($ctx));
+            }
+            if self.is-resolved {
+                self.resolution.compile-time-value()(|@operands)
+            }
+            elsif $!operator eq ',' && $*COMPILING_CORE_SETTING {
+                my $list := nqp::create(List);
+                nqp::bindattr($list, List, '$!reified', @operands);
+                $list
+            }
         }
     }
 
-    method dump-markers() {
-        '【' ~ $!operator ~ '】'
-    }
+    method dump-markers() { '【' ~ $!operator ~ '】' }
 }
 
 class RakuAST::Mixin

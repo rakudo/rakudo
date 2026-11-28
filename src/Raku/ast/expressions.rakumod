@@ -1989,10 +1989,14 @@ class RakuAST::MetaInfix
     # boxes them on the way.
     method IMPL-CALLS-OPERATOR() { False }
 
-    method IMPL-NATIVE-PAIRED-OPERAND(RakuAST::Expression $left, RakuAST::Expression $right, Mu :$adverb) {
+    method IMPL-NATIVE-PAIRED-OPERAND(
+      RakuAST::Expression  $left,
+      RakuAST::Expression  $right,
+                       Mu :$adverb
+    ) {
         self.IMPL-CALLS-OPERATOR
-            ?? self.infix.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb)
-            !! nqp::null()
+          ?? self.infix.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb)
+          !! nqp::null
     }
 
     method IMPL-HOP-INFIX() {
@@ -2021,8 +2025,12 @@ class RakuAST::MetaInfix
     # operator it wraps takes as a value, as in `1 Rxx *`.
     method IMPL-PRIMES() { 3 }
 
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
+    method IMPL-THUNK-ARGUMENTS(
+               RakuAST::Resolver  $resolver,
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression *@operands,
+                            Bool :$meta
+    ) {
         self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
     }
 
@@ -2030,7 +2038,9 @@ class RakuAST::MetaInfix
     # sunk Z= still assigns while a sunk Z+ is a useless use.
     method is-pure() { self.infix.is-pure }
 
-    method IMPL-RESULT-NEEDS-ITERATION() { self.infix.IMPL-RESULT-NEEDS-ITERATION }
+    method IMPL-RESULT-NEEDS-ITERATION() {
+        self.infix.IMPL-RESULT-NEEDS-ITERATION
+    }
 
     # The operands are consumed by the meta operator, so they are never
     # themselves in sink context.
@@ -2046,9 +2056,11 @@ class RakuAST::MetaInfix::Assign
   is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
+
     # The operand's native primitive spec when the optimize pass has marked a
     # native compound assignment for lowering to a raw op; 0 when it has not.
     has int $!native-step;
+
     # Set when the optimize pass has marked a boxed scalar compound assignment
     # for inlining the metaop dispatch away.
     has int $!inline;
@@ -2064,6 +2076,15 @@ class RakuAST::MetaInfix::Assign
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
+
+    method properties() {
+        OperatorProperties.infix(
+            $!infix.properties.precedence gt 'g=' ?? '$=' !! '@='
+        )
+    }
+
+    method reducer-name() { $!infix.reducer-name }
+    method is-pure() { False }
 
     method PERFORM-CHECK(
                RakuAST::Resolver $resolver,
@@ -2081,16 +2102,6 @@ class RakuAST::MetaInfix::Assign
           !! True
     }
 
-    method properties() {
-        OperatorProperties.infix(
-            $!infix.properties.precedence gt 'g=' ?? '$=' !! '@='
-        )
-    }
-
-    method reducer-name() { $!infix.reducer-name }
-
-    method is-pure() { False }
-
     method IMPL-RESULT-NEEDS-ITERATION() {
         nqp::istype($!infix, RakuAST::MetaInfix::CrossZip)
     }
@@ -2103,30 +2114,48 @@ class RakuAST::MetaInfix::Assign
     }
 
     method IMPL-IS-TEST() {
+        my constant TESTERS := nqp::hash(
+          '||',         1,
+          '&&',         1,
+          '//',         1,
+          'or',         1,
+          'and',        1,
+          'orelse',     1,
+          'andthen',    1,
+          'notandthen', 1
+        );
+
         my $base := self.infix.IMPL-UNBRACKETED;
-        return False unless nqp::istype($base, RakuAST::Infix);
-        my $basesym := $base.operator;
-        $basesym eq '||' || $basesym eq '&&'  || $basesym eq '//'
-        || $basesym eq 'or' || $basesym eq 'and' || $basesym eq 'orelse'
-        || $basesym eq 'andthen' || $basesym eq 'notandthen'
+        nqp::istype($base,RakuAST::Infix)
+          && nqp::existskey(TESTERS,$base.operator)
     }
 
     # The test operators whose base compiles to a QAST conditional rather
     # than a routine call. The andthen family is excluded: it compiles to
     # a routine call that takes a thunked right operand.
     method IMPL-IS-STRUCTURAL-TEST() {
+        my constant TESTERS := nqp::hash(
+          '||',         1,
+          '&&',         1,
+          '//',         1,
+          'or',         1,
+          'and',        1
+        );
+
         my $base := self.infix.IMPL-UNBRACKETED;
-        return False unless nqp::istype($base, RakuAST::Infix);
-        my $basesym := $base.operator;
-        $basesym eq '||' || $basesym eq '&&' || $basesym eq '//'
-        || $basesym eq 'or' || $basesym eq 'and'
+        nqp::istype($base,RakuAST::Infix)
+          && nqp::existskey(TESTERS,$base.operator)
     }
 
     # A structural test assignment emits its right operand in place, so it
     # takes no thunk. A thunk would add a frame the source has no block
     # for, which a caller-walking lookup in the operand would see.
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
+    method IMPL-THUNK-ARGUMENTS(
+               RakuAST::Resolver  $resolver,
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression *@operands,
+                            Bool :$meta
+    ) {
         # The target is assigned to rather than thunked, so a constant holds
         # its place while the operator thunks the value.
         self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context,
@@ -2136,9 +2165,11 @@ class RakuAST::MetaInfix::Assign
 
     method IMPL-OPERATOR-NAME($thunked) {
         self.IMPL-IS-TEST
-            ?? ($thunked ?? '&METAOP_TEST_ASSIGN:' !! '&METAOP_TEST_ASSIGN_VALUE:')
-                ~ '<' ~ self.infix.IMPL-UNBRACKETED.operator ~ '>'
-            !! '&METAOP_ASSIGN'
+          ?? ($thunked
+               ?? '&METAOP_TEST_ASSIGN:<'
+               !! '&METAOP_TEST_ASSIGN_VALUE:<'
+             ) ~ self.infix.IMPL-UNBRACKETED.operator ~ '>'
+          !! '&METAOP_ASSIGN'
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -2149,8 +2180,8 @@ class RakuAST::MetaInfix::Assign
         self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
-    method IMPL-SET-NATIVE-STEP(int $primspec) {
-        nqp::bindattr_i(self, RakuAST::MetaInfix::Assign, '$!native-step', $primspec)
+    method IMPL-SET-NATIVE-STEP(int $step) {
+        nqp::bindattr_i(self,RakuAST::MetaInfix::Assign,'$!native-step',$step)
     }
 
     method IMPL-NATIVE-STEP-SET() { $!native-step }
@@ -2170,16 +2201,27 @@ class RakuAST::MetaInfix::Assign
     # op. Any other left, such as a nested compound assignment, may yield a
     # value that is no container, so it stores through p6store, whose STORE
     # fallback reports the immutability as the metaop does.
-    method IMPL-INLINE-METAOP-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        my str $temp := QAST::Node.unique('inline_metaop');
-        my str $store := nqp::istype($left-qast, QAST::Var) && nqp::eqat($left-qast.name, '$', 0)
-            ?? 'p6assign' !! 'p6store';
+    method IMPL-INLINE-METAOP-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
+        my str $name := QAST::Node.unique('inline_metaop');
+        my str $op   := nqp::istype($left-qast, QAST::Var)
+          && nqp::eqat($left-qast.name, '$', 0)
+          ?? 'p6assign'
+          !! 'p6store';
+
         my $effect;
         if self.IMPL-IS-TEST {
-            $effect := $!infix.IMPL-INFIX-QAST($context,
-                QAST::Var.new(:scope<local>, :name($temp)),
-                QAST::Op.new(:op($store),
-                    QAST::Var.new(:scope<local>, :name($temp)), $right-qast));
+            $effect := $!infix.IMPL-INFIX-QAST(
+              $context,
+              QAST::Var.new(:$name, :scope<local>),
+              QAST::Op.new(:$op,
+                QAST::Var.new(:$name, :scope<local>),
+                $right-qast
+              )
+            );
         }
         else {
             # An undefined left is not passed to the operator. The metaop uses
@@ -2187,20 +2229,28 @@ class RakuAST::MetaInfix::Assign
             # no arguments, so `$x += 1` on an undefined `$x` is 1 rather than a
             # use-of-uninitialized warning.
             my $left := QAST::Op.new(:op<if>,
-                QAST::Op.new(:op<isconcrete>,
-                    QAST::Op.new(:op<decont>,
-                        QAST::Var.new(:scope<local>, :name($temp)))),
-                QAST::Var.new(:scope<local>, :name($temp)),
-                QAST::Op.new(:op($!infix.IMPL-CALL-OP), :name($!infix.resolution.lexical-name)));
-            $effect := QAST::Op.new(:op($store),
-                QAST::Var.new(:scope<local>, :name($temp)),
-                $!infix.IMPL-INFIX-QAST($context, $left, $right-qast));
+              QAST::Op.new(:op<isconcrete>,
+                QAST::Op.new(:op<decont>,
+                  QAST::Var.new(:$name, :scope<local>)
+                )
+              ),
+              QAST::Var.new(:$name, :scope<local>),
+              QAST::Op.new(:op($!infix.IMPL-CALL-OP),
+                :name($!infix.resolution.lexical-name)
+              )
+            );
+            $effect := QAST::Op.new(:$op,
+              QAST::Var.new(:$name, :scope<local>),
+              $!infix.IMPL-INFIX-QAST($context, $left, $right-qast)
+            );
         }
         QAST::Stmt.new(
-            QAST::Op.new(:op<bind>,
-                QAST::Var.new(:decl<var>, :scope<local>, :name($temp)), $left-qast),
-            $effect,
-            QAST::Var.new(:scope<local>, :name($temp))
+          QAST::Op.new(:op<bind>,
+            QAST::Var.new(:$name, :decl<var>, :scope<local>),
+            $left-qast
+          ),
+          $effect,
+          QAST::Var.new(:$name, :scope<local>)
         )
     }
 
@@ -2211,52 +2261,80 @@ class RakuAST::MetaInfix::Assign
     # when neither operand is the result, where the metaop's routine call
     # yields a Nil, so they are left to the metaop.
     method IMPL-COMPILES-BASE-OPERATOR(RakuAST::Expression $left) {
-        return 0 unless nqp::istype($!infix, RakuAST::Infix) && !self.IMPL-IS-TEST
-            && !self.IMPL-WRAPS-LIST-META
-            && ((nqp::istype($left, RakuAST::Var::Lexical) && $left.is-resolved)
-                || nqp::istype($left, RakuAST::Var::Attribute));
-        my str $op := $!infix.operator;
-        return 0 if $op eq '^^' || $op eq 'xor';
-        nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left))
+        if nqp::istype($!infix,RakuAST::Infix)
+          && !self.IMPL-IS-TEST
+          && !self.IMPL-WRAPS-LIST-META
+          && ((nqp::istype($left,RakuAST::Var::Lexical) && $left.is-resolved)
+               || nqp::istype($left,RakuAST::Var::Attribute)
+             ) {
+            my str $op := $!infix.operator;
+            $op eq '^^' || $op eq 'xor'
+              ?? 0
+              !! nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left))
+        }
+        else {
+            0
+        }
     }
 
     # The base assigns operands to QAST then calls IMPL-INFIX-QAST. A raw
     # op step the optimize pass marked, and a native target taking the base
     # operator's result with no adverb, need the operand ASTs for the left.
-    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
-        return self.IMPL-NATIVE-STEP-QAST($context, $left, $right) if $!native-step;
-        if !$adverb && self.IMPL-COMPILES-BASE-OPERATOR($left) {
-            return self.IMPL-NATIVE-ASSIGN-QAST($context, $left, $right,
-                nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left)));
+    method IMPL-INFIX-COMPILE(
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression  $left,
+             RakuAST::Expression  $right,
+           RakuAST::ColonPairish :$adverb
+    ) {
+        if $!native-step {
+            self.IMPL-NATIVE-STEP-QAST($context, $left, $right)
         }
-
-        my $qast := self.IMPL-INFIX-QAST($context, $left.IMPL-TO-QAST($context),
-            $right.IMPL-TO-QAST($context));
-        if $adverb {
-            my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
-            $val-ast.named($adverb.named-arg-name);
-            $qast.push($val-ast);
+        elsif !$adverb && self.IMPL-COMPILES-BASE-OPERATOR($left) {
+            self.IMPL-NATIVE-ASSIGN-QAST(
+              $context, $left, $right,
+              nqp::objprimspec(self.IMPL-NATIVE-ASSIGN-TARGET-TYPE($left))
+            )
         }
-        $qast
+        else {
+            my $qast := self.IMPL-INFIX-QAST(
+              $context,
+              $left.IMPL-TO-QAST($context),
+              $right.IMPL-TO-QAST($context)
+            );
+            if $adverb {
+                my $val-ast := $adverb.named-arg-value.IMPL-TO-QAST($context);
+                $val-ast.named($adverb.named-arg-name);
+                $qast.push($val-ast);
+            }
+            $qast
+        }
     }
 
     # A native int or num compound assignment the optimize pass marked: assign
     # the result of the raw op back to the left, whose native ref is read
     # and written in place.
-    method IMPL-NATIVE-STEP-QAST(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right) {
-        my int $is-int := $!native-step == 1;
-        my str $base   := $!infix.operator;
-        my str $op;
-        if $base eq '+'    { $op := $is-int ?? 'add_i' !! 'add_n' }
-        elsif $base eq '-' { $op := $is-int ?? 'sub_i' !! 'sub_n' }
-        else               { $op := $is-int ?? 'mul_i' !! 'mul_n' }
+    method IMPL-NATIVE-STEP-QAST(
+      RakuAST::IMPL::QASTContext $context,
+             RakuAST::Expression $left,
+             RakuAST::Expression $right
+    ) {
+        my str $suffix := $!native-step == 1 ?? 'i' !! 'n';
+        my str $infix  := $!infix.operator;
+        my str $base   := $infix eq '+'
+                            ?? 'add_'
+                            !! $infix eq '-'
+                              ?? 'sub_'
+                              !! 'mul_';
+
         my $var     := self.IMPL-NATIVE-STEP-TARGET-QAST($context, $left);
         my $returns := $var.returns;
-        my $rhs     := $right.IMPL-TO-QAST($context);
-        QAST::Op.new(:op($is-int ?? 'assign_i' !! 'assign_n'), :$returns, $var,
-            QAST::Op.new(:op($op), :$returns, $var, $rhs))
+        QAST::Op.new(:op('assign_' ~ $suffix), :$returns,
+          $var,
+          QAST::Op.new(:op($base ~ $suffix), :$returns,
+            $var,
+            $right.IMPL-TO-QAST($context)
+          )
+        )
     }
 
     # The type the store judges its target by: the type a native step
@@ -2265,11 +2343,14 @@ class RakuAST::MetaInfix::Assign
     # an assignment to the alias writes through where a raw op step would
     # not.
     method IMPL-NATIVE-ASSIGN-TARGET-TYPE(Mu $target) {
-        if nqp::istype($target, RakuAST::Var::Lexical) && $target.is-resolved {
+        if nqp::istype($target,RakuAST::Var::Lexical)
+          && $target.is-resolved {
             my $resolution := $target.resolution;
-            if nqp::istype($resolution, RakuAST::ParameterTarget::Var) {
+            if nqp::istype($resolution,RakuAST::ParameterTarget::Var) {
                 my $declaration := $resolution.declaration;
-                return $declaration.return-type if $declaration && $declaration.IMPL-IS-RW;
+                return $declaration.return-type
+                  if $declaration
+                  && $declaration.IMPL-IS-RW;
             }
         }
         self.IMPL-NATIVE-STEP-TARGET-TYPE($target)
@@ -2285,19 +2366,37 @@ class RakuAST::MetaInfix::Assign
     # yields the value, as the raw op step does. The target is built the
     # way an assignment builds its left, so an rw parameter's alias is
     # written through.
-    method IMPL-NATIVE-ASSIGN-QAST(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right, int $spec) {
-        my constant OPS := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i',
-            'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
-        my $var := $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context));
-        QAST::Op.new(:op(nqp::atpos(OPS,$spec)), :returns($var.returns), $var,
-            $!infix.IMPL-INFIX-COMPILE($context, $left, $right))
+    method IMPL-NATIVE-ASSIGN-QAST(
+      RakuAST::IMPL::QASTContext $context,
+             RakuAST::Expression $left,
+             RakuAST::Expression $right,
+             int $primspec
+    ) {
+        my constant OPS := ['',
+          'assign_i', 'assign_n', 'assign_s',
+          'assign_i', 'assign_i', 'assign_i',
+          'assign_u', 'assign_u', 'assign_u', 'assign_u'
+        ];
+
+        my $var := $left.IMPL-ADJUST-QAST-FOR-LVALUE(
+          $left.IMPL-TO-QAST($context)
+        );
+        QAST::Op.new(:op(nqp::atpos(OPS,$primspec)), :returns($var.returns),
+          $var,
+          $!infix.IMPL-INFIX-COMPILE($context, $left, $right)
+        )
     }
 
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        return self.IMPL-INLINE-METAOP-QAST($context, $left-qast, $right-qast) if $!inline;
+    method IMPL-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
+        if $!inline {
+            self.IMPL-INLINE-METAOP-QAST($context, $left-qast, $right-qast)
+        }
 
-        if self.IMPL-IS-STRUCTURAL-TEST {
+        elsif self.IMPL-IS-STRUCTURAL-TEST {
             # The optimize pass marks targets that can assign directly,
             # which IMPL-INLINE-METAOP-QAST handles. Here the temporary
             # keeps the left evaluated once whatever it is, and the
@@ -2306,85 +2405,101 @@ class RakuAST::MetaInfix::Assign
             # assignable, an aggregate among them, so the store goes
             # through p6store, which falls back to calling STORE when the
             # target is not a container.
-            my $temp := QAST::Node.unique('meta_assign');
-            my $bind-lhs := QAST::Op.new(
-              :op<bind>,
-              QAST::Var.new(:decl('var'), :scope('local'), :name($temp)),
-              $left-qast
-            );
+            my str $name := QAST::Node.unique('meta_assign');
             QAST::Stmt.new(
-                $bind-lhs,
-                $!infix.IMPL-INFIX-QAST(
-                    $context,
-                    QAST::Var.new( :scope('local'), :name($temp) ),
-                    QAST::Op.new(
-                        :op('p6store'),
-                        QAST::Var.new( :scope('local'), :name($temp) ),
-                        $right-qast
-                    )
+              QAST::Op.new(:op<bind>,
+                QAST::Var.new(:$name, :scope<local>, :decl<var>),
+                $left-qast
+              ),
+              $!infix.IMPL-INFIX-QAST(
+                $context,
+                QAST::Var.new(:$name, :scope<local>),
+                QAST::Op.new(:op<p6store>,
+                  QAST::Var.new(:$name, :scope<local>),
+                  $right-qast
                 )
+              )
             )
         }
         elsif self.IMPL-IS-TEST {
-            QAST::Op.new(
-                :op<callstatic>,
-                :name(self.IMPL-OPERATOR-NAME($right-qast.ann('thunked'))),
-                $left-qast, $right-qast
+            QAST::Op.new(:op<callstatic>,
+              :name(self.IMPL-OPERATOR-NAME($right-qast.ann('thunked'))),
+              $left-qast,
+              $right-qast
             )
         }
         elsif self.IMPL-WRAPS-LIST-META {
-            QAST::Op.new: :op<call>,
-              self.IMPL-NESTED-META-HOP-QAST($context), $left-qast, $right-qast
+            QAST::Op.new(:op<call>,
+              self.IMPL-NESTED-META-HOP-QAST($context),
+              $left-qast,
+              $right-qast
+            )
         }
         else {
             QAST::Op.new(:op<call>,
-              self.IMPL-HOP-INFIX-QAST($context) , $left-qast, $right-qast
+              self.IMPL-HOP-INFIX-QAST($context),
+              $left-qast,
+              $right-qast
             )
         }
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new:
-            :op('callstatic'), :name(self.IMPL-OPERATOR-NAME(1)),
-            $!infix.IMPL-HOP-INFIX-QAST($context)
+        QAST::Op.new(:op<callstatic>, :name(self.IMPL-OPERATOR-NAME(1)),
+          $!infix.IMPL-HOP-INFIX-QAST($context)
+        )
     }
 
-    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+    method IMPL-LIST-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $operands
+    ) {
         if self.IMPL-WRAPS-LIST-META {
-            my $op := QAST::Op.new: :op<call>, self.IMPL-NESTED-META-HOP-QAST($context);
+            my $op := QAST::Op.new(:op<call>,
+              self.IMPL-NESTED-META-HOP-QAST($context)
+            );
             for $operands { $op.push($_) }
             $op
         }
         else {
-            self.IMPL-INFIX-QAST($context, $operands[0], $operands[1])
+            self.IMPL-INFIX-QAST(
+              $context, nqp::atpos($operands,0), nqp::atpos($operands,1)
+            )
         }
     }
 
     method IMPL-WRAPS-LIST-META() {
         self.IMPL-RESULT-NEEDS-ITERATION
-          || nqp::istype($!infix, RakuAST::MetaInfix::Hyper)
+          || nqp::istype($!infix,RakuAST::MetaInfix::Hyper)
     }
 
     # Emits METAOP_<TYPE>(METAOP_ASSIGN(base)).  The flipped
     # METAOP_ASSIGN(METAOP_<TYPE>(base)) returns a Seq that breaks native arrays.
     method IMPL-NESTED-META-HOP-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $base       := $!infix.infix;
-        my $assign-hop := QAST::Op.new: :op('call'), :name('&METAOP_ASSIGN'),
-                            $base.IMPL-HOP-INFIX-QAST($context);
-        if nqp::istype($!infix, RakuAST::MetaInfix::Hyper) {
-            my $hyper := $!infix;
-            my $hop   := QAST::Op.new: :op('call'), :name('&METAOP_HYPER'),
-                            $assign-hop;
-            $hop.push(QAST::WVal.new(:value(True), :named('dwim-left')))  if $hyper.dwim-left;
-            $hop.push(QAST::WVal.new(:value(True), :named('dwim-right'))) if $hyper.dwim-right;
+        my $infix  := $!infix;
+        my $base   := $infix.infix;
+        my $assign := QAST::Op.new(:op<call>, :name<&METAOP_ASSIGN>,
+                        $base.IMPL-HOP-INFIX-QAST($context)
+                      );
+
+        if nqp::istype($!infix,RakuAST::MetaInfix::Hyper) {
+            my $hop := QAST::Op.new(:op<call>, :name<&METAOP_HYPER>, $assign);
+
+            $hop.push(QAST::WVal.new(:value(True), :named<dwim-left>))
+              if $infix.dwim-left;
+            $hop.push(QAST::WVal.new(:value(True), :named<dwim-right>))
+              if $infix.dwim-right;
             $hop
         }
         else {
-            my str $name := nqp::istype($!infix, RakuAST::MetaInfix::Zip)
-                              ?? '&METAOP_ZIP' !! '&METAOP_CROSS';
-            QAST::Op.new: :op('call'), :name($name),
-                $assign-hop,
-                QAST::Var.new(:name('&METAOP_REDUCE_RIGHT'), :scope('lexical'))
+            QAST::Op.new(:op<call>,
+              :name(nqp::istype($!infix,RakuAST::MetaInfix::Zip)
+                ?? '&METAOP_ZIP'
+                !! '&METAOP_CROSS'
+              ),
+              $assign,
+              QAST::Var.new(:name<&METAOP_REDUCE_RIGHT>, :scope<lexical>)
+            )
         }
     }
 }

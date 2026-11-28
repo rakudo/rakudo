@@ -3,8 +3,8 @@
 # its elements is accessed through the array with all of its indices.
 my class Array::ShapedView does Positional does Iterable is implementation-detail {
     has $!array;    # the shaped array viewed
-    has $!indices;  # the indices given for its first dimensions
-    has $!dims;     # the lengths of the dimensions left
+    has $!indices;  # IterationBuffer with indices given for its first dimensions
+    has $!dims;     # IterationBuffer with lengths of the dimensions left
 
     # The elements of a view, or their indices within it, in the order of
     # those indices
@@ -18,8 +18,8 @@ my class Array::ShapedView does Positional does Iterable is implementation-detai
 
         method !SET-SELF(\array, \indices, \dims, int $keys) {
             $!array   := array;
-            $!indices := nqp::clone(nqp::getattr(indices,List,'$!reified'));
-            $!dims    := nqp::getattr(dims,List,'$!reified');
+            $!indices := nqp::clone(indices);
+            $!dims    := dims;
             $!given    = nqp::elems($!indices);
             $!keys     = $keys;
             nqp::push($!indices,0) for ^nqp::elems($!dims);
@@ -83,13 +83,13 @@ my class Array::ShapedView does Positional does Iterable is implementation-detai
         }
         my \dims := nqp::create(IterationBuffer);
         nqp::push(dims,shape.AT-POS($_)) for nqp::elems(indices) ..^ shape.elems;
-        nqp::create(self)!SET-SELF(array, indices.List, dims.List)
+        nqp::create(self)!SET-SELF(array, indices, dims)
     }
 
-    method !all(@indices) is raw {
-        my \all := nqp::clone(nqp::getattr($!indices,List,'$!reified'));
-        nqp::push(all,$_) for @indices;
-        nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',all)
+    method !all(@indices) {
+        my \all := nqp::clone($!indices);
+        nqp::push(all,$_) for @indices;  # need reifying, so no splice
+        all.List
     }
 
     proto method AT-POS(|) is raw {*}
@@ -125,10 +125,10 @@ my class Array::ShapedView does Positional does Iterable is implementation-detai
         $!array.DELETE-POS(|self!all(@indices))
     }
 
-    method shape(::?CLASS:D:) { $!dims }
+    method shape(::?CLASS:D:) { $!dims.List }
     method of(::?CLASS:D:)    { $!array.of }
-    method elems(::?CLASS:D:) { $!dims.AT-POS(0) }
-    method end(::?CLASS:D:)   { $!dims.AT-POS(0) - 1 }
+    method elems(::?CLASS:D:) { nqp::atpos($!dims,0)     }
+    method end(::?CLASS:D:)   { nap::atpos($!dims,0) - 1 }
 
     method iterator(::?CLASS:D:) { Region.new($!array, $!indices, $!dims, 0) }
     multi method list(::?CLASS:D:) { List.from-iterator(self.iterator) }
@@ -137,7 +137,7 @@ my class Array::ShapedView does Positional does Iterable is implementation-detai
     multi method values(::?CLASS:D:) { Seq.new(self.iterator) }
     # A view of one dimension left is keyed by Int, as an array is
     multi method keys(::?CLASS:D:) {
-        nqp::iseq_i($!dims.elems,1)
+        nqp::iseq_i(nqp::elems($!dims),1)
           ?? Seq.new(Rakudo::Iterator.IntRange(0,nqp::sub_i(self.elems,1)))
           !! Seq.new(Region.new($!array, $!indices, $!dims, 1))
     }
@@ -149,7 +149,7 @@ my class Array::ShapedView does Positional does Iterable is implementation-detai
             nqp::push(kv,key);
             nqp::push(kv,self.AT-POS(|key));
         }
-        kv.List.Seq
+        kv.Seq
     }
     multi method pairs(::?CLASS:D:) {
         self.keys.map({ Pair.new($_, self.AT-POS(|$_)) })
@@ -157,20 +157,24 @@ my class Array::ShapedView does Positional does Iterable is implementation-detai
 
     # A shaped array of the shape of the view holding its values
     method Array(::?CLASS:D:) {
-        my \copy := nqp::istype($!array,array)
-          ?? array[$!array.of].new(:shape($!dims))
-          !! nqp::istype($!array,Array::Typed)
-            ?? Array[$!array.of].new(:shape($!dims))
-            !! Array.new(:shape($!dims));
-        my \keys := Region.new($!array, $!indices, $!dims, 1);
+        my $array := $!array;
+
+        my $type := nqp::istype($array,array)
+          ?? array[$array.of]
+          !! nqp::istype($array,Array::Typed)
+            ?? Array[$array.of]
+            !! Array;
+        my $copy := $type.new(:shape($!dims.List));
+
+        my \keys := Region.new($array, $!indices, $!dims, 1);
         nqp::until(
           nqp::eqaddr((my \key := keys.pull-one),IterationEnd),
           nqp::if(
             self.EXISTS-POS(|key),
-            copy.ASSIGN-POS(|key, self.AT-POS(|key))
+            $copy.ASSIGN-POS(|key, self.AT-POS(|key))
           )
         );
-        copy
+        $copy
     }
 
     # A view keeps its dimensions, as the array it views does
@@ -186,12 +190,12 @@ my class Array::ShapedView does Positional does Iterable is implementation-detai
     method splice(|)  { self!illegal('splice')  }
     # A view of one dimension reverses and rotates as an array of one does
     method reverse(|c) {
-        nqp::iseq_i($!dims.elems,1)
+        nqp::iseq_i(nqp::elems($!dims),1)
           ?? Seq.new(self.iterator).reverse(|c)
           !! self!illegal('reverse')
     }
     method rotate(|c) {
-        nqp::iseq_i($!dims.elems,1)
+        nqp::iseq_i(nqp::elems($!dims),1)
           ?? Seq.new(self.iterator).rotate(|c)
           !! self!illegal('rotate')
     }
@@ -199,7 +203,7 @@ my class Array::ShapedView does Positional does Iterable is implementation-detai
     # A view of several dimensions matches as the list of its rows
     multi method ACCEPTS(::?CLASS:D: Mu \topic) {
         nqp::eqaddr(self,nqp::decont(topic))
-          || (nqp::iseq_i($!dims.elems,1)
+          || (nqp::iseq_i(nqp::elems($!dims),1)
                ?? self.List
                !! (^self.elems).map({ self.AT-POS($_) }).List
              ).ACCEPTS(topic)

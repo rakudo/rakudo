@@ -1449,38 +1449,35 @@ class RakuAST::Infix
 class RakuAST::Mixin
   is RakuAST::Infix
 {
-    method new(str $operator) {
-        my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
-        $obj
-    }
-
     method IMPL-INFIX-QAST(
       RakuAST::IMPL::QASTContext $context,
                               Mu $left-qast,
                               Mu $right-qast
     ) {
-        my $qast := QAST::Op.new(
-            :op('call'),
+        my $qast := QAST::Op.new(:op<call>,
             :name('&infix:<' ~ self.operator ~ '>'),
             $left-qast
         );
+        my $first;
+
         # Role<value> and Role(value) are split into the role and a named
         # value; any other call is one argument even when its own
         # arguments look the same.
         if nqp::istype($right-qast, QAST::Op)
           && ($right-qast.op eq 'call' || $right-qast.op eq 'callstatic')
           && (!$right-qast.name || $right-qast.name eq '&postcircumfix:<{ }>')
-          && +@($right-qast) == 2
-          && $right-qast[0].has_compile_time_value
-          && !nqp::isconcrete($right-qast[0].compile_time_value) {
-            $qast.push($right-qast[0]);
+          && nqp::elems($right-qast) == 2
+          && ($first := nqp::atpos($right-qast,0)).has_compile_time_value
+          && !nqp::isconcrete($first.compile_time_value) {
+            $qast.push($first);
             $right-qast[1].named('value');
             $qast.push($right-qast[1]);
         }
-        elsif nqp::istype($right-qast, QAST::Stmts) && +@($right-qast) == 1 &&
-                nqp::istype($right-qast[0], QAST::Op) && $right-qast[0].name eq '&infix:<,>' {
-            for @($right-qast[0]) {
+        elsif nqp::istype($right-qast,QAST::Stmts)
+          && nqp::elems($right-qast) == 1
+          && nqp::istype(($first := nqp::atpos($right-qast,0)),QAST::Op)
+          && $first.name eq '&infix:<,>' {
+            for @($first) {
                 $qast.push($_);
             }
         }
@@ -1495,16 +1492,13 @@ class RakuAST::Feed
   is RakuAST::Infix
   does RakuAST::BeginTime
 {
-    method new(str $operator) {
-        my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
-        $obj
-    }
-
     method is-pure() { False }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
+    method PERFORM-BEGIN(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        my str $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
         if $operator eq "==>>" || $operator eq "<<==" {
             self.add-sorry:
               $resolver.build-exception: 'X::Comp::NYI',
@@ -1530,55 +1524,54 @@ class RakuAST::Feed
         # will be passed in as var-arg parts to other things. The
         # first thing is just considered the result.
         my $result := @stages.shift;
-        for @stages {
-            my $stage := $_;
+        for @stages -> $stage {
             # Wrap current result in a block, so it's thunked and can be
             # called at the right point.
-            $result := QAST::Block.new( $result );
+            $result := QAST::Block.new($result);
 
             # Check what we have. XXX Real first step should be looking
             # for @(*) since if we find that it overrides all other things.
             # But that's todo...soon. :-)
-            if nqp::istype($stage, QAST::Op) {
-                if $stage.op eq 'call' || $stage.op eq 'callstatic' {
+            if nqp::istype($stage,QAST::Op) {
+                my str $op := $stage.op;
+                if $op eq 'call' || $op eq 'callstatic' {
                     # It's a call. Stick a call to the current supplier in
                     # as its last argument.
-                    $stage.push(QAST::Op.new( :op('call'), $result ));
+                    $stage.push(QAST::Op.new(:op<call>, $result ));
                 }
-                elsif $stage.op eq 'hllize'
-                && nqp::istype($stage[0], QAST::Op)
-                && $stage[0].op eq 'callmethod' {
+                elsif $op eq 'hllize'
+                  && nqp::istype((my $first := nqp::atpos($stage,0)),QAST::Op)
+                  && $first.op eq 'callmethod' {
                     # It's an indirect method call of the form foo-method($obj:)
-                    # Append the call that produces the result as the argument to the
-                    # indirect method call...
-                    $stage[0].push: QAST::Op.new: :op<call>, $result;
+                    # Append the call that produces the result as the argument
+                    # to the indirect method call...
+                    $first.push(QAST::Op.new(:op<call>, $result));
                     # ... and wrap the entire indirect method call with a block
-		    # for the next stage to call
-                    $stage[0] := QAST::Op.new: :op<call>, QAST::Block.new: $stage[0];
+                    # for the next stage to call
+                    nqp::bindpos($stage,0,QAST::Op.new(:op<call>,
+                      QAST::Block.new($first)
+                    ));
                 }
             }
-            elsif nqp::istype($stage, QAST::Var) {
+            elsif nqp::istype($stage,QAST::Var) {
                 # It's a variable. We need code that gets the results, pushes
                 # them onto the variable and then returns them (since this
                 # could well be a tap.
-                my $tmp := QAST::Node.unique('feed_tmp');
+                my str $name := QAST::Node.unique('feed_tmp');
                 $stage := QAST::Stmts.new(
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :scope('local'), :name($tmp), :decl('var') ),
-                        QAST::Op.new(
-                            :op('callmethod'), :name('list'),
-                            QAST::Op.new( :op('call'), $result )
-                            ),
-                        ),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('append'),
-                        $stage,
-                        QAST::Var.new( :scope('local'), :name($tmp) )
-                        ),
-                    QAST::Var.new( :scope('local'), :name($tmp) )
-                    );
-                $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
+                  QAST::Op.new(:op<bind>,
+                    QAST::Var.new(:$name, :scope<local>, :decl<var>),
+                    QAST::Op.new(:op<callmethod>, :name<list>,
+                      QAST::Op.new(:op<call>, $result)
+                    ),
+                  ),
+                  QAST::Op.new(:op<callmethod>, :name<append>,
+                    $stage,
+                    QAST::Var.new(:$name, :scope<local>)
+                  ),
+                  QAST::Var.new(:$name, :scope<local>)
+                );
+                $stage := QAST::Op.new(:op<locallifetime>, $stage, $name);
             }
             else {
                 # ApplyListInfix.PERFORM-CHECK should reject this earlier.

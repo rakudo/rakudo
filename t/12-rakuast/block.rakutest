@@ -10,7 +10,7 @@ my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -281,7 +281,7 @@ CODE
     is-deeply RakuAST::Signature.new.raku, 'RakuAST::Signature.new',
       'a signature that was never given parameters writes none';
     my $parsed := Q{-> { 101 }}.AST;
-    is-deeply EVAL('use experimental :rakuast; ' ~ $parsed.raku).raku, $parsed.raku,
+    is-deeply EVAL($parsed.raku).raku, $parsed.raku,
       'parsed: the .raku of a block with an empty signature builds the same tree';
 
     for

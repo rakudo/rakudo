@@ -14,7 +14,6 @@ throws-like 'my $*x; class ::($*x ?? "A" !! "B") { }', Exception,
 # The fallback returns the CannotLiteralize sentinel (an undefined type
 # object) instead of throwing when no specific candidate matches.
 {
-    use experimental :rakuast;
     nok RakuAST::Statement::Empty.new.literalize.defined,
       'literalize of a node with no specific candidate returns an undefined sentinel';
 }

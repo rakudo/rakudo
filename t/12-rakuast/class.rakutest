@@ -11,7 +11,7 @@ my $raku;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -1080,7 +1080,7 @@ CODE
         is-deeply EVAL($it), 2, "$type: the default is computed";
     }
     is-deeply $ast.DEPARSE, $deparsed, 'deparse after the class was compiled';
-    is-deeply 'use experimental :rakuast; ' ~ $ast.raku, $raku,
+    is-deeply $ast.raku, $raku,
       '.raku after the class was compiled';
 }
 
@@ -1479,7 +1479,7 @@ CODE
     for
       'AST', EVAL($parsed),
       'Str', EVAL($parsed.DEPARSE),
-      'Raku', EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku)
+      'Raku', EVAL(EVAL $parsed.raku)
     -> $type, $value {
         is $value, 42, "$type: the role of the also statement is composed";
     }
@@ -1541,7 +1541,7 @@ CODE
     for
       'AST', EVAL($parsed),
       'Str', EVAL($parsed.DEPARSE),
-      'Raku', EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku)
+      'Raku', EVAL(EVAL $parsed.raku)
     -> $type, $value {
         is-deeply $value, (True, True, 42),
           "$type: each also statement reached the routine or role it is in";
@@ -1795,7 +1795,7 @@ my custom-class CustomParsedLexical { }
 CODE
     nok $parsed-lexical.raku.contains(/<< how >> \s* '=>'/),
       "parsed: the declarator's HOW is not written in the .raku";
-    is EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed-lexical.raku).HOW.^name,
+    is EVAL(EVAL $parsed-lexical.raku).HOW.^name,
       'CustomDeclaratorHOW',
       "parsed: the .raku builds the class with the declarator's HOW";
 }
@@ -1856,7 +1856,7 @@ my class SupersededParsed {
 CODE
     nok $parsed.raku.contains(/<< how >> \s* '=>'/),
       'parsed: the superseding HOW is not written in the .raku';
-    my $class := EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku);
+    my $class := EVAL(EVAL $parsed.raku);
     is $class.HOW.^name, 'SupersededClassHOW',
       'parsed: the .raku makes the class with the superseding HOW';
     is $class.^attributes.head.^name, 'SupersededAttribute',
@@ -2153,7 +2153,7 @@ my grammar UncheckedParsed { }
 CODE
     nok $parsed.raku.contains(/<< how >> \s* '=>'/),
       'parsed: the superseding HOW is not written in the .raku';
-    is EVAL(EVAL 'use experimental :rakuast; ' ~ $parsed.raku).HOW.^name,
+    is EVAL(EVAL $parsed.raku).HOW.^name,
       'UncheckedGrammarHOW',
       'parsed: the .raku makes the grammar with the superseding HOW';
 }

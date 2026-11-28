@@ -1,13 +1,10 @@
 use MONKEY-SEE-NO-EVAL;
-use experimental :rakuast;
 use Test;
 use nqp;
 use lib <t/packages/02-rakudo/lib>;
 use HeredocParameterDefault;
 
 plan 46;
-
-my $rakuast := nqp::ifnull(nqp::gethllsym('Raku', 'COMPILER-FRONTEND'), '') eq 'rakuast';
 
 # A heredoc body is parsed once its line ends. Code that needs the heredoc
 # before then dies.
@@ -121,41 +118,36 @@ is (try EVAL q:to/CODE/), "a whatever\n", 'a WhateverCode passed as a role argum
     CODE
 
 # A role body compiles when the role closes, but waits for a heredoc in it.
-if $rakuast {
-    is (try EVAL q:to/CODE/), "[2]\n", 'a heredoc in a role that closes before its line ends reads its body once composed';
-        role Closed { method m() { qq:to/END/ } }; my $pad;
-            [{ 1 + 1 }]
-            END
-        class Composed does Closed { }
-        Composed.m
-        CODE
+is (try EVAL q:to/CODE/), "[2]\n", 'a heredoc in a role that closes before its line ends reads its body once composed';
+    role Closed { method m() { qq:to/END/ } }; my $pad;
+        [{ 1 + 1 }]
+        END
+    class Composed does Closed { }
+    Composed.m
+    CODE
 
-    is (try EVAL q:to/CODE/), "param\n", 'a heredoc in a parameterized role that closes before its line ends reads its body once composed';
-        role ClosedParam[$x] { method m() { q:to/END/ } }; my $pad;
-            param
-            END
-        class ComposedParam does ClosedParam[1] { }
-        ComposedParam.m
-        CODE
+is (try EVAL q:to/CODE/), "param\n", 'a heredoc in a parameterized role that closes before its line ends reads its body once composed';
+    role ClosedParam[$x] { method m() { q:to/END/ } }; my $pad;
+        param
+        END
+    class ComposedParam does ClosedParam[1] { }
+    ComposedParam.m
+    CODE
 
-    is (try EVAL q:to/CODE/), "default\n", 'a heredoc attribute default in a role that closes before its line ends reads its body once composed';
-        role ClosedDefault { has $.a = q:to/END/ }; my $pad;
-            default
-            END
-        class ComposedDefault does ClosedDefault { }
-        ComposedDefault.new.a
-        CODE
+is (try EVAL q:to/CODE/), "default\n", 'a heredoc attribute default in a role that closes before its line ends reads its body once composed';
+    role ClosedDefault { has $.a = q:to/END/ }; my $pad;
+        default
+        END
+    class ComposedDefault does ClosedDefault { }
+    ComposedDefault.new.a
+    CODE
 
-    is (try EVAL q:to/CODE/), "[2]\n", 'a heredoc in a role composed before its line ends reads its body when run';
-        role ClosedEarly { method m() { qq:to/END/ } }; class ComposedEarly does ClosedEarly { }
-            [{ 1 + 1 }]
-            END
-        ComposedEarly.m
-        CODE
-}
-else {
-    skip 'the legacy frontend compiles a role body before its line ends', 4;
-}
+is (try EVAL q:to/CODE/), "[2]\n", 'a heredoc in a role composed before its line ends reads its body when run';
+    role ClosedEarly { method m() { qq:to/END/ } }; class ComposedEarly does ClosedEarly { }
+        [{ 1 + 1 }]
+        END
+    ComposedEarly.m
+    CODE
 
 is (try EVAL q:to/CODE/), "body\n", 'a BEGIN block ending its line reads the heredoc body';
     my $got;
@@ -269,62 +261,57 @@ throws-like q:to/CODE/, X::Comp, line => 3, 'an EVAL error in a pragma argument 
     1 +]);
     CODE
 
-if $rakuast {
-    throws-like q:to/CODE/, X::Comp, message => /'Premature heredoc consumption'/, line => 2, 'a heredoc return value whose routine does not end its line dies';
-        my $pad;
-        my &returned = sub (--> q:to/END/) { }; my $after;
-            ret
-            END
-        CODE
+throws-like q:to/CODE/, X::Comp, message => /'Premature heredoc consumption'/, line => 2, 'a heredoc return value whose routine does not end its line dies';
+    my $pad;
+    my &returned = sub (--> q:to/END/) { }; my $after;
+        ret
+        END
+    CODE
 
-    throws-like q:to/CODE/, X::Comp, message => /'Premature heredoc consumption'/, line => 2, 'a heredoc as a literal parameter dies';
-        my $pad;
-        multi literal(q:to/END/) { }
-            body
-            END
-        CODE
+throws-like q:to/CODE/, X::Comp, message => /'Premature heredoc consumption'/, line => 2, 'a heredoc as a literal parameter dies';
+    my $pad;
+    multi literal(q:to/END/) { }
+        body
+        END
+    CODE
 
-    throws-like q:to/CODE/, X::Comp, message => /'Premature heredoc consumption'/, line => 2, 'a use argument heredoc before its line ends dies';
-        my $pad;
-        use lib q:to/END/; my $after;
-            /nonexistent
-            END
-        CODE
+throws-like q:to/CODE/, X::Comp, message => /'Premature heredoc consumption'/, line => 2, 'a use argument heredoc before its line ends dies';
+    my $pad;
+    use lib q:to/END/; my $after;
+        /nonexistent
+        END
+    CODE
 
-    throws-like q:to/CODE/, X::Syntax::Extension::TooComplex, line => 2, 'a lookup of an operator named by an interpolated string is too complex';
-        my $x = 1;
-        &infix:["a$x"]
-        CODE
+throws-like q:to/CODE/, X::Syntax::Extension::TooComplex, line => 2, 'a lookup of an operator named by an interpolated string is too complex';
+    my $x = 1;
+    &infix:["a$x"]
+    CODE
 
-    throws-like q:to/CODE/, X::Syntax::Extension::TooComplex, line => 2, 'a variable named by an interpolated string is too complex';
-        my $x = 1;
-        my &infix:["a$x"] = sub ($a, $b) { 1 };
-        CODE
+throws-like q:to/CODE/, X::Syntax::Extension::TooComplex, line => 2, 'a variable named by an interpolated string is too complex';
+    my $x = 1;
+    my &infix:["a$x"] = sub ($a, $b) { 1 };
+    CODE
 
-    is (try EVAL q:to/CODE/), "ret\n", 'a heredoc return value after --> binds its body when its routine ends the line';
-        sub returned(--> q:to/END/) { }
-            ret
-            END
-        returned()
-        CODE
+is (try EVAL q:to/CODE/), "ret\n", 'a heredoc return value after --> binds its body when its routine ends the line';
+    sub returned(--> q:to/END/) { }
+        ret
+        END
+    returned()
+    CODE
 
-    throws-like q:to/CODE/, X::Comp, message => /'Return value after --> may only be a type or a constant'/, line => 2, 'a heredoc return value whose body interpolates is rejected at the heredoc';
-        my $x = 1;
-        sub interpolates(--> qq:to/END/) {
-            v{$x}
-            END
-        }
-        CODE
+throws-like q:to/CODE/, X::Comp, message => /'Return value after --> may only be a type or a constant'/, line => 2, 'a heredoc return value whose body interpolates is rejected at the heredoc';
+    my $x = 1;
+    sub interpolates(--> qq:to/END/) {
+        v{$x}
+        END
+    }
+    CODE
 
-    throws-like q:to/CODE/, X::Comp, message => /'Premature heredoc consumption'/, line => 2, 'a heredoc in a do block passed as a role argument dies at the heredoc';
-        role Typed[$s] { method s() { $s } }
-        my Typed[do { q:to/END/ }] $typed;
-            body
-            END
-        CODE
+throws-like q:to/CODE/, X::Comp, message => /'Premature heredoc consumption'/, line => 2, 'a heredoc in a do block passed as a role argument dies at the heredoc';
+    role Typed[$s] { method s() { $s } }
+    my Typed[do { q:to/END/ }] $typed;
+        body
+        END
+    CODE
 
-    throws-like 'my $pad; say q:to/END/', X::Comp, message => /'Ending delimiter END not found'/, 'a heredoc on a last line without a newline is missing its body';
-}
-else {
-    skip 'the legacy frontend fails these with other errors', 9;
-}
+throws-like 'my $pad; say q:to/END/', X::Comp, message => /'Ending delimiter END not found'/, 'a heredoc on a last line without a newline is missing its body';

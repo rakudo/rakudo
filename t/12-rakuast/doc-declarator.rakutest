@@ -6,8 +6,6 @@ use nqp;
 
 plan 51;
 
-my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
-
 my $ast;
 my $deparsed;
 my $raku;
@@ -22,7 +20,7 @@ sub ast(RakuAST::Node:D $node, :$no-pod --> Nil) {
            )
          );
     $deparsed := $ast.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    $raku     := $ast.raku;
     diag $deparsed.chomp;
 }
 
@@ -251,9 +249,7 @@ CODE
         isa-ok $class.new, $class, "$type: can it instantiate";
 
         my $attribute := $class.^attributes.head;
-        test-declarator($attribute, $pod, $type,
-          :trailing-dropped(!$rakuast && $type eq 'Str')
-        );
+        test-declarator($attribute, $pod, $type);
     }
 }
 
@@ -1181,7 +1177,7 @@ my enum E (do {
 CODE
     is-deeply $ast.DEPARSE.AST.DEPARSE, $ast.DEPARSE,
       'the deparse parses back to itself';
-    is-deeply EVAL('use experimental :rakuast; ' ~ $ast.raku).DEPARSE, $ast.DEPARSE,
+    is-deeply EVAL($ast.raku).DEPARSE, $ast.DEPARSE,
       'Raku: the docs survive the .raku round trip';
 }
 
@@ -2240,7 +2236,7 @@ CODE
       'inside an expression: the docs stay on the declarations with loop modifiers';
     # the frontends differ on what a declaration under a loop modifier
     # leaves behind, so only the modifiers that end in a brace are run
-    for 'AST', $inside, 'Str', $inside.DEPARSE, 'Raku', EVAL('use experimental :rakuast; ' ~ $inside.raku) -> $type, $it {
+    for 'AST', $inside, 'Str', $inside.DEPARSE, 'Raku', EVAL($inside.raku) -> $type, $it {
         is-deeply EVAL($it), (1, Any, 3),
           "$type: the modifiers that end in a brace run";
     }
@@ -2289,7 +2285,7 @@ sub f {
 CODE
     is-deeply $ast.DEPARSE.AST.DEPARSE, $ast.DEPARSE,
       'the deparse parses back to itself';
-    is-deeply EVAL('use experimental :rakuast; ' ~ $ast.raku).DEPARSE, $ast.DEPARSE,
+    is-deeply EVAL($ast.raku).DEPARSE, $ast.DEPARSE,
       'Raku: the docs survive the .raku round trip';
 
     # #| doc for f

@@ -1,7 +1,6 @@
 use lib <t/packages/Test-Helpers>;
 use Test::Helpers;
 use Test;
-use experimental :rakuast;
 
 plan :skip-all('these tests observe the optimize phase') unless optimizer-enabled;
 plan 65;

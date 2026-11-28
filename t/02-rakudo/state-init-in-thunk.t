@@ -1,7 +1,6 @@
 use lib <t/packages/Test-Helpers>;
 use Test;
 use Test::Helpers;
-use experimental :rakuast;
 use nqp;
 
 plan 57;

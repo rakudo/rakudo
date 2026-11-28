@@ -181,17 +181,17 @@ if $rakuast {
         'a compile-time variable in a closure in a trait argument of a class in a trait argument of a class is that of the scope around both';
     is (try EVAL(q[my multi trait_mod:<is>(Mu:U $c, :$tagged!) { }; my role R16[$a] is tagged(my sub s { "one:$a" }) { method m { s() } }; my role R16[$a, $b] is tagged(my sub s { "two:$a$b" }) { method m { s() } }; my class X does R16[1] { }; my class Y does R16[1, 2] { }; X.m ~ "|" ~ Y.m])), 'one:1|two:12',
         'each candidate of a role group sees its own sub declared in a trait argument';
-    is (try EVAL(q[use MONKEY-SEE-NO-EVAL; use experimental :rakuast; EVAL('use experimental :rakuast; ' ~ Q[my module M { my class D { ... }; my class D { method x { 5 } }; our sub m { D.x } }; M::m()].AST.raku).EVAL])), 5,
+    is (try EVAL(q[use MONKEY-SEE-NO-EVAL;  EVAL(Q[my module M { my class D { ... }; my class D { method x { 5 } }; our sub m { D.x } }; M::m()].AST.raku).EVAL])), 5,
         'a class stubbed and then defined in the body of a module in a tree built from its raku has its methods';
-    is (try EVAL(q[use MONKEY-SEE-NO-EVAL; use experimental :rakuast; my multi trait_mod:<is>(Mu:U $c, :$cb!) { $c.^add_method("cb", method { $cb() }) }; EVAL('use experimental :rakuast; ' ~ Q[my role R { my class C is cb(-> { $?CLASS.^name ~ ::?CLASS.^name }) { }; method r { C.cb } }; (1 but R).r].AST.raku).EVAL])), 'Int+{R}Int+{R}',
+    is (try EVAL(q[use MONKEY-SEE-NO-EVAL; my multi trait_mod:<is>(Mu:U $c, :$cb!) { $c.^add_method("cb", method { $cb() }) }; EVAL(Q[my role R { my class C is cb(-> { $?CLASS.^name ~ ::?CLASS.^name }) { }; method r { C.cb } }; (1 but R).r].AST.raku).EVAL])), 'Int+{R}Int+{R}',
         'the class of a role in a closure in a trait argument of a class in the role in a tree built from its raku is that of the specialization';
-    is (try EVAL(q[use MONKEY-SEE-NO-EVAL; use experimental :rakuast; EVAL('use experimental :rakuast; ' ~ Q[my multi trait_mod:<is>(Mu:U $c, :$tagged!) { }; my class C is tagged(my $v = 5) is tagged(my sub s { 6 }) { method m { $v ~ s() } }; C.m].AST.raku).EVAL])), '56',
+    is (try EVAL(q[use MONKEY-SEE-NO-EVAL; EVAL(Q[my multi trait_mod:<is>(Mu:U $c, :$tagged!) { }; my class C is tagged(my $v = 5) is tagged(my sub s { 6 }) { method m { $v ~ s() } }; C.m].AST.raku).EVAL])), '56',
         'a variable and a sub declared in trait arguments of a class in a tree built from its raku are seen by its methods';
     is (try EVAL(q[(1 but EVAL q[my multi trait_mod:<is>(Mu:U $c, :$tagged!) { }; unit role UR is tagged(my $v = 5) is tagged(my sub s { 6 }); method m { $v ~ s() }]).m])), '56',
         'a variable and a sub declared in trait arguments of a unit scoped role are seen by its methods';
     is (try EVAL(q[my multi trait_mod:<is>(Mu:U $c, :$cb!) { $c.^add_method("cb", method { $cb() }) }; my role R[$n] { my class C is cb(-> { $?CLASS.^name }) { }; method r { C.cb } }; (1 but R[1]).r.substr(0, 3) ~ (2 but R[2]).r.substr(0, 3) ~ ("a" but R[3]).r.substr(0, 3)])), 'IntIntStr',
         'the class of a role in a closure in a trait argument of a class in the role is that of the specialization last made at runtime';
-    is (try EVAL(q[use MONKEY-SEE-NO-EVAL; use experimental :rakuast; my multi trait_mod:<is>(Mu:U $c, :$cb!) { $c.^add_method("cb", method { $cb() }) }; EVAL('use experimental :rakuast; ' ~ Q[my module MH { my class D is cb(-> { $?PACKAGE.^name }) { }; our sub g { D.cb } }; MH::g()].AST.raku).EVAL])), 'MH',
+    is (try EVAL(q[use MONKEY-SEE-NO-EVAL; my multi trait_mod:<is>(Mu:U $c, :$cb!) { $c.^add_method("cb", method { $cb() }) }; EVAL(Q[my module MH { my class D is cb(-> { $?PACKAGE.^name }) { }; our sub g { D.cb } }; MH::g()].AST.raku).EVAL])), 'MH',
         'a compile-time variable in a closure in a trait argument of a class in a tree built from its raku is that of the scope around the class';
     is (try EVAL(q[my multi trait_mod:<is>(Mu:U $c, :$tagged!) { }; my role R11[$n] is tagged(my sub s { $n }) { method m { s() } }; my class X does R11[3] { }; my class Y does R11[4] { }; X.m ~ Y.m])), '34',
         'a sub declared in a trait argument of a role sees the parameter of each specialization';

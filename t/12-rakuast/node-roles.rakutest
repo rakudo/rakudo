@@ -82,7 +82,7 @@ subtest 'A role requires a method of the class doing it' => {
     nok RakuAST::Expression.^find_method('creates-block').yada,
       'the class provides a real method';
     throws-like
-      'use experimental :rakuast; class Careless does RakuAST::MayCreateBlock { }',
+      'class Careless does RakuAST::MayCreateBlock { }',
       X::Comp, message => /'creates-block' .* 'Careless' .* 'RakuAST::MayCreateBlock'/,
       'a class that does not implement the method is refused, naming all three';
 }
@@ -114,7 +114,7 @@ subtest 'A class written in Raku can do a node role with state' => {
 
 subtest 'Augmenting a node class keeps its role attributes readable' => {
     plan 2;
-    EVAL 'use experimental :rakuast; use MONKEY-TYPING;
+    EVAL 'use MONKEY-TYPING;
           augment class RakuAST::Type::Subset { method node-roles-test() { 1 } }';
     my $attribute := RakuAST::Type::Subset.^attributes.first(*.name eq '$!traits');
     ok $attribute.package === RakuAST::TraitTarget,

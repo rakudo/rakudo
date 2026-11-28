@@ -4,8 +4,6 @@ use nqp;
 
 plan 87;
 
-my $rakuast := nqp::gethllsym('Raku', 'COMPILER-FRONTEND') eq 'rakuast';
-
 my $ast;
 my $deparsed;
 my $raku;
@@ -13,12 +11,11 @@ my @type = <AST Str Raku AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
 # MUST be the first test to handle EVAL_n counter
-todo("Depends on Raku grammar/actions") unless $rakuast;
 subtest 'Special compiler variable $?FILE' => {
     my $file := 'EVAL_1';
     # $?FILE
@@ -1899,7 +1896,7 @@ CODE
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     is-deeply EVAL($raku).DEPARSE, $deparsed, 'Raku: deparses the same';
 
-    my $wrong := 'use experimental :rakuast; ' ~ Q{my ("foo") = "bar"}.AST.raku;
+    my $wrong := Q{my ("foo") = "bar"}.AST.raku;
     throws-like { EVAL EVAL $wrong }, X::TypeCheck::Assignment,
       'Raku: the literal still checks the value';
 }
@@ -2070,7 +2067,7 @@ subtest 'A standard slang variable finds its grammar outside a parse' => {
         }
     }
 
-    my $rebuilt := EVAL 'use experimental :rakuast; ' ~ Q{$~Regex}.AST.raku;
+    my $rebuilt := EVAL Q{$~Regex}.AST.raku;
     my $slang   := EVAL($rebuilt);
     ok $slang.grammar.^name.ends-with('::RegexGrammar')
          && $slang.actions.^name.ends-with('::RegexActions'),
@@ -2144,7 +2141,7 @@ CODE
 my Int ($p, ($q, $r));
 $r = "x"
 CODE
-    for 'AST', $assign, 'Raku', EVAL('use experimental :rakuast; ' ~ $assign.raku) -> $type, $it {
+    for 'AST', $assign, 'Raku', EVAL($assign.raku) -> $type, $it {
         throws-like { EVAL $it }, X::TypeCheck::Assignment,
           "$type: a variable inside a sub-signature is typed";
     }

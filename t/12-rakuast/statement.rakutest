@@ -10,7 +10,7 @@ my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -1768,7 +1768,7 @@ after
 42
 CODE
     for 'AST', $parsed, 'Str', $parsed.DEPARSE,
-        'Raku', EVAL('use experimental :rakuast; ' ~ $parsed.raku) -> $type, $it {
+        'Raku', EVAL($parsed.raku) -> $type, $it {
         is-deeply EVAL($it), 42, "parsed: $type";
     }
     is-deeply $parsed.DEPARSE.AST.DEPARSE, $parsed.DEPARSE,
@@ -1779,7 +1779,7 @@ CODE
       'parsed: a globbed version is written as it was';
     is-deeply $globbed.statements.head.version, v6.*,
       'parsed: the statement holds the globbed version';
-    is-deeply EVAL('use experimental :rakuast; ' ~ $globbed.raku).raku,
+    is-deeply EVAL($globbed.raku).raku,
       $globbed.raku, 'parsed: the .raku of a globbed version builds the same tree';
     is-deeply "use v6;\n42".AST.DEPARSE, "use v6;\n42\n",
       'parsed: a bare v6 is written as it was';
@@ -1790,7 +1790,7 @@ CODE
     nano.defined
     SOURCE
     for 'AST', $six-e, 'Str', $six-e.DEPARSE,
-        'Raku', EVAL('use experimental :rakuast; ' ~ $six-e.raku) -> $type, $it {
+        'Raku', EVAL($six-e.raku) -> $type, $it {
         is-deeply EVAL($it), True, "6.e: $type";
     }
 }

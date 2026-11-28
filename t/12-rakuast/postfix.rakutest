@@ -10,7 +10,7 @@ my @type = |<AST Str Raku> xx *;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -815,7 +815,7 @@ subtest 'WhateverCode keeps its .raku after BEGIN time' => {
     is-deeply $deparsed, '(* > 1)(2)', 'deparse';
     is-deeply $_, True, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
-    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku), True,
+    is-deeply EVAL(EVAL $ast.raku), True,
       'EVAL of the .raku after BEGIN time';
 }
 
@@ -844,7 +844,7 @@ subtest 'HyperWhateverCode keeps its .raku after BEGIN time' => {
     is-deeply $_.List, (2, 3), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     is-deeply $ast.DEPARSE, $deparsed, 'deparse after BEGIN time';
-    is-deeply EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).List,
+    is-deeply EVAL(EVAL $ast.raku).List,
       (2, 3), 'EVAL of the .raku after BEGIN time';
 }
 

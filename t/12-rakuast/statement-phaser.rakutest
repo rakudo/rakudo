@@ -13,7 +13,7 @@ my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -1752,7 +1752,6 @@ subtest 'ENTER phaser subclass added to the compilation unit at BEGIN' => {
     }
     else {
     my $code = q:to/CODE/;
-        use experimental :rakuast;
         my class UnitEnter is RakuAST::StatementPrefix::Phaser::Enter {
             has $.code is rw;
             method meta-object() { $!code }

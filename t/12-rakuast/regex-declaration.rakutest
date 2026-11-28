@@ -9,7 +9,7 @@ my $raku;
 sub ast(RakuAST::Node:D $body --> Nil) {
     $ast      := $body;
     $deparsed := $ast.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
+    $raku     := $ast.raku;
     diag $deparsed.chomp;
 }
 my $body := RakuAST::Regex::WithWhitespace.new(

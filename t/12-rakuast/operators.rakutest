@@ -10,7 +10,7 @@ my @type = |<AST Str Raku> xx *;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -530,7 +530,7 @@ $j
 CODE
     is $_.raku, 'any(1, "a")', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
-    is EVAL(EVAL 'use experimental :rakuast; ' ~ $ast.raku).raku,
+    is EVAL(EVAL $ast.raku).raku,
       'any(1, "a")', 'EVAL of the .raku after BEGIN time';
 }
 

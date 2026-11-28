@@ -13,7 +13,7 @@ sub ast-ok(
     subtest $comment => {
         plan 4;
         my $deparsed = $ast.DEPARSE;
-        my $raku     = 'use experimental :rakuast; ' ~ $ast.raku;
+        my $raku     = $ast.raku;
         diag $deparsed.chomp;
 
         is-deeply $deparsed, $string, 'deparse';

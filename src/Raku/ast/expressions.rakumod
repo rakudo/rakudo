@@ -2518,6 +2518,35 @@ class RakuAST::MetaInfix::Negate
     has int $!negate-not;
     has Mu $!negate-not-op;
 
+    method new(RakuAST::Infixish $infix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Negate, '$!infix', $infix);
+        $obj
+    }
+
+    method action { 'negate' }
+    method properties() { $!infix.properties }
+    method reducer-name() { $!infix.reducer-name }
+    method visit-children(Code $visitor) { $visitor($!infix) }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        self.add-sorry(
+          $resolver.build-exception("X::Syntax::CannotMeta",
+            :meta<negate>,
+            :operator(self.infix.operator),
+            :dba(self.properties.dba),
+            :reason("not iffy enough")
+          )
+        ) unless self.properties.iffy;
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        [ RakuAST::Type::Setting.from-identifier('&METAOP_NEGATE') ]
+    }
+
     method IMPL-SET-NEGATE-NOT(Mu $op) {
         nqp::bindattr_i(self, RakuAST::MetaInfix::Negate, '$!negate-not', 1);
         nqp::bindattr(self, RakuAST::MetaInfix::Negate, '$!negate-not-op', $op);
@@ -2528,69 +2557,49 @@ class RakuAST::MetaInfix::Negate
         nqp::bindattr(self, RakuAST::MetaInfix::Negate, '$!negate-not-op', Mu);
     }
 
-    method new(RakuAST::Infixish $infix) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::MetaInfix::Negate, '$!infix', $infix);
-        $obj
-    }
-
-    method action { 'negate' }
-
-    method visit-children(Code $visitor) {
-        $visitor($!infix);
-    }
-
-    method PERFORM-CHECK(
-               RakuAST::Resolver $resolver,
-      RakuAST::IMPL::QASTContext $context
-    ) {
-        self.properties.iffy
-          || self.add-sorry:
-               $resolver.build-exception: "X::Syntax::CannotMeta",
-                 meta     => "negate",
-                 operator => self.infix.operator,
-                 dba      => self.properties.dba,
-                 reason   => "not iffy enough"
-    }
-
-    method properties() { $!infix.properties }
-
-    method reducer-name() { $!infix.reducer-name }
-
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        [ RakuAST::Type::Setting.from-identifier('&METAOP_NEGATE') ]
-    }
-
     method IMPL-OPERATOR() {
         self.get-implicit-lookups[0].resolution.compile-time-value
     }
 
     method IMPL-CALLS-OPERATOR() { $!negate-not ?? True !! False }
 
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+    method IMPL-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
         # The negated operator's own lookup decides its reference
         # arguments. A meta-op standing in for it has no lookup.
-        my int $own-lookup := nqp::istype($!infix, RakuAST::Infix);
+        my     $infix      := $!infix;
+        my int $own-lookup := nqp::istype($infix,RakuAST::Infix);
+
         if $!negate-not {
             $context.ensure-sc($!negate-not-op);
-            my $call := $own-lookup
-                ?? $!infix.IMPL-SIMPLIFY-REF-ARGS(QAST::Op.new(
-                    :op('call'),
-                    $!infix.IMPL-HOP-INFIX-QAST($context),
-                    $left-qast,
-                    $right-qast))
-                !! $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast);
-            return QAST::Op.new:
-                :op('call'),
-                QAST::WVal.new( :value($!negate-not-op) ),
-                $call;
+            QAST::Op.new(:op<call>,
+              QAST::WVal.new(:value($!negate-not-op)),
+              $own-lookup
+                ?? $infix.IMPL-SIMPLIFY-REF-ARGS(
+                     QAST::Op.new(:op<call>,
+                       $infix.IMPL-HOP-INFIX-QAST($context),
+                       $left-qast,
+                       $right-qast
+                     )
+                    )
+                !! $infix.IMPL-INFIX-FOR-META-QAST(
+                     $context, $left-qast, $right-qast
+                   )
+            )
         }
-        my $op := QAST::Op.new:
-            :op($!infix.properties.chain ?? 'chain' !! 'call'),
-            self.IMPL-HOP-INFIX-QAST($context),
-            $left-qast,
-            $right-qast;
-        $own-lookup ?? $!infix.IMPL-SIMPLIFY-REF-ARGS($op) !! $op
+        else {
+            my $op := QAST::Op.new(:op($!infix.properties.chain ?? 'chain' !! 'call'),
+              self.IMPL-HOP-INFIX-QAST($context),
+              $left-qast,
+              $right-qast
+            );
+            $own-lookup
+              ?? $!infix.IMPL-SIMPLIFY-REF-ARGS($op)
+              !! $op
+        }
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -2602,16 +2611,23 @@ class RakuAST::MetaInfix::Negate
         )
     }
 
-    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+    method IMPL-LIST-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $operands
+    ) {
+        my $op := QAST::Op.new(:op<call>, self.IMPL-HOP-INFIX-QAST($context));
         for $operands {
             $op.push($_);
         }
         $op
     }
 
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
+    method IMPL-THUNK-ARGUMENTS(
+               RakuAST::Resolver  $resolver,
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression *@operands,
+                            Bool :$meta
+    ) {
         self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
     }
 }
@@ -2627,17 +2643,14 @@ class RakuAST::MetaInfix::Reverse
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaInfix::Reverse, '$!infix', $infix);
         nqp::bindattr($obj, RakuAST::MetaInfix::Reverse, '$!properties',
-          $infix.properties.associative-reversed);
+          $infix.properties.associative-reversed
+        );
         $obj
     }
 
     method action { 'reverse the args of' }
-
     method reducer-name() { self.properties.reducer-name }
-
-    method visit-children(Code $visitor) {
-        $visitor($!infix);
-    }
+    method visit-children(Code $visitor) { $visitor($!infix) }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         [ RakuAST::Type::Setting.from-identifier('&METAOP_REVERSE') ]
@@ -2654,12 +2667,20 @@ class RakuAST::MetaInfix::Reverse
         $index < 0 ?? -1 !! $elems - 1 - $index
     }
 
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+    method IMPL-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
+        # Note the reversal of the arguments here
         $!infix.IMPL-INFIX-FOR-META-QAST($context, $right-qast, $left-qast)
     }
 
-    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+    method IMPL-LIST-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $operands
+    ) {
+        my $op := QAST::Op.new(:op<call>, self.IMPL-HOP-INFIX-QAST($context));
         for $operands {
             $op.push($_);
         }
@@ -2669,14 +2690,18 @@ class RakuAST::MetaInfix::Reverse
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
         nqp::ifnull(
           self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
-          QAST::Op.new(:op<callstatic>,
-            :name<&METAOP_REVERSE>, $!infix.IMPL-HOP-INFIX-QAST($context)
+          QAST::Op.new(:op<callstatic>, :name<&METAOP_REVERSE>,
+            $!infix.IMPL-HOP-INFIX-QAST($context)
           )
         )
     }
 
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
+    method IMPL-THUNK-ARGUMENTS(
+               RakuAST::Resolver  $resolver,
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression *@operands,
+                            Bool :$meta
+    ) {
         my @args;
         for @operands {
             nqp::unshift(@args, $_);
@@ -2685,7 +2710,8 @@ class RakuAST::MetaInfix::Reverse
     }
 
     method IMPL-CAN-INTERPRET() {
-        nqp::istype(self.infix.IMPL-UNBRACKETED, RakuAST::Infix) && self.infix.IMPL-CAN-INTERPRET
+        nqp::istype(self.infix.IMPL-UNBRACKETED,RakuAST::Infix)
+          && self.infix.IMPL-CAN-INTERPRET
     }
 
     method IMPL-COMPILES-OPERANDS() { self.infix.IMPL-COMPILES-OPERANDS }
@@ -2693,10 +2719,16 @@ class RakuAST::MetaInfix::Reverse
     # A binary application evaluates the right operand first and calls the
     # operator with the operands swapped. A list application evaluates them
     # in order and calls the reversing wrapper around the operator.
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands, Bool :$list-infix) {
+    method IMPL-INTERPRET(
+      RakuAST::IMPL::InterpContext  $ctx,
+                              List  $operands,
+                              Bool :$list-infix
+    ) {
         my @operands := self.IMPL-UNWRAP-LIST($operands);
         $list-infix
-          ?? self.IMPL-INTERPRET-CALL($ctx, self.IMPL-HOP-INFIX, @operands, :box)
+          ?? self.IMPL-INTERPRET-CALL(
+               $ctx, self.IMPL-HOP-INFIX, @operands, :box
+             )
           !! self.IMPL-INTERPRET-CALL(
                $ctx,
                self.infix.IMPL-HOP-INFIX,
@@ -2719,17 +2751,14 @@ class RakuAST::MetaInfix::Sequence
         # Sequencing only pins the evaluation order of the operands; the
         # operator itself keeps its precedence and associativity.
         nqp::bindattr($obj, RakuAST::MetaInfix::Sequence, '$!properties',
-          $infix.properties);
+          $infix.properties
+        );
         $obj
     }
 
     method action { 'sequence the args of' }
-
     method reducer-name() { $!infix.reducer-name }
-
-    method visit-children(Code $visitor) {
-        $visitor($!infix);
-    }
+    method visit-children(Code $visitor) { $visitor($!infix) }
 
     method PRODUCE-IMPLICIT-LOOKUPS() { [] }
 
@@ -2741,9 +2770,7 @@ class RakuAST::MetaInfix::Sequence
     # operator, so the formed value is the wrapped operator's own. The
     # generic formation does not apply: there is no METAOP routine for
     # sequencing, as the empty implicit lookups say.
-    method IMPL-HOP-INFIX() {
-        self.infix.IMPL-HOP-INFIX
-    }
+    method IMPL-HOP-INFIX() { self.infix.IMPL-HOP-INFIX }
 
     method IMPL-CALLS-OPERATOR() { True }
 
@@ -2752,7 +2779,8 @@ class RakuAST::MetaInfix::Sequence
     }
 
     method IMPL-CAN-INTERPRET() {
-        nqp::istype(self.infix.IMPL-UNBRACKETED, RakuAST::Infix) && self.infix.IMPL-CAN-INTERPRET
+        nqp::istype(self.infix.IMPL-UNBRACKETED,RakuAST::Infix)
+          && self.infix.IMPL-CAN-INTERPRET
     }
 
     method IMPL-COMPILES-OPERANDS() { self.infix.IMPL-COMPILES-OPERANDS }
@@ -2766,12 +2794,19 @@ class RakuAST::MetaInfix::Sequence
         )
     }
 
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+    method IMPL-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
         $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast)
     }
 
-    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+    method IMPL-LIST-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $operands
+    ) {
+        my $op := QAST::Op.new(:op<call>, self.IMPL-HOP-INFIX-QAST($context));
         for $operands {
             $op.push($_);
         }
@@ -2782,8 +2817,12 @@ class RakuAST::MetaInfix::Sequence
         $!infix.IMPL-HOP-INFIX-QAST($context)
     }
 
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
+    method IMPL-THUNK-ARGUMENTS(
+               RakuAST::Resolver  $resolver,
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression *@operands,
+                            Bool :$meta
+    ) {
         self.infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :meta)
     }
 }
@@ -2800,21 +2839,16 @@ class RakuAST::MetaInfix::CrossZip
         $obj
     }
 
-    method visit-children(Code $visitor) {
-        $visitor($!infix);
-    }
+
+    method properties() { OperatorProperties.infix(self.metaop) }
+    method reducer-name() { self.properties.reducer-name }
+    method visit-children(Code $visitor) { $visitor($!infix) }
 
     # The zip/cross produces a lazy sequence, so when the wrapped operator
     # has side effects a sunk result must still be iterated to run
     # those effects.
     method IMPL-RESULT-NEEDS-ITERATION() {
         !$!infix.is-pure || $!infix.IMPL-RESULT-NEEDS-ITERATION
-    }
-
-    method properties() { OperatorProperties.infix(self.metaop) }
-
-    method reducer-name() {
-        self.properties.reducer-name
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -2829,7 +2863,7 @@ class RakuAST::MetaInfix::CrossZip
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
-        my $op := QAST::Op.new( :op<call>, self.IMPL-HOP-INFIX-QAST($context) );
+        my $op := QAST::Op.new(:op<call>, self.IMPL-HOP-INFIX-QAST($context));
         for $operands {
             $op.push($_);
         }
@@ -2839,8 +2873,7 @@ class RakuAST::MetaInfix::CrossZip
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
         nqp::ifnull(
           self.IMPL-CONSTANT-HOP-INFIX-QAST($context, $!infix),
-          QAST::Op.new(:op<callstatic>,
-            :name(self.handler),
+          QAST::Op.new(:op<callstatic>, :name(self.handler),
             $!infix.IMPL-HOP-INFIX-QAST($context),
             QAST::Var.new(:name($!infix.reducer-name), :scope<lexical>)
           )
@@ -2855,8 +2888,12 @@ class RakuAST::MetaInfix::CrossZip
         )
     }
 
-    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                               RakuAST::Expression $expression, str $type) {
+    method IMPL-THUNK-ARGUMENT(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context,
+             RakuAST::Expression $expression,
+                             str $type
+    ) {
         # Circumfix::Parentheses  ⎡((say(\"ooh\"),),)⎤
         #   SemiList  ⎡(say(\"ooh\"),),⎤
         #     Statement::Expression  ⎡(say(\"ooh\"),),⎤
@@ -2866,7 +2903,8 @@ class RakuAST::MetaInfix::CrossZip
             my $semilist := $expression.semilist;
             if $semilist.IMPL-IS-SINGLE-EXPRESSION {
                 my $expr := $semilist.code-statements[0].expression;
-                if nqp::istype($expr, RakuAST::ApplyListInfix) && $expr.IMPL-IS-LIST-LITERAL {
+                if nqp::istype($expr,RakuAST::ApplyListInfix)
+                  && $expr.IMPL-IS-LIST-LITERAL {
                     for $expr.IMPL-UNWRAP-LIST($expr.operands) {
                         self.infix.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
                     }
@@ -2875,8 +2913,12 @@ class RakuAST::MetaInfix::CrossZip
         }
     }
 
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
+    method IMPL-THUNK-ARGUMENTS(
+               RakuAST::Resolver  $resolver,
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression *@operands,
+                            Bool :$meta
+    ) {
         my $thunky := self.infix.properties.thunky;
         my int $i;
         for @operands {

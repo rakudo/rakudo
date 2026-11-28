@@ -1437,7 +1437,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Var::Slang:D: --> Str:D) {
-        self!nameds: <name>
+        self!nameds: <name grammar actions>
     }
 
     multi method raku(RakuAST::Var::PositionalCapture:D: --> Str:D) {

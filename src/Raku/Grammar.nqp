@@ -1241,8 +1241,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # takes its grammar from here.
     method standard-slangs() {
         nqp::hash(
-          'Quote',   [Raku::QGrammar,       Raku::QActions],
-          'Regex',   [Raku::RegexGrammar,   Raku::RegexActions],
+          'Quote', [Raku::QGrammar,     Raku::QActions],
+          'Regex', [Raku::RegexGrammar, Raku::RegexActions],
         )
     }
 

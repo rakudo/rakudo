@@ -1803,10 +1803,10 @@ class RakuAST::Assignment
     method item { $!item ?? True !! False }
 
     method IMPL-APPLY-SINK-TO-OPERANDS(List $operands, Bool $is-sunk) {
-        my int $i;
+        my int $i := -1;
         nqp::while(
-          $i < nqp::elems($operands),
-          nqp::atpos($operands,$i++).apply-sink(False)
+          ++$i < nqp::elems($operands),
+          nqp::atpos($operands,$i).apply-sink(False)
         );
     }
 
@@ -1835,17 +1835,19 @@ class RakuAST::BracketedInfix
 
     method reducer-name() { $!infix.reducer-name }
 
-    method IMPL-UNBRACKETED() { $!infix.IMPL-UNBRACKETED }
-
     method is-pure() { $!infix.is-pure }
 
     method short-circuit() { $!infix.short-circuit }
+
+    method IMPL-UNBRACKETED() { $!infix.IMPL-UNBRACKETED }
 
     method IMPL-RESULT-NEEDS-ITERATION() { $!infix.IMPL-RESULT-NEEDS-ITERATION }
 
     method IMPL-PRIMES() { $!infix.IMPL-PRIMES }
 
-    method IMPL-OPERAND-PRIMES(int $index) { $!infix.IMPL-OPERAND-PRIMES($index) }
+    method IMPL-OPERAND-PRIMES(int $index) {
+        $!infix.IMPL-OPERAND-PRIMES($index)
+    }
 
     method IMPL-FIRST-TESTED-OPERAND(int $elems, Bool :$called) {
         $!infix.IMPL-FIRST-TESTED-OPERAND($elems, :$called)
@@ -1855,38 +1857,63 @@ class RakuAST::BracketedInfix
         $!infix.IMPL-APPLY-SINK-TO-OPERANDS($operands, $is-sunk)
     }
 
-    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                                RakuAST::Expression *@operands, Bool :$meta) {
+    method IMPL-THUNK-ARGUMENTS(
+               RakuAST::Resolver  $resolver,
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression *@operands,
+                            Bool :$meta
+    ) {
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |@operands, :$meta)
     }
 
-    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
-                               RakuAST::Expression $expression, str $type) {
+    method IMPL-THUNK-ARGUMENT(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context,
+             RakuAST::Expression $expression,
+                             str $type
+    ) {
         $!infix.IMPL-THUNK-ARGUMENT($resolver, $context, $expression, $type)
     }
 
-    method IMPL-NATIVE-PAIRED-OPERAND(RakuAST::Expression $left, RakuAST::Expression $right, Mu :$adverb) {
+    method IMPL-NATIVE-PAIRED-OPERAND(
+      RakuAST::Expression  $left,
+      RakuAST::Expression  $right,
+                       Mu :$adverb
+    ) {
         $!infix.IMPL-NATIVE-PAIRED-OPERAND($left, $right, :$adverb)
     }
 
-    method IMPL-OPERATOR() {
-        $!infix.IMPL-HOP-INFIX
-    }
+    method IMPL-OPERATOR() { $!infix.IMPL-HOP-INFIX }
 
-    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right, RakuAST::ColonPairish :$adverb) {
+    method IMPL-INFIX-COMPILE(
+      RakuAST::IMPL::QASTContext  $context,
+             RakuAST::Expression  $left,
+             RakuAST::Expression  $right,
+           RakuAST::ColonPairish :$adverb
+    ) {
         $!infix.IMPL-INFIX-COMPILE($context, $left, $right, :$adverb)
     }
 
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+    method IMPL-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
         $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
     }
 
-    method IMPL-INFIX-FOR-META-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+    method IMPL-INFIX-FOR-META-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
         $!infix.IMPL-INFIX-FOR-META-QAST($context, $left-qast, $right-qast)
     }
 
-    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+    method IMPL-LIST-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $operands
+    ) {
         $!infix.IMPL-LIST-INFIX-QAST($context, $operands)
     }
 
@@ -1898,7 +1925,11 @@ class RakuAST::BracketedInfix
 
     method IMPL-COMPILES-OPERANDS() { $!infix.IMPL-COMPILES-OPERANDS }
 
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands, Bool :$list-infix) {
+    method IMPL-INTERPRET(
+      RakuAST::IMPL::InterpContext  $ctx,
+                              List  $operands,
+                              Bool :$list-infix
+    ) {
         $!infix.IMPL-INTERPRET($ctx, $operands, :$list-infix)
     }
 }
@@ -1927,11 +1958,16 @@ class RakuAST::FunctionInfix
 
     method reducer-name() { '&METAOP_REDUCE_LEFT' }
 
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        QAST::Op.new:
-            :op('call'),
-            $!function.IMPL-TO-QAST($context),
-            $left-qast, $right-qast
+    method IMPL-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
+        QAST::Op.new(:op<call>,
+          $!function.IMPL-TO-QAST($context),
+          $left-qast,
+          $right-qast
+        )
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
